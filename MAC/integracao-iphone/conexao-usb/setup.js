@@ -44,7 +44,7 @@ async function prepare(id,password,service){
  const model=await run(require('../ios-tools').tool('ideviceinfo'),['-u',udid,'-k','ProductType']);
  const version=await run(require('../ios-tools').tool('ideviceinfo'),['-u',udid,'-k','ProductVersion']);
  let camera='Ponte de câmera não instalada: este modelo/iOS ainda não foi validado.';
- const TARGET='0.1-38-1+debug';
+ const TARGET='0.1-39-1+debug';
  if(model==='iPhone10,2'&&version==='16.7.16'){
   const current=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true")).trim();
   const upToDate=current&&(await command(client,'/var/jb/usr/bin/dpkg --compare-versions '+quote(current)+' ge '+quote(TARGET)+' && echo yes || echo no')).trim()==='yes';

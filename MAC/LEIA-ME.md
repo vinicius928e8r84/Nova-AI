@@ -1,5 +1,18 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Transporte camuflado Mac → iPhone (bridge 0.1-39) — 04/11/2026
+
+O que a Câmera do iPhone consome deixou de ser `http://127.0.0.1:18999/frame.jpg`.
+
+- O servidor do Mac (CAM LIVE e CAM HIJACK) só responde em `/s/<token de 32 hex>/frame.jpg` e `/s/<token>/audio`; sem o token a resposta é 404 neutro. O token é novo a cada sessão.
+- O túnel SSH tenta primeiro um **socket Unix** em `/var/tmp/.nb-<8hex>.sock` (modo 666 para o mediaserverd). Nenhuma porta TCP fica escutando no iPhone. Se o sshd do aparelho recusar streamlocal, cai para uma **porta TCP aleatória** (20000–39999) com o mesmo token; o `-v` do ssh foi removido.
+- O bridge 0.1-39 valida o caminho com token, aceita `socket` no control, recusa a rota antiga e **removeu o IP fixo `10.0.0.245:8900`** que vinha do projeto original.
+- O sequestro (item 3) passou a pedir o endereço ao CAM LIVE (`mediaEndpoint()`): CAM LIVE, CAM HIJACK e sequestro compartilham o mesmo token/transporte em vez de repetir 18999.
+
+Compatibilidade: pontes 0.1-38 e anteriores são recusadas ("atualize por USB") porque não conhecem o token. Atualize pelo **Conectar** em PHONE CONTROL — o `camera.deb` 0.1-39 já está incluído no app.
+
+Arquivos: `integracao-iphone/bridge/Tweak.x` (0.1-39), `integracao-camlive/cam-live-iphone.js`, `integracao-iphone/ios-camera.js` (= `integracao-sequestro-cam/ios-camera.patched.js`), `conexao-usb/setup.js` (alvo 0.1-39) e `conexao-usb/camera.deb`. Reservas do instalado anterior em `integracao-camlive/reservas/instalado-antes-camuflagem-20261104/`. Testes: 15 passam (`node --test` em `integracao-camlive/test/`), incluindo token/404, socket Unix, fallback TCP e sequestro. **Não testado no aparelho**: se o sshd do iPhone aceita `-R` com socket Unix e se o mediaserverd (sandbox) consegue conectar; se recusar, o fallback TCP entra sozinho. Reinicie o Nova e refaça o Conectar para instalar a 0.1-39.
+
 ## Conexão do iPhone dentro do app — 04/11/2026
 
 O **Conectar** dos iPhones em PHONE CONTROL deixou de abrir uma janela/página externa para a senha SSH. Agora o formulário, o progresso e o controle do iPhone são desenhados **dentro da janela do Nova**, como um modal do próprio app: fundo escurecido e embaçado, mesmo visual do Controle do Celular, X/Esc para fechar (bloqueado durante a preparação) e tempo decorrido.

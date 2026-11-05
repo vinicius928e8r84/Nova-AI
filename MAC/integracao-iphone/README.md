@@ -1,5 +1,9 @@
 # Nova AI → iPhone USB
 
+## Bridge 0.1-39: transporte camuflado — 04/11/2026
+
+A câmera não lê mais `127.0.0.1:18999/frame.jpg`. O `Tweak.x` 0.1-39 aceita só `/s/<token de 32 hex>/frame.jpg` e um `socket` opcional; o Mac abre primeiro um socket Unix por SSH (`-R /var/tmp/.nb-<hex>.sock:...`) e, se o sshd recusar, usa porta TCP aleatória. O IP fixo `10.0.0.245:8900` foi removido do tweak. `cam-live-iphone.js` e `ios-camera.js` geram o token e atualizam o control; o sequestro pega o endereço de `CamLiveIphone.mediaEndpoint()`. O `camera.deb` 0.1-39 vai junto com o app e o `setup.js` instala essa versão. Detalhes e o que não foi testado no aparelho: `../LEIA-ME.md` (topo).
+
 ## Conexão dentro do app — 04/11/2026
 
 Clicar em **Conectar** num iPhone não abre mais uma janela/página à parte. O modal da senha SSH, o progresso da preparação e o próprio controle do iPhone são desenhados dentro da janela do Nova (fundo escurecido, mesmo visual do Controle do Celular). A senha continua sem ser salva; o input é limpo antes do IPC e os erros nunca repetem a senha.

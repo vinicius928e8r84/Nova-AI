@@ -3,7 +3,12 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <substrate.h>
-#import "../../tweaks/vcampipeline/Pipeline.h"
+#import <sys/socket.h>
+#import <sys/un.h>
+#import <sys/time.h>
+#import <string.h>
+#import <dispatch/dispatch.h>
+#import "Pipeline.h"
 
 // Experimental graph replacement for selected camera clients. A short lease
 // is required before any graph is changed. A failed OBS request emits nothing.
@@ -37,6 +42,7 @@ static BOOL g_photoPrepareBypass;
 static int g_frameRate = 5;
 static NSTimeInterval g_expires;
 static NSString *g_url;
+static NSString *g_socket;
 static unsigned long g_redirected, g_suppressedStarts, g_emittedVideo, g_emittedStill, g_fetchFailures;
 static unsigned long g_graphStarts, g_graphStartFailures, g_graphStops, g_contextLimitHits;
 static unsigned long g_startHookDispatchMisses;
@@ -109,6 +115,7 @@ static BOOL bridgeGraphStart(id graph, SEL selector, void *error);
 @property (nonatomic, strong) NSArray *recordInputs;
 @property (nonatomic, strong) id metadataSource;
 @property (nonatomic, copy) NSString *url;
+@property (nonatomic, copy) NSString *socket;
 @property (nonatomic, strong) CIContext *renderContext;
 @property (nonatomic, strong) id colorSpace;
 @property (nonatomic, strong) dispatch_queue_t worker;
@@ -188,6 +195,74 @@ static BOOL leaseValid(void) {
     return g_enabled && !g_faulted && (g_continuous || [[NSDate date] timeIntervalSince1970] < g_expires);
 }
 
+// ── Transporte camuflado (0.1-39) ───────────────────────────────────────
+// A câmera só aceita um caminho com token de 32 hex; quando o Mac abre um
+// socket Unix pelo túnel USB, nenhuma porta TCP fica escutando no aparelho.
+
+static BOOL isHexTokenPath(NSString *path) {
+    const NSUInteger expected = 3 + 32 + 10; // "/s/" + token + "/frame.jpg"
+    if (![path isKindOfClass:[NSString class]] || path.length != expected) return NO;
+    if (![path hasPrefix:@"/s/"] || ![path hasSuffix:@"/frame.jpg"]) return NO;
+    for (NSUInteger i = 3; i < 35; i++) {
+        unichar c = [path characterAtIndex:i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return NO;
+    }
+    return YES;
+}
+
+static BOOL isCameraSocketPath(NSString *path) {
+    if (![path isKindOfClass:[NSString class]] || path.length < 12 || path.length > 96) return NO;
+    if (![path hasPrefix:@"/var/tmp/"] && ![path hasPrefix:@"/var/run/"]) return NO;
+    if ([path containsString:@".."] || [path containsString:@"//"]) return NO;
+    return YES;
+}
+
+// GET HTTP/1.0 por socket Unix; devolve o corpo ou nil em erro/timeout.
+static NSData *httpGetOverUnix(NSString *socketPath, NSString *requestPath, NSTimeInterval timeout, NSUInteger maxBytes) {
+    if (!isCameraSocketPath(socketPath) || requestPath.length == 0 || requestPath.length > 256) return nil;
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) return nil;
+    struct sockaddr_un address;
+    memset(&address, 0, sizeof(address));
+    address.sun_family = AF_UNIX;
+    if (strlcpy(address.sun_path, socketPath.UTF8String, sizeof(address.sun_path)) >= sizeof(address.sun_path)) {
+        close(fd);
+        return nil;
+    }
+    struct timeval tv;
+    tv.tv_sec = (time_t)timeout;
+    tv.tv_usec = (suseconds_t)((timeout - (NSTimeInterval)tv.tv_sec) * 1000000.0);
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    NSData *result = nil;
+    if (connect(fd, (struct sockaddr *)&address, sizeof(address)) == 0) {
+        NSString *request = [NSString stringWithFormat:@"GET %@ HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n", requestPath];
+        NSData *payload = [request dataUsingEncoding:NSUTF8StringEncoding];
+        if (payload.length && send(fd, payload.bytes, payload.length, 0) == (ssize_t)payload.length) {
+            NSMutableData *response = [NSMutableData data];
+            uint8_t buffer[8192];
+            while (response.length <= maxBytes + 4096) {
+                ssize_t received = recv(fd, buffer, sizeof(buffer), 0);
+                if (received <= 0) break;
+                [response appendBytes:buffer length:(NSUInteger)received];
+            }
+            NSRange separator = [response rangeOfData:[@"\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding]
+                                              options:0 range:NSMakeRange(0, MIN(response.length, (NSUInteger)4096))];
+            if (separator.location != NSNotFound) {
+                NSString *head = [[NSString alloc] initWithData:[response subdataWithRange:NSMakeRange(0, separator.location)]
+                                                       encoding:NSUTF8StringEncoding];
+                if ([head hasPrefix:@"HTTP/1.0 200"] || [head hasPrefix:@"HTTP/1.1 200"]) {
+                    NSUInteger start = NSMaxRange(separator);
+                    NSData *body = [response subdataWithRange:NSMakeRange(start, response.length - start)];
+                    if (body.length <= maxBytes) result = body;
+                }
+            }
+        }
+    }
+    close(fd);
+    return result;
+}
+
 static BOOL appAllowed(id appID) {
     [g_lock lock];
     BOOL allowed = [appID isKindOfClass:[NSString class]] &&
@@ -215,11 +290,13 @@ static void readControl(void) {
     } else if ([config[@"appID"] isEqual:kCameraApp]) {
         [allowedApps addObject:kCameraApp];
     }
+    NSString *socketPath = [config[@"socket"] isKindOfClass:[NSString class]] ? config[@"socket"] : nil;
+    BOOL unixTransport = isCameraSocketPath(socketPath);
+    NSInteger port = [url.port integerValue];
+    BOOL tcpTransport = [url.host isEqualToString:@"127.0.0.1"] && port >= 1024 && port <= 65535;
     BOOL valid = [config[@"mode"] isEqual:@"inject"] && allowedApps.count > 0 &&
         [expiry isKindOfClass:[NSNumber class]] && [url.scheme isEqualToString:@"http"] &&
-        (([url.host isEqualToString:@"10.0.0.245"] && [url.port integerValue] == 8900) ||
-         ([url.host isEqualToString:@"127.0.0.1"] && [url.port integerValue] == 18999)) &&
-        [url.path isEqualToString:@"/frame.jpg"] &&
+        isHexTokenPath(url.path) && (unixTransport || tcpTransport) &&
         (continuous || ([expiry doubleValue] > now && [expiry doubleValue] <= now+120));
     [g_lock lock];
     g_enabled = valid;
@@ -245,6 +322,7 @@ static void readControl(void) {
     g_remoteQueuePortType = valid ? (portType ?: @"PortTypeBack") : nil;
     g_expires = valid ? [expiry doubleValue] : 0;
     g_url = valid ? [address copy] : nil;
+    g_socket = (valid && unixTransport) ? [socketPath copy] : nil;
     [g_lock unlock];
 }
 
@@ -259,7 +337,7 @@ static void saveStatus(void) {
                               @"recordInputKnown":@(ctx.recordInput != nil)}];
     }
     NSDictionary *status = @{
-        @"version":@"0.1-38", @"pid":@([NSProcessInfo processInfo].processIdentifier),
+        @"version":@"0.1-39", @"pid":@([NSProcessInfo processInfo].processIdentifier),
         @"observedAppIDs":g_observedAppIDs.allObjects,
         @"allowedAppIDs":g_allowedAppIDs.allObjects,
         @"audioInjection":@(g_audioInjection), @"audioQueued":@(g_audioPackets.count),
@@ -318,7 +396,25 @@ static void saveStatus(void) {
     [json writeToFile:kStatus options:NSDataWritingAtomic error:nil];
 }
 
-static CGImageRef copyFrame(NSString *address, NSURLSession *session) {
+static CGImageRef imageFromJPEG(NSData *data) {
+    if (data.length < 4 || data.length > 2*1024*1024) return NULL;
+    const uint8_t *bytes = data.bytes;
+    if (bytes[0] != 0xff || bytes[1] != 0xd8) return NULL;
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+    CGImageRef image = source ? CGImageSourceCreateImageAtIndex(source, 0, NULL) : NULL;
+    if (source) CFRelease(source);
+    if (image && (CGImageGetWidth(image) > 4096 || CGImageGetHeight(image) > 4096)) {
+        CGImageRelease(image); return NULL;
+    }
+    return image;
+}
+
+static CGImageRef copyFrame(NSString *address, NSString *socketPath, NSURLSession *session) {
+    if (socketPath.length) {
+        NSURL *url = [NSURL URLWithString:address];
+        NSData *data = httpGetOverUnix(socketPath, url.path, 2, 2*1024*1024);
+        return imageFromJPEG(data);
+    }
     dispatch_semaphore_t signal = dispatch_semaphore_create(0);
     __block NSData *data = nil;
     __block NSHTTPURLResponse *response = nil;
@@ -331,16 +427,8 @@ static CGImageRef copyFrame(NSString *address, NSURLSession *session) {
     if (dispatch_semaphore_wait(signal, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC)) != 0) {
         [task cancel]; return NULL;
     }
-    if (response.statusCode != 200 || data.length < 4 || data.length > 2*1024*1024) return NULL;
-    const uint8_t *bytes = data.bytes;
-    if (bytes[0] != 0xff || bytes[1] != 0xd8) return NULL;
-    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
-    CGImageRef image = source ? CGImageSourceCreateImageAtIndex(source, 0, NULL) : NULL;
-    if (source) CFRelease(source);
-    if (image && (CGImageGetWidth(image) > 4096 || CGImageGetHeight(image) > 4096)) {
-        CGImageRelease(image); return NULL;
-    }
-    return image;
+    if (response.statusCode != 200) return NULL;
+    return imageFromJPEG(data);
 }
 
 static CMSampleBufferRef copySample(CGImageRef image, CIContext *render, CGColorSpaceRef space,
@@ -403,7 +491,7 @@ static void produce(OBSBridgeContext *ctx) {
         [g_lock unlock];
         if (!videoWidth) { videoWidth = 1584; videoHeight = 1188; }
         if (!previewOnly && thisTick == 1 && hasStillSource) emitStillSequence(ctx);
-        CGImageRef image = copyFrame(ctx.url, ctx.networkSession);
+        CGImageRef image = copyFrame(ctx.url, ctx.socket, ctx.networkSession);
         if (!image) { __atomic_add_fetch(&g_fetchFailures, 1, __ATOMIC_RELAXED); return; }
         CGColorSpaceRef space = (__bridge CGColorSpaceRef)ctx.colorSpace;
         CMTime pts = CMClockGetTime(CMClockGetHostTimeClock());
@@ -534,6 +622,7 @@ static void startProducer(OBSBridgeContext *ctx) {
     }
     ctx.running = YES;
     ctx.url = g_url;
+    ctx.socket = g_socket;
     ctx.frameRate = g_frameRate;
     NSURLSessionConfiguration *network = [NSURLSessionConfiguration ephemeralSessionConfiguration];
     network.timeoutIntervalForRequest = 2;
@@ -1164,19 +1253,17 @@ static void fetchAudio(void) {
     }
     g_audioFetchPending = YES;
     unsigned long long after = g_audioSequence;
-    NSURL *frameURL = [NSURL URLWithString:g_url];
-    NSString *urlText = [NSString stringWithFormat:@"http://%@:%@/audio?after=%llu",
-                         frameURL.host, frameURL.port, after];
+    NSString *frameURLText = [g_url copy];
+    NSString *socketPath = [g_socket copy];
     [g_lock unlock];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlText]];
-    request.timeoutInterval = 0.7;
-    [[g_audioSession dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    NSURL *frameURL = [NSURL URLWithString:frameURLText];
+    NSString *audioPath = [[[frameURL path] stringByReplacingOccurrencesOfString:@"/frame.jpg" withString:@"/audio"]
+                           stringByAppendingFormat:@"?after=%llu", after];
+    void (^handle)(NSData *, NSInteger) = ^(NSData *data, NSInteger status) {
         [g_lock lock];
         g_audioFetchPending = NO;
         const uint8_t *bytes = data.bytes;
-        if (error || ![(NSHTTPURLResponse *)response isKindOfClass:[NSHTTPURLResponse class]] ||
-            ((NSHTTPURLResponse *)response).statusCode != 200 || data.length < 4 ||
-            memcmp(bytes, "OBA1", 4)) {
+        if (status != 200 || data.length < 4 || memcmp(bytes, "OBA1", 4)) {
             g_audioFetchFailures++;
         } else {
             NSUInteger offset = 4;
@@ -1195,6 +1282,22 @@ static void fetchAudio(void) {
             while (g_audioPackets.count > 24) [g_audioPackets removeObjectAtIndex:0];
         }
         [g_lock unlock];
+    };
+    if (socketPath.length) {
+        // O socket Unix pode bloquear até o timeout; não prenda a fila do áudio.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+            NSData *data = httpGetOverUnix(socketPath, audioPath, 0.7, 32*8192);
+            handle(data, data ? 200 : 0);
+        });
+        return;
+    }
+    NSString *urlText = [NSString stringWithFormat:@"http://%@:%@%@", frameURL.host, frameURL.port, audioPath];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlText]];
+    request.timeoutInterval = 0.7;
+    [[g_audioSession dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        NSInteger status = (!error && [(NSHTTPURLResponse *)response isKindOfClass:[NSHTTPURLResponse class]])
+            ? ((NSHTTPURLResponse *)response).statusCode : 0;
+        handle(data, status);
     }] resume];
 }
 

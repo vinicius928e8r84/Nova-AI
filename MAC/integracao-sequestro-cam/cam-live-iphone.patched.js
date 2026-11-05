@@ -1,12 +1,19 @@
 'use strict';
 // CAM LIVE → iPhone USB: JPEG + AAC-LC over an app-owned loopback HTTP server.
+//
+// Transporte camuflado (bridge 0.1-39): o servidor só responde em
+// /s/<token de 32 hex>/… e o túnel tenta primeiro um socket Unix no iPhone;
+// se o sshd não aceitar, cai para uma porta TCP aleatória. Nada de 18999.
 const http = require('http');
+const crypto = require('crypto');
 const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
-const BLACK_FRAME = Buffer.from('/9j/4AAQSkZJRgABAgAAAQABAAD//gAPTGF2YzYzLjEuMTAyAP/bAEMACAQEBAQEBQUFBQUFBgYGBgYGBgYGBgYGBgcHBwgICAcHBwYGBwcICAgICQkJCAgICAkJCgoKDAwLCw4ODhERFP/EAEsAAQEAAAAAAAAAAAAAAAAAAAAIAQEAAAAAAAAAAAAAAAAAAAAAEAEAAAAAAAAAAAAAAAAAAAAAEQEAAAAAAAAAAAAAAAAAAAAA/8AAEQgAIAAgAwEiAAIRAAMRAP/aAAwDAQACEQMRAD8An8AAAAAAAH//2Q==', 'base64');
+const BLACK_FRAME = Buffer.from('/9j/4AAQSkZJRgABAgAAAQABAAD//gAPTGF2YzYzLjEuMTAyAP/bAEMACAQEBAQEBQUFBQUFBgYGBgYGBgYGBgYGBgcHBwgICAcHBwYGBwcICAgICQkJCAgICAkKCgoKDAwLCw4ODhERFP/EAEsAAQEAAAAAAAAAAAAAAAAAAAAIAQEAAAAAAAAAAAAAAAAAAAAAEAEAAAAAAAAAAAAAAAAAAAAAEQEAAAAAAAAAAAAAAAAAAAAA/8AAEQgAIAAgAwEiAAIRAAMRAP/aAAwDAQACEQMRAD8An8AAAAAAAH//2Q==', 'base64');
 const MAX_JPEG = 2 * 1024 * 1024;
-
+const MEDIA_TOKEN = /^[0-9a-f]{32}$/;
+const UNAVAILABLE = 'Indisponível';
+const quote = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
 
 class AdtsParser {
   constructor(onPacket) { this.pending = Buffer.alloc(0); this.onPacket = onPacket; }
@@ -53,9 +60,13 @@ function jpegDimensions(bytes) {
 }
 
 class UsbMedia {
-  constructor({ now = Date.now, idleFrame = null } = {}) {
+  constructor({ now = Date.now, idleFrame = null, token = crypto.randomBytes(16).toString('hex') } = {}) {
+    if (!MEDIA_TOKEN.test(String(token))) throw new Error('Token de mídia inválido.');
+    this.token = String(token);
     this.now = now; this.idleFrame = idleFrame; this.latestFrame = null; this.frameAt = 0; this.audioAt = 0; this.sequence = 0n; this.audio = []; this.server = null;
   }
+  get framePath() { return `/s/${this.token}/frame.jpg`; }
+  get audioPath() { return `/s/${this.token}/audio`; }
   frame(data) {
     if (!Buffer.isBuffer(data) && !(data instanceof Uint8Array)) return { ok: false, error: 'Quadro JPEG inválido.' };
     const b = Buffer.from(data);
@@ -86,14 +97,14 @@ class UsbMedia {
       if (req.method !== 'GET') return reply(405, 'Método não permitido');
       let url;
       try { url = new URL(req.url, 'http://127.0.0.1'); } catch (_) { return reply(400, 'URL inválida'); }
-      if (url.pathname === '/frame.jpg') {
+      if (url.pathname === this.framePath) {
         const frame = this.freshFrame() ? this.latestFrame : this.idleFrame;
-        return frame ? reply(200, frame, 'image/jpeg') : reply(503, 'Sem quadro recente do CAM LIVE');
+        return frame ? reply(200, frame, 'image/jpeg') : reply(503, UNAVAILABLE);
       }
-      if (url.pathname === '/audio') {
+      if (url.pathname === this.audioPath) {
         const text = url.searchParams.get('after') || '0';
         if (!/^\d{1,20}$/.test(text) || BigInt(text) > 0xffffffffffffffffn) return reply(400, 'Sequência inválida');
-        const batch = this.batch(BigInt(text)); return batch ? reply(200, batch, 'application/octet-stream') : reply(503, 'Sem áudio recente do CAM LIVE');
+        const batch = this.batch(BigInt(text)); return batch ? reply(200, batch, 'application/octet-stream') : reply(503, UNAVAILABLE);
       }
       return reply(404, 'Não encontrado');
     });
@@ -110,13 +121,20 @@ class UsbMedia {
   }
 }
 
+// A ponte relata "0.1-<revisão>"; 0.1-39 é a primeira com o transporte camuflado.
+function bridgePatch(state) {
+  const match = /^0\.1-(\d+)/.exec(String((state && state.version) || ''));
+  return match ? Number(match[1]) : 0;
+}
+
 function ready(state) {
-  return state && state.version === '0.1-38' && state.hooksReady && !state.faulted && state.photoPrepareHookReady && state.photoStillHookReady && state.photoPortRemapHookReady;
+  return state && bridgePatch(state) >= 39 && state.hooksReady && !state.faulted && state.photoPrepareHookReady && state.photoStillHookReady && state.photoPortRemapHookReady;
 }
 class CamLiveIphone {
   constructor({ getMobileService, send = () => {}, ffmpegPath, spawnProcess = spawn }) {
     this.getMobileService = getMobileService; this.send = send; this.ffmpegPath = ffmpegPath; this.spawnProcess = spawnProcess;
     this.stopping = null; this.generation = 0; this.running = false; this.starting = false; this.active = false; this.status = 'Pronto'; this.error = ''; this.droppedPcm = 0; this.cameraEnabled = false; this.transportQueue = Promise.resolve();
+    this.transport = null; this.frameUrl = null; this.socketPath = null;
   }
   _emit(extra = {}) { this.send('camlive:status', { status: this.status, error: this.error, destination: 'iphone', ...extra }); }
   _assert(token) { if (token !== this.generation) throw new Error('Preparação do CAM LIVE cancelada.'); }
@@ -129,6 +147,11 @@ class CamLiveIphone {
     const task = this.transportQueue.then(operation);
     this.transportQueue = task.catch(() => {});
     return task;
+  }
+  // Endereço que a ponte deve ler. O sequestro (ios-camera.js) usa isto ao
+  // escrever o control, em vez de repetir 18999/frame.jpg.
+  mediaEndpoint() {
+    return { url: this.frameUrl, socket: this.transport?.type === 'unix' ? this.transport.path : null };
   }
   async ensureTransport() {
     if (this.tunnel && this.media) return;
@@ -145,8 +168,8 @@ class CamLiveIphone {
     }
   }
   async closeTransport() {
-    const tunnel = this.tunnel, media = this.media;
-    this.tunnel = null; this.media = null;
+    const tunnel = this.tunnel, media = this.media, socketPath = this.socketPath;
+    this.tunnel = null; this.media = null; this.socketPath = null; this.transport = null; this.frameUrl = null;
     if (tunnel && tunnel.exitCode == null && tunnel.signalCode == null) {
       await new Promise(resolve => {
         const done = () => {
@@ -159,6 +182,7 @@ class CamLiveIphone {
         tunnel.kill();
       });
     }
+    if (socketPath) { try { await this.getMobileService?.()?.iosSsh(`rm -f ${quote(socketPath)}`); } catch (_) {} }
     await media?.close();
   }
   setCameraEnabled(enabled, writeControl) {
@@ -187,10 +211,10 @@ class CamLiveIphone {
       const devices = (await this.mobile.getIosDevices()).filter(d => d.ios || String(d.id).startsWith('ios-')); this._assert(token);
       if (devices.length !== 1) throw new Error('Conecte exatamente um iPhone por USB para transmitir.');
       const device = devices[0];
-      if (cfg.deviceId && cfg.deviceId !== device.id) throw new Error('O iPhone selecionado não corresponde ao único aparelho conectado.');
+      if (cfg.deviceId && cfg.deviceId !== device.id) throw new Error('O iPhone selecionado não corresponde ao único dispositivo conectado.');
       this.deviceName = device.name || 'iPhone'; this.deviceId = device.id;
       const state = await this._readState(); this._assert(token);
-      if (!ready(state)) throw new Error('A ponte de câmera precisa ser a versão 0.1-38 com os hooks de foto prontos. Use Conectar em PHONE CONTROL para atualizar/preparar o iPhone.');
+      if (!ready(state)) throw new Error('A ponte de câmera precisa ser a versão 0.1-39 (transporte camuflado) com os hooks de foto prontos. Use Conectar em PHONE CONTROL para atualizar/preparar o iPhone.');
       const sampleRate = Number(cfg.sampleRate || 48000);
       if (![8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000].includes(sampleRate)) throw new Error('Taxa de áudio da fonte não suportada.');
       this.sampleRate = sampleRate; this.fps = Math.max(1, Math.min(30, Math.round(Number(cfg.fps) || 30)));
@@ -209,26 +233,61 @@ class CamLiveIphone {
       return { ok: false, error: error.message };
     }
   }
-  async _tunnel() {
-    const args = ['-p', '2222', '-i', path.join(os.homedir(), '.ssh', 'id_iphone'), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-v', '-N', '-R', `127.0.0.1:18999:127.0.0.1:${this.media.server.address().port}`, 'mobile@127.0.0.1'];
-    await new Promise((resolve, reject) => {
-      const child = this.spawnProcess('/usr/bin/ssh', args, { stdio: ['ignore', 'ignore', 'pipe'] }); this.tunnel = child;
+  _sshArgs(forward) {
+    return ['-p', '2222', '-i', path.join(os.homedir(), '.ssh', 'id_iphone'), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-N', '-R', forward, 'mobile@127.0.0.1'];
+  }
+  _openForward(args) {
+    return new Promise((resolve, reject) => {
+      const child = this.spawnProcess('/usr/bin/ssh', args, { stdio: ['ignore', 'ignore', 'pipe'] }); child.novaAbort = false; this.tunnel = child;
       let confirmed = false, settled = false, stderr = '';
-      const fail = error => { if (!settled) {
-          settled = true; clearTimeout(timer); reject(error);
-        } else if (confirmed && this.tunnel === child) {
-          this.tunnel = null;
-          this._fail(error, this.generation);
-        }
+      const close = () => { if (this.tunnel === child) this.tunnel = null; try { child.kill(); } catch (_) {} };
+      const fail = error => {
+        if (!settled) { settled = true; clearTimeout(timer); close(); reject(error); }
+        else if (confirmed) { close(); this._fail(error, this.generation); }
       };
-      const timer = setTimeout(() => { child.kill(); fail(new Error('O túnel USB não confirmou a conexão. Use Conectar em PHONE CONTROL.')); }, 8000);
+      const timer = setTimeout(() => { fail(new Error('O túnel USB não confirmou a conexão. Use Conectar em PHONE CONTROL.')); }, 8000);
       child.stderr.on('data', bytes => {
         stderr = (stderr + bytes.toString()).slice(-4096);
         if (!settled && stderr.includes('remote forward success')) { confirmed = true; settled = true; clearTimeout(timer); resolve(); }
       });
       child.once('error', () => fail(new Error('Não foi possível iniciar o túnel SSH por USB. Use Conectar em PHONE CONTROL.')));
-      child.once('exit', () => fail(new Error(stderr.includes('remote port forwarding failed') ? 'A porta de câmera do iPhone está ocupada por outra transmissão. Encerre-a antes de iniciar o CAM LIVE.' : 'O túnel USB foi encerrado. Reconecte o iPhone em PHONE CONTROL.')));
+      child.once('exit', () => { if (child.novaAbort) return; fail(new Error(stderr.includes('remote port forwarding failed') || stderr.includes('remote forward failure') ? 'O endereço de câmera do iPhone está ocupado por outra transmissão. Encerre-a antes de iniciar o CAM LIVE.' : 'O túnel USB foi encerrado. Reconecte o iPhone em PHONE CONTROL.')); });
     });
+  }
+  async _tunnel() {
+    const localPort = this.media.server.address().port;
+    this.transport = await this._camouflagedForward(localPort);
+    this.frameUrl = this.transport.type === 'unix'
+      ? `http://127.0.0.1${this.media.framePath}`
+      : `http://127.0.0.1:${this.transport.port}${this.media.framePath}`;
+  }
+  // 1º: socket Unix no iPhone (nenhuma porta TCP escutando). 2º: porta aleatória.
+  async _camouflagedForward(localPort) {
+    const socketPath = `/var/tmp/.nb-${crypto.randomBytes(4).toString('hex')}.sock`;
+    this.socketPath = socketPath;
+    try {
+      await this._openForward(this._sshArgs(`${socketPath}:127.0.0.1:${localPort}`));
+      const check = await this.mobile.iosSsh(`chmod 666 ${quote(socketPath)} && test -S ${quote(socketPath)} && echo ok`);
+      if (!check || !check.ok || !String(check.stdout || '').includes('ok')) throw new Error('O iPhone não aceitou o socket Unix.');
+      return { type: 'unix', path: socketPath };
+    } catch (_) {
+      if (this.tunnel) { this.tunnel.novaAbort = true; try { this.tunnel.kill(); } catch (__) {} this.tunnel = null; }
+      this.mobile.iosSsh(`rm -f ${quote(socketPath)}`).catch(() => {});
+      this.socketPath = null;
+      return this._tcpForward(localPort);
+    }
+  }
+  async _tcpForward(localPort, attempts = 3) {
+    let lastError;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      const port = 20000 + crypto.randomInt(0, 20000);
+      try {
+        await this._openForward(this._sshArgs(`127.0.0.1:${port}:127.0.0.1:${localPort}`));
+        this.remotePort = port;
+        return { type: 'tcp', port };
+      } catch (error) { lastError = error; }
+    }
+    throw lastError || new Error('Não foi possível abrir o túnel do iPhone.');
   }
   async _encoder(token) {
     const ffmpeg = this.ffmpegPath || require('./mac-native').tool('ffmpeg');
@@ -311,7 +370,7 @@ class CamLiveIphone {
     if (preparing) await preparing;
     await this._cleanup(); this.status = 'Pronto'; return { ok: true };
   }
-  stats() { return { destination: 'iphone', status: this.status, active: this.active, fps: this.fps || 30, queued: this.media ? this.media.audio.length : 0, dropped: this.droppedPcm, deviceName: this.deviceName || '', frameFresh: !!this.media && this.media.freshFrame(), audioFresh: !!this.media && this.media.freshAudio() }; }
+  stats() { return { destination: 'iphone', status: this.status, active: this.active, fps: this.fps || 30, queued: this.media ? this.media.audio.length : 0, dropped: this.droppedPcm, deviceName: this.deviceName || '', frameFresh: !!this.media && this.media.freshFrame(), audioFresh: !!this.media && this.media.freshAudio(), transport: this.transport?.type || '' }; }
   snapshot() { return { ...this.stats(), error: this.error, running: this.running }; }
 }
 module.exports = { CamLiveIphone, AdtsParser, UsbMedia };
