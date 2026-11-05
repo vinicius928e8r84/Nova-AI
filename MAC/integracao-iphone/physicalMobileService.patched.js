@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const iphoneSsh = require('./iphone-ssh');
+const iosModelo = require('./ios-modelo');
 const net = require('net');
 const WebSocket = require('ws');
 const axios = require('axios');
@@ -367,6 +368,48 @@ class PhysicalMobileService {
         const r = await this.iosProxyRun('proxy check', 40000);
         if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
         return { success: true, ip: r.stdout };
+    }
+
+    // ── Modelo do iPhone (novamodel) ─────────────────────────────
+    // Tweak com.aquiles.novamodel + CLI /var/jb/usr/bin/novamodel (set/clear/status).
+    // Chamado via SSH (túnel USB), como os demais comandos iOS. O banco iosModels.json
+    // alimenta o seletor do painel e valida o productType antes de aplicar.
+    getIosModels() {
+        try {
+            const db = JSON.parse(fs.readFileSync(path.join(__dirname, 'iosModels.json'), 'utf8'));
+            return { success: true, models: db.models || [] };
+        } catch (e) {
+            console.error('[novamodel] banco de modelos iOS ausente:', e.message);
+            return { success: false, models: [], error: 'Banco de modelos iOS não encontrado.' };
+        }
+    }
+
+    async applyIOSModel(deviceId, productType) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
+        }
+        if (!iosModelo.isValidProductType(productType)) {
+            return { success: false, error: 'productType inválido.' };
+        }
+        const db = this.getIosModels();
+        if (db.success && !iosModelo.findModel(db.models, productType)) {
+            return { success: false, error: `Modelo "${productType}" não está no banco iOS.` };
+        }
+        return iosModelo.applyModel((cmd) => this.iosSsh(cmd), productType);
+    }
+
+    async clearIOSModel(deviceId) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
+        }
+        return iosModelo.clearModel((cmd) => this.iosSsh(cmd));
+    }
+
+    async getIOSModel(deviceId) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
+        }
+        return iosModelo.getModel((cmd) => this.iosSsh(cmd));
     }
 
     iosRun(args) {
