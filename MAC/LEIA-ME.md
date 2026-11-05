@@ -4,8 +4,8 @@
 
 Spoofing de modelo do iPhone na UI: no painel **Identidade simulada** (janela "Controle do Celular"), o seletor de modelo do iPhone agora é alimentado pelo banco de modelos iOS e tem botões **Aplicar modelo** e **Limpar modelo**.
 
-- **Seletor:** `pIphoneModels` no bundle passou de nomes soltos para objetos `{t: productType, n: nome}` (iPhone 8 → iPhone 16, 24 modelos únicos, deduplicados por nome de marketing a partir de `MAC/integracao-modelo/models.json`). Ex.: iPhone 13 = `iPhone14,5`.
-- **Contrato de IPC (bundle → main):** `spoofer:apply-ios-model {deviceId, productType}` (aplica), `spoofer:clear-ios-model {deviceId}` (restaura o real) e `spoofer:get-ios-model {deviceId}` (lê `{real, active, enabled}`). Os handlers no `main.js`/`physicalMobileService` são do iOS Engineer; o bundle já chama esses canais. Se o IPC ainda não existir, o seletor mostra a falha no painel (estado "error").
+- **Seletor:** populado dinamicamente via `spoofer:get-ios-models` (27 modelos do banco do serviço, `{productType, name}`); o bundle não tem mais lista fixa. Ex.: iPhone 13 = `iPhone14,5`.
+- **Contrato de IPC (bundle → main):** `spoofer:get-ios-models` (sem args → `{success, models[]}`), `spoofer:apply-ios-model {deviceId, productType}` (aplica), `spoofer:clear-ios-model {deviceId}` (restaura o real) e `spoofer:get-ios-model {deviceId}` (lê `{real, active, enabled}`). Os handlers no `main.js`/`physicalMobileService` são do iOS Engineer; o bundle já chama esses canais. Se o IPC ainda não existir, o seletor mostra a falha no painel (estado "error").
 - **Estados:** `applying` (spinner), `applied` (verde, "Modelo aplicado no iPhone"), `idle` (modelo real) e `error` (vermelho). Ao abrir a aba, `spoofer:get-ios-model` lê o estado atual.
 - **Texto pt-BR**; nomes de modelo (dados de spoofing) não traduzidos.
 
