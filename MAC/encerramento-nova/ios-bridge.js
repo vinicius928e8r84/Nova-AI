@@ -8,11 +8,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execFile, spawn } = require('child_process');
+const iphoneSsh = require('./iphone-ssh');
 const { WebSocketServer } = require('ws');
 
 const PORT = parseInt(process.env.NOVA_IOS_PORT || '8778', 10);
 const VNC_PORT = 5900;            // CatVNC no iPhone (encaminhado pelo iproxy)
-const SSH_ARGS = ['-p', '2222', '-i', path.join(os.homedir(), '.ssh', 'id_iphone'),
+const SSH_ARGS = ['-p', '2222', ...iphoneSsh.sshOptions(),
   '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
   'mobile@127.0.0.1'];
 const NOVNC_DIR = path.join(__dirname, '..', '..', 'node_modules', '@novnc', 'novnc');

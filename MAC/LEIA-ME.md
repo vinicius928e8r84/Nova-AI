@@ -1,5 +1,16 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Chave SSH do iPhone agora é do app — 04/11/2026
+
+A chave usada para falar com o iPhone saiu de `~/.ssh/id_iphone` e passou para `~/Library/Application Support/nova_dsktp/iphone-ssh/` (modo 0600), junto com o `known_hosts` do aparelho. Todos os `ssh`/`scp` do app usam `-i` explícito, `IdentitiesOnly=yes` e `UserKnownHostsFile=` desse diretório, então não caem mais nas outras chaves do agente SSH do Mac.
+
+- `services/iphone-ssh.js` é o único lugar que conhece o caminho; `setup.js`, `physicalMobileService.js`, `ios-camera.js`, `cam-live-iphone.js` e `ios-bridge.js` passaram a usar `sshOptions()`.
+- Migração automática no boot (`migrateLegacy()`): se existir `~/.ssh/id_iphone` e ainda não houver a do app, ela é **movida** (não copiada) e a linha `[127.0.0.1]:2222` do `known_hosts` é herdada. É a mesma chave, o iPhone continua autorizando — não precisa refazer o Conectar.
+- Em teste (`NOVA_SMOKE_TEST=1`) a migração não roda; `NOVA_USER_DATA` isola os caminhos.
+- Não é isolamento criptográfico: qualquer processo do mesmo usuário do macOS ainda lê o arquivo (0600). O ganho é sair do `~/.ssh` (fora de dotfiles, backups e outras ferramentas) e ter par chave/known_hosts só do app.
+
+Verificação: migração simulada com `HOME` falso moveu a chave com 0600, herdou o known_hosts e gerou as opções certas; 15 testes do CAM LIVE + `setup.test.cjs` + `botao-servico.test.cjs` passando. **Reinicie o Nova** para a migração acontecer. No repo, `integracao-camlive/`, `integracao-sequestro-cam/` e `encerramento-nova/` têm um shim `iphone-ssh.js` porque neles os arquivos não ficam lado a lado como em `electron/services/`.
+
 ## Cartão do iPhone: "Abrir controle" reaplicado — 04/11/2026
 
 O bundle em uso (`dist/assets/index-Dun7lr2S.js`) estava **sem** o patch do botão do iPhone: o cartão de um aparelho já preparado mostrava **PARAR TRANSMISSÃO** (vermelho) em vez de **Abrir controle**, o que dá a impressão de transmissão ativa mesmo com o aparelho parado — o `streaming` do iOS é o registro de pareamento (`iphone-hosts.json`), não uma transmissão real. Outro patch de bundle aplicado depois (controle de celular/geo-proxy) sobrescreveu o trecho.
