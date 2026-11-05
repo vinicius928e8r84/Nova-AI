@@ -10,7 +10,7 @@ Aqui fica só o lado do app: serviço + IPC + banco + instalação do `.deb` pel
   `clearIOSModel(deviceId)` e `getIOSModel(deviceId)`. Chamam o CLI
   `/var/jb/usr/bin/novamodel` via `iosSsh` (túnel USB 2222 → mobile@127.0.0.1), como os
   demais comandos iOS.
-- `main.js`: IPCs `spoofer:apply-ios-model`/`spoofer:clear-ios-model`/`spoofer:get-ios-model`
+- `main.js`: IPCs `spoofer:get-ios-models`/`spoofer:apply-ios-model`/`spoofer:clear-ios-model`/`spoofer:get-ios-model`
   (nomes exatos do contrato da UI — branch `agent/frontend/modelo-iphone-20261105`).
 - Banco `iosModels.json` (em `electron/services/`, junto do serviço) alimenta o seletor e
   valida o productType antes de aplicar.
@@ -21,13 +21,14 @@ Aqui fica só o lado do app: serviço + IPC + banco + instalação do `.deb` pel
 
 | Canal | Argumentos | Retorno |
 |---|---|---|
+| `spoofer:get-ios-models` | — | `{ success, models: [{ productType, name }] }` |
 | `spoofer:apply-ios-model` | `{ deviceId, productType }` | `{ success, applied: { productType, name } }` ou `{ success:false, error }` |
 | `spoofer:clear-ios-model` | `{ deviceId }` | `{ success }` |
 | `spoofer:get-ios-model` | `{ deviceId }` | `{ success, real, active, enabled }` |
 
 `deviceId` é o identificador do aparelho (`ios-<udid>`); os métodos recusam IDs Android.
-O seletor da UI envia o `productType` do banco `MAC/integracao-modelo/models.json`
-(ex.: iPhone 13 = `iPhone14,5`).
+O seletor da UI busca a lista em `spoofer:get-ios-models` (27 modelos de `iosModels.json`),
+e envia o `productType` no apply (ex.: iPhone 13 = `iPhone14,5`).
 
 ## Arquivos
 

@@ -870,6 +870,9 @@ function registerHandlers() {
   });
   // Spoofing de modelo do iPhone (novamodel) — painel "Identidade simulada".
   // Contrato com a UI (branch agent/frontend/modelo-iphone-20261105): nomes exatos.
+  ipcMain.handle('spoofer:get-ios-models', async () => {
+    return app.physicalMobileService.getIosModels();
+  });
   ipcMain.handle('spoofer:apply-ios-model', async (event, { deviceId, productType }) => {
     return app.physicalMobileService.applyIOSModel(deviceId, productType);
   });

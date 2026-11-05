@@ -2,7 +2,7 @@
 
 ## Spoofing de modelo do iPhone — serviço + IPC + instalação do .deb — 05/11/2026
 
-Integração no app para o tweak `com.aquiles.novamodel` (spec `NOVA-AI-MODELO-SPOOF-SPEC.md`). No `physicalMobileService` entraram `getIosModels()`, `applyIOSModel(deviceId, productType)`, `clearIOSModel(deviceId)` e `getIOSModel(deviceId)` — chamam `/var/jb/usr/bin/novamodel` via `iosSsh` (túnel USB). IPCs novos em `main.js`: `spoofer:apply-ios-model`/`spoofer:clear-ios-model`/`spoofer:get-ios-model` (nomes do contrato da UI). Banco de modelos em `iosModels.json`; instalação do `novamodel.deb` pelo fluxo Conectar (guarded: só quando o `.deb` existir ao lado do `camera.deb`).
+Integração no app para o tweak `com.aquiles.novamodel` (spec `NOVA-AI-MODELO-SPOOF-SPEC.md`). No `physicalMobileService` entraram `getIosModels()`, `applyIOSModel(deviceId, productType)`, `clearIOSModel(deviceId)` e `getIOSModel(deviceId)` — chamam `/var/jb/usr/bin/novamodel` via `iosSsh` (túnel USB). IPCs novos em `main.js`: `spoofer:get-ios-models`/`spoofer:apply-ios-model`/`spoofer:clear-ios-model`/`spoofer:get-ios-model` (nomes do contrato da UI). Banco de modelos em `iosModels.json`; instalação do `novamodel.deb` pelo fluxo Conectar (guarded: só quando o `.deb` existir ao lado do `camera.deb`).
 
 - Arquivos: `integracao-iphone/ios-modelo.js` (novo), `integracao-iphone/iosModels.json` (novo), `integracao-iphone/physicalMobileService.patched.js`, `integracao-iphone/conexao-usb/setup.js`, `integracao-modelo-app/main.modelo.js`, `integracao-modelo-app/novamodel.test.cjs`, `integracao-modelo-app/README.md`.
 - Testado: `node --check` nos arquivos tocados + `novamodel.test.cjs` (30 verificações com mock de SSH).
