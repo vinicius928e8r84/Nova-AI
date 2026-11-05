@@ -8,38 +8,44 @@
 //     a fonte da câmera (injetada <-> real) e NUNCA derrubam uma transmissão
 //     em andamento — nem o servidor/túnel local, nem o CAM LIVE.
 //
-// O CAM LIVE compartilha o túnel e fornece um quadro preto sem fonte.
+// Transporte camuflado (bridge 0.1-39): caminho com token de 32 hex, socket
+// Unix no iPhone quando possível e porta TCP aleatória como reserva. A rota
+// antiga /frame.jpg e a porta 18999 não são mais usadas.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const http = require('http');
 const crypto = require('crypto');
 const {spawn, execFile} = require('child_process');
-const PORT = 18999;
 const CONTROL = '/var/tmp/obs-graph-bridge-control.json';
-const BRIDGE = '/Users/aquilesneri/Desktop/jailbreak/obs-camera-source/bridge';
 const KEY = path.join(os.homedir(),'.ssh','id_iphone');
 const SSH = ['-p','2222','-i',KEY,'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','StrictHostKeyChecking=yes'];
-const MESTRE_DIR = path.join('/tmp','vcampipeline-ssh-'+process.getuid());
-const MESTRE = SSH.concat(['-o','ControlMaster=auto','-o','ControlPersist=600','-o','ControlPath='+path.join(MESTRE_DIR,'control')]);
-const FORWARD_RELE = ['-R','18999:127.0.0.1:8900']; // mesmo encaminhamento do phone.sh
 const quote = s => "'" + String(s).replace(/'/g,"'\\''") + "'";
+function bridgePatch(state) {
+ const match = /^0\.1-(\d+)/.exec(String((state && state.version) || ''));
+ return match ? Number(match[1]) : 0;
+}
 class IosCamera {
- constructor(service) { this.service=service; this.frame=null; this.frameAt=0; this.clients=new Set(); }
+ constructor(service) {
+  this.service=service; this.frame=null; this.frameAt=0; this.clients=new Set();
+  this.token=crypto.randomBytes(16).toString('hex');
+  this.framePath=`/s/${this.token}/frame.jpg`;
+  this.transport=null; this.socketPath=null; this.url=null;
+ }
  run(file,args,timeout=15000) { return new Promise((resolve,reject)=>execFile(file,args,{timeout,maxBuffer:1024*1024},(err,out,stderr)=>err?reject(new Error(String(stderr||err.message).trim())):resolve(String(out)))); }
  ssh(cmd) { return this.run('/usr/bin/ssh',[...SSH,'mobile@127.0.0.1',cmd]); }
  async status() {
   try {
    const state=JSON.parse(await this.ssh('cat /var/tmp/obs-graph-bridge-status.json'));
-   const ready=!!(state.hooksReady && !state.faulted);
+   const ready=bridgePatch(state)>=39 && !!state.hooksReady && !state.faulted;
    return {platform:'ios',installed:ready,active:!!state.enabled,ready,bridgeVersion:state.version,
-    message:ready?`Bridge do jailbreak pronto (${state.version}). Toque em Ligar para ativar a câmera.`:'Bridge não está pronto; veja o ./phone.sh status do jailbreak.',state};
+    message:ready?`Bridge do jailbreak pronto (${state.version}). Toque em Ligar para ativar a câmera.`:'Bridge não está pronto; atualize por USB (Conectar em PHONE CONTROL).',state};
   } catch(e) {return {platform:'ios',installed:false,active:false,error:'iPhone indisponível por USB/SSH: '+e.message};}
  }
  async install() {
   const state=await this.status();
   if(state.ready) return {platform:'ios',success:true,message:`Bridge do jailbreak pronto (${state.bridgeVersion}).`};
-  return {platform:'ios',success:false,error:state.error||'A instalação/atualização do bridge é feita no Terminal: cd '+BRIDGE+' && ./phone.sh install (pede a senha do iPhone).'};
+  return {platform:'ios',success:false,error:state.error||'Atualize o bridge por USB em PHONE CONTROL (Conectar) ou pelo instalar-iphone.command.'};
  }
  async writeControl(config) {
   // Atomic replacement of this bridge's own configuration. Never deletes media or tweaks.
@@ -58,36 +64,67 @@ class IosCamera {
  async serve() {
   this.server=http.createServer((req,res)=>{
    const fresh=this.frame && Date.now()-this.frameAt<1500;
-   if(req.url==='/frame.jpg') {
-    if(!fresh) {res.writeHead(503,{'Cache-Control':'no-store'});res.end('Fonte sem quadro recente');return;}
+   if(req.url===this.framePath) {
+    if(!fresh) {res.writeHead(503,{'Cache-Control':'no-store'});res.end('Indisponível');return;}
     res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'no-store','Content-Length':this.frame.length});res.end(this.frame);
    } else if(req.url==='/live.mjpg' || req.url==='/stream') {
+    // Prévia do próprio app (loopback do Mac); não é o que o iPhone lê.
     res.writeHead(200,{'Content-Type':'multipart/x-mixed-replace; boundary=nova','Cache-Control':'no-store'});
     this.clients.add(res);req.on('close',()=>this.clients.delete(res));
-   } else {res.writeHead(404);res.end();}
+   } else {res.writeHead(404,{'Cache-Control':'no-store'});res.end('Não encontrado');}
   });
-  await new Promise((resolve,reject)=>{this.server.once('error',reject);this.server.listen(PORT,'127.0.0.1',resolve);});
+  await new Promise((resolve,reject)=>{this.server.once('error',reject);this.server.listen(0,'127.0.0.1',resolve);});
+  return this.server.address().port;
  }
- async tunnel() {
-  // Reverse SSH exposes only phone loopback; it does not use the Wi-Fi interface.
-  await new Promise((resolve,reject)=>{
-   this.tunnelProcess=spawn('/usr/bin/ssh',[...SSH,'-v','-N','-o','ExitOnForwardFailure=yes','-o','ServerAliveInterval=5','-o','ServerAliveCountMax=2','-R',`127.0.0.1:${PORT}:127.0.0.1:${PORT}`,'mobile@127.0.0.1'],{stdio:['ignore','ignore','pipe']});
+ _forwardArgs(forward) {
+  return [...SSH,'-N','-o','ExitOnForwardFailure=yes','-o','ServerAliveInterval=5','-o','ServerAliveCountMax=2','-R',forward,'mobile@127.0.0.1'];
+ }
+ _openForward(args) {
+  return new Promise((resolve,reject)=>{
+   const child=spawn('/usr/bin/ssh',args,{stdio:['ignore','ignore','pipe']});
+   child.novaAbort=false; this.tunnelProcess=child;
    let stderr='',settled=false;
-   const timer=setTimeout(()=>{if(!settled){settled=true;this.tunnelProcess.kill();reject(new Error('O túnel USB não confirmou o encaminhamento.'));}},8000);
-   this.tunnelProcess.stderr.on('data',b=>{stderr+=b.toString();if(!settled && stderr.includes('remote forward success')){settled=true;clearTimeout(timer);resolve();}});
-   this.tunnelProcess.once('error',e=>{clearTimeout(timer);if(!settled)reject(e);else this.fail();});
-   this.tunnelProcess.once('exit',()=>{clearTimeout(timer);if(!settled)reject(new Error(stderr||'Túnel USB encerrado'));else this.fail();});
+   const close=()=>{if(this.tunnelProcess===child)this.tunnelProcess=null;try{child.kill();}catch{}}
+   const timer=setTimeout(()=>{if(!settled){settled=true;close();reject(new Error('O túnel USB não confirmou o encaminhamento.'));}},8000);
+   child.stderr.on('data',b=>{stderr+=b.toString();if(!settled && stderr.includes('remote forward success')){settled=true;clearTimeout(timer);resolve(child);}});
+   child.once('error',e=>{clearTimeout(timer);if(!settled){settled=true;close();reject(e);}else this.fail(e.message);});
+   child.once('exit',()=>{clearTimeout(timer);if(child.novaAbort)return;if(!settled){settled=true;close();reject(new Error(stderr||'Túnel USB encerrado'));}else this.fail('Túnel USB encerrado');});
   });
-
+ }
+ async tunnel(localPort) {
+  // 1º: socket Unix no iPhone (nenhuma porta TCP escutando). 2º: porta aleatória.
+  const socketPath=`/var/tmp/.nbi-${crypto.randomBytes(4).toString('hex')}.sock`;
+  try {
+   await this._openForward(this._forwardArgs(`${socketPath}:127.0.0.1:${localPort}`));
+   const check=await this.ssh(`chmod 666 ${quote(socketPath)} && test -S ${quote(socketPath)} && echo ok`);
+   if(!String(check).includes('ok')) throw new Error('socket recusado');
+   this.socketPath=socketPath;
+   return {type:'unix',path:socketPath};
+  } catch(_) {
+   if(this.tunnelProcess){this.tunnelProcess.novaAbort=true;try{this.tunnelProcess.kill();}catch{}this.tunnelProcess=null;}
+   try { await this.ssh(`rm -f ${quote(socketPath)}`); } catch {}
+   let lastError;
+   for(let attempt=0;attempt<3;attempt++) {
+    const port=20000+crypto.randomInt(0,20000);
+    try {
+     await this._openForward(this._forwardArgs(`127.0.0.1:${port}:127.0.0.1:${localPort}`));
+     return {type:'tcp',port};
+    } catch(error) { lastError=error; }
+   }
+   throw lastError || new Error('Não foi possível abrir o túnel do iPhone.');
+  }
  }
  async start(videoPath) {
   try {
    const status=await this.status();
-   if(!status.ready) return {success:false,platform:'ios',error:status.error||'Atualize o bridge com instalar-iphone.command antes de iniciar.'};
+   if(!status.ready) return {success:false,platform:'ios',error:status.error||'Atualize o bridge (0.1-39) antes de iniciar.'};
    if(!path.isAbsolute(videoPath)||!fs.existsSync(videoPath)) throw new Error('Selecione um arquivo de vídeo existente.');
    await this.stop();
-   await this.serve();
-   await this.tunnel();
+   const localPort=await this.serve();
+   this.transport=await this.tunnel(localPort);
+   this.url=this.transport.type==='unix'
+    ? `http://127.0.0.1${this.framePath}`
+    : `http://127.0.0.1:${this.transport.port}${this.framePath}`;
    const ffmpeg=require('./mac-native').tool('ffmpeg');
    if(!ffmpeg) throw new Error('FFmpeg não encontrado no Mac.');
    this.decoder=spawn(ffmpeg,['-nostdin','-loglevel','error','-re','-stream_loop','-1','-i',videoPath,'-an','-vf','fps=15,scale=1280:1280:force_original_aspect_ratio=decrease','-f','image2pipe','-vcodec','mjpeg','-q:v','4','pipe:1'],{stdio:['ignore','pipe','pipe']});
@@ -106,22 +143,26 @@ class IosCamera {
    await this.enable();
    this.heartbeat=setInterval(()=>this.enable().catch(()=>this.fail()),20000);
    this.heartbeat.unref();
-   return {success:true,platform:'ios',port:PORT,reverseOk:true,message:'Vídeo local ativo na Câmera nativa. Feche e reabra a Câmera.'};
+   return {success:true,platform:'ios',port:this.transport.port,reverseOk:true,transport:this.transport.type,message:'Vídeo local ativo na Câmera nativa. Feche e reabra a Câmera.'};
   } catch(e) {await this.stop();return {success:false,platform:'ios',error:e.message};}
  }
  async enable() {
   const state=await this.status();
   if(!state.ready)throw new Error(state.error||'Bridge iOS indisponível');
-  await this.writeControl({mode:'inject',appID:'com.apple.camera',appIDs:['*'],expiresAt:state.state.timestamp+60,continuous:false,previewOnly:true,directRecording:false,photoPrepareBypass:false,videoInjection:false,frameRate:15,url:`http://127.0.0.1:${PORT}/frame.jpg`});
+  const config={mode:'inject',appID:'com.apple.camera',appIDs:['*'],expiresAt:state.state.timestamp+60,continuous:false,previewOnly:true,directRecording:false,photoPrepareBypass:false,videoInjection:false,frameRate:15,url:this.url};
+  if(this.transport && this.transport.type==='unix') config.socket=this.transport.path;
+  await this.writeControl(config);
  }
  fail() {if(!this.stopping)this.stop().catch(()=>{});}
  async stop() {
   if(this.stopping)return {success:true,platform:'ios'};
   this.stopping=true;clearInterval(this.heartbeat);this.heartbeat=null;
   if(this.decoder){this.decoder.removeAllListeners('exit');this.decoder.kill();this.decoder=null;}
-  if(this.tunnelProcess){this.tunnelProcess.removeAllListeners('exit');this.tunnelProcess.kill();this.tunnelProcess=null;}
+  if(this.tunnelProcess){this.tunnelProcess.novaAbort=true;this.tunnelProcess.removeAllListeners('exit');this.tunnelProcess.kill();this.tunnelProcess=null;}
   for(const res of this.clients)res.end();this.clients.clear();
   if(this.server){const server=this.server;this.server=null;await new Promise(r=>{server.close(r);server.closeAllConnections?.();});}
+  if(this.socketPath){try{await this.ssh(`rm -f ${quote(this.socketPath)}`);}catch{}this.socketPath=null;}
+  this.transport=null;this.url=null;
   this.frame=null;this.frameAt=0;
   try{await this.writeControl({mode:'observe'});}catch{}
   this.stopping=false;
@@ -138,13 +179,8 @@ class IosCamera {
   // a partir daqui quem decide a fonte da câmera é o sequestro.
   clearInterval(this.heartbeat); this.heartbeat=null;
  }
- async cancelarForwardRele() {
-  // Libera a porta 18999 do iPhone para uma transmissão futura (CAM LIVE/local).
-  try { await this.run('/usr/bin/ssh',[...MESTRE,'-O','cancel',...FORWARD_RELE,'mobile@127.0.0.1'],1500); } catch {}
- }
  async liberarPortaCamera() {
-  // Remove o encaminhamento do relé antigo antes de abrir o túnel compartilhado.
-  await this.cancelarForwardRele();
+  // Obsoleto: o túnel agora usa socket Unix ou porta aleatória, nunca 18999.
  }
  async startCamSpoof(videoPath) {
   if (videoPath) return this.start(videoPath); // transmissão de vídeo local (fluxo antigo)
@@ -162,10 +198,17 @@ class IosCamera {
    if (!camlive) throw new Error('O serviço CAM LIVE está indisponível.');
    const state=await this.status();
    if (!state.ready) throw new Error(state.error || 'A ponte de câmera do iPhone não está pronta.');
-   const config=enabled
-    ? {mode:'inject',appID:'com.apple.camera',appIDs:['*'],expiresAt:Math.floor(Date.now()/1000)+60,continuous:true,previewOnly:false,directRecording:false,photoPrepareBypass:true,videoInjection:true,audioInjection:true,frameRate:30,url:`http://127.0.0.1:${PORT}/frame.jpg`,novaSequestroSession:crypto.randomBytes(8).toString('hex')}
-    : {mode:'observe'};
-   const write=()=>this.writeControl(config);
+   const write=async () => {
+    if (!enabled) return this.writeControl({mode:'observe'});
+    // Local: o servidor do próprio ios-camera. Caso contrário: o transporte do CAM LIVE.
+    const endpoint=this.transmissaoLocalAtiva()
+     ? {url:this.url, socket:this.transport && this.transport.type==='unix' ? this.transport.path : null}
+     : (typeof camlive.mediaEndpoint==='function' ? camlive.mediaEndpoint() : null);
+    if (!endpoint || !endpoint.url) throw new Error('O CAM LIVE ainda não abriu o túnel do iPhone.');
+    const config={mode:'inject',appID:'com.apple.camera',appIDs:['*'],expiresAt:Math.floor(Date.now()/1000)+60,continuous:true,previewOnly:false,directRecording:false,photoPrepareBypass:true,videoInjection:true,audioInjection:true,frameRate:30,url:endpoint.url,novaSequestroSession:crypto.randomBytes(8).toString('hex')};
+    if (endpoint.socket) config.socket=endpoint.socket;
+    return this.writeControl(config);
+   };
    if (this.transmissaoLocalAtiva()) {
     this.suspenderHeartbeatLocal();
     await write();

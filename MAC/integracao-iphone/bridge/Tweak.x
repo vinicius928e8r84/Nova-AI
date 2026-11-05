@@ -3,9 +3,14 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <substrate.h>
+#import <sys/socket.h>
+#import <sys/un.h>
+#import <sys/time.h>
+#import <string.h>
+#import <dispatch/dispatch.h>
 #import "Pipeline.h"
 
-// Experimental graph replacement for the native Camera only. A short lease
+// Experimental graph replacement for selected camera clients. A short lease
 // is required before any graph is changed. A failed OBS request emits nothing.
 static NSString *const kControl = @"/var/tmp/obs-graph-bridge-control.json";
 static NSString *const kStatus = @"/var/tmp/obs-graph-bridge-status.json";
@@ -16,25 +21,46 @@ static NSRecursiveLock *g_lock;
 static NSMutableDictionary<NSValue *, id> *g_contexts;
 static NSMutableSet<NSValue *> *g_redirectedGraphs;
 static NSMutableSet<NSString *> *g_graphClasses;
+static NSMutableSet<NSString *> *g_observedAppIDs;
+static NSSet<NSString *> *g_allowedAppIDs;
 static dispatch_queue_t g_controlQueue;
 static dispatch_source_t g_statusTimer;
+static dispatch_source_t g_audioTimer;
 static BOOL g_hooksReady, g_hookAttempted, g_faulted, g_enabled;
 static BOOL g_previewOnly;
 static BOOL g_continuous;
 static BOOL g_directRecording;
 static BOOL g_videoInjection;
+static BOOL g_audioInjection;
+static NSMutableArray<NSData *> *g_audioPackets;
+static unsigned long long g_audioSequence;
+static BOOL g_audioFetchPending;
+static NSURLSession *g_audioSession;
+static unsigned long g_audioReplaced, g_audioDropped, g_audioFetchFailures;
+static void (*g_originalMovieSinkRender)(id, SEL, CMSampleBufferRef, id);
 static BOOL g_photoPrepareBypass;
 static int g_frameRate = 5;
 static NSTimeInterval g_expires;
 static NSString *g_url;
+static NSString *g_socket;
 static unsigned long g_redirected, g_suppressedStarts, g_emittedVideo, g_emittedStill, g_fetchFailures;
 static unsigned long g_graphStarts, g_graphStartFailures, g_graphStops, g_contextLimitHits;
 static unsigned long g_startHookDispatchMisses;
 static unsigned long g_graphCommits, g_graphCommitFailures;
 static unsigned long g_connectionsResumed;
+static unsigned long g_graphStopsSkipped;
 static unsigned long g_recordConnections, g_emittedRecord;
 static unsigned long g_compressorImageSamples, g_compressorControlSamples;
 static void (*g_originalCompressorRender)(id, SEL, CMSampleBufferRef, id);
+// Diagnosed 02/11 with mediaserverd-safari-2026-11-02-230934.ips: the remote
+// queue sink converts the sample's MetadataDictionary PortType with
+// _BWActiveDeviceTypeFromPortType, which raises an NSException for any port
+// name outside its fixed list ("OBSBridgeVideo" included) and aborts
+// mediaserverd. Rewrite our port names at this boundary and keep the sink's
+// own raises from killing the service.
+static void (*g_originalQueueSinkRender)(id, SEL, CMSampleBufferRef, id);
+static NSString *g_remoteQueuePortType;
+static unsigned long g_remoteQueueRenders, g_remoteQueuePortRemaps, g_remoteQueueRenderFailures;
 static unsigned long g_minimumBufferBudgets;
 static unsigned long g_photoPrepareBypasses;
 static unsigned long g_photoStillRequests;
@@ -89,6 +115,7 @@ static BOOL bridgeGraphStart(id graph, SEL selector, void *error);
 @property (nonatomic, strong) NSArray *recordInputs;
 @property (nonatomic, strong) id metadataSource;
 @property (nonatomic, copy) NSString *url;
+@property (nonatomic, copy) NSString *socket;
 @property (nonatomic, strong) CIContext *renderContext;
 @property (nonatomic, strong) id colorSpace;
 @property (nonatomic, strong) dispatch_queue_t worker;
@@ -99,6 +126,10 @@ static BOOL bridgeGraphStart(id graph, SEL selector, void *error);
 @property BOOL running;
 @property BOOL masterSource;
 @property int frameRate;
+// The Safari graph (com.apple.WebKit.GPU) requests its own capture dimensions
+// and has no still/metadata branches. Match the replaced physical output's
+// configured video format instead of assuming the Camera app's 1584x1188.
+@property NSUInteger videoWidth, videoHeight;
 @property (nonatomic, strong) NSURLSession *networkSession;
 @property (nonatomic, strong) id pendingPhotoSettings;
 @property (nonatomic, strong) id pendingPhotoStream;
@@ -164,6 +195,82 @@ static BOOL leaseValid(void) {
     return g_enabled && !g_faulted && (g_continuous || [[NSDate date] timeIntervalSince1970] < g_expires);
 }
 
+// ── Transporte camuflado (0.1-39) ───────────────────────────────────────
+// A câmera só aceita um caminho com token de 32 hex; quando o Mac abre um
+// socket Unix pelo túnel USB, nenhuma porta TCP fica escutando no aparelho.
+
+static BOOL isHexTokenPath(NSString *path) {
+    const NSUInteger expected = 3 + 32 + 10; // "/s/" + token + "/frame.jpg"
+    if (![path isKindOfClass:[NSString class]] || path.length != expected) return NO;
+    if (![path hasPrefix:@"/s/"] || ![path hasSuffix:@"/frame.jpg"]) return NO;
+    for (NSUInteger i = 3; i < 35; i++) {
+        unichar c = [path characterAtIndex:i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))) return NO;
+    }
+    return YES;
+}
+
+static BOOL isCameraSocketPath(NSString *path) {
+    if (![path isKindOfClass:[NSString class]] || path.length < 12 || path.length > 96) return NO;
+    if (![path hasPrefix:@"/var/tmp/"] && ![path hasPrefix:@"/var/run/"]) return NO;
+    if ([path containsString:@".."] || [path containsString:@"//"]) return NO;
+    return YES;
+}
+
+// GET HTTP/1.0 por socket Unix; devolve o corpo ou nil em erro/timeout.
+static NSData *httpGetOverUnix(NSString *socketPath, NSString *requestPath, NSTimeInterval timeout, NSUInteger maxBytes) {
+    if (!isCameraSocketPath(socketPath) || requestPath.length == 0 || requestPath.length > 256) return nil;
+    int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) return nil;
+    struct sockaddr_un address;
+    memset(&address, 0, sizeof(address));
+    address.sun_family = AF_UNIX;
+    if (strlcpy(address.sun_path, socketPath.UTF8String, sizeof(address.sun_path)) >= sizeof(address.sun_path)) {
+        close(fd);
+        return nil;
+    }
+    struct timeval tv;
+    tv.tv_sec = (time_t)timeout;
+    tv.tv_usec = (suseconds_t)((timeout - (NSTimeInterval)tv.tv_sec) * 1000000.0);
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    NSData *result = nil;
+    if (connect(fd, (struct sockaddr *)&address, sizeof(address)) == 0) {
+        NSString *request = [NSString stringWithFormat:@"GET %@ HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n", requestPath];
+        NSData *payload = [request dataUsingEncoding:NSUTF8StringEncoding];
+        if (payload.length && send(fd, payload.bytes, payload.length, 0) == (ssize_t)payload.length) {
+            NSMutableData *response = [NSMutableData data];
+            uint8_t buffer[8192];
+            while (response.length <= maxBytes + 4096) {
+                ssize_t received = recv(fd, buffer, sizeof(buffer), 0);
+                if (received <= 0) break;
+                [response appendBytes:buffer length:(NSUInteger)received];
+            }
+            NSRange separator = [response rangeOfData:[@"\r\n\r\n" dataUsingEncoding:NSUTF8StringEncoding]
+                                              options:0 range:NSMakeRange(0, MIN(response.length, (NSUInteger)4096))];
+            if (separator.location != NSNotFound) {
+                NSString *head = [[NSString alloc] initWithData:[response subdataWithRange:NSMakeRange(0, separator.location)]
+                                                       encoding:NSUTF8StringEncoding];
+                if ([head hasPrefix:@"HTTP/1.0 200"] || [head hasPrefix:@"HTTP/1.1 200"]) {
+                    NSUInteger start = NSMaxRange(separator);
+                    NSData *body = [response subdataWithRange:NSMakeRange(start, response.length - start)];
+                    if (body.length <= maxBytes) result = body;
+                }
+            }
+        }
+    }
+    close(fd);
+    return result;
+}
+
+static BOOL appAllowed(id appID) {
+    [g_lock lock];
+    BOOL allowed = [appID isKindOfClass:[NSString class]] &&
+        ([g_allowedAppIDs containsObject:appID] || [g_allowedAppIDs containsObject:@"*"]);
+    [g_lock unlock];
+    return allowed;
+}
+
 static void readControl(void) {
     NSData *data = [NSData dataWithContentsOfFile:kControl];
     id parsed = data.length > 0 && data.length <= 2048
@@ -174,17 +281,31 @@ static void readControl(void) {
     id address = [config isKindOfClass:[NSDictionary class]] ? config[@"url"] : nil;
     NSURL *url = [address isKindOfClass:[NSString class]] ? [NSURL URLWithString:address] : nil;
     BOOL continuous = [config[@"continuous"] isEqual:@YES];
-    BOOL valid = [config[@"mode"] isEqual:@"inject"] && [config[@"appID"] isEqual:kCameraApp] &&
+    NSArray *requestedApps = [config[@"appIDs"] isKindOfClass:[NSArray class]] ? config[@"appIDs"] : nil;
+    NSMutableSet<NSString *> *allowedApps = [NSMutableSet set];
+    if (requestedApps && requestedApps.count > 0 && requestedApps.count <= 16) {
+        for (id item in requestedApps)
+            if ([item isKindOfClass:[NSString class]] && [item length] > 0 && [item length] < 128)
+                [allowedApps addObject:item];
+    } else if ([config[@"appID"] isEqual:kCameraApp]) {
+        [allowedApps addObject:kCameraApp];
+    }
+    NSString *socketPath = [config[@"socket"] isKindOfClass:[NSString class]] ? config[@"socket"] : nil;
+    BOOL unixTransport = isCameraSocketPath(socketPath);
+    NSInteger port = [url.port integerValue];
+    BOOL tcpTransport = [url.host isEqualToString:@"127.0.0.1"] && port >= 1024 && port <= 65535;
+    BOOL valid = [config[@"mode"] isEqual:@"inject"] && allowedApps.count > 0 &&
         [expiry isKindOfClass:[NSNumber class]] && [url.scheme isEqualToString:@"http"] &&
-        (([url.host isEqualToString:@"10.0.0.245"] && [url.port integerValue] == 8900) ||
-         ([url.host isEqualToString:@"127.0.0.1"] && [url.port integerValue] == 18999)) &&
-        [url.path isEqualToString:@"/frame.jpg"] &&
+        isHexTokenPath(url.path) && (unixTransport || tcpTransport) &&
         (continuous || ([expiry doubleValue] > now && [expiry doubleValue] <= now+120));
     [g_lock lock];
     g_enabled = valid;
+    g_allowedAppIDs = valid ? [allowedApps copy] : [NSSet set];
     g_continuous = valid && continuous;
     g_directRecording = valid && [config[@"directRecording"] isEqual:@YES];
     g_videoInjection = valid && [config[@"videoInjection"] isEqual:@YES];
+    g_audioInjection = valid && [config[@"audioInjection"] isEqual:@YES];
+    if (!g_audioInjection) { [g_audioPackets removeAllObjects]; g_audioSequence = 0; }
     g_photoPrepareBypass = valid && [config[@"photoPrepareBypass"] isEqual:@YES];
     if (!g_photoPrepareBypass)
         for (OBSBridgeContext *ctx in g_contexts.allValues) {
@@ -194,8 +315,14 @@ static void readControl(void) {
     id rate = config[@"frameRate"];
     g_frameRate = [rate isKindOfClass:[NSNumber class]] ? MAX(1, MIN(30, [rate intValue])) : 5;
     g_previewOnly = valid && [config[@"previewOnly"] isEqual:@YES];
+    id portOverride = config[@"remoteQueuePortType"];
+    NSString *portType = nil;
+    if ([portOverride isKindOfClass:[NSString class]] && [portOverride length] > 0 && [portOverride length] <= 64)
+        portType = portOverride;
+    g_remoteQueuePortType = valid ? (portType ?: @"PortTypeBack") : nil;
     g_expires = valid ? [expiry doubleValue] : 0;
     g_url = valid ? [address copy] : nil;
+    g_socket = (valid && unixTransport) ? [socketPath copy] : nil;
     [g_lock unlock];
 }
 
@@ -210,7 +337,12 @@ static void saveStatus(void) {
                               @"recordInputKnown":@(ctx.recordInput != nil)}];
     }
     NSDictionary *status = @{
-        @"version":@"0.1-30", @"pid":@([NSProcessInfo processInfo].processIdentifier),
+        @"version":@"0.1-39", @"pid":@([NSProcessInfo processInfo].processIdentifier),
+        @"observedAppIDs":g_observedAppIDs.allObjects,
+        @"allowedAppIDs":g_allowedAppIDs.allObjects,
+        @"audioInjection":@(g_audioInjection), @"audioQueued":@(g_audioPackets.count),
+        @"audioSequence":@(g_audioSequence), @"audioReplaced":@(g_audioReplaced),
+        @"audioDropped":@(g_audioDropped), @"audioFetchFailures":@(g_audioFetchFailures),
         @"directRecording":@(g_directRecording), @"recordConnections":@(g_recordConnections),
         @"videoInjection":@(g_videoInjection), @"compressorImageSamples":@(g_compressorImageSamples),
         @"compressorControlSamples":@(g_compressorControlSamples),
@@ -253,6 +385,10 @@ static void saveStatus(void) {
         @"graphClasses":g_graphClasses.allObjects, @"startHookDispatchMisses":@(g_startHookDispatchMisses),
         @"graphCommits":@(g_graphCommits), @"graphCommitFailures":@(g_graphCommitFailures),
         @"connectionsResumed":@(g_connectionsResumed),
+        @"remoteQueueRenders":@(g_remoteQueueRenders), @"remoteQueuePortRemaps":@(g_remoteQueuePortRemaps),
+        @"remoteQueueRenderFailures":@(g_remoteQueueRenderFailures),
+        @"remoteQueuePortType":g_remoteQueuePortType ?: @"",
+        @"graphStopsSkipped":@(g_graphStopsSkipped),
         @"lastCommitError":g_lastCommitError ?: @""
     };
     [g_lock unlock];
@@ -260,7 +396,25 @@ static void saveStatus(void) {
     [json writeToFile:kStatus options:NSDataWritingAtomic error:nil];
 }
 
-static CGImageRef copyFrame(NSString *address, NSURLSession *session) {
+static CGImageRef imageFromJPEG(NSData *data) {
+    if (data.length < 4 || data.length > 2*1024*1024) return NULL;
+    const uint8_t *bytes = data.bytes;
+    if (bytes[0] != 0xff || bytes[1] != 0xd8) return NULL;
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
+    CGImageRef image = source ? CGImageSourceCreateImageAtIndex(source, 0, NULL) : NULL;
+    if (source) CFRelease(source);
+    if (image && (CGImageGetWidth(image) > 4096 || CGImageGetHeight(image) > 4096)) {
+        CGImageRelease(image); return NULL;
+    }
+    return image;
+}
+
+static CGImageRef copyFrame(NSString *address, NSString *socketPath, NSURLSession *session) {
+    if (socketPath.length) {
+        NSURL *url = [NSURL URLWithString:address];
+        NSData *data = httpGetOverUnix(socketPath, url.path, 2, 2*1024*1024);
+        return imageFromJPEG(data);
+    }
     dispatch_semaphore_t signal = dispatch_semaphore_create(0);
     __block NSData *data = nil;
     __block NSHTTPURLResponse *response = nil;
@@ -273,20 +427,13 @@ static CGImageRef copyFrame(NSString *address, NSURLSession *session) {
     if (dispatch_semaphore_wait(signal, dispatch_time(DISPATCH_TIME_NOW, 3*NSEC_PER_SEC)) != 0) {
         [task cancel]; return NULL;
     }
-    if (response.statusCode != 200 || data.length < 4 || data.length > 2*1024*1024) return NULL;
-    const uint8_t *bytes = data.bytes;
-    if (bytes[0] != 0xff || bytes[1] != 0xd8) return NULL;
-    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)data, NULL);
-    CGImageRef image = source ? CGImageSourceCreateImageAtIndex(source, 0, NULL) : NULL;
-    if (source) CFRelease(source);
-    if (image && (CGImageGetWidth(image) > 4096 || CGImageGetHeight(image) > 4096)) {
-        CGImageRelease(image); return NULL;
-    }
-    return image;
+    if (response.statusCode != 200) return NULL;
+    return imageFromJPEG(data);
 }
 
 static CMSampleBufferRef copySample(CGImageRef image, CIContext *render, CGColorSpaceRef space,
-                                    size_t width, size_t height, NSString *port, CMTime pts, BOOL master, int fps, OSType pixelFormat) {
+                                    size_t width, size_t height, NSString *port, CMTime pts, BOOL master, int fps, OSType pixelFormat,
+                                    int rotation) {
     if (!image || !render || !space) return NULL;
     NSDictionary *attachments = @{
         (id)kCVImageBufferColorPrimariesKey:(id)kCVImageBufferColorPrimaries_P3_D65,
@@ -303,7 +450,7 @@ static CMSampleBufferRef copySample(CGImageRef image, CIContext *render, CGColor
     if (CVPixelBufferCreate(NULL, width, height, pixelFormat,
         (__bridge CFDictionaryRef)allocation, &pixels) != kCVReturnSuccess || !pixels) return NULL;
     CVBufferSetAttachments(pixels, (__bridge CFDictionaryRef)attachments, kCVAttachmentMode_ShouldPropagate);
-    VCPDrawFrame(image, render, pixels, width, height, space, 0);
+    VCPDrawFrame(image, render, pixels, width, height, space, rotation);
     CMVideoFormatDescriptionRef format = NULL;
     CMSampleBufferRef sample = NULL;
     if (CMVideoFormatDescriptionCreateForImageBuffer(NULL, pixels, &format) == noErr) {
@@ -338,16 +485,21 @@ static void produce(OBSBridgeContext *ctx) {
         id requestedPhotoStream = ctx.pendingPhotoStream;
         [g_lock unlock];
         if (!active || !ctx.masterSource) return;
-        if (!previewOnly && thisTick == 1) emitStillSequence(ctx);
-        CGImageRef image = copyFrame(ctx.url, ctx.networkSession);
+        [g_lock lock];
+        NSUInteger videoWidth = ctx.videoWidth, videoHeight = ctx.videoHeight;
+        BOOL hasStillSource = ctx.stillSource != nil;
+        [g_lock unlock];
+        if (!videoWidth) { videoWidth = 1584; videoHeight = 1188; }
+        if (!previewOnly && thisTick == 1 && hasStillSource) emitStillSequence(ctx);
+        CGImageRef image = copyFrame(ctx.url, ctx.socket, ctx.networkSession);
         if (!image) { __atomic_add_fetch(&g_fetchFailures, 1, __ATOMIC_RELAXED); return; }
         CGColorSpaceRef space = (__bridge CGColorSpaceRef)ctx.colorSpace;
         CMTime pts = CMClockGetTime(CMClockGetHostTimeClock());
-        CMSampleBufferRef video = copySample(image, ctx.renderContext, space, 1584, 1188, @"OBSBridgeVideo", pts, ctx.masterSource, ctx.frameRate, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
-        BOOL produceStill = !previewOnly || requestedPhotoSettings != nil;
+        CMSampleBufferRef video = copySample(image, ctx.renderContext, space, videoWidth, videoHeight, @"OBSBridgeVideo", pts, ctx.masterSource, ctx.frameRate, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, 270);
+        BOOL produceStill = hasStillSource && (!previewOnly || requestedPhotoSettings != nil);
         CMSampleBufferRef still = produceStill ? copySample(image, ctx.renderContext, space, 4032, 3024,
             @"OBSBridgeStill", pts, ctx.masterSource, ctx.frameRate,
-            kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) : NULL;
+            kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, 270) : NULL;
         if (still && requestedPhotoSettings)
             CMSetAttachment(still, CFSTR("BWStillImageCaptureSettings"),
                 (__bridge CFTypeRef)requestedPhotoSettings, kCMAttachmentMode_ShouldPropagate);
@@ -356,7 +508,7 @@ static void produce(OBSBridgeContext *ctx) {
         CMSampleBufferRef record = (ctx.recordSource || (g_videoInjection && compressor && compressorInput))
             ? copySample(image, ctx.renderContext, space, 1920, 1080,
                 ctx.recordSource ? @"OBSBridgeRecord" : @"Back", pts, YES, ctx.frameRate,
-                kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) : NULL;
+                kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, 270) : NULL;
         CGImageRelease(image);
         [g_lock lock]; active = ctx.running && leaseValid(); [g_lock unlock];
         if (active && video) {
@@ -462,11 +614,15 @@ static void resumeContextConnections(OBSBridgeContext *ctx) {
 
 static void startProducer(OBSBridgeContext *ctx) {
     [g_lock lock];
-    if (ctx.running || !leaseValid() || !ctx.videoConnected || !ctx.stillConnected || !ctx.metadataConnected) {
+    BOOL cameraGraph = [getObject(ctx.graph, "applicationID") isEqual:kCameraApp];
+    BOOL ready = ctx.videoConnected &&
+        (!cameraGraph || (ctx.stillConnected && ctx.metadataConnected));
+    if (ctx.running || !leaseValid() || !ready) {
         [g_lock unlock]; return;
     }
     ctx.running = YES;
     ctx.url = g_url;
+    ctx.socket = g_socket;
     ctx.frameRate = g_frameRate;
     NSURLSessionConfiguration *network = [NSURLSessionConfiguration ephemeralSessionConfiguration];
     network.timeoutIntervalForRequest = 2;
@@ -570,18 +726,19 @@ static BOOL redirectedConnect(id graph, SEL selector, id output, id input, id st
     @autoreleasepool {
         if (!g_originalConnect) return NO;
         NSValue *graphKey = [NSValue valueWithPointer:(__bridge const void *)graph];
+        id appID = getObject(graph, "applicationID");
         [g_lock lock];
+        if ([appID isKindOfClass:[NSString class]] && g_observedAppIDs.count < 32)
+            [g_observedAppIDs addObject:appID];
         BOOL active = leaseValid(), previouslyRedirected = [g_redirectedGraphs containsObject:graphKey];
         BOOL requested = g_enabled && [[NSDate date] timeIntervalSince1970] < g_expires;
         [g_lock unlock];
         if (!active) {
             if (previouslyRedirected) return NO;
-            id appID = requested ? getObject(graph, "applicationID") : nil;
-            if ([appID isEqual:kCameraApp]) return NO;
+            if (requested && appAllowed(appID)) return NO;
             return g_originalConnect(graph, selector, output, input, stage);
         }
-        id appID = getObject(graph, "applicationID");
-        if (![appID isKindOfClass:[NSString class]] || ![appID isEqual:kCameraApp])
+        if (!appAllowed(appID))
             return previouslyRedirected ? NO : g_originalConnect(graph, selector, output, input, stage);
         id destination = getObject(input, "node");
         if (g_directRecording && previouslyRedirected &&
@@ -635,7 +792,19 @@ static BOOL redirectedConnect(id graph, SEL selector, id output, id input, id st
         id replacement = nil;
         @try {
             if ([role isEqual:@"video"]) {
-                if (!ctx.videoSource) ctx.videoSource = createVideoSource(graph, @"OBSBridgeVideo", 1584, 1188);
+                if (!ctx.videoSource) {
+                    NSUInteger width = 1584, height = 1188;
+                    id format = getObject(output, "liveFormat") ?: getObject(output, "format");
+                    if (format && CMFormatDescriptionGetMediaType((__bridge CMFormatDescriptionRef)format) == kCMMediaType_Video) {
+                        CMVideoDimensions dims = CMVideoFormatDescriptionGetDimensions(
+                            (__bridge CMVideoFormatDescriptionRef)format);
+                        if (dims.width >= 320 && dims.width <= 4096 && dims.height >= 240 && dims.height <= 4096) {
+                            width = dims.width; height = dims.height;
+                        }
+                    }
+                    ctx.videoWidth = width; ctx.videoHeight = height;
+                    ctx.videoSource = createVideoSource(graph, @"OBSBridgeVideo", width, height);
+                }
                 replacement = ((id (*)(id, SEL, id))objc_msgSend)(ctx.videoSource,
                     sel_registerName("outputForPortType:"), @"OBSBridgeVideo");
             } else if ([role isEqual:@"still"]) {
@@ -669,7 +838,9 @@ static BOOL suppressedPhysicalStart(id node, SEL selector, void *error) {
     OBSBridgeContext *ctx = g_contexts[[NSValue valueWithPointer:(__bridge const void *)node]];
     id graph = getObject(node, "graph");
     BOOL mapped = ctx != nil || [g_redirectedGraphs containsObject:[NSValue valueWithPointer:(__bridge const void *)graph]];
-    BOOL ready = mapped && leaseValid() && ctx.videoConnected && ctx.stillConnected && ctx.metadataConnected;
+    BOOL cameraGraph = [getObject(graph, "applicationID") isEqual:kCameraApp];
+    BOOL ready = mapped && leaseValid() && ctx.videoConnected &&
+        (!cameraGraph || (ctx.stillConnected && ctx.metadataConnected));
     if (mapped) g_suppressedStarts++;
     [g_lock unlock];
     if (!mapped) return g_originalPhysicalStart ? g_originalPhysicalStart(node, selector, error) : NO;
@@ -1075,6 +1246,169 @@ static void bridgeCompressorRender(id node, SEL selector, CMSampleBufferRef samp
     g_originalCompressorRender(node, selector, sample, input);
 }
 
+static void fetchAudio(void) {
+    [g_lock lock];
+    if (!leaseValid() || !g_audioInjection || g_audioFetchPending || g_audioPackets.count >= 12) {
+        [g_lock unlock]; return;
+    }
+    g_audioFetchPending = YES;
+    unsigned long long after = g_audioSequence;
+    NSString *frameURLText = [g_url copy];
+    NSString *socketPath = [g_socket copy];
+    [g_lock unlock];
+    NSURL *frameURL = [NSURL URLWithString:frameURLText];
+    NSString *audioPath = [[[frameURL path] stringByReplacingOccurrencesOfString:@"/frame.jpg" withString:@"/audio"]
+                           stringByAppendingFormat:@"?after=%llu", after];
+    void (^handle)(NSData *, NSInteger) = ^(NSData *data, NSInteger status) {
+        [g_lock lock];
+        g_audioFetchPending = NO;
+        const uint8_t *bytes = data.bytes;
+        if (status != 200 || data.length < 4 || memcmp(bytes, "OBA1", 4)) {
+            g_audioFetchFailures++;
+        } else {
+            NSUInteger offset = 4;
+            while (offset + 10 <= data.length) {
+                unsigned long long seq = 0;
+                for (int i = 0; i < 8; i++) seq = (seq << 8) | bytes[offset + i];
+                NSUInteger length = ((NSUInteger)bytes[offset + 8] << 8) | bytes[offset + 9];
+                offset += 10;
+                if (!length || length > 8192 || offset + length > data.length) break;
+                if (seq > g_audioSequence && leaseValid() && g_audioInjection) {
+                    [g_audioPackets addObject:[NSData dataWithBytes:bytes + offset length:length]];
+                    g_audioSequence = seq;
+                }
+                offset += length;
+            }
+            while (g_audioPackets.count > 24) [g_audioPackets removeObjectAtIndex:0];
+        }
+        [g_lock unlock];
+    };
+    if (socketPath.length) {
+        // O socket Unix pode bloquear até o timeout; não prenda a fila do áudio.
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+            NSData *data = httpGetOverUnix(socketPath, audioPath, 0.7, 32*8192);
+            handle(data, data ? 200 : 0);
+        });
+        return;
+    }
+    NSString *urlText = [NSString stringWithFormat:@"http://%@:%@%@", frameURL.host, frameURL.port, audioPath];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlText]];
+    request.timeoutInterval = 0.7;
+    [[g_audioSession dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+        NSInteger status = (!error && [(NSHTTPURLResponse *)response isKindOfClass:[NSHTTPURLResponse class]])
+            ? ((NSHTTPURLResponse *)response).statusCode : 0;
+        handle(data, status);
+    }] resume];
+}
+
+static void copyAudioAttachment(const void *key, const void *value, void *context) {
+    CFDictionarySetValue((CFMutableDictionaryRef)context, key, value);
+}
+
+static CMSampleBufferRef sampleWithAudioPacket(CMSampleBufferRef original, NSData *packet) {
+    CMFormatDescriptionRef format = CMSampleBufferGetFormatDescription(original);
+    if (!format || !packet.length) return NULL;
+    CMBlockBufferRef block = NULL;
+    OSStatus status = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, NULL, packet.length,
+        kCFAllocatorDefault, NULL, 0, packet.length, 0, &block);
+    if (status || !block) return NULL;
+    status = CMBlockBufferReplaceDataBytes(packet.bytes, block, 0, packet.length);
+    CMSampleTimingInfo timing = {0};
+    if (!status) status = CMSampleBufferGetSampleTimingInfo(original, 0, &timing);
+    CMSampleBufferRef replacement = NULL;
+    size_t size = packet.length;
+    if (!status) status = CMSampleBufferCreateReady(kCFAllocatorDefault, block, format, 1, 1,
+        &timing, 1, &size, &replacement);
+    CFRelease(block);
+    if (status || !replacement) return NULL;
+    CFArrayRef from = CMSampleBufferGetSampleAttachmentsArray(original, false);
+    CFArrayRef to = CMSampleBufferGetSampleAttachmentsArray(replacement, true);
+    if (from && to && CFArrayGetCount(from) && CFArrayGetCount(to)) {
+        CFDictionaryRef source = CFArrayGetValueAtIndex(from, 0);
+        CFMutableDictionaryRef target = (CFMutableDictionaryRef)CFArrayGetValueAtIndex(to, 0);
+        CFDictionaryApplyFunction(source, copyAudioAttachment, target);
+    }
+    return replacement;
+}
+
+static void bridgeMovieSinkRender(id node, SEL selector, CMSampleBufferRef sample, id input) {
+    if (!g_originalMovieSinkRender) return;
+    if (!sample) { g_originalMovieSinkRender(node, selector, sample, input); return; }
+    CMFormatDescriptionRef format = CMSampleBufferGetFormatDescription(sample);
+    if (!format || CMFormatDescriptionGetMediaType(format) != kCMMediaType_Audio ||
+        CMFormatDescriptionGetMediaSubType(format) != 'aac ') {
+        g_originalMovieSinkRender(node, selector, sample, input); return;
+    }
+    id graph = getObject(node, "graph");
+    [g_lock lock];
+    BOOL active = leaseValid() && g_audioInjection &&
+        [g_redirectedGraphs containsObject:[NSValue valueWithPointer:(__bridge const void *)graph]];
+    NSData *packet = nil;
+    if (active && g_audioPackets.count) {
+        packet = g_audioPackets.firstObject;
+        [g_audioPackets removeObjectAtIndex:0];
+    }
+    [g_lock unlock];
+    if (!active) { g_originalMovieSinkRender(node, selector, sample, input); return; }
+    if (!packet) {
+        static const uint8_t silence[] = {0x01, 0x18, 0x20, 0x07};
+        packet = [NSData dataWithBytes:silence length:sizeof(silence)];
+        __atomic_add_fetch(&g_audioDropped, 1, __ATOMIC_RELAXED);
+    }
+    CMSampleBufferRef replacement = sampleWithAudioPacket(sample, packet);
+    if (!replacement) { __atomic_add_fetch(&g_audioDropped, 1, __ATOMIC_RELAXED); return; }
+    g_originalMovieSinkRender(node, selector, replacement, input);
+    __atomic_add_fetch(&g_audioReplaced, 1, __ATOMIC_RELAXED);
+    CFRelease(replacement);
+}
+
+// The preview delivery to remote clients resolves the sample's PortType
+// through _BWActiveDeviceTypeFromPortType, which raises for any port name it
+// does not know (crash mediaserverd-safari-2026-11-02-230934.ips: SIGABRT on
+// the first "OBSBridgeVideo" render). Present our samples under the port name
+// the pipeline already accepts, and keep any residual raise inside the sink
+// from restarting the whole service.
+static void bridgeQueueSinkRender(id node, SEL selector, CMSampleBufferRef sample, id input) {
+    if (!g_originalQueueSinkRender) return;
+    @autoreleasepool {
+        __atomic_add_fetch(&g_remoteQueueRenders, 1, __ATOMIC_RELAXED);
+        id graph = nil;
+        BOOL redirected = NO;
+        NSString *portType = nil;
+        if (sample && CMSampleBufferGetImageBuffer(sample)) {
+            NSDictionary *metadata = (__bridge NSDictionary *)CMGetAttachment(sample,
+                CFSTR("MetadataDictionary"), NULL);
+            id port = [metadata isKindOfClass:[NSDictionary class]] ? metadata[@"PortType"] : nil;
+            if ([port isKindOfClass:[NSString class]] && [port hasPrefix:@"OBSBridge"]) {
+                graph = getObject(node, "graph");
+                [g_lock lock];
+                redirected = [g_redirectedGraphs containsObject:
+                    [NSValue valueWithPointer:(__bridge const void *)graph]];
+                if (redirected && leaseValid()) portType = g_remoteQueuePortType;
+                [g_lock unlock];
+                if (redirected && portType && [portType length] &&
+                    ![port isEqualToString:portType]) {
+                    NSMutableDictionary *rewritten = [metadata mutableCopy];
+                    rewritten[@"PortType"] = portType;
+                    CMSetAttachment(sample, CFSTR("MetadataDictionary"),
+                        (__bridge CFTypeRef)rewritten, kCMAttachmentMode_ShouldPropagate);
+                    __atomic_add_fetch(&g_remoteQueuePortRemaps, 1, __ATOMIC_RELAXED);
+                }
+            }
+        }
+        @try {
+            g_originalQueueSinkRender(node, selector, sample, input);
+        } @catch (NSException *exception) {
+            if (!redirected) @throw;
+            __atomic_add_fetch(&g_remoteQueueRenderFailures, 1, __ATOMIC_RELAXED);
+            [g_lock lock];
+            g_lastCommitError = [NSString stringWithFormat:@"queueSink %@: %@",
+                exception.name, exception.reason ?: @""];
+            [g_lock unlock];
+        }
+    }
+}
+
 static void bridgeDeferredStartHook(id graph, SEL selector) {
     g_originalDeferredStart(graph, selector);
 }
@@ -1085,7 +1419,9 @@ static void bridgeDeferredPrepareHook(id graph, SEL selector, id handler) {
 
 static BOOL bridgeGraphStop(id graph, SEL selector, void *error) {
     [g_lock lock];
-    if ([g_redirectedGraphs containsObject:[NSValue valueWithPointer:(__bridge const void *)graph]]) g_graphStops++;
+    BOOL mapped = [g_redirectedGraphs containsObject:[NSValue valueWithPointer:(__bridge const void *)graph]];
+    if (mapped) g_graphStops++;
+    BOOL cameraGraph = mapped && [getObject(graph, "applicationID") isEqual:kCameraApp];
     NSMutableArray *keys = [NSMutableArray array];
     for (NSValue *key in g_contexts) {
         OBSBridgeContext *ctx = g_contexts[key];
@@ -1097,9 +1433,19 @@ static BOOL bridgeGraphStop(id graph, SEL selector, void *error) {
         }
     }
     [g_lock unlock];
-    // Keep the mapping while BWGraph calls each node's stop:. The physical
-    // node was never started, so its stop must remain suppressed as well.
-    BOOL stopped = g_originalGraphStop ? g_originalGraphStop(graph, selector, error) : NO;
+    // The stop path observed on 27/10 (photo-shutter-crash .ips) traps inside
+    // BWGraph stop: when a redirected graph's physical node never started. The
+    // Camera graph is verified there; for other clients (Safari) skip the
+    // original stop and retire only our producer, leaving the idle graph to
+    // the system instead of risking the service.
+    BOOL stopped = YES;
+    if (!mapped || cameraGraph) {
+        // Keep the mapping while BWGraph calls each node's stop:. The physical
+        // node was never started, so its stop must remain suppressed as well.
+        stopped = g_originalGraphStop ? g_originalGraphStop(graph, selector, error) : NO;
+    } else {
+        __atomic_add_fetch(&g_graphStopsSkipped, 1, __ATOMIC_RELAXED);
+    }
     [g_lock lock];
     for (NSValue *key in keys) [g_contexts removeObjectForKey:key];
     [g_redirectedGraphs removeObject:[NSValue valueWithPointer:(__bridge const void *)graph]];
@@ -1141,6 +1487,14 @@ static void installHooks(void) {
     Class coordinator = objc_getClass("BWStillImageCoordinatorNode");
     Class gnr = objc_getClass("BWGNRNode");
     Class compressor = objc_getClass("BWVideoCompressorNode");
+    Class movieSink = objc_getClass("BWQuickTimeMovieFileSinkNode");
+    Class queueSink = objc_getClass("BWRemoteQueueSinkNode");
+    if (hasABI(movieSink, "renderSampleBuffer:forInput:", "v32@0:8^{opaqueCMSampleBuffer=}16@24"))
+        MSHookMessageEx(movieSink, sel_registerName("renderSampleBuffer:forInput:"),
+            (IMP)bridgeMovieSinkRender, (IMP *)&g_originalMovieSinkRender);
+    if (hasABI(queueSink, "renderSampleBuffer:forInput:", "v32@0:8^{opaqueCMSampleBuffer=}16@24"))
+        MSHookMessageEx(queueSink, sel_registerName("renderSampleBuffer:forInput:"),
+            (IMP)bridgeQueueSinkRender, (IMP *)&g_originalQueueSinkRender);
     if (hasABI(device, "prepareToCaptureStillImageNow:", "v24@0:8@?16"))
         MSHookMessageEx(device, sel_registerName("prepareToCaptureStillImageNow:"),
             (IMP)bridgeDevicePrepare, (IMP *)&g_originalDevicePrepare);
@@ -1211,13 +1565,23 @@ static void installHooks(void) {
         g_contexts = [NSMutableDictionary new];
         g_redirectedGraphs = [NSMutableSet new];
         g_graphClasses = [NSMutableSet new];
+        g_observedAppIDs = [NSMutableSet new];
+        g_allowedAppIDs = [NSSet set];
         g_photoRoute = [NSMutableArray new];
+        g_audioPackets = [NSMutableArray new];
+        NSURLSessionConfiguration *audioConfig = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+        audioConfig.timeoutIntervalForRequest = 0.7;
+        g_audioSession = [NSURLSession sessionWithConfiguration:audioConfig];
         g_controlQueue = dispatch_queue_create("com.aquiles.obsgraphbridge.control", DISPATCH_QUEUE_SERIAL);
         dispatch_async(g_controlQueue, ^{
             g_statusTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, g_controlQueue);
             dispatch_source_set_timer(g_statusTimer, DISPATCH_TIME_NOW, NSEC_PER_SEC, NSEC_PER_SEC/10);
             dispatch_source_set_event_handler(g_statusTimer, ^{ readControl(); installHooks(); saveStatus(); });
             dispatch_resume(g_statusTimer);
+            g_audioTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, g_controlQueue);
+            dispatch_source_set_timer(g_audioTimer, DISPATCH_TIME_NOW, NSEC_PER_MSEC * 100, NSEC_PER_MSEC * 20);
+            dispatch_source_set_event_handler(g_audioTimer, ^{ fetchAudio(); });
+            dispatch_resume(g_audioTimer);
         });
     }
 }

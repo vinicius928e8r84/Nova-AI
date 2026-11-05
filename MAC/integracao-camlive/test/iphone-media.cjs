@@ -34,21 +34,23 @@ test('PCM resampling creates decodable AAC-LC mono 44100 using bundled FFmpeg',(
 test('loopback HTTP enforces freshness, JPEG bounds, audio sequence/ring and closes sockets',async()=>{
   let clock=100;const media=new UsbMedia({now:()=>clock});const port=await media.listen();
   try{
-    assert.equal(media.server.address().address,'127.0.0.1');assert.equal((await get(port,'/frame.jpg')).status,503);
+    const framePath=media.framePath,audioPath=media.audioPath;
+    assert.equal(media.server.address().address,'127.0.0.1');assert.equal((await get(port,framePath)).status,503);
+    assert.equal((await get(port,'/frame.jpg')).status,404);assert.equal((await get(port,`/s/${'0'.repeat(32)}/frame.jpg`)).status,404);
     assert.equal(media.frame(Buffer.from([0xff,0xd8,0xff,0xd9])).ok,false);
     assert.equal(media.frame(Buffer.alloc(2*1024*1024+1)).ok,false);
-    const frame=jpeg();assert.equal(media.frame(frame).ok,true);const served=await get(port,'/frame.jpg');assert.equal(served.status,200);assert.deepEqual(served.body,frame);assert.equal(served.headers['cache-control'],'no-store');
-    assert.equal((await get(port,'/audio?after=0')).status,503);
+    const frame=jpeg();assert.equal(media.frame(frame).ok,true);const served=await get(port,framePath);assert.equal(served.status,200);assert.deepEqual(served.body,frame);assert.equal(served.headers['cache-control'],'no-store');
+    assert.equal((await get(port,`${audioPath}?after=0`)).status,503);
     for(let i=1;i<=120;i++)assert.equal(media.audioPacket(Buffer.from([i])).ok,true);
     assert.equal(media.audio.length,96);assert.equal(media.sequence,120n);
-    const response=await get(port,'/audio?after=0');assert.equal(response.status,200);assert.equal(response.body.toString('ascii',0,4),'OBA1');
+    const response=await get(port,`${audioPath}?after=0`);assert.equal(response.status,200);assert.equal(response.body.toString('ascii',0,4),'OBA1');
     const seq=[];for(let i=4;i<response.body.length;){seq.push(response.body.readBigUInt64BE(i));const size=response.body.readUInt16BE(i+8);assert.equal(size,1);i+=10+size;}
     assert.equal(seq.length,32);assert.equal(seq[0],89n);assert.equal(seq.at(-1),120n);
-    assert.deepEqual((await get(port,'/audio?after=120')).body,Buffer.from('OBA1'));
-    assert.equal((await get(port,'/audio?after=-1')).status,400);assert.equal((await get(port,'/audio?after=18446744073709551616')).status,400);
-    assert.equal((await get(port,'/frame.jpg','POST')).status,405);assert.equal((await get(port,'/unknown')).status,404);
-    clock+=1001;assert.equal((await get(port,'/frame.jpg')).status,503);assert.equal((await get(port,'/audio')).status,503);
+    assert.deepEqual((await get(port,`${audioPath}?after=120`)).body,Buffer.from('OBA1'));
+    assert.equal((await get(port,`${audioPath}?after=-1`)).status,400);assert.equal((await get(port,`${audioPath}?after=18446744073709551616`)).status,400);
+    assert.equal((await get(port,framePath,'POST')).status,405);assert.equal((await get(port,'/unknown')).status,404);
+    clock+=1001;assert.equal((await get(port,framePath)).status,503);assert.equal((await get(port,audioPath)).status,503);
   }finally{await media.close();}
-  assert.equal(media.server,null);await assert.rejects(()=>get(port,'/frame.jpg'));
+  assert.equal(media.server,null);await assert.rejects(()=>get(port,media.framePath));
 });
 module.exports={jpeg,adts};

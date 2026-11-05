@@ -25,21 +25,35 @@ test('OBA1 usa seq uint64 BE, limita ring96 e entrega últimos32; seq não reini
  now+=1001;assert.equal(media.batch(0n),null);
  media.audioPacket(Buffer.from([7]));assert.equal(media.batch(120n).readBigUInt64BE(4),121n);
 });
-test('HTTP real escuta somente loopback, respeita cache velho e fecha conexões',async()=>{
+test('token: gerado com 32 hex, aceito sob /s/<token>, e a rota antiga responde 404',()=>{
+ const media=new UsbMedia();
+ assert.match(media.token,/^[0-9a-f]{32}$/);
+ assert.match(media.framePath,/^\/s\/[0-9a-f]{32}\/frame\.jpg$/);
+ assert.equal(media.audioPath,`/s/${media.token}/audio`);
+ assert.throws(()=>new UsbMedia({token:'ABC'}),/token/i);
+ assert.throws(()=>new UsbMedia({token:'0'.repeat(31)}),/token/i);
+});
+test('HTTP real escuta somente loopback, exige token e fecha conexões',async()=>{
  let now=10000;const media=new UsbMedia({now:()=>now});const port=await media.listen();
+ const framePath=media.framePath,audioPath=media.audioPath;
  try{
  assert.equal(media.server.address().address,'127.0.0.1');
- assert.equal((await request(port,'/frame.jpg')).code,503);
- assert.equal(media.frame(jpeg).ok,true);let r=await request(port,'/frame.jpg');assert.equal(r.code,200);assert.equal(r.headers['cache-control'],'no-store');assert.deepEqual(r.body,jpeg);
+ assert.equal((await request(port,framePath)).code,503);
+ assert.equal((await request(port,'/frame.jpg')).code,404);
+ assert.equal((await request(port,`/s/${'0'.repeat(32)}/frame.jpg`)).code,404);
+ assert.equal((await request(port,`${framePath}/../secreto`)).code,404);
+ assert.equal((await request(port,`/s/${media.token}`)).code,404);
+ assert.equal(media.frame(jpeg).ok,true);let r=await request(port,framePath);assert.equal(r.code,200);assert.equal(r.headers['cache-control'],'no-store');assert.deepEqual(r.body,jpeg);
  assert.equal(media.frame(Buffer.alloc(2*1024*1024+1)).ok,false);
  assert.equal(media.frame(Buffer.from([255,216,0,0])).ok,false);
- assert.equal((await request(port,'/audio?after=-1')).code,400);
- assert.equal((await request(port,'/audio?after=18446744073709551616')).code,400);
- media.audioPacket(Buffer.from([1,2]));assert.equal((await request(port,'/audio?after=0')).code,200);
- now+=1001;assert.equal((await request(port,'/audio?after=0')).code,503);assert.equal((await request(port,'/frame.jpg')).code,503);
- assert.equal((await request(port,'/frame.jpg','POST')).code,405);
+ assert.equal((await request(port,`${audioPath}?after=-1`)).code,400);
+ assert.equal((await request(port,`${audioPath}?after=18446744073709551616`)).code,400);
+ assert.equal((await request(port,'/audio?after=0')).code,404);
+ media.audioPacket(Buffer.from([1,2]));assert.equal((await request(port,`${audioPath}?after=0`)).code,200);
+ now+=1001;assert.equal((await request(port,`${audioPath}?after=0`)).code,503);assert.equal((await request(port,framePath)).code,503);
+ assert.equal((await request(port,framePath,'POST')).code,405);
  assert.equal((await request(port,'/else')).code,404);
  }finally{await media.close();}
- assert.equal(media.server,null);await assert.rejects(request(port,'/frame.jpg'));
+ assert.equal(media.server,null);await assert.rejects(request(port,framePath));
 });
 module.exports={adts};
