@@ -1,9 +1,9 @@
 Package: com.aquiles.obsgraph-bridge
 Name: OBS Graph Bridge Experimental
-Version: 0.1-30
+Version: 0.1-38
 Architecture: iphoneos-arm64
 Depends: mobilesubstrate
-Description: Time-limited experimental OBS source for Camera graph; disabled by default
+Description: Time-limited experimental OBS source for Camera and WebKit.GPU graphs; disabled by default
 Maintainer: Aquiles
 Author: Aquiles
 Section: Tweaks
