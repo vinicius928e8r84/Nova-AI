@@ -869,18 +869,15 @@ function registerHandlers() {
     return app.physicalMobileService.iosProxyCheck(id);
   });
   // Spoofing de modelo do iPhone (novamodel) — painel "Identidade simulada".
-  // Contrato: NOVA-AI-MODELO-SPOOF-SPEC.md. apply/clear/status usam o túnel USB via iosSsh.
-  ipcMain.handle('iphone:model:list', async () => {
-    return app.physicalMobileService.getIosModels();
+  // Contrato com a UI (branch agent/frontend/modelo-iphone-20261105): nomes exatos.
+  ipcMain.handle('spoofer:apply-ios-model', async (event, { deviceId, productType }) => {
+    return app.physicalMobileService.applyIOSModel(deviceId, productType);
   });
-  ipcMain.handle('iphone:model:apply', async (event, { id, productType }) => {
-    return app.physicalMobileService.applyIOSModel(id, productType);
+  ipcMain.handle('spoofer:clear-ios-model', async (event, { deviceId }) => {
+    return app.physicalMobileService.clearIOSModel(deviceId);
   });
-  ipcMain.handle('iphone:model:clear', async (event, { id }) => {
-    return app.physicalMobileService.clearIOSModel(id);
-  });
-  ipcMain.handle('iphone:model:status', async (event, { id }) => {
-    return app.physicalMobileService.getIOSModel(id);
+  ipcMain.handle('spoofer:get-ios-model', async (event, { deviceId }) => {
+    return app.physicalMobileService.getIOSModel(deviceId);
   });
   ipcMain.handle('physical-mobile:auto-pair-wireless', async (event, { id }) => {
     return app.physicalMobileService.autoPairUsbToWireless(id);

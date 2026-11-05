@@ -392,10 +392,14 @@ class PhysicalMobileService {
             return { success: false, error: 'productType inválido.' };
         }
         const db = this.getIosModels();
-        if (db.success && !iosModelo.findModel(db.models, productType)) {
+        const found = db.success ? iosModelo.findModel(db.models, productType) : null;
+        if (db.success && !found) {
             return { success: false, error: `Modelo "${productType}" não está no banco iOS.` };
         }
-        return iosModelo.applyModel((cmd) => this.iosSsh(cmd), productType);
+        const r = await iosModelo.applyModel((cmd) => this.iosSsh(cmd), productType);
+        if (!r.success) return r;
+        // Contrato da UI (spoofer:apply-ios-model): { success, applied: { productType, name } }.
+        return { success: true, applied: { productType, name: found ? found.name : productType } };
     }
 
     async clearIOSModel(deviceId) {

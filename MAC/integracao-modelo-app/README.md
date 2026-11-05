@@ -10,7 +10,8 @@ Aqui fica só o lado do app: serviço + IPC + banco + instalação do `.deb` pel
   `clearIOSModel(deviceId)` e `getIOSModel(deviceId)`. Chamam o CLI
   `/var/jb/usr/bin/novamodel` via `iosSsh` (túnel USB 2222 → mobile@127.0.0.1), como os
   demais comandos iOS.
-- `main.js`: IPCs `iphone:model:list/apply/clear/status` (mesmo padrão dos `iphone:proxy:*`).
+- `main.js`: IPCs `spoofer:apply-ios-model`/`spoofer:clear-ios-model`/`spoofer:get-ios-model`
+  (nomes exatos do contrato da UI — branch `agent/frontend/modelo-iphone-20261105`).
 - Banco `iosModels.json` (em `electron/services/`, junto do serviço) alimenta o seletor e
   valida o productType antes de aplicar.
 - `conexao-usb/setup.js`: instala `novamodel.deb` pelo fluxo Conectar quando o pacote
@@ -20,13 +21,13 @@ Aqui fica só o lado do app: serviço + IPC + banco + instalação do `.deb` pel
 
 | Canal | Argumentos | Retorno |
 |---|---|---|
-| `iphone:model:list` | — | `{ success, models: [{ productType, name }] }` |
-| `iphone:model:apply` | `{ id, productType }` | `{ success, productType }` ou `{ success:false, error }` |
-| `iphone:model:clear` | `{ id }` | `{ success }` |
-| `iphone:model:status` | `{ id }` | `{ success, real, active, enabled }` |
+| `spoofer:apply-ios-model` | `{ deviceId, productType }` | `{ success, applied: { productType, name } }` ou `{ success:false, error }` |
+| `spoofer:clear-ios-model` | `{ deviceId }` | `{ success }` |
+| `spoofer:get-ios-model` | `{ deviceId }` | `{ success, real, active, enabled }` |
 
-`id` é o identificador do aparelho (`ios-<udid>`); os métodos recusam IDs Android.
-A lista de modelos para o seletor vem de `iphone:model:list`.
+`deviceId` é o identificador do aparelho (`ios-<udid>`); os métodos recusam IDs Android.
+O seletor da UI envia o `productType` do banco `MAC/integracao-modelo/models.json`
+(ex.: iPhone 13 = `iPhone14,5`).
 
 ## Arquivos
 

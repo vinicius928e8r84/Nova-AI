@@ -93,7 +93,7 @@ async function main() {
   ok(rList.models.some((m) => m.productType === 'iPhone14,5'), 'banco contém iPhone 13');
 
   const rApplySvc = await svc.applyIOSModel('ios-00008120-ABCD', 'iPhone15,4');
-  ok(rApplySvc.success && rApplySvc.productType === 'iPhone15,4', 'applyIOSModel aplica no iPhone');
+  ok(rApplySvc.success && rApplySvc.applied && rApplySvc.applied.productType === 'iPhone15,4' && rApplySvc.applied.name === 'iPhone 15', 'applyIOSModel aplica no iPhone (applied.name)');
   ok(calls[0] === '/var/jb/usr/bin/novamodel set iPhone15,4', 'applyIOSModel usa iosSsh com set');
 
   const rApplyAndroid = await svc.applyIOSModel('android-123', 'iPhone15,4');
