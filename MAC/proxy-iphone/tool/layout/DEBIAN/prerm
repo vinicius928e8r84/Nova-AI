@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+JB=/var/jb
+
+# Antes de remover o binário: limpa o proxy do Wi-Fi para não deixar o iPhone sem internet
+"$JB/usr/bin/novaproxy" proxy clear >/dev/null 2>&1 || true
+
+"$JB/usr/bin/launchctl" bootout system/com.aquiles.novaproxy >/dev/null 2>&1 || \
+"$JB/usr/bin/launchctl" unload -w "$JB/Library/LaunchDaemons/com.aquiles.novaproxy.plist" >/dev/null 2>&1 || true
+
+SUDOERS="$JB/etc/sudoers"
+if [ -f "$SUDOERS" ]; then
+    grep -vF 'NOPASSWD: /var/jb/usr/bin/novaproxy' "$SUDOERS" > "$SUDOERS.novaproxy.tmp" 2>/dev/null || true
+    if "$JB/usr/sbin/visudo" -c -f "$SUDOERS.novaproxy.tmp" >/dev/null 2>&1; then
+        cat "$SUDOERS.novaproxy.tmp" > "$SUDOERS"
+    fi
+    rm -f "$SUDOERS.novaproxy.tmp"
+fi
+
+exit 0

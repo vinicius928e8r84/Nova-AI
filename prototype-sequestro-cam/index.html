@@ -1,0 +1,249 @@
+<!doctype html>
+<!-- Site de teste da aba SEQUESTRO DE CÂMERA — versão com APENAS o item 3 (ligar/desligar).
+     O on/off é real: a página chama o servidor local (servir.py), que roda o phone.sh do
+     jailbreak (enable-photo / disable / status). Nada do app instalado foi alterado. -->
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOVA — Sequestro de Câmera (site de teste)</title>
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:#02050A;color:#cbd5e1;font-family:system-ui,-apple-system,sans-serif;overflow:hidden}
+  .janela{height:100vh;display:flex;flex-direction:column;background:rgba(6,12,19,.99);border:1px solid rgba(0,229,255,.2);box-shadow:0 0 100px rgba(0,0,0,.95),0 0 40px rgba(0,229,255,.07)}
+  /* barra de título */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,0,0,.4);flex-shrink:0}
+  .topbar .esq{display:flex;align-items:center;gap:12px}
+  .btn-voltar{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);color:#fff;font-weight:700;font-size:12px;cursor:pointer}
+  .titulo{display:flex;flex-direction:column}
+  .titulo b{font-size:13px;letter-spacing:.18em;color:#fff;text-transform:uppercase}
+  .titulo span{font-size:9px;letter-spacing:.2em;color:rgba(0,229,255,.8);text-transform:uppercase;margin-left:0}
+  .chip-top{width:24px;height:24px;border-radius:6px;background:rgba(0,229,255,.2);border:1px solid rgba(0,229,255,.4);display:flex;align-items:center;justify-content:center;color:#00e5ff;animation:pulse 2s infinite}
+  /* abas */
+  .abas{display:flex;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(0,0,0,.2);flex-shrink:0;font-family:'Righteous',cursive;overflow-x:auto}
+  .aba{display:flex;align-items:center;gap:8px;padding:12px 20px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid transparent;color:rgba(255,255,255,.4);cursor:pointer;white-space:nowrap}
+  .aba.ativa{border-color:#fb7185;color:#fb7185;background:rgba(251,113,133,.05)}
+  .conteudo{flex:1;overflow-y:auto;padding:24px;background:rgba(0,0,0,.1)}
+  /* cartão de cabeçalho da câmera */
+  .card-cab{display:flex;align-items:center;gap:12px;padding:16px;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:16px}
+  .card-cab .icone{width:40px;height:40px;border-radius:12px;background:rgba(244,63,94,.2);border:1px solid rgba(244,63,94,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fb7185}
+  .card-cab h2{font-size:11px;letter-spacing:.18em;color:#fda4af;text-transform:uppercase}
+  .card-cab p{font-size:9px;color:rgba(255,255,255,.4);margin-top:2px}
+  .estado{margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+  .estado .bolinha{width:6px;height:6px;border-radius:50%}
+  .estado.live{background:rgba(244,63,94,.2);border:1px solid rgba(244,63,94,.4);color:#fda4af}
+  .estado.live .bolinha{background:#fb7185;box-shadow:0 0 8px #fb7185;animation:pulse 1s infinite}
+  .estado.standby{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.3)}
+  .estado.standby .bolinha{background:rgba(255,255,255,.2)}
+  /* banner de mensagem */
+  .banner{display:none;margin-top:20px;padding:10px 16px;border-radius:12px;border:1px solid;font-size:10px;font-weight:700;letter-spacing:.05em;justify-content:space-between;align-items:center;gap:12px}
+  .banner.ok{background:rgba(0,229,255,.1);border-color:rgba(0,229,255,.3);color:#00e5ff}
+  .banner.erro{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#f87171}
+  .banner .fechar{background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:14px}
+  /* item 3 */
+  .item{margin-top:20px;padding:20px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:16px}
+  .item .cab{display:flex;align-items:center;gap:8px}
+  .item .num{width:20px;height:20px;border-radius:50%;background:rgba(244,63,94,.2);border:1px solid rgba(244,63,94,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fb7185;font-size:8px;font-weight:900}
+  .item .cab span{font-size:10px;font-weight:900;color:rgba(255,255,255,.7);letter-spacing:.12em;text-transform:uppercase}
+  .item .desc{font-size:9px;color:rgba(255,255,255,.3);line-height:1.6;margin-top:10px}
+  .botoes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:12px;font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .15s;border:1px solid}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn-ligar{background:rgba(244,63,94,.2);border-color:rgba(244,63,94,.4);color:#fda4af}
+  .btn-ligar:hover:not(:disabled){background:rgba(244,63,94,.3)}
+  .btn-desligar{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.5)}
+  .btn-desligar:hover:not(:disabled){background:rgba(255,255,255,.1);color:#fff}
+  .girar{animation:girar 1s linear infinite}
+  /* painel de estado do sistema */
+  .painel{margin-top:20px;padding:16px;background:rgba(255,255,255,.01);border:1px solid rgba(255,255,255,.05);border-radius:16px}
+  .painel h3{font-size:9px;font-weight:900;color:rgba(255,255,255,.2);letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}
+  .linha{display:flex;justify-content:space-between;align-items:center;font-size:10px;padding:4px 0}
+  .linha .rotulo{color:rgba(255,255,255,.6)}
+  .valor{font-family:'JetBrains Mono',monospace;font-weight:600}
+  .valor.ok{color:#34d399}.valor.alerta{color:#fbbf24}.valor.mau{color:#f87171}.valor.neutro{color:#00e5ff}
+  .nota{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:rgba(0,0,0,.75);border:1px solid rgba(0,229,255,.2);border-radius:999px;padding:8px 16px;font-size:11px;z-index:5;white-space:nowrap}
+  .nota b{color:#fbbf20}
+  svg{flex-shrink:0}
+  @keyframes pulse{50%{opacity:.55}}
+  @keyframes girar{to{transform:rotate(360deg)}}
+</style></head>
+<body>
+<div class="janela">
+
+  <div class="topbar">
+    <div class="esq">
+      <button class="btn-voltar" title="Voltar aos Recursos">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Voltar
+      </button>
+      <div class="chip-top">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="titulo"><b>Controle do Celular</b><span>Suíte de Hardware</span></div>
+    </div>
+  </div>
+
+  <div class="abas">
+    <div class="aba">Devices</div>
+    <div class="aba">Controls</div>
+    <div class="aba">Apps</div>
+    <div class="aba">Browser</div>
+    <div class="aba">Spoofer</div>
+    <div class="aba ativa">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+      Sequestro de Câmera
+    </div>
+  </div>
+
+  <div class="conteudo">
+
+    <div class="card-cab">
+      <div class="icone">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+      </div>
+      <div>
+        <h2>Câmera do aparelho</h2>
+        <p>iPhone USB: câmera nativa pelo jailbreak (OBSGraphBridge)</p>
+      </div>
+      <div class="estado standby" id="estado"><span class="bolinha"></span><span id="estado-txt">Standby</span></div>
+    </div>
+
+    <div class="banner" id="banner"><span id="banner-txt"></span><button class="fechar" onclick="fecharBanner()">&times;</button></div>
+
+    <div class="item">
+      <div class="cab">
+        <div class="num">3</div>
+        <span>Ativar Sequestro de Câmera</span>
+      </div>
+      <div class="desc">
+        Liga a injeção do OBS na câmera nativa do iPhone (visor, foto, vídeo e áudio) pelo sistema do jailbreak.
+        Ao desligar, a câmera real volta — feche e reabra a Câmera para aplicar.
+      </div>
+      <div class="botoes">
+        <button class="btn btn-ligar" id="btn-ligar" onclick="ligar()">
+          <svg id="btn-ligar-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.6 2.7a10 10 0 1 0 5.7 5.7"/><path d="M22 2v6h-6"/></svg>
+          <span id="btn-ligar-txt">Ligar</span>
+        </button>
+        <button class="btn btn-desligar" id="btn-desligar" onclick="desligar()">
+          <svg id="btn-desligar-ic" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+          <span id="btn-desligar-txt">Desligar</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="painel">
+      <h3>Estado do sistema do jailbreak</h3>
+      <div class="linha"><span class="rotulo">Injeção na câmera</span><span class="valor neutro" id="v-injecao">—</span></div>
+      <div class="linha"><span class="rotulo">Bridge (tweak)</span><span class="valor neutro" id="v-bridge">—</span></div>
+      <div class="linha"><span class="rotulo">Túnel USB (SSH 2222)</span><span class="valor neutro" id="v-tunel">—</span></div>
+      <div class="linha"><span class="rotulo">Relé do OBS (porta 8900)</span><span class="valor neutro" id="v-rele">—</span></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button class="btn btn-desligar" style="padding:6px 14px;letter-spacing:.1em" onclick="atualizar()">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          Atualizar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="nota">Site de teste — só o <b>item 3</b>. O ligar/desligar executa o <b>phone.sh</b> real do jailbreak.</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ICONE_GIRAR = '<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>';
+const ICONE_LIGAR = '<path d="M15.6 2.7a10 10 0 1 0 5.7 5.7"/><path d="M22 2v6h-6"/>';
+const ICONE_DESLIGAR = '<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>';
+
+function banner(txt, tipo) {
+  const b = $('banner');
+  if (!txt) { b.style.display = 'none'; return; }
+  $('banner-txt').textContent = txt;
+  b.className = 'banner ' + tipo;
+  b.style.display = 'flex';
+}
+function fecharBanner() { $('banner').style.display = 'none'; }
+
+function ocupado(emAcao, rotuloLigar, rotuloDesligar) {
+  $('btn-ligar').disabled = emAcao !== null;
+  $('btn-desligar').disabled = emAcao !== null;
+  $('btn-ligar-txt').textContent = emAcao === 'on' ? rotuloLigar : 'Ligar';
+  $('btn-desligar-txt').textContent = emAcao === 'off' ? rotuloDesligar : 'Desligar';
+  $('btn-ligar-ic').innerHTML = emAcao === 'on' ? ICONE_GIRAR : ICONE_LIGAR;
+  $('btn-desligar-ic').innerHTML = emAcao === 'off' ? ICONE_GIRAR : ICONE_DESLIGAR;
+  document.querySelectorAll('#btn-ligar-ic,#btn-desligar-ic').forEach(svg => {
+    svg.classList.toggle('girar', emAcao !== null && svg.id === (emAcao === 'on' ? 'btn-ligar-ic' : 'btn-desligar-ic'));
+  });
+}
+
+function pintarEstado(d) {
+  const ativo = !!(d.bridge && d.bridge.enabled);
+  const chip = $('estado');
+  chip.className = 'estado ' + (ativo ? 'live' : 'standby');
+  $('estado-txt').textContent = ativo ? 'Live' : 'Standby';
+
+  const inj = $('v-injecao');
+  if (d.erro) { inj.textContent = 'sem resposta'; inj.className = 'valor mau'; }
+  else if (ativo) { inj.textContent = 'ligada'; inj.className = 'valor ok'; }
+  else { inj.textContent = 'desligada'; inj.className = 'valor neutro'; }
+
+  const br = $('v-bridge');
+  if (d.erro) { br.textContent = 'iPhone não respondeu'; br.className = 'valor mau'; }
+  else {
+    const v = d.bridge.version || '—';
+    const pronto = d.bridge.hooksReady && !d.bridge.faulted;
+    br.textContent = v + (pronto ? ' (pronto)' : ' (verificar)');
+    br.className = pronto ? 'valor ok' : 'valor alerta';
+  }
+
+  const tu = $('v-tunel');
+  tu.textContent = d.erro ? 'caído (conecte o iPhone por USB)' : 'ativo';
+  tu.className = d.erro ? 'valor mau' : 'valor ok';
+
+  const re = $('v-rele');
+  if (d.rele) { re.textContent = 'respondendo'; re.className = 'valor ok'; }
+  else { re.textContent = 'desligado — ligue o OBS + relay.py'; re.className = 'valor alerta'; }
+}
+
+async function atualizar() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    pintarEstado(d);
+    if (d.erro) banner('iPhone indisponível: ' + d.erro, 'erro');
+    return d;
+  } catch (e) {
+    pintarEstado({ erro: e.message });
+    banner('Servidor local indisponível: ' + e.message, 'erro');
+  }
+}
+
+async function ligar() {
+  ocupado('on', 'Ligando…', 'Desligar');
+  banner('Ligando injeção da câmera (abre o túnel USB, pode levar alguns segundos)…', 'ok');
+  try {
+    const r = await fetch('/api/on', { method: 'POST' });
+    const d = await r.json();
+    banner(d.ok ? d.mensagem : 'Falha ao ligar: ' + d.mensagem, d.ok ? 'ok' : 'erro');
+  } catch (e) { banner('Erro: ' + e.message, 'erro'); }
+  ocupado(null);
+  await atualizar();
+}
+
+async function desligar() {
+  ocupado('off', 'Ligar', 'Desligando…');
+  banner('Desligando injeção da câmera…', 'ok');
+  try {
+    const r = await fetch('/api/off', { method: 'POST' });
+    const d = await r.json();
+    banner(d.ok ? d.mensagem : 'Falha ao desligar: ' + d.mensagem, d.ok ? 'ok' : 'erro');
+  } catch (e) { banner('Erro: ' + e.message, 'erro'); }
+  ocupado(null);
+  await atualizar();
+}
+
+atualizar();
+setInterval(atualizar, 15000);
+</script>
+</body></html>

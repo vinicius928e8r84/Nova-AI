@@ -1,0 +1,111 @@
+#!/var/jb/bin/bash
+# nova-locale — aplica fuso horário e idioma pedidos pelo Nova AI.
+# Roda como root (launchd). Lê /var/tmp/nova-locale.cmd e responde em
+# /var/tmp/nova-locale-status.json. Nunca executa nada do arquivo de comando:
+# lê apenas as chaves action, tz e plist, e valida cada uma.
+
+CMD=/var/tmp/nova-locale.cmd
+PROC=/var/tmp/nova-locale.proc
+STATUS=/var/tmp/nova-locale-status.json
+LOG=/var/tmp/nova-locale.log
+STATE=/var/mobile/.nova-locale-state
+PREF=/var/mobile/Library/Preferences/.GlobalPreferences.plist
+ORIG=/var/mobile/nova-globalprefs-original.plist
+TZLINK=/var/db/timezone/localtime
+ZONES=/var/db/timezone/zoneinfo
+KILLALL=/var/jb/usr/bin/killall
+SBRELOAD=/var/jb/usr/bin/sbreload
+
+status() {
+    printf '{"ok":%s,"message":"%s"}\n' "$1" "$2" > "$STATUS"
+    chmod 644 "$STATUS" 2>/dev/null
+    printf '%s %s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" "$2" >> "$LOG"
+}
+
+respring() {
+    [ -x "$SBRELOAD" ] && "$SBRELOAD" >/dev/null 2>&1 && return 0
+    [ -x "$KILLALL" ] && "$KILLALL" -9 SpringBoard >/dev/null 2>&1
+    return 0
+}
+
+# Guarda o estado original na primeira execução (fuso + prefs).
+if [ ! -f "$STATE" ]; then
+    orig_tz=$(readlink "$TZLINK" 2>/dev/null | sed -n 's#.*/zoneinfo/##p')
+    {
+        echo "tz=$orig_tz"
+        echo "orig=$ORIG"
+    } > "$STATE"
+    chmod 600 "$STATE"
+    cp -p "$PREF" "$ORIG" 2>/dev/null
+fi
+
+status true "pronto"
+
+while true; do
+    if [ -f "$CMD" ]; then
+        mv -f "$CMD" "$PROC" 2>/dev/null
+        if [ -f "$PROC" ]; then
+            action=$(sed -n 's/^action=//p' "$PROC" | head -1)
+            tz=$(sed -n 's/^tz=//p' "$PROC" | head -1)
+            plist=$(sed -n 's/^plist=//p' "$PROC" | head -1)
+            case "$action" in
+                apply)
+                    ok=1
+                    msg=""
+                    if [ -n "$tz" ]; then
+                        case "$tz" in
+                            *[!A-Za-z0-9_/+-]*) ok=0; msg="fuso invalido" ;;
+                            *)
+                                if [ -f "$ZONES/$tz" ]; then
+                                    ln -sfn "$ZONES/$tz" "$TZLINK" || { ok=0; msg="falha ao trocar fuso"; }
+                                else
+                                    ok=0; msg="fuso inexistente"
+                                fi
+                                ;;
+                        esac
+                    fi
+                    if [ "$ok" -eq 1 ] && [ -n "$plist" ]; then
+                        case "$plist" in
+                            /var/tmp/*) ;;
+                            *) ok=0; msg="caminho de plist invalido" ;;
+                        esac
+                        if [ "$ok" -eq 1 ]; then
+                            if head -c 40 "$plist" 2>/dev/null | grep -q '<?xml'; then
+                                # cfprefsd roda como root: mata antes de trocar para nao sobrescrever
+                                [ -x "$KILLALL" ] && "$KILLALL" -9 cfprefsd >/dev/null 2>&1
+                                cp "$plist" "$PREF.tmp" && chown mobile:mobile "$PREF.tmp" && chmod 600 "$PREF.tmp" \
+                                    && mv -f "$PREF.tmp" "$PREF" || { ok=0; msg="falha ao gravar prefs"; }
+                            else
+                                ok=0; msg="plist invalido"
+                            fi
+                        fi
+                    fi
+                    if [ "$ok" -eq 1 ]; then
+                        respring
+                        status true "aplicado ${tz:+fuso=$tz }${plist:+idioma=ok}"
+                    else
+                        status false "$msg"
+                    fi
+                    ;;
+                revert)
+                    orig_tz=$(sed -n 's/^tz=//p' "$STATE" | head -1)
+                    [ -n "$orig_tz" ] && [ -f "$ZONES/$orig_tz" ] && ln -sfn "$ZONES/$orig_tz" "$TZLINK"
+                    if [ -f "$ORIG" ]; then
+                        [ -x "$KILLALL" ] && "$KILLALL" -9 cfprefsd >/dev/null 2>&1
+                        cp "$ORIG" "$PREF.tmp" && chown mobile:mobile "$PREF.tmp" && chmod 600 "$PREF.tmp" && mv -f "$PREF.tmp" "$PREF"
+                    fi
+                    respring
+                    status true "revertido tz=${orig_tz:-?}"
+                    ;;
+                ping)
+                    status true "pronto"
+                    ;;
+                *)
+                    status false "acao desconhecida"
+                    ;;
+            esac
+            rm -f "$PROC"
+        fi
+    fi
+    sleep 1
+done

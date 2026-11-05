@@ -1,0 +1,39 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Dependências e artefatos de build
+node_modules/
+**/node_modules/
+.theos/
+**/.theos/
+*.o
+*.dSYM/
+**/*.dSYM/
+
+# Instaladores e binários pesados (ficam só no disco)
+*.dmg
+*.exe
+*.zip
+*.tgz
+*.7z
+*.pkg
+*.deb
+**/python-portatil-*/
+**/python-runtime-portable/
+
+# Cópias completas do app e perfis de teste (dados de navegador)
+MAC/distribuicao/pacote-*/
+MAC/distribuicao/*.dmg
+MAC/distribuicao/teste-perfil-*/
+MAC/encerramento-nova/teste/
+WINDOWS/
+**/teste-perfil-*/
+**/browser-data*/
+**/browser-data.corrupt-*/
+**/.wwebjs_auth/
+**/Partitions/
+
+# Estado local
+data/*
+!data/.gitkeep

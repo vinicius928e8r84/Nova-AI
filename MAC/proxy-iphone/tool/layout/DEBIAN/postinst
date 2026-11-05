@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+JB=/var/jb
+
+mkdir -p "$JB/var/log"
+touch "$JB/var/log/novaproxy.log" || true
+chmod 644 "$JB/var/log/novaproxy.log" || true
+
+chown root:wheel "$JB/usr/bin/novaproxy" 2>/dev/null || true
+# setuid root: o app chama via SSH como mobile e o binário precisa escrever no Wi-Fi.
+# É o mesmo mecanismo do sudo do bootstrap (que também é setuid).
+chmod 4755 "$JB/usr/bin/novaproxy" 2>/dev/null || true
+
+# Daemon (re)carrega no boot
+"$JB/usr/bin/launchctl" bootstrap system "$JB/Library/LaunchDaemons/com.aquiles.novaproxy.plist" >/dev/null 2>&1 || \
+"$JB/usr/bin/launchctl" load -w "$JB/Library/LaunchDaemons/com.aquiles.novaproxy.plist" >/dev/null 2>&1 || true
+
+exit 0

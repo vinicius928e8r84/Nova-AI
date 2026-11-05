@@ -1,0 +1,15 @@
+Seite de teste do Sequestro de Câmera: http://127.0.0.1:8788
+Traceback (most recent call last):
+  File "/Users/aquilesneri/Desktop/Nova-AI/prototype-sequestro-cam/servir.py", line 136, in <module>
+    ThreadingHTTPServer(('127.0.0.1', PORTA), Handler).serve_forever()
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/socketserver.py", line 454, in __init__
+    self.server_bind()
+    ~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/http/server.py", line 122, in server_bind
+    socketserver.TCPServer.server_bind(self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/socketserver.py", line 475, in server_bind
+    self.socket.bind(self.server_address)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+OSError: [Errno 48] Address already in use

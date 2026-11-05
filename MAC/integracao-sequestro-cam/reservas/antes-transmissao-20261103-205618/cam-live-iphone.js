@@ -1,0 +1,336 @@
+'use strict';
+// CAM LIVE → iPhone USB: JPEG + AAC-LC over an app-owned loopback HTTP server.
+const http = require('http');
+const crypto = require('crypto');
+const path = require('path');
+const os = require('os');
+const { spawn } = require('child_process');
+const CONTROL = '/var/tmp/obs-graph-bridge-control.json';
+const MAX_JPEG = 2 * 1024 * 1024;
+const quote = s => "'" + String(s).replace(/'/g, "'\\''") + "'";
+
+class AdtsParser {
+  constructor(onPacket) { this.pending = Buffer.alloc(0); this.onPacket = onPacket; }
+  push(chunk) {
+    const incoming = Buffer.from(chunk);
+    if (incoming.length > 1024 * 1024 || this.pending.length + incoming.length > 1024 * 1024) throw new Error('Saída AAC excedeu o limite.');
+    this.pending = Buffer.concat([this.pending, incoming]);
+    const packets = [];
+    while (this.pending.length >= 7) {
+      const b = this.pending;
+      if (b[0] !== 0xff || (b[1] & 0xf6) !== 0xf0) throw new Error('Encoder retornou áudio sem cabeçalho ADTS válido.');
+      const header = b[1] & 1 ? 7 : 9;
+      const length = ((b[3] & 3) << 11) | (b[4] << 3) | (b[5] >> 5);
+      if (length <= header || length > 8191) throw new Error('Tamanho de pacote AAC inválido.');
+      if (((b[2] >> 6) & 3) !== 1 || ((b[2] >> 2) & 15) !== 4 || (((b[2] & 1) << 2) | (b[3] >> 6)) !== 1 || (b[6] & 3) !== 0) throw new Error('Áudio do iPhone exige AAC-LC mono de 44,1 kHz.');
+      if (b.length < length) break;
+      const packet = Buffer.from(b.subarray(header, length));
+      packets.push(packet);
+      if (this.onPacket) this.onPacket(packet);
+      this.pending = b.subarray(length);
+    }
+    return packets;
+  }
+}
+
+function jpegDimensions(bytes) {
+  let offset = 2;
+  while (offset + 3 < bytes.length) {
+    if (bytes[offset++] !== 0xff) return null;
+    while (bytes[offset] === 0xff) offset++;
+    const marker = bytes[offset++];
+    if (marker === 0xd9 || marker === 0xda) return null;
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 2 > bytes.length) return null;
+    const length = bytes.readUInt16BE(offset);
+    if (length < 2 || offset + length > bytes.length) return null;
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+      if (length < 8) return null;
+      return { width: bytes.readUInt16BE(offset + 5), height: bytes.readUInt16BE(offset + 3) };
+    }
+    offset += length;
+  }
+  return null;
+}
+
+class UsbMedia {
+  constructor({ now = Date.now } = {}) {
+    this.now = now; this.latestFrame = null; this.frameAt = 0; this.audioAt = 0; this.sequence = 0n; this.audio = []; this.server = null;
+  }
+  frame(data) {
+    if (!Buffer.isBuffer(data) && !(data instanceof Uint8Array)) return { ok: false, error: 'Quadro JPEG inválido.' };
+    const b = Buffer.from(data);
+    if (b.length < 4 || b.length > MAX_JPEG || b[0] !== 0xff || b[1] !== 0xd8 || b[b.length - 2] !== 0xff || b[b.length - 1] !== 0xd9) return { ok: false, error: 'Quadro JPEG inválido ou maior que 2 MiB.' };
+    const size = jpegDimensions(b);
+    if (!size || size.width < 1 || size.height < 1 || size.width > 4096 || size.height > 4096) return { ok: false, error: 'O JPEG precisa ter dimensões válidas de até 4096×4096.' };
+    this.latestFrame = Buffer.from(b); this.frameAt = this.now(); return { ok: true };
+  }
+  audioPacket(data) {
+    if (!Buffer.isBuffer(data) && !(data instanceof Uint8Array)) return { ok: false, error: 'Pacote AAC inválido.' };
+    const b = Buffer.from(data);
+    if (b.length < 1 || b.length > 8192) return { ok: false, error: 'Pacote AAC inválido.' };
+    this.sequence++; this.audio.push({ sequence: this.sequence, data: Buffer.from(b) });
+    if (this.audio.length > 96) this.audio.splice(0, this.audio.length - 96);
+    this.audioAt = this.now(); return { ok: true };
+  }
+  freshFrame(maxAge = 1000) { return !!this.latestFrame && this.now() - this.frameAt <= maxAge; }
+  freshAudio(maxAge = 1000) { return this.audio.length > 0 && this.now() - this.audioAt <= maxAge; }
+  batch(after) {
+    if (!this.freshAudio()) return null;
+    const records = this.audio.filter(p => p.sequence > after).slice(-32);
+    return Buffer.concat([Buffer.from('OBA1'), ...records.map(p => { const header = Buffer.alloc(10); header.writeBigUInt64BE(p.sequence); header.writeUInt16BE(p.data.length, 8); return Buffer.concat([header, p.data]); })]);
+  }
+  async listen() {
+    if (this.server) throw new Error('Servidor de mídia já iniciado.');
+    this.server = http.createServer((req, res) => {
+      const reply = (status, data, type = 'text/plain; charset=utf-8') => { res.writeHead(status, { 'Content-Type': type, 'Cache-Control': 'no-store', 'Content-Length': Buffer.byteLength(data) }); res.end(data); };
+      if (req.method !== 'GET') return reply(405, 'Método não permitido');
+      let url;
+      try { url = new URL(req.url, 'http://127.0.0.1'); } catch (_) { return reply(400, 'URL inválida'); }
+      if (url.pathname === '/frame.jpg') return this.freshFrame() ? reply(200, this.latestFrame, 'image/jpeg') : reply(503, 'Sem quadro recente do CAM LIVE');
+      if (url.pathname === '/audio') {
+        const text = url.searchParams.get('after') || '0';
+        if (!/^\d{1,20}$/.test(text) || BigInt(text) > 0xffffffffffffffffn) return reply(400, 'Sequência inválida');
+        const batch = this.batch(BigInt(text)); return batch ? reply(200, batch, 'application/octet-stream') : reply(503, 'Sem áudio recente do CAM LIVE');
+      }
+      return reply(404, 'Não encontrado');
+    });
+    this.server.requestTimeout = 3000; this.server.headersTimeout = 3000; this.server.keepAliveTimeout = 1000;
+    await new Promise((resolve, reject) => { this.server.once('error', reject); this.server.listen(0, '127.0.0.1', resolve); });
+    return this.server.address().port;
+  }
+  async close() {
+    const server = this.server; this.server = null;
+    this.latestFrame = null; this.audio = [];
+    if (!server) return;
+    await new Promise(resolve => { const timer = setTimeout(resolve, 1000); server.close(() => { clearTimeout(timer); resolve(); }); if (server.closeAllConnections) server.closeAllConnections(); });
+  }
+}
+
+function ready(state) {
+  return state && state.version === '0.1-38' && state.hooksReady && !state.faulted && state.photoPrepareHookReady && state.photoStillHookReady && state.photoPortRemapHookReady;
+}
+class CamLiveIphone {
+  constructor({ getMobileService, send = () => {}, ffmpegPath, spawnProcess = spawn }) {
+    this.getMobileService = getMobileService; this.send = send; this.ffmpegPath = ffmpegPath; this.spawnProcess = spawnProcess;
+    this.stopping = null; this.generation = 0; this.running = false; this.starting = false; this.active = false; this.ownsControl = false; this.status = 'Pronto'; this.error = ''; this.droppedPcm = 0;
+  }
+  _emit(extra = {}) { this.send('camlive:status', { status: this.status, error: this.error, destination: 'iphone', ...extra }); }
+  _assert(token) { if (token !== this.generation) throw new Error('Preparação do CAM LIVE cancelada.'); }
+  async _readState() {
+    const response = await this.mobile.iosSsh('cat /var/tmp/obs-graph-bridge-status.json');
+    if (!response || !response.ok) throw new Error('iPhone sem acesso SSH. Use Conectar em PHONE CONTROL e confira o cabo USB.');
+    try { return JSON.parse(response.stdout); } catch (_) { throw new Error('A ponte do iPhone não retornou um status válido. Reconecte em PHONE CONTROL.'); }
+  }
+  // The bridge status keeps enabled:true after a lease expires until the Camera polls again, so only a live inject lease counts as busy.
+  async _bridgeBusy(state) {
+    if (!state.enabled) return false;
+    const response = await this.mobile.iosSsh('cat ' + CONTROL + '; echo; date +%s');
+    if (!response || !response.ok) return true;
+    const lines = response.stdout.trim().split('\n').map(line => line.trim()).filter(Boolean);
+    const now = Number(lines.pop());
+    try { const control = JSON.parse(lines.join('')); return !(control.mode !== 'inject' || (Number.isFinite(now) && Number(control.expiresAt) <= now)); }
+    catch (_) { return true; }
+  }
+  start(cfg = {}) {
+    if (this.startTask || this.stopping) return Promise.resolve({ ok: false, error: 'Aguarde a preparação ou parada da transmissão anterior.' });
+    const task = this._start(cfg); this.startTask = task;
+    task.finally(() => { if (this.startTask === task) this.startTask = null; });
+    return task;
+  }
+  async _start(cfg = {}) {
+    if (this.running || this.starting || this.stopping) return { ok: false, error: 'O CAM LIVE já está preparando ou transmitindo para o iPhone.' };
+    const token = ++this.generation; this.starting = true; this.error = ''; this.status = 'Preparando iPhone por USB…'; this._emit();
+    try {
+      this.mobile = this.getMobileService && this.getMobileService();
+      if (!this.mobile) throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de transmitir.');
+      const devices = (await this.mobile.getIosDevices()).filter(d => d.ios || String(d.id).startsWith('ios-')); this._assert(token);
+      if (devices.length !== 1) throw new Error('Conecte exatamente um iPhone por USB para transmitir.');
+      const device = devices[0];
+      if (cfg.deviceId && cfg.deviceId !== device.id) throw new Error('O iPhone selecionado não corresponde ao único aparelho conectado.');
+      this.deviceName = device.name || 'iPhone'; this.deviceId = device.id;
+      const state = await this._readState(); this._assert(token);
+      if (!ready(state)) throw new Error('A ponte de câmera precisa ser a versão 0.1-38 com os hooks de foto prontos. Use Conectar em PHONE CONTROL para atualizar/preparar o iPhone.');
+      if (await this._bridgeBusy(state)) throw new Error('Outra transmissão está ativa na ponte do iPhone. Encerre-a antes de iniciar o CAM LIVE.');
+      const sampleRate = Number(cfg.sampleRate || 48000);
+      if (![8000, 11025, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000].includes(sampleRate)) throw new Error('Taxa de áudio da fonte não suportada.');
+      this.sampleRate = sampleRate; this.fps = Math.max(1, Math.min(30, Math.round(Number(cfg.fps) || 30))); this.media = new UsbMedia(); await this.media.listen(); this._assert(token);
+      this.session = crypto.randomBytes(16).toString('hex'); this.pcmAt = 0; this.droppedPcm = 0; this.pcmBlocked = false; this.ownsControl = false; this.active = false;
+      await this._tunnel(token); this._assert(token);
+      await this._encoder(token); this._assert(token);
+      this.running = true; this.starting = false; this.status = 'Aguardando fonte'; this._emit();
+      this.heartbeat = setInterval(() => this._heartbeat(token).catch(e => this._fail(e, token)), 20000); this.heartbeat.unref();
+      this.sourceWatch = setInterval(() => this._watchSource(token).catch(e => this._fail(e, token)), 1000); this.sourceWatch.unref();
+      this.watchdog = setInterval(() => this._watchdog(token).catch(e => this._fail(e, token)), 500); this.watchdog.unref();
+      return { ok: true, deviceName: this.deviceName, sampleRate };
+    } catch (error) {
+      if (token === this.generation) { this.error = error.message; this.starting = false; this.running = false; await this._cleanup(); this.status = 'Pronto'; this._emit({ finished: true }); }
+      return { ok: false, error: error.message };
+    }
+  }
+  async _tunnel(token) {
+    const args = ['-p', '2222', '-i', path.join(os.homedir(), '.ssh', 'id_iphone'), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-v', '-N', '-R', `127.0.0.1:18999:127.0.0.1:${this.media.server.address().port}`, 'mobile@127.0.0.1'];
+    await new Promise((resolve, reject) => {
+      const child = this.spawnProcess('/usr/bin/ssh', args, { stdio: ['ignore', 'ignore', 'pipe'] }); this.tunnel = child;
+      let confirmed = false, settled = false, stderr = '';
+      const fail = error => { if (!settled) { settled = true; clearTimeout(timer); reject(error); } else if (confirmed) this._fail(error, token); };
+      const timer = setTimeout(() => { child.kill(); fail(new Error('O túnel USB não confirmou a conexão. Use Conectar em PHONE CONTROL.')); }, 8000);
+      child.stderr.on('data', bytes => {
+        stderr = (stderr + bytes.toString()).slice(-4096);
+        if (!settled && stderr.includes('remote forward success')) { confirmed = true; settled = true; clearTimeout(timer); resolve(); }
+      });
+      child.once('error', () => fail(new Error('Não foi possível iniciar o túnel SSH por USB. Use Conectar em PHONE CONTROL.')));
+      child.once('exit', () => fail(new Error(stderr.includes('remote port forwarding failed') ? 'A porta de câmera do iPhone está ocupada por outra transmissão. Encerre-a antes de iniciar o CAM LIVE.' : 'O túnel USB foi encerrado. Reconecte o iPhone em PHONE CONTROL.')));
+    });
+  }
+  async _encoder(token) {
+    const ffmpeg = this.ffmpegPath || require('./mac-native').tool('ffmpeg');
+    if (!ffmpeg) throw new Error('FFmpeg não está incluído no Nova. Reinstale o aplicativo completo.');
+    const child = this.spawnProcess(ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-probesize', '32', '-analyzeduration', '0', '-f', 's16le', '-ar', String(this.sampleRate), '-ac', '1', '-i', 'pipe:0', '-vn', '-c:a', 'aac', '-profile:a', 'aac_low', '-ar', '44100', '-ac', '1', '-b:a', '96k', '-flush_packets', '1', '-f', 'adts', 'pipe:1'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    this.encoder = child; this.encoderError = '';
+    const parser = new AdtsParser(packet => { if (token !== this.generation || !this.media) return; this.media.audioPacket(packet); this._maybeEnable(token); });
+    child.stdout.on('data', data => { if (token !== this.generation) return; try { parser.push(data); } catch (e) { this._fail(e, token); } });
+    child.stderr.on('data', data => { this.encoderError = (this.encoderError + data.toString()).slice(-2048); });
+    child.stdin.on('drain', () => { this.pcmBlocked = false; });
+    child.stdin.on('error', () => this._fail(new Error('A entrada de áudio do CAM LIVE foi interrompida.'), token));
+    await new Promise((resolve, reject) => {
+      let spawned = false;
+      child.once('spawn', () => { spawned = true; resolve(); });
+      child.once('error', () => { const error = new Error('Não foi possível iniciar o encoder de áudio incluído no Nova.'); if (spawned) this._fail(error, token); else reject(error); });
+      child.once('exit', () => { const error = new Error('O encoder de áudio do CAM LIVE foi encerrado.' + (this.encoderError ? ' ' + this.encoderError : '')); if (spawned) this._fail(error, token); else reject(error); });
+    });
+  }
+  frame(data) {
+    if (!this.running || !this.media) return { ok: false, error: 'A transmissão USB ainda não está preparada.' };
+    let result;
+    try { result = this.media.frame(data); } catch (_) { return { ok: false, error: 'Quadro JPEG inválido.' }; }
+    if (result.ok) this._maybeEnable(this.generation);
+    return result;
+  }
+  async pcm({ data, sampleRate } = {}) {
+    if (!this.running || !this.encoder || !this.encoder.stdin || this.encoder.stdin.destroyed) return { ok: false, error: 'O encoder de áudio não está preparado.' };
+    if (Number(sampleRate) !== this.sampleRate) return { ok: false, error: 'A taxa do áudio mudou. Pare e inicie novamente o CAM LIVE.' };
+    let bytes; try { if (!Buffer.isBuffer(data) && !(data instanceof Uint8Array)) throw new Error(); bytes = Buffer.from(data); } catch (_) { return { ok: false, error: 'PCM inválido.' }; }
+    if (bytes.length < 2 || bytes.length % 2 || bytes.length > 64 * 1024) return { ok: false, error: 'Bloco de áudio PCM inválido ou excessivo.' };
+    const input = this.encoder.stdin, token = this.generation;
+    if (this.pcmWaiting) return { ok: false, backpressure: true, error: 'Já existe um bloco de áudio aguardando o encoder.' };
+    if (this.pcmBlocked || input.writableLength > 128 * 1024) {
+      this.pcmWaiting = true;
+      const drained = await new Promise(resolve => {
+        const finish = ok => { clearTimeout(timer); input.removeListener('drain', onDrain); input.removeListener('close', onClose); input.removeListener('error', onClose); resolve(ok); };
+        const onDrain = () => finish(true), onClose = () => finish(false);
+        const timer = setTimeout(() => finish(false), 500);
+        input.once('drain', onDrain); input.once('close', onClose); input.once('error', onClose);
+      });
+      this.pcmWaiting = false;
+      if (!drained || token !== this.generation || !this.running || input.destroyed) { this.droppedPcm++; return { ok: false, backpressure: true, error: 'O encoder não liberou o áudio em 500 ms. Pare e inicie novamente o CAM LIVE.' }; }
+      this.pcmBlocked = false;
+    }
+    try { this.pcmBlocked = !this.encoder.stdin.write(bytes); this.pcmAt = Date.now(); return { ok: true, backpressure: this.pcmBlocked }; }
+    catch (_) { return { ok: false, error: 'Não foi possível enviar o áudio ao encoder.' }; }
+  }
+  _maybeEnable(token) {
+    if (!this.running || this.enabling || this.active || !this.media || !this.media.freshFrame() || !this.media.freshAudio() || !this.pcmAt || Date.now() - this.pcmAt > 2000) return;
+    this.enabling = true;
+    const task = this._activate(token); this.activationTask = task;
+    task.catch(e => this._fail(e, token)).finally(() => { if (this.activationTask === task) this.activationTask = null; this.enabling = false; });
+  }
+  async _activate(token) {
+    this._assert(token);
+    const state = await this._readState(); this._assert(token);
+    if (!ready(state)) throw new Error('A ponte do iPhone deixou de estar pronta. Reconecte em PHONE CONTROL.');
+    if (this.ownsControl) {
+      const owner = await this.mobile.iosSsh('cat ' + CONTROL); this._assert(token);
+      let config; try { config = JSON.parse(owner.stdout); } catch (_) {}
+      if (!owner.ok || !config || config.novaCamLiveSession !== this.session) throw new Error('Outra sessão assumiu a câmera do iPhone. O CAM LIVE não a substituiu.');
+    }
+    if (this.ownsControl && !(await this._isOwnControl())) { this.ownsControl = false; this.active = false; throw new Error('Outra sessão assumiu o controle da câmera. O CAM LIVE foi interrompido.'); }
+    this._assert(token);
+    if (!this.ownsControl && await this._bridgeBusy(state)) throw new Error('Outra transmissão assumiu a câmera do iPhone. O CAM LIVE não a substituiu.');
+    if (!this.media || !this.media.freshFrame(2000) || !this.media.freshAudio(2000)) return;
+    const config = { mode: 'inject', appID: 'com.apple.camera', appIDs: ['com.apple.camera'], expiresAt: Math.floor(Date.now() / 1000) + 60, previewOnly: true, continuous: false, directRecording: false, photoPrepareBypass: true, videoInjection: true, audioInjection: true, frameRate: this.fps, url: 'http://127.0.0.1:18999/frame.jpg', novaCamLiveSession: this.session };
+    const response = await this.mobile.iosSsh('umask 077; printf %s ' + quote(JSON.stringify(config)) + ' > ' + CONTROL + '.camlive-next && mv ' + CONTROL + '.camlive-next ' + CONTROL);
+    if (!response || !response.ok) throw new Error('Não foi possível ativar a câmera do iPhone.');
+    this.ownsControl = true; this._assert(token);
+    // The tweak polls configuration; allow it to acknowledge before claiming ATIVO.
+    let acknowledged = false;
+    for (let i = 0; i < 6; i++) {
+      if (i) await new Promise(resolve => setTimeout(resolve, 300));
+      const after = await this._readState(); this._assert(token);
+      if (!ready(after)) throw new Error('A ponte do iPhone reportou erro durante a ativação.');
+      if (after.enabled) { acknowledged = true; break; }
+    }
+    if (acknowledged && !(await this._isOwnControl())) { this.ownsControl = false; this.active = false; throw new Error('Outra sessão assumiu o controle durante a ativação.'); }
+    this._assert(token);
+    if (!acknowledged) throw new Error('O iPhone não confirmou a ativação da câmera. Feche e reabra a Câmera após reconectar.');
+    this.active = true; this.status = 'AO VIVO'; this._emit();
+  }
+  async _isOwnControl() {
+    if (!this.mobile || !this.session) return false;
+    const result = await this.mobile.iosSsh('cat ' + CONTROL);
+    if (!result || !result.ok) throw new Error('Não foi possível verificar quem controla a câmera do iPhone.');
+    try { return JSON.parse(result.stdout).novaCamLiveSession === this.session; }
+    catch (_) { return false; }
+  }
+  async _observe() {
+    if (!this.ownsControl || !this.mobile || !this.session) return;
+    const marker = quote('"novaCamLiveSession":"' + this.session + '"');
+    const response = await this.mobile.iosSsh('if grep -Fq ' + marker + ' ' + CONTROL + '; then umask 077; printf %s ' + quote('{"mode":"observe"}') + ' > ' + CONTROL + '.camlive-next && mv ' + CONTROL + '.camlive-next ' + CONTROL + '; fi');
+    if (!response || !response.ok) throw new Error('Não foi possível confirmar a desativação da ponte. O lease expira em até 60 segundos.');
+    this.ownsControl = false; this.active = false;
+  }
+  async _watchdog(token) {
+    if (!this.running || token !== this.generation || !this.active || this.enabling || this.observing) return;
+    if (this.media && this.media.freshFrame(2000) && this.media.freshAudio(2000) && Date.now() - this.pcmAt <= 2000) return;
+    this.observing = true;
+    try {
+      await this._observe(); this._assert(token);
+      this.status = 'Aguardando fonte'; this._emit({ error: 'A fonte parou de enviar imagem ou áudio. A câmera virtual foi desativada.' });
+    } finally { this.observing = false; }
+  }
+  async _watchSource(token) {
+    if (!this.running || token !== this.generation || this.enabling || this.watching || !this.ownsControl) return;
+    if (this.media && this.media.freshFrame(2000) && this.media.freshAudio(2000) && Date.now() - this.pcmAt <= 2000) return;
+    this.watching = true;
+    try { await this._observe(); this._assert(token); this.status = 'Aguardando fonte'; this._emit({ error: 'A fonte parou de enviar imagem ou áudio. A câmera virtual foi desativada.' }); }
+    finally { this.watching = false; }
+  }
+  async _heartbeat(token) {
+    if (!this.running || token !== this.generation || this.enabling || this.observing) return;
+    if (!this.media || !this.media.freshFrame(2000) || !this.media.freshAudio(2000) || Date.now() - this.pcmAt > 2000) {
+      await this._observe(); this._assert(token); this.status = 'Aguardando fonte'; this._emit({ error: 'A fonte parou de enviar imagem ou áudio. A câmera virtual foi desativada.' }); return;
+    }
+    this.enabling = true;
+    const task = this._activate(token); this.activationTask = task;
+    try { await task; } finally { if (this.activationTask === task) this.activationTask = null; this.enabling = false; }
+  }
+  async _fail(error, token) {
+    if (token !== this.generation || this.failing) return;
+    this.failing = true; this.error = error.message || String(error); await this.stop(); this.failing = false; this._emit({ finished: true });
+  }
+  async _cleanup() {
+    clearInterval(this.heartbeat); clearInterval(this.sourceWatch); this.heartbeat = null; this.sourceWatch = null; clearInterval(this.watchdog); this.watchdog = null;
+    try { await this._observe(); } catch (_) { /* bounded SSH timeout; finite lease is the fallback */ }
+    const encoder = this.encoder, tunnel = this.tunnel, media = this.media;
+    this.encoder = null; this.tunnel = null; this.media = null; this.enabling = false; this.observing = false; this.active = false; this.ownsControl = false;
+    for (const child of [encoder, tunnel]) if (child) { try { child.kill(); } catch (_) {} }
+    if (media) await media.close();
+  }
+  async stop() {
+    if (this.stopping) return this.stopTask || { ok: true };
+    this.stopping = true;
+    const task = this._stop(); this.stopTask = task;
+    try { return await task; } finally { this.stopping = false; this.stopTask = null; }
+  }
+  async _stop() {
+    ++this.generation; this.running = false; this.starting = false;
+    for (const child of [this.encoder, this.tunnel]) if (child) { try { child.kill(); } catch (_) {} }
+    const preparing = this.startTask; if (preparing) { try { await preparing; } catch (_) {} }
+    // A control write already in flight must settle before ownership-aware cleanup.
+    const activating = this.activationTask; if (activating) { try { await activating; } catch (_) {} }
+    await this._cleanup(); this.status = 'Pronto'; return { ok: true };
+  }
+  stats() { return { destination: 'iphone', status: this.status, active: this.active, fps: this.fps || 30, queued: this.media ? this.media.audio.length : 0, dropped: this.droppedPcm, deviceName: this.deviceName || '', frameFresh: !!this.media && this.media.freshFrame(), audioFresh: !!this.media && this.media.freshAudio() }; }
+  snapshot() { return { ...this.stats(), error: this.error, running: this.running }; }
+}
+module.exports = { CamLiveIphone, AdtsParser, UsbMedia };

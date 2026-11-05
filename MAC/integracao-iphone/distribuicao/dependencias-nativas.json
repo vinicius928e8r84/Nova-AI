@@ -1,0 +1,8 @@
+[
+  {
+    "file": "app/node_modules/@napi-rs/canvas-darwin-arm64/skia.darwin-arm64.node",
+    "dependencies": [
+      "/Users/runner/work/canvas/canvas/target/aarch64-apple-darwin/release/deps/libcanvas.dylib"
+    ]
+  }
+]
