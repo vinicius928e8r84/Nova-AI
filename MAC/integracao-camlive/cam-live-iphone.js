@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
+const iphoneSsh = require('./iphone-ssh');
 const BLACK_FRAME = Buffer.from('/9j/4AAQSkZJRgABAgAAAQABAAD//gAPTGF2YzYzLjEuMTAyAP/bAEMACAQEBAQEBQUFBQUFBgYGBgYGBgYGBgYGBgcHBwgICAcHBwYGBwcICAgICQkJCAgICAkKCgoKDAwLCw4ODhERFP/EAEsAAQEAAAAAAAAAAAAAAAAAAAAIAQEAAAAAAAAAAAAAAAAAAAAAEAEAAAAAAAAAAAAAAAAAAAAAEQEAAAAAAAAAAAAAAAAAAAAA/8AAEQgAIAAgAwEiAAIRAAMRAP/aAAwDAQACEQMRAD8An8AAAAAAAH//2Q==', 'base64');
 const MAX_JPEG = 2 * 1024 * 1024;
 const MEDIA_TOKEN = /^[0-9a-f]{32}$/;
@@ -234,7 +235,7 @@ class CamLiveIphone {
     }
   }
   _sshArgs(forward) {
-    return ['-p', '2222', '-i', path.join(os.homedir(), '.ssh', 'id_iphone'), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-N', '-R', forward, 'mobile@127.0.0.1'];
+    return ['-p', '2222', ...iphoneSsh.sshOptions(), '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-N', '-R', forward, 'mobile@127.0.0.1'];
   }
   _openForward(args) {
     return new Promise((resolve, reject) => {

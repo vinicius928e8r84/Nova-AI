@@ -2,6 +2,7 @@ const { spawn, exec, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const iphoneSsh = require('./iphone-ssh');
 const net = require('net');
 const WebSocket = require('ws');
 const axios = require('axios');
@@ -21,6 +22,7 @@ class PhysicalMobileService {
 
         // Ensure base directories exist
         if (!fs.existsSync(this.baseDir)) fs.mkdirSync(this.baseDir, { recursive: true });
+        try { require('./iphone-ssh').migrateLegacy(); } catch (e) { console.error('[iPhone SSH] migração:', e.message); }
 
         // Auto-detect and resolve tools immediately
         this.resolveAdbPath();
@@ -276,13 +278,95 @@ class PhysicalMobileService {
     // ── iOS (iPhone via USB) — adaptação macOS ──
     iosSsh(command) {
         return new Promise((resolve) => {
-            const args = ['-p', '2222', '-i', path.join(os.homedir(), '.ssh', 'id_iphone'),
+            const args = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', command];
             execFile('/usr/bin/ssh', args, { timeout: 12000 }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
             });
         });
+    }
+
+    // Fuso do aparelho (o iOS ajusta sozinho quando a localização simulada muda)
+    async iosDeviceTimeZone() {
+        const r = await this.iosSsh('readlink /var/db/timezone/localtime');
+        const m = r.ok ? String(r.stdout || '').trim().match(/zoneinfo\/(.+)$/) : null;
+        return m ? m[1].trim() : null;
+    }
+
+    // ── Proxy do iPhone (novaproxy + regra de sudo sem senha) ──────────────
+    iosProxyRun(args, timeoutMs = 30000) {
+        return new Promise((resolve) => {
+            const cmd = '/var/jb/usr/bin/novaproxy ' + args;
+            const sshArgs = ['-p', '2222', ...iphoneSsh.sshOptions(),
+                '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
+                'mobile@127.0.0.1', cmd];
+            execFile('/usr/bin/ssh', sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
+                resolve({ ok: !err, stdout: String(stdout || '').trim(), error: err ? (String(stderr || '').trim() || err.message) : null });
+            });
+        });
+    }
+
+    iosProxyError(raw) {
+        const msg = String(raw || '').trim();
+        if (/No such file|not found|command not found/i.test(msg)) {
+            return 'O novaproxy ainda não está instalado no iPhone. Rode o instalador uma vez.';
+        }
+        if (/password is required|a password is required/i.test(msg)) {
+            return 'A regra de sudo do novaproxy não está ativa no iPhone. Reinstale o pacote.';
+        }
+        if (/must have a tty|requiretty/i.test(msg)) {
+            return 'O sudo do iPhone exige terminal. Reinstale o pacote (a regra NOPASSWD não entrou).';
+        }
+        return msg || 'Falha ao falar com o proxy do iPhone.';
+    }
+
+    async iosProxySet(deviceId, proxy) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
+        }
+        const raw = String(proxy || '').trim();
+        if (!raw) return { success: false, error: 'Proxy vazio.' };
+        const quoted = "'" + raw.replace(/'/g, "'\\''") + "'";
+        const r = await this.iosProxyRun('proxy set ' + quoted);
+        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
+        return { success: true, message: r.stdout };
+    }
+
+    async iosProxyClear(deviceId) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
+        }
+        const r = await this.iosProxyRun('proxy clear', 15000);
+        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
+        return { success: true, message: r.stdout };
+    }
+
+    async iosProxyStatus(deviceId) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
+        }
+        const r = await this.iosProxyRun('proxy status', 15000);
+        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
+        const line = r.stdout;
+        const upstream = (line.match(/upstream=([^\s]+)/) || [])[1] || '';
+        return {
+            success: true,
+            on: /^on\s/.test(line),
+            upstream,
+            wifi: (line.match(/wifi=(\w+)/) || [])[1] || 'unknown',
+            daemon: /daemon=running/.test(line),
+            raw: line
+        };
+    }
+
+    async iosProxyCheck(deviceId) {
+        if (!String(deviceId || '').startsWith('ios-')) {
+            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
+        }
+        const r = await this.iosProxyRun('proxy check', 40000);
+        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
+        return { success: true, ip: r.stdout };
     }
 
     iosRun(args) {
@@ -1530,8 +1614,264 @@ exit 0
         });
     }
 
+    // ── Localização a partir do proxy (IP de saída → lat/lon/fuso) ────────────
+    async geoFromProxy(deviceId, proxy) {
+        const geo = require('./geo-proxy');
+        const id = String(deviceId || '');
+        const proxyStr = String(proxy || '').trim();
+        let ip = null;
+        let via = 'aparelho';
+
+        if (id.startsWith('ios-')) {
+            try {
+                const r = await this.iosProxyCheck(deviceId);
+                const raw = r && r.success ? String(r.ip || '').trim() : '';
+                if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) ip = raw;
+            } catch (_) {}
+        }
+
+        if (!ip) {
+            if (!proxyStr) {
+                console.log('[Geo] sem IP de saída e sem proxy salvo');
+                return { success: false, error: 'Sem proxy configurado. Salve a proxy primeiro.' };
+            }
+            via = 'proxy';
+            try {
+                const g = await geo.throughProxy(proxyStr);
+                console.log(`[Geo] via proxy: ${g.ip} ${g.city}/${g.countryCode} ${g.lat},${g.lon}`);
+                return { success: true, via, ...g };
+            } catch (e) {
+                return { success: false, error: String(e.message || e) };
+            }
+        }
+
+        try {
+            const g = await geo.byIp(ip);
+            console.log(`[Geo] via ${via}: ${g.ip} ${g.city}/${g.countryCode} ${g.lat},${g.lon}`);
+            return { success: true, via, ...g };
+        } catch (e) {
+            return { success: false, error: String(e.message || e) };
+        }
+    }
+
+    // ── Localização simulada no iPhone (idevicesetlocation + imagem de dev) ───
+    idevicesetlocationPath() {
+        const roots = [
+            process.resourcesPath ? path.join(process.resourcesPath, 'bin') : null,
+            '/opt/homebrew/bin',
+            '/usr/local/bin',
+            '/usr/bin'
+        ].filter(Boolean);
+        for (const root of roots) {
+            const file = path.join(root, 'idevicesetlocation');
+            try { fs.accessSync(file, fs.constants.X_OK); return file; } catch (_) {}
+        }
+        return null;
+    }
+
+    pymobiledevice3Path() {
+        const candidates = [
+            process.env.NOVA_PYMOBILEDEVICE3,
+            path.join(os.homedir(), '.local', 'bin', 'pymobiledevice3'),
+            '/opt/homebrew/bin/pymobiledevice3',
+            '/usr/local/bin/pymobiledevice3'
+        ].filter(Boolean);
+        for (const c of candidates) {
+            try { fs.accessSync(c, fs.constants.X_OK); return c; } catch (_) {}
+        }
+        return null;
+    }
+
+    mountDeveloperImage(udid) {
+        return new Promise((resolve) => {
+            const bin = this.pymobiledevice3Path();
+            if (!bin) return resolve(false);
+            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000 }, (err) => resolve(!err));
+        });
+    }
+
+    runIdevicesetlocation(udid, args, timeout = 30000) {
+        return new Promise((resolve) => {
+            const bin = this.idevicesetlocationPath();
+            if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado no Mac.' });
+            execFile(bin, ['--udid', udid, ...args], { timeout }, (err, stdout, stderr) => {
+                resolve({ ok: !err, out: String(stdout || ''), err: String(stderr || (err && err.message) || '') });
+            });
+        });
+    }
+
+    async iosSetLocation(deviceId, latitude, longitude) {
+        const udid = String(deviceId || '').replace(/^ios-/, '');
+        const tzAntes = await this.iosDeviceTimeZone();
+        let r = await this.runIdevicesetlocation(udid, ['--', String(latitude), String(longitude)]);
+        if (!r.ok && /developer disk image|invalid service/i.test(r.err)) {
+            const mounted = await this.mountDeveloperImage(udid);
+            if (!mounted) {
+                return { success: false, error: 'O iPhone precisa da imagem de desenvolvedor montada. Instale pymobiledevice3 (pip install pymobiledevice3) e tente de novo.' };
+            }
+            r = await this.runIdevicesetlocation(udid, ['--', String(latitude), String(longitude)]);
+        }
+        if (!r.ok) {
+            console.log(`[Geo] iPhone falhou: ${(r.err || '').slice(0, 160)}`);
+            return { success: false, error: (r.err || 'Falha ao aplicar a localização no iPhone.').slice(0, 300) };
+        }
+        // O iOS ajusta o fuso sozinho a partir da localização; espera ele trocar (até ~8s).
+        let timezone = tzAntes;
+        for (let i = 0; i < 4; i++) {
+            await new Promise((res) => setTimeout(res, 2000));
+            const tz = await this.iosDeviceTimeZone();
+            if (tz) {
+                timezone = tz;
+                if (tz !== tzAntes) break;
+            }
+        }
+        console.log(`[Geo] iPhone GPS aplicado: ${latitude}, ${longitude} (fuso ${timezone || '?'})`);
+        return { success: true, latitude, longitude, timezone, timezoneBefore: tzAntes };
+    }
+
+    async iosStopLocation(deviceId) {
+        const udid = String(deviceId || '').replace(/^ios-/, '');
+        const r = await this.runIdevicesetlocation(udid, ['reset'], 20000);
+        if (!r.ok && /developer disk image|invalid service/i.test(r.err)) {
+            return { success: true, note: 'GPS simulado removido junto com a imagem de desenvolvedor.' };
+        }
+        if (!r.ok) return { success: false, error: (r.err || '').slice(0, 300) };
+        return { success: true };
+    }
+
+    // ── Idioma/fuso via helper root nova-locale (instalado uma vez) ───────────
+    languageForCountry(cc) {
+        const map = {
+            US: ['en-US', 'en_US'], GB: ['en-GB', 'en_GB'], CA: ['en-CA', 'en_CA'], AU: ['en-AU', 'en_AU'],
+            NZ: ['en-NZ', 'en_NZ'], IE: ['en-IE', 'en_IE'], DE: ['de-DE', 'de_DE'], AT: ['de-AT', 'de_AT'],
+            CH: ['de-CH', 'de_CH'], FR: ['fr-FR', 'fr_FR'], BE: ['fr-BE', 'fr_BE'], ES: ['es-ES', 'es_ES'],
+            MX: ['es-MX', 'es_MX'], AR: ['es-AR', 'es_AR'], CO: ['es-CO', 'es_CO'], CL: ['es-CL', 'es_CL'],
+            PE: ['es-PE', 'es_PE'], VE: ['es-VE', 'es_VE'], BR: ['pt-BR', 'pt_BR'], PT: ['pt-PT', 'pt_PT'],
+            IT: ['it-IT', 'it_IT'], NL: ['nl-NL', 'nl_NL'], SE: ['sv-SE', 'sv_SE'], NO: ['nb-NO', 'nb_NO'],
+            DK: ['da-DK', 'da_DK'], FI: ['fi-FI', 'fi_FI'], PL: ['pl-PL', 'pl_PL'], RU: ['ru-RU', 'ru_RU'],
+            UA: ['uk-UA', 'uk_UA'], TR: ['tr-TR', 'tr_TR'], JP: ['ja-JP', 'ja_JP'], KR: ['ko-KR', 'ko_KR'],
+            CN: ['zh-CN', 'zh_CN'], TW: ['zh-TW', 'zh_TW'], HK: ['zh-HK', 'zh_HK'], IN: ['en-IN', 'en_IN'],
+            ID: ['id-ID', 'id_ID'], TH: ['th-TH', 'th_TH'], VN: ['vi-VN', 'vi_VN'], PH: ['en-PH', 'en_PH'],
+            MY: ['ms-MY', 'ms_MY'], SG: ['en-SG', 'en_SG'], ZA: ['en-ZA', 'en_ZA'], AE: ['ar-AE', 'ar_AE'],
+            SA: ['ar-SA', 'ar_SA'], IL: ['he-IL', 'he_IL'], EG: ['ar-EG', 'ar_EG'], NG: ['en-NG', 'en_NG']
+        };
+        const hit = map[String(cc || '').toUpperCase()] || ['en-US', 'en_US'];
+        return { language: hit[0], locale: hit[1] };
+    }
+
+    iosLocaleStatus() {
+        return this.iosSsh('cat /var/tmp/nova-locale-status.json 2>/dev/null').then((r) => {
+            try { return JSON.parse(String(r.stdout || '').trim()); } catch (_) { return null; }
+        });
+    }
+
+    async iosLocaleHelperReady() {
+        const r = await this.iosSsh('test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok');
+        return !!(r.ok && /ok/.test(r.stdout));
+    }
+
+    iosScp(args) {
+        return new Promise((resolve, reject) => {
+            execFile('/usr/bin/scp', args, { timeout: 30000 }, (err, stdout, stderr) => {
+                if (err) return reject(new Error(String(stderr || err.message).slice(0, 200)));
+                resolve(true);
+            });
+        });
+    }
+
+    iosScpBase(remote, local, direction) {
+        const base = ['-P', '2222', ...iphoneSsh.sshOptions(), '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new'];
+        return direction === 'from'
+            ? [...base, `mobile@127.0.0.1:${remote}`, local]
+            : [...base, local, `mobile@127.0.0.1:${remote}`];
+    }
+
+    async iosBuildLocalePlist(language, locale) {
+        const local = path.join(this.baseDir, 'nova-globalprefs.plist');
+        await this.iosScp(this.iosScpBase('/var/mobile/Library/Preferences/.GlobalPreferences.plist', local, 'from'));
+        const plutil = (args) => new Promise((res, rej) => {
+            execFile('/usr/bin/plutil', args, (err) => (err ? rej(err) : res()));
+        });
+        await plutil(['-convert', 'xml1', local]).catch(() => {});
+        await plutil(['-replace', 'AppleLanguages', '-json', JSON.stringify([language]), local]);
+        await plutil(['-replace', 'AppleLocale', '-string', locale, local]);
+        await this.iosScp(this.iosScpBase('/var/tmp/nova-gp.plist', local, 'to'));
+        return local;
+    }
+
+    async iosSendLocaleCommand(fields) {
+        await this.iosSsh('rm -f /var/tmp/nova-locale-status.json');
+        const local = path.join(this.baseDir, 'nova-locale.cmd');
+        fs.writeFileSync(local, Object.entries(fields).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
+        await this.iosScp(this.iosScpBase('/var/tmp/nova-locale.cmd', local, 'to'));
+    }
+
+    async iosWaitLocaleStatus(timeoutMs = 25000) {
+        const t0 = Date.now();
+        while (Date.now() - t0 < timeoutMs) {
+            await new Promise((r) => setTimeout(r, 1200));
+            const st = await this.iosLocaleStatus();
+            if (st && typeof st.ok === 'boolean') return st;
+        }
+        return null;
+    }
+
+    async iosPlistLanguage() {
+        const local = path.join(this.baseDir, 'nova-globalprefs-check.plist');
+        await this.iosScp(this.iosScpBase('/var/mobile/Library/Preferences/.GlobalPreferences.plist', local, 'from'));
+        return new Promise((resolve) => {
+            execFile('/usr/bin/plutil', ['-extract', 'AppleLanguages.0', 'raw', '-o', '-', local], (err, stdout) => {
+                resolve(err ? null : String(stdout || '').trim());
+            });
+        });
+    }
+
+    async iosApplyLocale(deviceId, timezone, countryCode) {
+        if (!String(deviceId || '').startsWith('ios-')) return { success: false, error: 'Só para iPhone.' };
+        if (!(await this.iosLocaleHelperReady())) {
+            return { success: false, error: 'helper-not-installed', language: null };
+        }
+        const { language, locale } = this.languageForCountry(countryCode);
+        const tz = timezone && /^[A-Za-z0-9_+\/-]+$/.test(timezone) ? timezone : '';
+        try {
+            await this.iosBuildLocalePlist(language, locale);
+            await this.iosSendLocaleCommand({ action: 'apply', tz, plist: '/var/tmp/nova-gp.plist' });
+            const st = await this.iosWaitLocaleStatus();
+            // Confere o resultado de verdade (o status pode ser sobrescrito por um restart do daemon)
+            const tzAtual = await this.iosDeviceTimeZone();
+            const langAtual = await this.iosPlistLanguage();
+            const tzOk = !tz || tzAtual === tz;
+            const langOk = langAtual === language;
+            console.log(`[Locale] tz=${tzAtual} lang=${langAtual} status=${st && st.message}`);
+            if (tzOk && langOk) {
+                return { success: true, language, locale, timezone: tzAtual || tz, message: (st && st.message) || 'aplicado' };
+            }
+            const detalhe = [tzOk ? '' : `fuso ${tzAtual || '?'} ≠ ${tz}`, langOk ? '' : `idioma ${langAtual || '?'} ≠ ${language}`]
+                .filter(Boolean).join(' · ');
+            return { success: false, error: detalhe || 'helper não confirmou', language, timezone: tzAtual };
+        } catch (e) {
+            return { success: false, error: String(e.message || e), language };
+        }
+    }
+
+    async iosRevertLocale(deviceId) {
+        if (!String(deviceId || '').startsWith('ios-')) return { success: true };
+        if (!(await this.iosLocaleHelperReady())) return { success: false, error: 'helper-not-installed' };
+        try {
+            await this.iosSendLocaleCommand({ action: 'revert' });
+            const st = await this.iosWaitLocaleStatus(20000);
+            if (st && st.ok) return { success: true, message: st.message };
+            return { success: false, error: (st && st.message) || 'helper não respondeu' };
+        } catch (e) {
+            return { success: false, error: String(e.message || e) };
+        }
+    }
+
     // ── GPS SPOOF via background loop script ──────────────────────────────────
     async setSpoofLocation(deviceId, latitude, longitude) {
+        if (String(deviceId || '').startsWith('ios-')) {
+            return this.iosSetLocation(deviceId, latitude, longitude);
+        }
         try {
             console.log(`[Spoofer] Setting persistent fake GPS: ${latitude}, ${longitude}`);
 
@@ -1590,6 +1930,9 @@ done
 
     // Stop GPS spoof background loop
     async stopFakeGPS(deviceId) {
+        if (String(deviceId || '').startsWith('ios-')) {
+            return this.iosStopLocation(deviceId);
+        }
         await this.adbRootExec(deviceId, `pkill -f nova_gps_loop 2>/dev/null; true`);
         await this.adbRootExec(deviceId, `cmd location set-test-provider-enabled gps false 2>/dev/null; true`);
         await this.adbRootExec(deviceId, `cmd location set-test-provider-enabled network false 2>/dev/null; true`);

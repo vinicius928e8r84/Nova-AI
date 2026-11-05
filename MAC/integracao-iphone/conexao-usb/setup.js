@@ -27,7 +27,7 @@ async function prepare(id,password,service){
  await new Promise((resolve,reject)=>{client.once('ready',resolve);client.once('error',()=>reject(new Error('Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo.')));client.connect({host:'127.0.0.1',port:2222,username:'mobile',password,readyTimeout:15000,algorithms:{serverHostKey:['ssh-ed25519']},hostHash:'sha256',hostVerifier:hash=>{fingerprint=hash;return !pins[udid]||pins[udid]===hash;}});});
  await command(client,'test -d /var/jb && command -v sudo >/dev/null');
  pins[udid]=fingerprint;fs.writeFileSync(pinsFile,JSON.stringify(pins,null,2),{mode:0o600});
- const sshDir=path.join(os.homedir(),'.ssh');fs.mkdirSync(sshDir,{recursive:true,mode:0o700});const key=path.join(sshDir,'id_iphone');
+ let sshPaths;try{sshPaths=require('../iphone-ssh').paths();}catch(_){const d=path.join(os.homedir(),'.ssh');sshPaths={dir:d,key:path.join(d,'id_iphone'),knownHosts:path.join(d,'known_hosts')};}fs.mkdirSync(sshPaths.dir,{recursive:true,mode:0o700});const key=sshPaths.key;
  if(!fs.existsSync(key))await run('/usr/bin/ssh-keygen',['-t','ed25519','-N','','-f',key,'-C','Nova AI USB']);
  if(!fs.existsSync(key+'.pub'))throw new Error('A chave SSH existente não possui arquivo público. Nenhuma chave foi substituída.');
  const pub=fs.readFileSync(key+'.pub','utf8').trim();
@@ -37,7 +37,7 @@ async function prepare(id,password,service){
  const serverKey=await command(client,"cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub");
  const fields=serverKey.trim().split(/\s+/);if(fields[0]!=='ssh-ed25519'||!fields[1])throw new Error('Não foi possível verificar a chave pública SSH do aparelho.');
  const crypto=require('crypto');if(crypto.createHash('sha256').update(Buffer.from(fields[1],'base64')).digest('hex')!==fingerprint)throw new Error('A chave pública não corresponde ao servidor USB autenticado.');
- const known=path.join(sshDir,'known_hosts'),line='[127.0.0.1]:2222 '+fields.slice(0,2).join(' ');
+ const known=sshPaths.knownHosts,line='[127.0.0.1]:2222 '+fields.slice(0,2).join(' ');
  const prior=fs.existsSync(known)?fs.readFileSync(known,'utf8'):'';
  if(!prior.includes(line))fs.appendFileSync(known,(prior&&!prior.endsWith('\n')?'\n':'')+line+'\n',{mode:0o600});
  const check=await service.iosSsh('test -d /var/jb');if(!check.ok)throw new Error('Senha aceita, mas a chave de acesso não foi validada. Verifique conflitos de chave SSH neste Mac.');
