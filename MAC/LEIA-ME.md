@@ -1,5 +1,15 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Spoofing de modelo do iPhone (tweak + CLI) — 05/11/2026
+
+Criado o pacote `com.aquiles.novamodel` (rootless) para o iPhone reportar outro modelo (ex. "iPhone 13" → `iPhone14,5`), a contraparte iOS do spoofing de identidade que hoje só existe em Android. Só modelo — sem IMEI/serial.
+
+- **Tweak `NovaModel.dylib`** (Substrate, carrega em todo processo): hooka `MGCopyAnswer`/`MGCopyAnswerWithError`/`MGGetStringAnswer` (whitelist fechado: `ProductType`, `HWModelStr`, `ModelNumber`, `ProductName`, `MarketingProductName`), `sysctlbyname`/`sysctl` (`hw.machine`, `hw.product`) e `UIDevice` (`model`, `localizedModel`, `modelName`/`_modelName` privados). Lê `/var/tmp/nova-model-control.json` com cache por mtime (aplicação instantânea).
+- **CLI `/var/jb/usr/bin/novamodel`** (setuid root): `set <productType>` (valida no banco e grava o control file), `clear`, `status` (JSON `real`/`active`/`enabled`). Roda sem o tweak, então `status` lê o ProductType real.
+- **Banco de modelos** `models.json` (27 modelos: iPhone 8 → 15), instalado em `/var/jb/usr/share/novamodel/models.json`.
+
+Arquivos: `integracao-modelo/` (Tweak.x, main.m, models.json, Makefile, layout, test). Compila no theos e gera `.deb` rootless arm64 (`packages/com.aquiles.novamodel_0.1-*.deb`). Teste automatizado `test/teste-novamodel.cjs` valida banco, contrato do control file e whitelist MG. **Sem testar no aparelho real** (efeito em Ajustes/Sobre e apps, `dpkg -i`, setuid); `HWModelStr`/`ModelNumber` estão no whitelist mas não são spoofados na v1 (códigos de placa/número de modelo são por variante/região).
+
 ## Chave SSH do iPhone agora é do app — 04/11/2026
 
 A chave usada para falar com o iPhone saiu de `~/.ssh/id_iphone` e passou para `~/Library/Application Support/nova_dsktp/iphone-ssh/` (modo 0600), junto com o `known_hosts` do aparelho. Todos os `ssh`/`scp` do app usam `-i` explícito, `IdentitiesOnly=yes` e `UserKnownHostsFile=` desse diretório, então não caem mais nas outras chaves do agente SSH do Mac.

@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+JB=/var/jb
+
+# Antes de remover: restaura o modelo real (apaga o control file).
+"$JB/usr/bin/novamodel" clear >/dev/null 2>&1 || true
+rm -f /var/tmp/nova-model-control.json 2>/dev/null || true
+
+exit 0
