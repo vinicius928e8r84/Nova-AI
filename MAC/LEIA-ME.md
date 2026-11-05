@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Cartão do iPhone: "Abrir controle" reaplicado — 04/11/2026
+
+O bundle em uso (`dist/assets/index-Dun7lr2S.js`) estava **sem** o patch do botão do iPhone: o cartão de um aparelho já preparado mostrava **PARAR TRANSMISSÃO** (vermelho) em vez de **Abrir controle**, o que dá a impressão de transmissão ativa mesmo com o aparelho parado — o `streaming` do iOS é o registro de pareamento (`iphone-hosts.json`), não uma transmissão real. Outro patch de bundle aplicado depois (controle de celular/geo-proxy) sobrescreveu o trecho.
+
+Reaplicado `conexao-usb/aplicar-botao-iphone.py` no app instalado: iPhone preparado agora mostra **Abrir controle** (ciano) e abre o console direto; Android continua com **Parar transmissão**. A lista de dispositivos já se atualiza sozinha a cada 5 s (o painel faz `setInterval` de `physical-mobile:get-status`), então desplugado deixa de aparecer. Cópia canônica do bundle em `conexao-usb/dist/index-Dun7lr2S.patched.js`; anterior em `integracao-camlive/reservas/instalado-antes-camuflagem-20261104/index-Dun7lr2S.antes-botao.js`.
+
+**Regra nova no `AGENTS.md`:** qualquer patch futuro no bundle precisa reaplicar este script (é idempotente) antes de copiar para o app, senão o botão volta a regredir. Recarregue com **Cmd+R** ou reinicie o Nova.
+
 ## Transporte camuflado Mac → iPhone (bridge 0.1-39) — 04/11/2026
 
 O que a Câmera do iPhone consome deixou de ser `http://127.0.0.1:18999/frame.jpg`.
