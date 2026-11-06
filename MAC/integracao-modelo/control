@@ -1,0 +1,9 @@
+Package: com.aquiles.novamodel
+Name: Nova Model
+Version: 0.1
+Architecture: iphoneos-arm64
+Depends: mobilesubstrate, firmware (>= 15.0)
+Description: Spoofing de modelo do iPhone (ProductType/MG/sysctl/UIDevice) para o Nova AI Mac
+Maintainer: Aquiles
+Author: Aquiles
+Section: Tweaks
