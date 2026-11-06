@@ -8,7 +8,7 @@ Fix em `physicalMobileService.js`:
 - `iosSetLocation` agora chama `mountDeveloperImage` (auto-mount idempotente) **antes** de aplicar, em vez de só como fallback que nunca disparava (regex testava stderr, mas o erro está no stdout).
 - `runIdevicesetlocation` passa a juntar stdout+stderr no campo de erro, para não esconder a causa.
 
-App instalado (`/Applications/Nova AI Mac.app/…/physicalMobileService.js`) **ainda não** foi patcheado — falta OK do usuário. Contorno imediato já aplicado: `pymobiledevice3 mounter auto-mount --udid 47f4fc34…` rodado e o comando do app passou sem erro (40.4592726 -74.3609833). Branch `agent/backend/gps-ddi-automount-20261106`, sem merge e sem push.
+App instalado (`/Applications/Nova AI Mac.app/…/physicalMobileService.js`) **patcheado agora** com o mesmo fix (backup em `MAC/integracao-iphone/reservas/physicalMobileService.js.bak-20261106-195601`), `node --check` OK. Requer reiniciar o Nova para carregar (o require cache segura a versão antiga). Contorno imediato já aplicado: `pymobiledevice3 mounter auto-mount --udid 47f4fc34…` rodado e o comando do app passou sem erro (40.4592726 -74.3609833). Branch `agent/backend/gps-ddi-automount-20261106`, sem merge e sem push.
 
 ## Conectar instala novamodel + nova-locale com a senha já digitada — 06/11/2026
 
