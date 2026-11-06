@@ -1,5 +1,15 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## GPS: monta a Developer Disk Image antes de aplicar localização — 06/11/2026
+
+Causa do erro "Proxy em Sayreville … Command failed: idevicesetlocation …": a Developer Disk Image cai a cada reboot do iPhone e o `idevicesetlocation` (libimobiledevice 1.4.0) **não avisa** — com a DDI desmontada ele sai com código 0 em silêncio (a conexão ao serviço `com.apple.dt.simulatelocation` é resetada, só visível com `-d`), ou falha com a mensagem real escrita no **stdout** (o app só lia stderr, então mostrava o genérico `Command failed`).
+
+Fix em `physicalMobileService.js`:
+- `iosSetLocation` agora chama `mountDeveloperImage` (auto-mount idempotente) **antes** de aplicar, em vez de só como fallback que nunca disparava (regex testava stderr, mas o erro está no stdout).
+- `runIdevicesetlocation` passa a juntar stdout+stderr no campo de erro, para não esconder a causa.
+
+App instalado (`/Applications/Nova AI Mac.app/…/physicalMobileService.js`) **ainda não** foi patcheado — falta OK do usuário. Contorno imediato já aplicado: `pymobiledevice3 mounter auto-mount --udid 47f4fc34…` rodado e o comando do app passou sem erro (40.4592726 -74.3609833). Branch `agent/backend/gps-ddi-automount-20261106`, sem merge e sem push.
+
 ## Conectar instala novamodel + nova-locale com a senha já digitada — 06/11/2026
 
 O usuário pediu que a senha digitada no Conectar seja usada para instalar o que falta (modelo e GPS/fuso), sem digitar senha de novo. O `conexao-usb/setup.js` agora, no mesmo fluxo do Conectar (com a senha do modal):

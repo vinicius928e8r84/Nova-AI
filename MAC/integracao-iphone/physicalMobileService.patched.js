@@ -1742,7 +1742,10 @@ exit 0
             const bin = this.idevicesetlocationPath();
             if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado no Mac.' });
             execFile(bin, ['--udid', udid, ...args], { timeout }, (err, stdout, stderr) => {
-                resolve({ ok: !err, out: String(stdout || ''), err: String(stderr || (err && err.message) || '') });
+                // idevicesetlocation imprime os erros no STDOUT (não no stderr); junta os dois
+                // para não esconder a causa atrás do genérico "Command failed".
+                const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
+                resolve({ ok: !err, out: String(stdout || ''), err: saida || (err && err.message) || '' });
             });
         });
     }
@@ -1750,14 +1753,14 @@ exit 0
     async iosSetLocation(deviceId, latitude, longitude) {
         const udid = String(deviceId || '').replace(/^ios-/, '');
         const tzAntes = await this.iosDeviceTimeZone();
-        let r = await this.runIdevicesetlocation(udid, ['--', String(latitude), String(longitude)]);
-        if (!r.ok && /developer disk image|invalid service/i.test(r.err)) {
-            const mounted = await this.mountDeveloperImage(udid);
-            if (!mounted) {
-                return { success: false, error: 'O iPhone precisa da imagem de desenvolvedor montada. Instale pymobiledevice3 (pip install pymobiledevice3) e tente de novo.' };
-            }
-            r = await this.runIdevicesetlocation(udid, ['--', String(latitude), String(longitude)]);
+        // A Developer Disk Image cai a cada reboot do iPhone; o idevicesetlocation
+        // não avisa quando isso acontece (sai com código 0 em silêncio e não aplica).
+        // Por isso remonta SEMPRE antes de aplicar — o auto-mount é idempotente.
+        const mounted = await this.mountDeveloperImage(udid);
+        if (!mounted) {
+            return { success: false, error: 'O iPhone precisa da imagem de desenvolvedor montada. Instale pymobiledevice3 (pip install pymobiledevice3) e tente de novo.' };
         }
+        const r = await this.runIdevicesetlocation(udid, ['--', String(latitude), String(longitude)]);
         if (!r.ok) {
             console.log(`[Geo] iPhone falhou: ${(r.err || '').slice(0, 160)}`);
             return { success: false, error: (r.err || 'Falha ao aplicar a localização no iPhone.').slice(0, 300) };
