@@ -10,6 +10,14 @@ Criado o pacote `com.aquiles.novamodel` (rootless) para o iPhone reportar outro 
 
 Arquivos: `integracao-modelo/` (Tweak.x, main.m, models.json, Makefile, layout, test). Compila no theos e gera `.deb` rootless arm64 (`packages/com.aquiles.novamodel_0.1-*.deb`). Teste automatizado `test/teste-novamodel.cjs` valida banco, contrato do control file e whitelist MG. **Sem testar no aparelho real** (efeito em Ajustes/Sobre e apps, `dpkg -i`, setuid); `HWModelStr`/`ModelNumber` estão no whitelist mas não são spoofados na v1 (códigos de placa/número de modelo são por variante/região).
 
+## Spoofing de modelo do iPhone — serviço + IPC + instalação do .deb — 05/11/2026
+
+Integração no app para o tweak `com.aquiles.novamodel` (spec `NOVA-AI-MODELO-SPOOF-SPEC.md`). No `physicalMobileService` entraram `getIosModels()`, `applyIOSModel(deviceId, productType)`, `clearIOSModel(deviceId)` e `getIOSModel(deviceId)` — chamam `/var/jb/usr/bin/novamodel` via `iosSsh` (túnel USB). IPCs novos em `main.js`: `spoofer:get-ios-models`/`spoofer:apply-ios-model`/`spoofer:clear-ios-model`/`spoofer:get-ios-model` (nomes do contrato da UI). Banco de modelos em `iosModels.json`; instalação do `novamodel.deb` pelo fluxo Conectar (guarded: só quando o `.deb` existir ao lado do `camera.deb`).
+
+- Arquivos: `integracao-iphone/ios-modelo.js` (novo), `integracao-iphone/iosModels.json` (novo), `integracao-iphone/physicalMobileService.patched.js`, `integracao-iphone/conexao-usb/setup.js`, `integracao-modelo-app/main.modelo.js`, `integracao-modelo-app/novamodel.test.cjs`, `integracao-modelo-app/README.md`.
+- Testado: `node --check` nos arquivos tocados + `novamodel.test.cjs` (30 verificações com mock de SSH).
+- Sem testar: instalação e execução real do CLI (o `.deb` do Jailbreak Specialist ainda não existe) e o IPC no Electron (só sintaxe + mock). Detalhes: `MAC/integracao-modelo-app/README.md`.
+
 ## Chave SSH do iPhone agora é do app — 04/11/2026
 
 A chave usada para falar com o iPhone saiu de `~/.ssh/id_iphone` e passou para `~/Library/Application Support/nova_dsktp/iphone-ssh/` (modo 0600), junto com o `known_hosts` do aparelho. Todos os `ssh`/`scp` do app usam `-i` explícito, `IdentitiesOnly=yes` e `UserKnownHostsFile=` desse diretório, então não caem mais nas outras chaves do agente SSH do Mac.

@@ -57,6 +57,15 @@ async function prepare(id,password,service){
    camera='Ponte de câmera '+TARGET+' instalada. Pode ser necessário reiniciar o ambiente do jailbreak e reabrir a Câmera.';
   }
  }
+ // Spoofing de modelo (novamodel): instala o .deb quando o pacote já estiver junto do
+ // app. Enquanto o Jailbreak Specialist não entrega o novamodel.deb, o Conectar segue
+ // normalmente (este passo é simplesmente ignorado).
+ const modelDebPath=path.join(__dirname,'novamodel.deb');
+ if(fs.existsSync(modelDebPath)){
+  await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(modelDebPath,'/var/mobile/NovaAI-Novamodel.deb',e=>{sftp.end();e?reject(e):resolve();})));
+  await command(client,"sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",password+'\n');
+  camera+=' Spoofing de modelo (novamodel) instalado.';
+ }
  const vnc=await command(client,'/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true');
  return {success:true,message:'Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\n'+camera+'\n\n'+(/catvnc/i.test(vnc)?'CatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.':'Para tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.')+'\n\nAs funções disponíveis dependem do suporte a iOS de cada aba.'};
  }finally{password='';if(client)client.end();busy=false;}
