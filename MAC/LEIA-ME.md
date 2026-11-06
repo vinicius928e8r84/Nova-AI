@@ -11,6 +11,13 @@ Causa: em `electron/services/iphone-ssh.js` → `sshOptions()` a opção ia sem 
 - App instalado corrigido com backup ao lado: `electron/services/iphone-ssh.js.bak-20261106-182841`. Branch `agent/frontend/conectar-known-hosts-20261106`, sem merge e sem push.
 - Sobra do bug no Mac: o arquivo `/Users/aquilesneri/Library/Application` (98 bytes, chave de host antiga). Com a correção não é mais lido; pode ser removido com o OK do usuário.
 
+### Conectar: senha digitada uma vez só neste modal
+
+- O campo era limpo antes da chamada, então um erro no Conectar obrigava a **digitar a senha outra vez** para "Tentar novamente". Agora a senha fica só na memória do modal durante a sessão: falhou → volta no campo já preenchido; o modal fecha → o campo é limpo. Nada é gravado em disco.
+- Texto de ajuda corrigido: antes dizia apenas "Ela não é salva"; agora explica que é usada **só neste Conectar** e que depois o app entra pela chave, sem senha.
+- Arquivo: `MAC/integracao-iphone/conexao-usb/inapp.js` (cópia instalada em `electron/services/iphone-setup/inapp.js`, com backup). Testes `setup.test.cjs`, `botao.test.cjs` e `botao-servico.test.cjs` passando.
+- O que ainda pede senha: instalar pacote em `/var/jb` (`novamodel`, `nova-locale`) usa `sudo`, que não está liberado sem senha. Para resolver de vez: incluir esses installs no mesmo Conectar (usa a senha que a pessoa acabou de digitar) ou instalar a regra de `sudo` sem senha no aparelho — ambos no `setup.js` (iOS Engineer).
+
 ## Fase A — merge do seletor de modelo + pacotes release — 06/11/2026
 
 Merge na `main` (de `530920e`) das três branches do seletor de modelo do iPhone, em sequência: `agent/jailbreak/modelo-iphone-20261105` → `agent/ios/modelo-iphone-20261105` → `agent/frontend/modelo-iphone-20261105` (merge octopus falharia no `MAC/LEIA-ME.md`). Conflito resolvido mantendo as três seções no topo (tweak+CLI, serviço+IPC, seletor da UI). Commits de merge: `93c63a5`, `b9d3116`, `b5c3522` (não enviados — push pendente de autorização).

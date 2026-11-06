@@ -104,7 +104,7 @@ const SETUP_MARKUP = `
       <label class="nvios-label" for="nvios-pass">Senha SSH do usuário mobile</label>
       <input class="nvios-input" id="nvios-pass" type="password" autocomplete="off" spellcheck="false"
         placeholder="Senha definida no ambiente do jailbreak">
-      <p class="nvios-hint">É a senha do terminal, diferente do código da tela. Ela não é salva. O Nova configura uma chave de acesso neste Mac e instala a ponte de câmera só em aparelhos compatíveis.</p>
+      <p class="nvios-hint">É a senha do terminal, diferente do código da tela. Ela não fica salva no Mac: é usada só neste Conectar, para instalar a chave de acesso e a ponte de câmera. Depois disso o Nova entra no iPhone pela chave, sem pedir senha de novo.</p>
       <p class="nvios-error" role="alert" hidden></p>
       <button class="nvios-primary nvios-submit" type="submit">Conectar e preparar</button>
     </form>
@@ -248,6 +248,10 @@ function open(payload, invoke) {
       showError('Informe a senha SSH do usuário mobile.');
       return;
     }
+    // Guarda a senha nesta sessão do modal: se o Conectar falhar, "Tentar
+    // novamente" reaproveita o que a pessoa já digitou (nada é persistido; o
+    // campo e a variável são limpos quando o modal fecha).
+    const tentativa = password;
     input.value = '';
     input.disabled = true;
     submitBtn.disabled = true;
@@ -267,12 +271,17 @@ function open(payload, invoke) {
       showSuccess(result.message);
       consoleOpenBtn.focus();
     } else {
+      // Devolve a senha para o campo: tentar de novo não exige digitar outra vez.
+      input.value = tentativa;
       showError((result && (result.error || result.message)) || 'Não foi possível concluir. Verifique o cabo e tente novamente.');
+      input.focus();
+      input.select();
     }
   }
 
   function close() {
     if (state.running) return;
+    try { input.value = ''; } catch (e) { /* ignora */ }
     doc.removeEventListener('keydown', onKeydown, true);
     host.remove();
     if (state.timer) clearInterval(state.timer);
