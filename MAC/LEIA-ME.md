@@ -1,5 +1,14 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Conectar: corrige idioma UNDEFINED e instala novaproxy — 06/11/2026
+
+Sintomas no PHONE CONTROL: "IDIOMA UNDEFINED" e "Falha: O novaproxy ainda não está instalado".
+
+1. **Idioma:** o `nova-locale.sh` girava em erro `sleep: command not found` (launchd roda com PATH mínimo). Fix: `export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin` no topo do script. O Conectar agora **re-envia e reinicia o helper em toda conexão** (não só quando ausente), então o próximo Conectar aplica o script corrigido no aparelho.
+2. **novaproxy:** o binário `/var/jb/usr/bin/novaproxy` não existia no aparelho (o reset apagou e o fluxo não instalava). O Conectar agora instala `com.aquiles.novaproxy` (deb `0.1-9+debug`, único build existente) com a senha do modal, igual ao novamodel/nova-locale.
+
+Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no helper canônico e na cópia do app; `novaproxy.deb` junto do setup (gitignored). App instalado atualizado com backups. Branch `agent/ios/idioma-novaproxy-conectar-20261106`, sem merge/push.
+
 ## Conectar instala novamodel + nova-locale com a senha já digitada — 06/11/2026
 
 O usuário pediu que a senha digitada no Conectar seja usada para instalar o que falta (modelo e GPS/fuso), sem digitar senha de novo. O `conexao-usb/setup.js` agora, no mesmo fluxo do Conectar (com a senha do modal):

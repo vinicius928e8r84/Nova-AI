@@ -3,6 +3,9 @@
 # Roda como root (launchd). Lê /var/tmp/nova-locale.cmd e responde em
 # /var/tmp/nova-locale-status.json. Nunca executa nada do arquivo de comando:
 # lê apenas as chaves action, tz e plist, e valida cada uma.
+# O launchd roda com PATH mínimo (só /usr/bin:/bin:/usr/sbin:/sbin). Sem isto,
+# comandos como `sleep` não existem e o daemon gira em erro (idioma UNDEFINED).
+export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
 CMD=/var/tmp/nova-locale.cmd
 PROC=/var/tmp/nova-locale.proc

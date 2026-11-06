@@ -93,24 +93,34 @@ async function prepare(id,password,service){
    camera+=' Spoofing de modelo (novamodel) instalado.';
   }
  }
- // GPS/fuso (nova-locale): helper root instalado uma vez, com a senha do Conectar.
+ // GPS/fuso (nova-locale): helper root instalado/atualizado a cada Conectar, com a senha.
  try{
-  const locReady=(await command(client,'test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok || true')).trim()==='ok';
-  if(locReady)camera+=' Fuso/idioma (nova-locale) já instalado.';
+  const locSh=path.join(__dirname,'nova-locale.sh'),locPl=path.join(__dirname,'com.aquiles.novalocale.plist');
+  if(!fs.existsSync(locSh)||!fs.existsSync(locPl))camera+=' Helper nova-locale ausente no Nova.';
   else{
-   const locSh=path.join(__dirname,'nova-locale.sh'),locPl=path.join(__dirname,'com.aquiles.novalocale.plist');
-   if(!fs.existsSync(locSh)||!fs.existsSync(locPl))camera+=' Helper nova-locale ausente no Nova.';
+   await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(locSh,'/var/mobile/nova-locale.sh',e=>{sftp.end();e?reject(e):resolve();})));
+   await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(locPl,'/var/mobile/com.aquiles.novalocale.plist',e=>{sftp.end();e?reject(e):resolve();})));
+   await command(client,"sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",password+'\n');
+   await command(client,"sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",password+'\n'+password+'\n');
+   await command(client,"sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",password+'\n'+password+'\n');
+   await command(client,"sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",password+'\n'+password+'\n');
+   camera+=' Fuso/idioma (nova-locale) atualizado.';
+  }
+ }catch(e){camera+=' nova-locale não atualizado: '+String(e&&e.message||e).slice(0,120);}
+ // Proxy do iPhone (novaproxy): instalado uma vez, com a senha do Conectar.
+ try{
+  const nxCurrent=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true")).trim();
+  if(nxCurrent)camera+=' Proxy do iPhone (novaproxy '+nxCurrent+') já instalado.';
+  else{
+   const nxDeb=path.join(__dirname,'novaproxy.deb');
+   if(!fs.existsSync(nxDeb))camera+=' Pacote novaproxy ausente no Nova.';
    else{
-    await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(locSh,'/var/mobile/nova-locale.sh',e=>{sftp.end();e?reject(e):resolve();})));
-    await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(locPl,'/var/mobile/com.aquiles.novalocale.plist',e=>{sftp.end();e?reject(e):resolve();})));
-    await command(client,"sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",password+'\n');
-    await command(client,"sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",password+'\n'+password+'\n');
-    await command(client,"sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",password+'\n'+password+'\n');
-    await command(client,"sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",password+'\n'+password+'\n');
-    camera+=' Fuso/idioma (nova-locale) instalado.';
+    await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(nxDeb,'/var/mobile/novaproxy.deb',e=>{sftp.end();e?reject(e):resolve();})));
+    await command(client,"sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novaproxy.deb",password+'\n');
+    camera+=' Proxy do iPhone (novaproxy) instalado.';
    }
   }
- }catch(e){camera+=' nova-locale não instalado: '+String(e&&e.message||e).slice(0,120);}
+ }catch(e){camera+=' novaproxy não instalado: '+String(e&&e.message||e).slice(0,120);}
  const vnc=await command(client,'/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true');
  return {success:true,message:'Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\n'+camera+'\n\n'+(/catvnc/i.test(vnc)?'CatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.':'Para tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.')+'\n\nAs funções disponíveis dependem do suporte a iOS de cada aba.'};
  }finally{password='';if(client)client.end();busy=false;}
