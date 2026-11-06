@@ -1,5 +1,11 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Conectar: mensagem clara quando o dpkg trava no iPhone — 06/11/2026
+
+O modal Conectar mostrava o dump cru do `dpkg` (`rm command for cleanup subprocess was killed by signal (Segmentation fault: 11)`), o que parece erro de senha. Agora, quando o texto do erro tem `dpkg:`, `Segmentation fault` ou `was killed by signal`, o modal explica: **não é a senha**, nada foi alterado no Mac, **não tocar em "Tentar novamente"** e que o aparelho precisa ser recuperado (modo seguro) antes de repetir.
+
+- Arquivo: `MAC/integracao-iphone/conexao-usb/inapp.js` (cópia instalada em `electron/services/iphone-setup/inapp.js`). Testes `setup.test.cjs`, `botao.test.cjs`, `botao-servico.test.cjs` OK.
+
 ## Conectar: "Senha aceita, mas a chave de acesso não foi validada" — 06/11/2026
 
 Sintoma: no modal Conectar iPhone por USB a senha era aceita e a mensagem em vermelho dizia que a chave de acesso não foi validada (parecia senha errada). Não era a senha nem o `known_hosts` em si.

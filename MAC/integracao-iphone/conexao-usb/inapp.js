@@ -218,8 +218,20 @@ function open(payload, invoke) {
     }
   }
 
+  // Traduz falhas do dpkg/travamento do aparelho: quem ve so o dump do dpkg
+  // acha que errou a senha. Aqui o texto explica o que houve e o que NAO fazer.
+  function explicarFalha(text) {
+    const t = String(text || '');
+    if (/dpkg:|Segmentation fault|signal \(?11\)?|was killed by signal/i.test(t)) {
+      return 'O iPhone travou ao instalar um pacote — não é a sua senha. Nada foi alterado no Mac. '
+        + 'Não toque em "Tentar novamente": o aparelho precisa ser recuperado (modo seguro) e o pacote '
+        + 'removido antes de tentar de novo. O detalhe técnico ficou registrado.';
+    }
+    return t;
+  }
+
   function showError(text) {
-    errorEl.textContent = text;
+    errorEl.textContent = explicarFalha(text);
     errorEl.hidden = false;
     submitBtn.disabled = false;
     submitBtn.textContent = 'Tentar novamente';
