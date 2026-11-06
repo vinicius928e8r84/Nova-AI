@@ -1,5 +1,32 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Seletor de modelo no app (IPCs spoofer:*) + novaproxy release no Conectar — 06/11/2026
+
+Com o OK do usuário: (1) IPCs do seletor implementados no app instalado (`main.js`: `spoofer:get-ios-models/apply-ios-model/clear-ios-model/get-ios-model`; `physicalMobileService.js` ganhou `getIosModels/applyIOSModel/clearIOSModel/getIOSModel` + `require('./ios-modelo')`; `ios-modelo.js` e `iosModels.json` copiados para `electron/services/` — fonte: `MAC/integracao-iphone/`, mesma implementação das branches do seletor). Backups: `main.js.bak-*`, `physicalMobileService.js.bak-*`; `node --check` OK. (2) `novaproxy.deb` do app e de `conexao-usb/` trocado pelo release 0.1 (14666 bytes, sha256 969ff5c4…; debug em `.bak-debug-*`). Depois de reiniciar o Nova e Conectar (senha uma vez): novaproxy instalado, nova-locale re-aplicado (PATH) e o seletor de modelo funciona pelo app. Branch `agent/ios/idioma-novaproxy-conectar-20261106`, sem merge/push.
+
+## novaproxy em versão release (sem +debug) — 06/11/2026
+
+Gerado o build release do `novaproxy` (antes só existiam builds `+debug`).
+
+- **Build:** `THEOS=$HOME/theos PATH=$HOME/theos/bin:$PATH make package FINALPACKAGE=1 DEBUG=0` em `MAC/proxy-iphone/tool/` (o Makefile fica lá). `make clean` antes para garantir objeto de release.
+- **Pacote:** `MAC/proxy-iphone/tool/packages/com.aquiles.novaproxy_0.1_iphoneos-arm64.deb` — sem `+debug` no nome, `Version: 0.1` no control (o control declara `Version: 0.1`; os `0.1-2..0.1-9+debug` eram o contador de build do theos em modo debug).
+- **rootless/arm64 confirmado:** `Architecture: iphoneos-arm64`, binário `Mach-O 64-bit arm64` (não-fat), caminhos instalados em `/var/jb/usr/bin/novaproxy` e `/var/jb/Library/LaunchDaemons/com.aquiles.novaproxy.plist`.
+- **sha256:** `969ff5c4c485f5a8f6dcd8b405529bbfceb7b073c9b2eac6cc4c87431fd996b9`.
+
+**O que o app espera (lido no app instalado):**
+- Detecta instalado via `/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy` (qualquer versão retornada = instalado; **não há versão mínima**).
+- Instala com `sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novaproxy.deb` (senha do modal).
+- Espera o arquivo **renomeado** como `novaproxy.deb` em `electron/services/iphone-setup/` (junto do `camera.deb`), não o nome com versão.
+- Executa `/var/jb/usr/bin/novaproxy proxy set|clear|status|check` via SSH.
+
+**Pendente (não feito — exige OK do usuário):** o app instalado e o `MAC/integracao-iphone/conexao-usb/novaproxy.deb` ainda contêm o debug `0.1-9+debug` (20834 bytes). Para fechar, copiar o `.deb` release para esses dois lugares com o nome `novaproxy.deb`. **Não copiei nada para o app.**
+
+**Comando de instalação no iPhone (para o iOS Engineer, com OK do usuário):**
+```
+scp com.aquiles.novaproxy_0.1_iphoneos-arm64.deb mobile@127.0.0.1:/var/mobile/novaproxy.deb
+sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novaproxy.deb
+```
+
 ## Conectar: corrige idioma UNDEFINED e instala novaproxy — 06/11/2026
 
 Sintomas no PHONE CONTROL: "IDIOMA UNDEFINED" e "Falha: O novaproxy ainda não está instalado".
