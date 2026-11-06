@@ -21,15 +21,36 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
-BRIDGE = Path('/Users/aquilesneri/Desktop/jailbreak/obs-camera-source/bridge')
+
+# A ponte vive fora do repo e já mudou de lugar uma vez (Desktop -> Documents).
+# Ordem: NOVA_BRIDGE (env) > ao lado do repo > caminho antigo.
+_CANDIDATOS_BRIDGE = [
+    Path(os.environ['NOVA_BRIDGE']) if os.environ.get('NOVA_BRIDGE') else None,
+    AQUI.parent.parent / 'jailbreak' / 'obs-camera-source' / 'bridge',
+    Path.home() / 'Documents/Projetos/jailbreak/obs-camera-source/bridge',
+    Path('/Users/aquilesneri/Desktop/jailbreak/obs-camera-source/bridge'),
+]
+BRIDGE = next((c for c in _CANDIDATOS_BRIDGE if c and c.is_dir()), _CANDIDATOS_BRIDGE[1])
 PORTA = 8788
 RELE = 'http://127.0.0.1:8900/frame.jpg'
-CHAVE = os.path.expanduser('~/.ssh/id_iphone')
+# Chave/known_hosts do MESMO lugar que o app usa (o reset do jailbreak apagou
+# ~/.ssh/id_iphone; a chave viva hoje e a do app em Application Support).
+_DIR_CHAVE_APP = Path.home() / 'Library/Application Support/nova_dsktp/iphone-ssh'
+_CANDIDATOS_CHAVE = [
+    _DIR_CHAVE_APP / 'id_iphone',
+    Path.home() / '.ssh/id_iphone',
+    Path.home() / '.ssh/id_ed25519',
+]
+CHAVE = str(next((c for c in _CANDIDATOS_CHAVE if c.is_file()), _CANDIDATOS_CHAVE[0]))
+# known_hosts proprio do app: depois de cada reset a chave de host muda, e o
+# known_hosts do ~/.ssh tem o carimbo velho (StrictHostKeyChecking=yes = recusa).
+CONHECIDOS = _DIR_CHAVE_APP / 'known_hosts'
 
 DIR_CONTROLE = f'/tmp/vcampipeline-ssh-{os.getuid()}'
 CONTROLE = f'{DIR_CONTROLE}/control'
 SSH_BASE = ['/usr/bin/ssh', '-p', '2222', '-i', CHAVE, '-o', 'BatchMode=yes',
-            '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5',
+            '-o', 'StrictHostKeyChecking=accept-new',
+            '-o', f'UserKnownHostsFile={CONHECIDOS}', '-o', 'ConnectTimeout=5',
             '-o', 'ControlMaster=auto', '-o', 'ControlPersist=600',
             '-o', f'ControlPath={CONTROLE}']
 
@@ -83,8 +104,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/' or self.path == '/index.html':
-            corpo = (AQUI / 'index.html').read_bytes()
-            self.send_response(200)
+            try:
+                corpo = (AQUI / 'index.html').read_bytes()
+            except OSError as e:
+                # Nunca deixar a conexao cair sem resposta (o navegador mostra
+                # "site fora do ar" e esconde a causa real).
+                corpo = (f'<h1>index.html nao encontrado</h1><p>{AQUI / "index.html"}</p>'
+                         f'<pre>{e}</pre>').encode('utf-8')
+                self.send_response(500)
+            else:
+                self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.send_header('Content-Length', str(len(corpo)))
             self.end_headers()

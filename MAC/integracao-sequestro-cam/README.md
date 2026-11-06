@@ -180,5 +180,14 @@ e reiniciar o app.
 
 ## Site de teste (referência aprovada)
 
-`/Users/aquilesneri/Desktop/Nova-AI/prototype-sequestro-cam/` —
+`/Users/aquilesneri/Documents/Projetos/Nova-AI/prototype-sequestro-cam/` —
 `python3 servir.py` → http://127.0.0.1:8788 (mesmo on/off real via phone.sh).
+
+> O repo saiu de `~/Desktop/Nova-AI` para `~/Documents/Projetos/Nova-AI`. Um
+> `servir.py` iniciado antes da mudança fica com o caminho antigo: toda
+> requisição volta vazia (“site fora do ar”). Se acontecer, mate o processo e
+> suba de novo a partir da pasta atual. `BRIDGE` agora é detectado (env
+> `NOVA_BRIDGE` > `../jailbreak/obs-camera-source/bridge` > caminho antigo), a
+> chave e o `known_hosts` vêm da pasta do app (`nova_dsktp/iphone-ssh/`) e o ssh
+> usa `StrictHostKeyChecking=accept-new` — o reset do jailbreak troca a chave de
+> host e o `known_hosts` de `~/.ssh` recusava a nova.
