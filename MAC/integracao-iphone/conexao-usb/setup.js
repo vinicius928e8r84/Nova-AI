@@ -85,10 +85,32 @@ async function prepare(id,password,service){
  // normalmente (este passo é simplesmente ignorado).
  const modelDebPath=path.join(__dirname,'novamodel.deb');
  if(fs.existsSync(modelDebPath)){
-  await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(modelDebPath,'/var/mobile/NovaAI-Novamodel.deb',e=>{sftp.end();e?reject(e):resolve();})));
-  await command(client,"sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",password+'\n');
-  camera+=' Spoofing de modelo (novamodel) instalado.';
+  const nmCurrent=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true")).trim();
+  if(nmCurrent)camera+=' Spoofing de modelo (novamodel '+nmCurrent+') já instalado.';
+  else{
+   await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(modelDebPath,'/var/mobile/NovaAI-Novamodel.deb',e=>{sftp.end();e?reject(e):resolve();})));
+   await command(client,"sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",password+'\n');
+   camera+=' Spoofing de modelo (novamodel) instalado.';
+  }
  }
+ // GPS/fuso (nova-locale): helper root instalado uma vez, com a senha do Conectar.
+ try{
+  const locReady=(await command(client,'test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok')).trim()==='ok';
+  if(locReady)camera+=' Fuso/idioma (nova-locale) já instalado.';
+  else{
+   const locSh=path.join(__dirname,'nova-locale.sh'),locPl=path.join(__dirname,'com.aquiles.novalocale.plist');
+   if(!fs.existsSync(locSh)||!fs.existsSync(locPl))camera+=' Helper nova-locale ausente no Nova.';
+   else{
+    await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(locSh,'/var/mobile/nova-locale.sh',e=>{sftp.end();e?reject(e):resolve();})));
+    await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(locPl,'/var/mobile/com.aquiles.novalocale.plist',e=>{sftp.end();e?reject(e):resolve();})));
+    await command(client,"sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",password+'\n');
+    await command(client,"sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",password+'\n'+password+'\n');
+    await command(client,"sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",password+'\n'+password+'\n');
+    await command(client,"sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",password+'\n'+password+'\n');
+    camera+=' Fuso/idioma (nova-locale) instalado.';
+   }
+  }
+ }catch(e){camera+=' nova-locale não instalado: '+String(e&&e.message||e).slice(0,120);}
  const vnc=await command(client,'/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true');
  return {success:true,message:'Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\n'+camera+'\n\n'+(/catvnc/i.test(vnc)?'CatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.':'Para tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.')+'\n\nAs funções disponíveis dependem do suporte a iOS de cada aba.'};
  }finally{password='';if(client)client.end();busy=false;}

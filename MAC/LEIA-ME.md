@@ -1,5 +1,14 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Conectar instala novamodel + nova-locale com a senha já digitada — 06/11/2026
+
+O usuário pediu que a senha digitada no Conectar seja usada para instalar o que falta (modelo e GPS/fuso), sem digitar senha de novo. O `conexao-usb/setup.js` agora, no mesmo fluxo do Conectar (com a senha do modal):
+- **novamodel**: se o `.deb` existir ao lado do setup e o pacote não estiver instalado, sobe por sftp e instala via `sudo -S` + senha; se já instalado, só informa a versão.
+- **nova-locale**: confere os arquivos do helper (`/var/jb/usr/libexec/nova-locale.sh` + `com.aquiles.novalocale.plist`); se faltar, sobe os arquivos (`nova-locale.sh` e `com.aquiles.novalocale.plist` agora vão junto do app), move com `sudo -S`, ajusta permissões e carrega o daemon com `launchctl bootstrap` (fallback `kickstart`).
+- A senha continua sem ser salva (é zerada no `finally`); cada comando `sudo` recebe a senha só pelo stdin daquela execução.
+
+App instalado: `setup.js` corrigido com backup (`setup.js.bak-20261106-*`) e `novamodel.deb`/`nova-locale.sh`/plist copiados para `electron/services/iphone-setup/`. Para instalar no aparelho, o usuário toca **Conectar** mais uma vez e digita a senha — o resto é automático. Branch `agent/ios/novamodel-locale-conectar-20261106`, sem merge e sem push.
+
 ## Fase A — merge do seletor de modelo + pacotes release — 06/11/2026
 
 Merge na `main` (de `530920e`) das três branches do seletor de modelo do iPhone, em sequência: `agent/jailbreak/modelo-iphone-20261105` → `agent/ios/modelo-iphone-20261105` → `agent/frontend/modelo-iphone-20261105` (merge octopus falharia no `MAC/LEIA-ME.md`). Conflito resolvido mantendo as três seções no topo (tweak+CLI, serviço+IPC, seletor da UI). Commits de merge: `93c63a5`, `b9d3116`, `b5c3522` (não enviados — push pendente de autorização).
