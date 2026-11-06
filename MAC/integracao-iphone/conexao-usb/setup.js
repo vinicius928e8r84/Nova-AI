@@ -95,7 +95,7 @@ async function prepare(id,password,service){
  }
  // GPS/fuso (nova-locale): helper root instalado uma vez, com a senha do Conectar.
  try{
-  const locReady=(await command(client,'test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok')).trim()==='ok';
+  const locReady=(await command(client,'test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok || true')).trim()==='ok';
   if(locReady)camera+=' Fuso/idioma (nova-locale) já instalado.';
   else{
    const locSh=path.join(__dirname,'nova-locale.sh'),locPl=path.join(__dirname,'com.aquiles.novalocale.plist');
