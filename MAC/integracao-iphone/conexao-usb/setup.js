@@ -9,6 +9,16 @@ let busy=false,proxy;
 const quote=s=>"'"+String(s).replace(/'/g,"'\\''")+"'";
 const run=(file,args)=>new Promise((resolve,reject)=>execFile(file,args,{timeout:15000},(e,out)=>e?reject(e):resolve(String(out).trim())));
 const portOpen=()=>new Promise(resolve=>{const s=net.connect({host:'127.0.0.1',port:2222});s.setTimeout(1000);s.once('connect',()=>{s.destroy();resolve(true)});s.once('error',()=>resolve(false));s.once('timeout',()=>{s.destroy();resolve(false)});});
+
+// Garante o túnel USB (127.0.0.1:2222) antes de autenticar. Sem isto, o ssh2
+// recebia "Connection lost before handshake" quando o iproxy ainda não tinha subido.
+async function ensureTunnel(){
+ const open=()=>new Promise(res=>{const s=net.connect({host:'127.0.0.1',port:2222,timeout:800});const done=v=>{try{s.destroy();}catch(_){}res(v);};s.once('connect',()=>done(true));s.once('error',()=>done(false));s.once('timeout',()=>done(false));});
+ if(await open())return true;
+ try{const child=spawn(require('../ios-tools').tool('iproxy'),['2222','22'],{stdio:'ignore',detached:true});child.unref();}catch(_){}
+ for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,700));if(await open())return true;}
+ return false;
+}
 function command(client,cmd,input){return new Promise((resolve,reject)=>client.exec(cmd,(error,stream)=>{if(error)return reject(error);let stdout='',stderr='';const timer=setTimeout(()=>{stream.close();reject(new Error('O iPhone demorou demais para responder.'));},90000);stream.on('data',data=>stdout+=data);stream.stderr.on('data',data=>stderr+=data);stream.on('close',code=>{clearTimeout(timer);code===0?resolve(stdout):reject(new Error(stderr.includes('password')?'Senha administrativa recusada pelo iPhone.':stderr.trim()||'Comando não concluído no iPhone.'));});stream.end(input||'');}));}
 async function prepare(id,password,service){
  if(busy)throw new Error('Já existe uma preparação em andamento.');
@@ -18,13 +28,18 @@ async function prepare(id,password,service){
  const udid=id.slice(4);if(!/^[a-fA-F0-9-]{20,64}$/.test(udid))throw new Error('Identificador do iPhone inválido.');
  const ids=(await run(require('../ios-tools').tool('idevice_id'),['-l'])).split('\n').filter(Boolean);
  if(ids.length!==1||ids[0]!==udid)throw new Error('Conecte somente o iPhone selecionado por USB.');
- if(!await portOpen()){
- proxy=spawn(require('../ios-tools').tool('iproxy'),['-u',udid,'2222','22'],{stdio:'ignore'});proxy.on('error',()=>{});
- for(let i=0;i<20&&!await portOpen();i++)await new Promise(r=>setTimeout(r,100));
- }
+ if(!(await ensureTunnel())) throw new Error('O túnel USB não abriu (porta 2222). Reconecte o iPhone, confira se o jailbreak está ativo e tente de novo.');
  const pinsFile=path.join(service.baseDir,'iphone-hosts.json');const pins=fs.existsSync(pinsFile)?JSON.parse(fs.readFileSync(pinsFile,'utf8')):{};let fingerprint;
  client=new Client();
- await new Promise((resolve,reject)=>{client.once('ready',resolve);client.once('error',()=>reject(new Error('Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo.')));client.connect({host:'127.0.0.1',port:2222,username:'mobile',password,readyTimeout:15000,algorithms:{serverHostKey:['ssh-ed25519']},hostHash:'sha256',hostVerifier:hash=>{fingerprint=hash;return !pins[udid]||pins[udid]===hash;}});});
+ await new Promise((resolve,reject)=>{
+  let settled=false;
+  const done=(fn,arg)=>{if(settled)return;settled=true;fn(arg);};
+  // `on` (não `once`): o ssh2 emite mais de um erro (handshake, socket) e um erro
+  // sem listener derrubava o processo principal do Nova com a caixa de diálogo.
+  client.on('error',()=>done(reject,new Error('Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo.')));
+  client.on('close',()=>done(reject,new Error('A conexão SSH caiu antes de terminar. Reconecte o iPhone em PHONE CONTROL e tente de novo.')));
+  client.on('ready',()=>done(resolve));
+  client.connect({host:'127.0.0.1',port:2222,username:'mobile',password,readyTimeout:15000,algorithms:{serverHostKey:['ssh-ed25519']},hostHash:'sha256',hostVerifier:hash=>{fingerprint=hash;return !pins[udid]||pins[udid]===hash;}});});
  await command(client,'test -d /var/jb && command -v sudo >/dev/null');
  pins[udid]=fingerprint;fs.writeFileSync(pinsFile,JSON.stringify(pins,null,2),{mode:0o600});
  let sshPaths;try{sshPaths=require('../iphone-ssh').paths();}catch(_){const d=path.join(os.homedir(),'.ssh');sshPaths={dir:d,key:path.join(d,'id_iphone'),knownHosts:path.join(d,'known_hosts')};}fs.mkdirSync(sshPaths.dir,{recursive:true,mode:0o700});const key=sshPaths.key;
@@ -44,7 +59,7 @@ async function prepare(id,password,service){
  const model=await run(require('../ios-tools').tool('ideviceinfo'),['-u',udid,'-k','ProductType']);
  const version=await run(require('../ios-tools').tool('ideviceinfo'),['-u',udid,'-k','ProductVersion']);
  let camera='Ponte de câmera não instalada: este modelo/iOS ainda não foi validado.';
- const TARGET='0.1-39-1+debug';
+ const TARGET='0.1-39';
  if(model==='iPhone10,2'&&version==='16.7.16'){
   const current=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true")).trim();
   const upToDate=current&&(await command(client,'/var/jb/usr/bin/dpkg --compare-versions '+quote(current)+' ge '+quote(TARGET)+' && echo yes || echo no')).trim()==='yes';
@@ -54,7 +69,15 @@ async function prepare(id,password,service){
    if(!fs.existsSync(packagePath))throw new Error('Pacote de câmera ausente no Nova. A conexão SSH já foi preparada.');
    await new Promise((resolve,reject)=>client.sftp((error,sftp)=>error?reject(error):sftp.fastPut(packagePath,'/var/mobile/NovaAI-OBSGraphBridge.deb',e=>{sftp.end();e?reject(e):resolve();})));
    await command(client,"sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",password+'\n');
-   camera='Ponte de câmera '+TARGET+' instalada. Pode ser necessário reiniciar o ambiente do jailbreak e reabrir a Câmera.';
+   camera='Ponte de câmera '+TARGET+' instalada.';
+  }
+  // O dylib novo só entra em memória quando o mediaserverd reinicia; sem isso a
+  // ponte continua reportando a versão antiga e a câmera fica "não pronta".
+  try {
+   await command(client,"sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",password+'\n');
+   camera+=' Serviço de mídia reiniciado — a ponte já está carregada.';
+  } catch (e) {
+   camera+=' Não consegui reiniciar o mediaserverd: '+String(e&&e.message||e).slice(0,120);
   }
  }
  // Spoofing de modelo (novamodel): instala o .deb quando o pacote já estiver junto do

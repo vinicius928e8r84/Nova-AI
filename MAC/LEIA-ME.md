@@ -1,5 +1,27 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Fase A — merge do seletor de modelo + pacotes release — 06/11/2026
+
+Merge na `main` (de `530920e`) das três branches do seletor de modelo do iPhone, em sequência: `agent/jailbreak/modelo-iphone-20261105` → `agent/ios/modelo-iphone-20261105` → `agent/frontend/modelo-iphone-20261105` (merge octopus falharia no `MAC/LEIA-ME.md`). Conflito resolvido mantendo as três seções no topo (tweak+CLI, serviço+IPC, seletor da UI). Commits de merge: `93c63a5`, `b9d3116`, `b5c3522` (não enviados — push pendente de autorização).
+
+**Testes após o merge:** `integracao-modelo/test/teste-novamodel.cjs` (5 ok), `integracao-modelo-app/novamodel.test.cjs` (30 verificações), `conexao-usb/setup.test.cjs`, `botao.test.cjs` e `botao-servico.test.cjs` passando. `integracao-sequestro-cam/controles-independentes.test.cjs` **falha pré-existente** (já falhava em `530920e`): o teste fixa a ponte em `0.1-38` e espera o fluxo de injeção anterior à bridge 0.1-39; não foi alterado nesta fase — precisa de decisão separada.
+
+**Pacotes release (theos, `FINALPACKAGE=1 DEBUG=0`):**
+- Tweak `com.aquiles.novamodel_0.1_iphoneos-arm64.deb` (rootless arm64, `Version: 0.1`) em `integracao-modelo/packages/`.
+- Bridge `com.aquiles.obsgraph-bridge_0.1-39_iphoneos-arm64.deb` (`Version: 0.1-39`) em `integracao-iphone/bridge/packages/`, copiado como `camera.deb` para `conexao-usb/` (repo) e `electron/services/iphone-setup/` (app). Ambos fora do git (`*.deb` ignorado).
+
+**setup.js:** backport do app instalado para o repo (`ensureTunnel()`, listeners de erro do ssh2 com `on`+guarda `settled`, `launchctl kickstart mediaserverd` após instalar a ponte). `TARGET` ajustado de `0.1-39-1+debug` para `0.1-39` para casar com o pacote release (o mesmo ajuste foi aplicado no `setup.js` do app instalado). O bloco de instalação do `novamodel.deb` já está no repo, mas ainda **não** no app instalado (pendente da Fase C; exige colocar `novamodel.deb` em `electron/services/iphone-setup/`).
+
+**Bundle:** `conexao-usb/dist/index-Dun7lr2S.patched.js` reaplicado no app (`dist/assets/index-Dun7lr2S.js`), levando o seletor de modelo (IPC `spoofer:get-ios-models`).
+
+**DMG:** `distribuicao/Nova-AI-Mac-AppleSilicon-2026-11-06.dmg`, gerado do app instalado com `CFBundleVersion=20261106.1` e `LSMinimumSystemVersion=26.0`.
+
+```
+sha256  4bf34a8c0210dc81ba933ed45471e5febe814e63cc8836a2917c412722ded685
+```
+
+Assinatura ad hoc, sem Developer ID nem notarização. Estado registrado: `spctl --assess` no app dentro do DMG → `invalid Info.plist (plist or signature have been modified)`; no app instalado → `a sealed resource is missing or invalid`. Uso em outro Mac: abrir com Ctrl+clique → Abrir.
+
 ## Spoofing de modelo do iPhone (tweak + CLI) — 05/11/2026
 
 Criado o pacote `com.aquiles.novamodel` (rootless) para o iPhone reportar outro modelo (ex. "iPhone 13" → `iPhone14,5`), a contraparte iOS do spoofing de identidade que hoje só existe em Android. Só modelo — sem IMEI/serial.
