@@ -149,7 +149,7 @@ class IosCamera {
  async enable() {
   const state=await this.status();
   if(!state.ready)throw new Error(state.error||'Bridge iOS indisponível');
-  const config={mode:'inject',appID:'com.apple.camera',appIDs:['*'],expiresAt:state.state.timestamp+60,continuous:false,previewOnly:true,directRecording:false,photoPrepareBypass:false,videoInjection:false,frameRate:15,url:this.url};
+  const config={mode:'inject',appID:'com.apple.camera',appIDs:['*','com.apple.camera','com.apple.WebKit.GPU','com.apple.mobilesafari','com.apple.facetime'],expiresAt:state.state.timestamp+60,continuous:false,previewOnly:true,directRecording:false,photoPrepareBypass:false,videoInjection:false,frameRate:15,url:this.url};
   if(this.transport && this.transport.type==='unix') config.socket=this.transport.path;
   await this.writeControl(config);
  }
@@ -205,7 +205,7 @@ class IosCamera {
      ? {url:this.url, socket:this.transport && this.transport.type==='unix' ? this.transport.path : null}
      : (typeof camlive.mediaEndpoint==='function' ? camlive.mediaEndpoint() : null);
     if (!endpoint || !endpoint.url) throw new Error('O CAM LIVE ainda não abriu o túnel do iPhone.');
-    const config={mode:'inject',appID:'com.apple.camera',appIDs:['*'],expiresAt:Math.floor(Date.now()/1000)+60,continuous:true,previewOnly:false,directRecording:false,photoPrepareBypass:true,videoInjection:true,audioInjection:true,frameRate:30,url:endpoint.url,novaSequestroSession:crypto.randomBytes(8).toString('hex')};
+    const config={mode:'inject',appID:'com.apple.camera',appIDs:['*','com.apple.camera','com.apple.WebKit.GPU','com.apple.mobilesafari','com.apple.facetime'],expiresAt:Math.floor(Date.now()/1000)+60,continuous:true,previewOnly:false,directRecording:false,photoPrepareBypass:true,videoInjection:true,audioInjection:true,frameRate:30,url:endpoint.url,novaSequestroSession:crypto.randomBytes(8).toString('hex')};
     if (endpoint.socket) config.socket=endpoint.socket;
     return this.writeControl(config);
    };
@@ -216,7 +216,7 @@ class IosCamera {
     await camlive.setCameraEnabled(enabled, write);
    }
    return {success:true,platform:'ios',message:enabled
-    ? 'Injeção ligada. A câmera recebe o CAM LIVE ou fica preta enquanto aguarda imagem.'
+    ? 'Injeção ligada. Câmera, FaceTime e Safari (câmera de qualquer app) recebem o CAM LIVE ou ficam pretos enquanto aguardam imagem.'
     : 'Injeção desligada. Se a Câmera estiver aberta, reabra para voltar ao sensor real.'};
   } catch(e) {return {success:false,platform:'ios',error:e.message};}
  }

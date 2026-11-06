@@ -1,5 +1,9 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Injeção de câmera explícita para Safari — 06/11/2026
+
+Pedido do usuário: a injeção de câmera também deve chegar ao Safari. A ponte 0.1-39 já cobria qualquer app pelo curinga (`appIDs:['*']`) e o `Tweak.x` já trata o grafo do Safari (`com.apple.WebKit.GPU`: dimensões próprias e caminho de stop específico). O ajuste torna o alvo explícito e auditável: nos dois configs de injeção (`enable()` do vídeo local e `setCameraInjection()` do CAM LIVE), `appIDs` agora lista `['*','com.apple.camera','com.apple.WebKit.GPU','com.apple.mobilesafari','com.apple.facetime']` — o curinga continua, então nenhum app perde cobertura. A mensagem de sucesso agora cita Câmera, FaceTime e Safari. Arquivos: `MAC/integracao-iphone/ios-camera.js`, `MAC/integracao-sequestro-cam/ios-camera.patched.js` e o app instalado (`electron/services/ios-camera.js`, backup `ios-camera.js.bak-*`). Branch `agent/ios/injetar-safari-20261106`, sem merge/push. Lembrete: no app instalado, iniciar CAM LIVE antes de Ligar (bug `this.mobile`, conserto na branch `5406337`).
+
 ## Conectar instala novamodel + nova-locale com a senha já digitada — 06/11/2026
 
 O usuário pediu que a senha digitada no Conectar seja usada para instalar o que falta (modelo e GPS/fuso), sem digitar senha de novo. O `conexao-usb/setup.js` agora, no mesmo fluxo do Conectar (com a senha do modal):
