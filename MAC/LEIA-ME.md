@@ -1,5 +1,17 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Correção do guard `this.mobile` no CAM LIVE (branch, sem merge) — 06/11/2026
+
+Branch `agent/backend/cam-spoof-guard-20261106` (a partir de `main` `67673e3`), **sem merge na main e sem push**. Corrige o defeito que o QA achou no caminho "ligar a injeção antes de transmitir": `TypeError: Cannot read properties of undefined (reading 'iosSsh')` em `_camouflagedForward()`.
+
+- Causa: `this.mobile` só era atribuído dentro de `_start()`; quem clicava em "Ligar" sem iniciar o CAM LIVE antes nunca passava por `_start()`, então `this.mobile` ficava `undefined`. A linha do `chmod` era engolida pelo `catch(_)` e a do `rm -f` (dentro do catch) estourava.
+- `ensureTransport()`: antes de `_tunnel()`, adicionada a guarda `if (!this.mobile) this.mobile = this.getMobileService?.();` (a mesma que o app já usa em `_readState()`).
+- `_camouflagedForward()`: o `catch(_)` silencioso agora lança `"Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção."` quando `this.mobile` não existe (em vez de engolir o erro).
+- Aplicado nas duas cópias do repo: `integracao-camlive/cam-live-iphone.js` e `integracao-sequestro-cam/cam-live-iphone.patched.js`. **App instalado em `/Applications` não foi tocado** (fica para o Security & Infra, com aprovação).
+- Teste `integracao-sequestro-cam/controles-independentes.test.cjs` atualizado: `version: '0.1-38'` → `'0.1-39'` e a rota `/frame.jpg` → `live.media.framePath` (`/s/<token>/frame.jpg`).
+
+**Verificação:** `controles-independentes.test.cjs` 2 de 2 passando; `setup.test.cjs`, `botao.test.cjs` e `botao-servico.test.cjs` OK; `node --check` nos arquivos tocados OK.
+
 ## Fase A — merge do seletor de modelo + pacotes release — 06/11/2026
 
 Merge na `main` (de `530920e`) das três branches do seletor de modelo do iPhone, em sequência: `agent/jailbreak/modelo-iphone-20261105` → `agent/ios/modelo-iphone-20261105` → `agent/frontend/modelo-iphone-20261105` (merge octopus falharia no `MAC/LEIA-ME.md`). Conflito resolvido mantendo as três seções no topo (tweak+CLI, serviço+IPC, seletor da UI). Commits de merge: `93c63a5`, `b9d3116`, `b5c3522` (não enviados — push pendente de autorização).

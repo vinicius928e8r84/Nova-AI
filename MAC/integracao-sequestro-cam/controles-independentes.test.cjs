@@ -10,7 +10,7 @@ const { CamLiveIphone } = require('./cam-live-iphone.patched');
 const IosCamera = require('./ios-camera.patched');
 
 const ready = {
-  version: '0.1-38', hooksReady: true, photoPrepareHookReady: true,
+  version: '0.1-39', hooksReady: true, photoPrepareHookReady: true,
   photoStillHookReady: true, photoPortRemapHookReady: true,
 };
 const frame = readFileSync(join(__dirname, '../integracao-camlive/test/fixtures/tiny.jpg'));
@@ -46,7 +46,7 @@ function setup() {
   camera.writeControl = async config => { writes.push(config.mode); };
   camera.liberarPortaCamera = async () => {};
   const currentFrame = async () => {
-    const response = await fetch('http://127.0.0.1:' + live.media.server.address().port + '/frame.jpg');
+    const response = await fetch('http://127.0.0.1:' + live.media.server.address().port + live.media.framePath);
     assert.equal(response.status, 200);
     return Buffer.from(await response.arrayBuffer());
   };
