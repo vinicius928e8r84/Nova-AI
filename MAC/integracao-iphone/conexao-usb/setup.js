@@ -20,6 +20,22 @@ async function ensureTunnel(){
  return false;
 }
 function command(client,cmd,input){return new Promise((resolve,reject)=>client.exec(cmd,(error,stream)=>{if(error)return reject(error);let stdout='',stderr='';const timer=setTimeout(()=>{stream.close();reject(new Error('O iPhone demorou demais para responder.'));},90000);stream.on('data',data=>stdout+=data);stream.stderr.on('data',data=>stderr+=data);stream.on('close',code=>{clearTimeout(timer);code===0?resolve(stdout):reject(new Error(stderr.includes('password')?'Senha administrativa recusada pelo iPhone.':stderr.trim()||'Comando não concluído no iPhone.'));});stream.end(input||'');}));}
+// Versão do helper nova-locale = linha HELPER_VERSION=<n> do nova-locale.sh que vai para o
+// aparelho (o número fica só no script; o Conectar lê dele). Sem a linha: null.
+function localeHelperVersion(file){try{const m=/^HELPER_VERSION=(\d+)[ \t]*$/m.exec(fs.readFileSync(file,'utf8'));return m?m[1]:null;}catch(_){return null;}}
+// Depois de reiniciar o serviço, o helper novo grava {"ok":true,"message":"pronto v<versão>"} no
+// status. Espera até ~10 s por essa versão (leitura simples, sem sudo). Sem a versão, o processo
+// antigo ainda roda o texto velho do script. Script sem versão: não há o que conferir (aceita).
+async function waitLocaleHandshake(client,version,opts){
+ if(!version)return true;
+ const tries=(opts&&opts.tries)||20,delay=(opts&&opts.delayMs)||500,want=new RegExp('"message":"pronto v'+version+'"');
+ for(let i=0;i<tries;i++){
+  let out='';try{out=await command(client,'cat /var/tmp/nova-locale-status.json 2>/dev/null || true');}catch(_){}
+  if(want.test(out))return true;
+  if(i<tries-1)await new Promise(r=>setTimeout(r,delay));
+ }
+ return false;
+}
 async function prepare(id,password,service){
  if(busy)throw new Error('Já existe uma preparação em andamento.');
  if(typeof password!=='string'||!password||password.length>1024||/[\r\n\0]/.test(password))throw new Error('Informe uma senha SSH válida.');
@@ -104,7 +120,9 @@ async function prepare(id,password,service){
    await command(client,"sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",password+'\n'+password+'\n');
    await command(client,"sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",password+'\n'+password+'\n');
    await command(client,"sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",password+'\n'+password+'\n');
-   camera+=' Fuso/idioma (nova-locale) atualizado.';
+   // Confere o reinício antes de dizer "atualizado": os erros acima são engolidos (|| true).
+   const locVer=localeHelperVersion(locSh);
+   camera+=(await waitLocaleHandshake(client,locVer))?' Fuso/idioma (nova-locale'+(locVer?' v'+locVer:'')+') atualizado.':' nova-locale: arquivos enviados, mas o serviço não confirmou a versão v'+locVer+'. Rode o Conectar de novo.';
   }
  }catch(e){camera+=' nova-locale não atualizado: '+String(e&&e.message||e).slice(0,120);}
  // Proxy do iPhone (novaproxy): instalado uma vez, com a senha do Conectar.
@@ -133,4 +151,4 @@ function prompt(win,payload){
  win.webContents.send('nova:iphone-setup-open',data);
  return {success:true,message:'Informe a senha SSH no quadro do Nova.'};
 }
-module.exports={prepare,prompt};
+module.exports={prepare,prompt,__test:{localeHelperVersion,waitLocaleHandshake}};
