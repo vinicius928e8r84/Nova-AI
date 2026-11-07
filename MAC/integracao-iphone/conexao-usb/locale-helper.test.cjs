@@ -3,9 +3,12 @@
 //  1. Estático: PATH exportado antes de qualquer comando, guarda do sleep, versão, trim, gêmeo igual.
 //  2. Comportamento: roda o script de verdade num sandbox (todos os caminhos /var/... reescritos
 //     para uma pasta temporária; nada do Mac nem do iPhone é tocado):
-//       - sem `sleep` no PATH o serviço ENCERRA (exit 1) em vez de girar e encher o log;
-//       - ao subir, zera erro/log acima de 1 MB e preserva o que é pequeno;
-//       - sobe gravando "pronto v<versão>", atende ping e recusa ação/fuso inválidos.
+//       - faltando comando (ex.: `sleep`) na partida, o serviço NÃO diz "pronto v<n>": grava
+//         status ok:false, 1 linha de erro e sai com 78 (o launchd só religa a cada 10 s);
+//       - se o `sleep` sumir com o serviço rodando, ele ENCERRA (exit 1) em vez de girar e encher o log;
+//       - ao subir, zera erro/log acima de 1 MB, preserva o que é pequeno e ignora link simbólico;
+//       - sobe gravando "pronto v<versão>", atende ping e recusa ação/fuso inválidos;
+//       - recusa plist com ".." ou link simbólico (o helper é root; o .cmd é gravável por qualquer processo).
 //  3. Conectar: handshake de versão (localeHelperVersion / waitLocaleHandshake) com cliente SSH falso.
 //
 // Uso: node locale-helper.test.cjs
@@ -85,7 +88,7 @@ function criarSandbox() {
     return file;
   };
   const t = (n) => path.join(root, 'tmp', n);
-  return { root, t, scriptComSleep: script(comSleep), scriptSemSleep: script(semSleep) };
+  return { root, t, comSleepDir: comSleep, scriptComSleep: script(comSleep), scriptSemSleep: script(semSleep) };
 }
 
 function testeGuardaSleepETrim(sb) {
@@ -99,17 +102,77 @@ function testeGuardaSleepETrim(sb) {
   const ms = Date.now() - t0;
 
   assert.equal(r.error, undefined, 'o serviço sem sleep NÃO pode girar: estourou o tempo limite');
-  assert.equal(r.status, 1, 'sem sleep o serviço tem que sair com código 1');
-  assert.match(r.stderr, /sleep indisponivel/);
+  assert.equal(r.status, 78, 'faltando comando na partida o serviço tem que sair com código 78');
+  assert.match(r.stderr, /faltam comandos: sleep/);
   const linhasErro = r.stderr.split('\n').filter(Boolean).length;
-  assert.ok(linhasErro <= 3, 'erro demais no stderr (' + linhasErro + ' linhas)');
+  assert.equal(linhasErro, 1, 'esperava 1 linha de erro, veio ' + linhasErro);
   assert.ok(ms < 4000, 'demorou ' + ms + ' ms para encerrar');
 
   assert.equal(fs.statSync(sb.t('nova-locale.err')).size, 0, 'err > 1 MB deveria ser zerado ao subir');
-  assert.ok(fs.statSync(sb.t('nova-locale.log')).size < 200, 'log > 1 MB deveria ser zerado ao subir (sobra só a linha de início)');
+  assert.equal(fs.statSync(sb.t('nova-locale.log')).size, 0, 'log > 1 MB deveria ser zerado ao subir (e nada novo: o serviço nem chegou a dizer pronto)');
   assert.equal(fs.readFileSync(sb.t('nova-locale.out'), 'utf8'), 'pequeno\n', 'arquivo pequeno não pode ser mexido');
-  assert.match(fs.readFileSync(sb.t('nova-locale-status.json'), 'utf8'), /"message":"pronto v\d+"/);
-  console.log('OK 2a: sem sleep o serviço encerra em ' + ms + ' ms (exit 1, ' + linhasErro + ' linhas de erro); err/log > 1 MB zerados, arquivo pequeno intacto');
+  // O ponto central: o status NÃO pode dizer "pronto v<n>" (o Conectar aceitaria a versão sem serviço vivo).
+  const st = fs.readFileSync(sb.t('nova-locale-status.json'), 'utf8');
+  assert.deepEqual(JSON.parse(st), { ok: false, message: 'helper sem comandos: sleep' });
+  assert.doesNotMatch(st, /pronto v/);
+  console.log('OK 2a: sem sleep na partida o serviço sai em ' + ms + ' ms (exit 78, ' + linhasErro + ' linha de erro, status ok:false, nunca "pronto v"); err/log > 1 MB zerados, arquivo pequeno intacto');
+}
+
+async function testeSleepSomeComServicoRodando(sb) {
+  for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
+  const filho = spawn('/bin/bash', [sb.scriptComSleep], { env: { PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'ignore', 'pipe'] });
+  let stderr = '';
+  filho.stderr.on('data', (d) => (stderr += d));
+  const saiu = new Promise((resolve) => filho.on('exit', (code, sig) => resolve({ code, sig })));
+  try {
+    await waitFor(() => { try { return /pronto v\d+/.test(fs.readFileSync(sb.t('nova-locale-status.json'), 'utf8')); } catch (_) { return false; } }, 4000, 'status de partida');
+    fs.rmSync(path.join(sb.comSleepDir, 'sleep')); // pacote em atualização: o sleep some com o serviço no ar
+    const r = await Promise.race([saiu, sleep(6000).then(() => null)]);
+    assert.ok(r, 'sem sleep o serviço em execução tem que encerrar, e não girar');
+    assert.equal(r.code, 1, 'saída esperada 1 (guarda do sleep), veio ' + JSON.stringify(r));
+    assert.match(stderr, /sleep indisponivel/);
+    const linhasErro = stderr.split('\n').filter(Boolean).length;
+    assert.ok(linhasErro <= 3, 'erro demais no stderr (' + linhasErro + ' linhas)');
+    console.log('OK 2c: sleep some com o serviço rodando -> exit 1 e ' + linhasErro + ' linha(s) de erro, sem girar');
+  } finally {
+    filho.kill('SIGKILL');
+  }
+}
+
+async function testeRecusasDoHelperRoot(sb) {
+  for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
+  // Arquivo de OUTRO dono (2 MiB) e um plist "secreto" fora de /var/tmp, ambos fora da pasta tmp do helper.
+  const vitima = path.join(sb.root, 'vitima.bin');
+  fs.writeFileSync(vitima, Buffer.alloc(2 * 1048576, 88));
+  const secreto = path.join(sb.root, 'secret.plist');
+  fs.writeFileSync(secreto, '<?xml version="1.0"?><plist/>\n');
+  fs.symlinkSync(vitima, sb.t('nova-locale.out')); // .out virou link para o arquivo de outro dono
+
+  const filho = spawn('/bin/bash', [sb.scriptComSleep], { env: { PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'ignore', 'pipe'] });
+  try {
+    const status = () => { try { return JSON.parse(fs.readFileSync(sb.t('nova-locale-status.json'), 'utf8')); } catch (_) { return null; } };
+    await waitFor(() => status(), 4000, 'status de partida');
+    assert.equal(fs.statSync(vitima).size, 2 * 1048576, 'o trim_logs seguiu o link simbólico e zerou o arquivo de outro dono');
+
+    const pedir = async (corpo) => {
+      fs.rmSync(sb.t('nova-locale-status.json'), { force: true });
+      fs.writeFileSync(sb.t('nova-locale.cmd'), corpo);
+      return waitFor(status, 5000, 'resposta ao comando');
+    };
+    const recusado = { ok: false, message: 'caminho de plist invalido' };
+    assert.deepEqual(await pedir('action=apply\nplist=/etc/hosts\n'), recusado, 'plist fora de /var/tmp');
+    assert.deepEqual(await pedir('action=apply\nplist=' + sb.root + '/tmp/../secret.plist\n'), recusado, 'plist com ".."');
+    fs.symlinkSync(secreto, sb.t('link.plist'));
+    assert.deepEqual(await pedir('action=apply\nplist=' + sb.t('link.plist') + '\n'), recusado, 'plist que é link simbólico');
+    // Plist legítimo dentro de /var/tmp NÃO pode cair na recusa de caminho. (No Mac de teste o `chown mobile`
+    // falha, então a resposta pode ser "falha ao gravar prefs"; no aparelho é "aplicado idioma=ok".)
+    fs.writeFileSync(sb.t('ok.plist'), '<?xml version="1.0"?><plist><dict/></plist>\n');
+    const legitimo = await pedir('action=apply\nplist=' + sb.t('ok.plist') + '\n');
+    assert.notEqual(legitimo.message, recusado.message, 'plist legítimo em /var/tmp foi recusado pela guarda de caminho');
+    console.log('OK 2d: .out simbólico não é zerado no alvo; plist fora de /var/tmp, com ".." e link simbólico recusados; plist legítimo passa da guarda (' + legitimo.message + ')');
+  } finally {
+    filho.kill('SIGKILL');
+  }
 }
 
 async function testeFluxoNormal(sb) {
@@ -231,6 +294,8 @@ async function testeHandshake() {
   try {
     testeGuardaSleepETrim(sb);
     await testeFluxoNormal(sb);
+    await testeRecusasDoHelperRoot(sb);
+    await testeSleepSomeComServicoRodando(sb); // por último: remove o sleep da pasta de PATH do sandbox
   } finally {
     fs.rmSync(sb.root, { recursive: true, force: true });
   }

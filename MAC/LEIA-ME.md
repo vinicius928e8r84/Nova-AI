@@ -1,5 +1,18 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## nova-locale v2 (complemento): auto-checagem de comandos e recusas do helper root — 07/11/2026
+
+Revisão da v2 do iOS Engineer (7a5dcba) por quem cuida do helper. Medido rodando o script de verdade num sandbox do Mac (caminhos trocados por uma pasta temporária; nada do aparelho tocado). Três furos, os três corrigidos aqui:
+1. **Status falso.** Com a v2 original, se faltar o `sleep` (ou outro comando) na partida, o script grava `{"ok":true,"message":"pronto v2"}` e só depois sai com 1. O handshake do Conectar procura exatamente esse texto e diria "atualizado" com o serviço em laço de reinício. Agora, antes de dizer pronto, o script confere `sleep sed head grep cp mv ln chown chmod rm`; se faltar algum, grava `{"ok":false,"message":"helper sem comandos: ..."}`, 1 linha no `.err` e sai com 78. O `sleep 1 || exit 1` do laço continua, para o caso de o `sleep` sumir com o serviço já rodando. O `trim_logs` passou a rodar antes dessa checagem.
+2. **`trim_logs` seguia link simbólico.** `: >` segue o link: um `nova-locale.out` apontando para outro arquivo zerava o arquivo apontado (medido: 2 MiB → 0). Agora link simbólico é ignorado.
+3. **`plist=` com `..`.** `/var/tmp/../x.plist` passava no teste de prefixo e só o `<?xml` na primeira linha segurava; como o helper é root e o `.cmd` é gravável por qualquer processo, dava para copiar um plist qualquer para as preferências do `mobile`. Agora `..` e link simbólico são recusados. O app atual só manda `tz`, então nada muda para ele.
+
+Arquivos: `conexao-usb/nova-locale.sh` e o gêmeo `geo-proxy/helper/nova-locale.sh` (idênticos); `conexao-usb/locale-helper.test.cjs` (o teste 2a mudou de "exit 1 + pronto v2" para "exit 78 + ok:false, nunca pronto v"; novos 2c = `sleep` some com o serviço no ar e 2d = link simbólico/plist). `HELPER_VERSION` continua 2: a v2 ainda não foi para o aparelho. Branch `agent/jailbreak/locale-selfcheck-20261107`, empilhada em `agent/ios/locale-endurecer-20261107`, sem merge/push. Substitui a primeira tentativa (`agent/jailbreak/locale-script-endurecer-20261107`), que reescrevia o script por conta própria.
+
+Testes (07/11): `locale-helper.test.cjs` (1, 2a, 2b, 2c, 2d, 3), `setup.test.cjs`, `botao.test.cjs` e `botao-servico.test.cjs` OK. O 2a novo falha contra o script v2 original, como deve. No launchd real do Mac (agente temporário, `KeepAlive`, sem `sleep` no PATH) o script com esta checagem religou em t=0/10/20/30 s, 1 linha de 81 bytes por vez, `last exit code = 78: EX_CONFIG`, sem nenhum "pronto".
+
+**Sem testar:** o aparelho (nada foi instalado nem executado lá), o bash 5 do Procursus e o `ThrottleInterval` do launchd do iOS 16 (medi o do macOS).
+
 ## Helper nova-locale v2: guarda do sleep, log limitado e Conectar que confere o reinício — 07/11/2026
 
 **Contexto medido no aparelho (só leitura, 07/11):** o helper antigo rodou ~19 h (06/11 16:40 → 07/11 11:37, relógio do aparelho) com o PATH mínimo do launchd (`/usr/bin:/bin:/usr/sbin:/sbin`), onde **nenhum** comando do script existe (`sed head cp mv ln chown chmod grep rm cat date sleep killall sbreload` — todos ausentes; no PATH do Procursus todos resolvem em `/var/jb/usr/bin`). Resultado: laço sem pausa, ~118 erros/s, `nova-locale.err` com 571.321.165 B (~8 milhões de linhas `sleep: command not found`) e nenhum comando processado. O fix do PATH (7804b60) chegou ao aparelho no Conectar das 11:37:33 (script idêntico ao do app, daemon novo PID 93721, `launchctl print`: `runs = 2`, `last terminating signal = Killed: 9`) e o log parou de crescer. Ping do helper novo testado no aparelho às 12:06 (com OK do usuário): `action=ping` consumido em ~1,5 s, status e log atualizados, stderr sem escrita.

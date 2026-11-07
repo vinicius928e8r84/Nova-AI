@@ -48,7 +48,8 @@ respring() {
 trim_logs() {
     local f size
     for f in "$ERRLOG" "$OUTLOG" "$LOG"; do
-        [ -f "$f" ] || continue
+        # Link simbólico fica de fora: `: >` seguiria o link e zeraria o arquivo de outro dono.
+        [ -f "$f" ] && [ ! -L "$f" ] || continue
         # 2>/dev/null ANTES do <: se o redirecionamento falhar, a mensagem também some.
         size=$(wc -c 2>/dev/null < "$f")
         size=${size//[!0-9]/}
@@ -57,6 +58,22 @@ trim_logs() {
         fi
     done
 }
+
+# Logs pequenos primeiro: uma falha em laço não pode crescer nem antes da checagem abaixo.
+trim_logs
+
+# Sem estes comandos o laço não atende nada. Não escreva "pronto v<n>" nesse caso: o
+# Conectar e o app leriam um serviço saudável que não existe. Avise no status, registre
+# uma linha e saia com 78; o launchd (KeepAlive) só religa depois de 10 s.
+missing=""
+for c in sleep sed head grep cp mv ln chown chmod rm; do
+    command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
+done
+if [ -n "$missing" ]; then
+    printf '{"ok":false,"message":"helper sem comandos:%s"}\n' "$missing" > "$STATUS"
+    echo "nova-locale v$HELPER_VERSION: faltam comandos:$missing (PATH=$PATH)" >&2
+    exit 78
+fi
 
 # Guarda o estado original na primeira execução (fuso + prefs).
 if [ ! -f "$STATE" ]; then
@@ -69,7 +86,6 @@ if [ ! -f "$STATE" ]; then
     cp -p "$PREF" "$ORIG" 2>/dev/null
 fi
 
-trim_logs
 status true "pronto v$HELPER_VERSION"
 
 ticks=0
@@ -97,10 +113,14 @@ while true; do
                         esac
                     fi
                     if [ "$ok" -eq 1 ] && [ -n "$plist" ]; then
+                        # Só dentro de /var/tmp, sem ".." e sem link simbólico: o helper é root e o
+                        # arquivo de comando é gravável por qualquer processo.
                         case "$plist" in
+                            *..*) ok=0; msg="caminho de plist invalido" ;;
                             /var/tmp/*) ;;
                             *) ok=0; msg="caminho de plist invalido" ;;
                         esac
+                        if [ "$ok" -eq 1 ] && [ -L "$plist" ]; then ok=0; msg="caminho de plist invalido"; fi
                         if [ "$ok" -eq 1 ]; then
                             if head -c 40 "$plist" 2>/dev/null | grep -q '<?xml'; then
                                 # cfprefsd roda como root: mata antes de trocar para nao sobrescrever
