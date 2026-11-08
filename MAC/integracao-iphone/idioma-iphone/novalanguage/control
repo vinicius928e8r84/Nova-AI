@@ -1,0 +1,9 @@
+Package: com.aquiles.novalanguage
+Name: novalanguage
+Version: 0.2
+Architecture: iphoneos-arm64
+Description: Le e grava o idioma do iPhone pelo store (CFPreferences), com scan/limpeza do idioma proprio dos apps. Sem root
+Maintainer: Aquiles
+Author: Aquiles
+Section: Utilities
+Depends: firmware (>= 15.0)
