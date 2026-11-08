@@ -199,7 +199,10 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
     // ── Restaurar celular (sem os sistemas rodando) ────────────────────────────
     async function restaurarCelular(pedido = {}) {
         // respring=false por padrão: desfazer não pode derrubar o CAM LIVE.
-        const { idioma = true, respring = false, pararCamLive = false } = pedido;
+        // Câmera: o usuário respondeu que "Restaurar" NÃO encerra o CAM LIVE,
+        // então nem a injeção nem a transmissão são tocadas por padrão. Só com
+        // pararCamera / pararCamLive explícitos.
+        const { idioma = true, respring = false, pararCamLive = false, pararCamera = false } = pedido;
         const passos = [];
         const avisos = [];
         const tentar = async (passo, fn) => {
@@ -211,10 +214,8 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
             return ok;
         };
 
-        // Ordem: primeiro tira o que dá acesso (câmera e proxy), depois o resto.
-        // `stopCamSpoof` desliga a INJEÇÃO (o vídeo no lugar da câmera). A
-        // transmissão do CAM LIVE só é parada se você pedir (pararCamLive).
-        await tentar('camera', () => service.stopCamSpoof(deviceId));
+        // Ordem: proxy primeiro (tira a saída falsa), depois o resto.
+        if (pararCamera) await tentar('camera', () => service.stopCamSpoof(deviceId));
         if (pararCamLive && typeof service.iosStopStream === 'function') {
             await tentar('cam-live', () => service.iosStopStream(deviceId));
         }
@@ -244,6 +245,7 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
             passos,
             avisos: [...new Set([
                 'O iPhone volta ao IP e ao GPS reais; se a proxy saiu, o Safari sai pela operadora.',
+                'O CAM LIVE e a injeção de câmera NÃO foram mexidos (só saem com pararCamera/pararCamLive).',
                 ...avisos
             ])],
             naoRevertido: falhou,
@@ -272,13 +274,24 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
         if (!coords.ok) return { success: false, error: coords.erro };
 
         const dados = store.ler();
+        // "Registra tudo": o perfil guarda o conjunto da identidade — modelo,
+        // proxy, idioma e coordenadas — mais o que ajuda a achar depois (cidade,
+        // fuso, país). Coordenada vazia fica marcada: ao aplicar, vem da proxy.
         const registro = {
-            nome, modelo, proxy: proxy || null,
+            nome,
+            modelo,
+            proxy: proxy || null,
             latitude: coords.vazio ? null : coords.latitude,
             longitude: coords.vazio ? null : coords.longitude,
-            idioma: pedido.idioma ? String(pedido.idioma) : null,
+            coordsDaProxy: !!coords.vazio && !!proxy,
+            idioma: pedido.idioma && pedido.idioma !== 'keep' ? String(pedido.idioma) : null,
+            fuso: pedido.fuso ? String(pedido.fuso) : null,
+            cidade: pedido.cidade ? String(pedido.cidade) : null,
+            paisCodigo: pedido.paisCodigo ? String(pedido.paisCodigo).toUpperCase() : null,
             registradoEm: agora()
         };
+        registro.completo = !!(registro.modelo && registro.proxy && registro.idioma
+            && (registro.latitude !== null || registro.coordsDaProxy));
         const idx = dados.modelos.findIndex((m) => String(m.nome).toLowerCase() === nome.toLowerCase());
         const substituiu = idx >= 0;
         // Já existe com esse nome: NÃO sobrescreve sem você confirmar no popup.
@@ -295,7 +308,15 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
         } catch (e) {
             return { success: false, error: `não consegui gravar o arquivo de modelos: ${e.message}` };
         }
-        return { success: true, registro, substituiu, total: dados.modelos.length };
+        return {
+            success: true, registro, substituiu, total: dados.modelos.length,
+            // A lista pode mostrar o que falta, em vez de fingir perfil completo.
+            faltando: [
+                !registro.modelo && 'modelo', !registro.proxy && 'proxy',
+                !registro.idioma && 'idioma',
+                registro.latitude === null && !registro.coordsDaProxy && 'latitude/longitude'
+            ].filter(Boolean)
+        };
     }
 
     function listarModelos() {

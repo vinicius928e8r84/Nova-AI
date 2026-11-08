@@ -183,8 +183,10 @@ function criar(opts = {}) {
         const { id, service, language } = criar();
         const r = await id.restaurarCelular({});
         ok('restaurar-ok', r.success === true, JSON.stringify(r));
-        ok('restaurar-ordem', service.ordem().join('>') === 'stopCamSpoof>iosProxyClear>iosStopLocation>clearIOSModel>iosRevertLocale',
+        ok('restaurar-ordem', service.ordem().join('>') === 'iosProxyClear>iosStopLocation>clearIOSModel>iosRevertLocale',
             service.ordem().join('>'));
+        ok('restaurar-nao-mexe-camera', !service.ordem().includes('stopCamSpoof'), service.ordem().join(','));
+        ok('restaurar-avisa-camera', r.avisos.some((a) => /NÃO foram mexidos/.test(a)), JSON.stringify(r.avisos));
         ok('restaurar-idioma', language.chamadas.some((c) => c.nome === 'revertLanguage'), JSON.stringify(language.chamadas));
         ok('restaurar-sem-respring', !language.chamadas.some((c) => c.nome === 'respring'), JSON.stringify(language.chamadas.map((c) => c.nome)));
         ok('restaurar-preserva-camlive', !service.ordem().includes('iosStopStream'), service.ordem().join(','));
@@ -193,11 +195,12 @@ function criar(opts = {}) {
         ok('restaurar-nada-pendente', Array.isArray(r.naoRevertido) && r.naoRevertido.length === 0, JSON.stringify(r.naoRevertido));
     }
 
-    // 9b) Restaurar com pararCamLive:true para a transmissão também
+    // 9b) Câmera só sai se for pedida explicitamente
     {
         const { id, service } = criar();
-        await id.restaurarCelular({ pararCamLive: true });
+        await id.restaurarCelular({ pararCamLive: true, pararCamera: true });
         ok('restaurar-parar-camlive', service.ordem().includes('iosStopStream'), service.ordem().join(','));
+        ok('restaurar-parar-camera', service.ordem().includes('stopCamSpoof'), service.ordem().join(','));
     }
 
     // 10) Restaurar com uma etapa falhando: continua e reporta
@@ -216,6 +219,11 @@ function criar(opts = {}) {
         const r1 = await id.registrarModelo({ nome: 'Casa', modelo: 'iPhone15,4', proxy: PROXY_OK, latitude: 32.72, longitude: -97.32, idioma: 'en-US' });
         ok('registrar-ok', r1.success && r1.total === 1, JSON.stringify(r1));
         ok('registrar-gravou', store.dados.modelos.length === 1, JSON.stringify(store.dados));
+        const reg = store.dados.modelos[0];
+        ok('registrar-guarda-tudo', reg.modelo === 'iPhone15,4' && !!reg.proxy && reg.idioma === 'en-US'
+            && reg.latitude === 32.72 && reg.longitude === -97.32, JSON.stringify(reg));
+        ok('registrar-marca-completo', reg.completo === true, JSON.stringify(reg));
+        ok('registrar-sem-faltando', Array.isArray(r1.faltando) && r1.faltando.length === 0, JSON.stringify(r1.faltando));
         const rDup = await id.registrarModelo({ nome: 'casa', modelo: 'iPhone14,2' });
         ok('registrar-nao-sobrescreve-sozinho', rDup.success === false && rDup.jaExiste === true, JSON.stringify(rDup));
         ok('registrar-nao-sobrescreve-disco', store.dados.modelos[0].modelo === 'iPhone15,4', JSON.stringify(store.dados.modelos[0]));
@@ -227,6 +235,17 @@ function criar(opts = {}) {
         ok('remover-inexistente', (await id.removerModelo({ nome: 'nao-existe' })).success === false);
     }
 
+    // 11b) Perfil incompleto é aceito e DIZ o que falta (não finge completo)
+    {
+        const store = memoriaLoja();
+        const { id } = criar({ store });
+        const r = await id.registrarModelo({ nome: 'Só modelo', modelo: 'iPhone15,4' });
+        ok('registrar-parcial', r.success === true && r.registro.completo === false, JSON.stringify(r));
+        ok('registrar-parcial-faltando', r.faltando.includes('proxy') && r.faltando.includes('idioma'), JSON.stringify(r.faltando));
+        const r2 = await id.registrarModelo({ nome: 'Coords da proxy', modelo: 'iPhone15,4', proxy: PROXY_OK, idioma: 'en-US' });
+        ok('registrar-coords-da-proxy', r2.registro.coordsDaProxy === true && r2.registro.completo === true, JSON.stringify(r2.registro));
+    }
+
     // 12) Aplicar modelo registrado reusa o Salvar tudo
     {
         const store = memoriaLoja([{ nome: 'Casa', modelo: 'iPhone15,4', proxy: PROXY_OK, latitude: 32.72, longitude: -97.32, idioma: 'en-US' }]);
@@ -235,6 +254,8 @@ function criar(opts = {}) {
         ok('aplicar-registrado', r.success === true, JSON.stringify(r));
         ok('aplicar-registrado-ordem', service.ordem().join('>') === 'applyIOSModel>iosProxySet>iosSetLocation', service.ordem().join('>'));
         ok('aplicar-registrado-idioma', language.chamadas[0].args.tag === 'en-US', JSON.stringify(language.chamadas[0].args));
+        const gps = service.chamadas.find((c) => c.nome === 'iosSetLocation');
+        ok('aplicar-registrado-coords', gps.args[1] === 32.72 && gps.args[2] === -97.32, JSON.stringify(gps.args));
         const r2 = await id.aplicarModeloRegistrado({ nome: 'inexistente' });
         ok('aplicar-registrado-inexistente', r2.success === false, JSON.stringify(r2));
     }

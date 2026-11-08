@@ -13,7 +13,7 @@ Este módulo entrega esse encadeamento:
 |---|---|
 | `spoofer:salvar-tudo({ modelo, proxy, latitude, longitude, idioma, respring })` | valida tudo **antes** de tocar no aparelho e aplica em ordem: modelo → proxy → GPS → idioma → respring. Devolve passo por passo |
 | `spoofer:restaurar-celular({ idioma, respring })` (alias `spoofer:revert-all`) | desliga os sistemas: câmera → proxy → GPS → modelo → idioma → fuso → respring |
-| `spoofer:registrar-modelo({ nome, modelo, proxy, latitude, longitude, idioma, substituir })` | **só grava** o conjunto no arquivo. Nome repetido **não** sobrescreve: volta `jaExiste: true` para o popup confirmar (aí mande `substituir: true`) |
+| `spoofer:registrar-modelo({ nome, modelo, proxy, latitude, longitude, idioma, fuso, cidade, paisCodigo, substituir })` | **só grava** o perfil completo no arquivo. Nome repetido **não** sobrescreve: volta `jaExiste: true` para o popup confirmar (aí mande `substituir: true`). Devolve `completo` e `faltando[]` |
 | `spoofer:sugerir-nome-modelo({ modelo, cidade })` | nome pronto para o popup, ex.: `iPhone 15 · Fort Worth · 08/11 18:20` |
 | `spoofer:idioma-da-proxy({ proxy })` | idioma/locale que combinam com o país da proxy (só preenche o campo) |
 | `spoofer:listar-modelos-registrados()` / `spoofer:remover-modelo-registrado({ nome })` | lista e apaga do arquivo (nunca do aparelho) |
@@ -33,6 +33,17 @@ Este módulo entrega esse encadeamento:
 
 Consequência honesta do último item: o idioma é gravado no store na hora (todo app aberto depois já nasce no idioma novo), mas **a interface atual do iPhone só muda num reinício/respring que você mesmo fizer**. O Salvar avisa isso em vez de derrubar o CAM LIVE.
 
+### Respostas de 08/11 (segunda rodada)
+
+| Pergunta | Resposta | Efeito no backend |
+|---|---|---|
+| „Registrar modelo“ grava só o modelo ou tudo? | **tudo: modelo + proxy + idioma + lat/lon** | o perfil guarda os quatro, mais fuso/cidade/país quando houver; volta `completo` e `faltando[]` |
+| „Restaurar“ encerra o CAM LIVE? | **não** | Restaurar **não toca na câmera**: nem injeção nem transmissão. Só com `pararCamera: true` / `pararCamLive: true` |
+
+Consequência: o Restaurar desfaz proxy, GPS, modelo, idioma e fuso e **deixa o CAM LIVE no ar**, avisando isso na resposta.
+
+**Não é preciso parar os LaunchDaemons** (objeção do QA resolvida no código): o `nova-locale` só age quando existe `/var/tmp/nova-locale.cmd` — não reaplica fuso/idioma sozinho —, e o `novaproxy` só chama `SysProxyApply` dentro de `proxy set`. O `KeepAlive` mantém o serviço vivo, não reescreve ajuste. Parar os daemons exigiria root e não é necessário.
+
 ### Regras do Salvar
 
 - **Campos de latitude/longitude começam vazios.** Se você digitar, vale o que digitou. Se estiverem vazios, as coordenadas vêm da proxy (geo real do IP) e a resposta marca `coordsDaProxy: true`.
@@ -43,8 +54,8 @@ Consequência honesta do último item: o idioma é gravado no store na hora (tod
 
 ### Regras do Restaurar celular
 
-Ordem: `stopCamSpoof` → `iosProxyClear` → `iosStopLocation` → `clearIOSModel` → idioma `revert` → `iosRevertLocale`, e respring **só se pedido**.
-`stopCamSpoof` desliga a **injeção** (o vídeo no lugar da câmera). A transmissão do CAM LIVE **não** é parada, a menos que você peça `pararCamLive: true` — aí entra um passo `cam-live`.
+Ordem: `iosProxyClear` → `iosStopLocation` → `clearIOSModel` → idioma `revert` → `iosRevertLocale`, e respring **só se pedido**.
+A câmera **não é tocada** (decisão de 08/11): a injeção só sai com `pararCamera: true` e a transmissão do CAM LIVE só com `pararCamLive: true`.
 Continua mesmo se uma etapa falhar e devolve `naoRevertido: [...]`. Aviso fixo: *"o iPhone volta ao IP e ao GPS reais; se a proxy saiu, o Safari sai pela operadora"*.
 
 ### Onde fica o "modelo registrado"
