@@ -14,7 +14,13 @@
 //  * Toda resposta devolve o que o APARELHO confirmou (leitura de volta no
 //    store), não o que foi pedido.
 
-const HELPER = '/var/jb/usr/bin/nova-locale';
+// O helper no aparelho está em /var/jb/usr/libexec/nova-locale.sh, executado pelo
+// /var/jb/bin/bash (é o que o launchd faz). A rota /var/jb/usr/bin/nova-locale é
+// tentada como reserva, para o caso de o instalador criar um atalho.
+const HELPER_BASH = '/var/jb/bin/bash';
+const HELPER_SCRIPT = '/var/jb/usr/libexec/nova-locale.sh';
+const HELPER_ATALHO = '/var/jb/usr/bin/nova-locale';
+const HELPER = HELPER_SCRIPT;
 const TAG_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 const BUNDLE_RE = /^[A-Za-z0-9][A-Za-z0-9.-]{2,120}$/;
 const LOCALE_RE = /^[A-Za-z]{2,3}(_[A-Za-z0-9]{2,8})*$/;
@@ -55,19 +61,64 @@ function lerSaida(texto) {
 }
 
 function comando(sub, args) {
-    return [HELPER, 'language', sub, ...args, '--format', 'lines'];
+    return [HELPER_BASH, HELPER_SCRIPT, 'language', sub, ...args, '--format', 'lines'];
+}
+
+/** Mensagens que o usuário entende, no lugar do erro cru do shell. */
+function traduzirErro(bruto) {
+    const e = String(bruto || '');
+    if (/no such file or directory.*nova-locale|nova-locale: No such file/i.test(e)) {
+        return 'o helper do iPhone (nova-locale) não está nesse caminho; reinstale o helper pelo Conectar.';
+    }
+    if (/subcomando desconhecido/i.test(e)) {
+        return 'o helper instalado no iPhone é antigo (v2, só fuso): falta a versão com "language get/set".';
+    }
+    if (/novalanguage não instalado/i.test(e)) {
+        return 'o pacote de idioma (com.aquiles.novalanguage) não está instalado no iPhone.';
+    }
+    return e.trim();
 }
 
 function createHandlers({ exec, deviceId = 'ios-1' }) {
     if (typeof exec !== 'function') throw new Error('exec obrigatório');
 
+    // cache da checagem: o helper só aceita subcomando a partir da v3 (v4 no
+    // aparelho). Com a v2 instalada, chamar "language …" entra no laço do daemon
+    // e o processo fica girando — por isso a checagem vem antes.
+    let helperOk = null;
+    let helperOkEm = 0;
+
+    async function verificarHelper(timeoutMs = 8000) {
+        const agora = Date.now();
+        if (helperOk !== null && agora - helperOkEm < 60000) return helperOk;
+        const cmd = [HELPER_BASH, '-c',
+            `test -f ${HELPER_SCRIPT} && grep -q 'language get' ${HELPER_SCRIPT} && echo V4 || `
+            + `{ test -f ${HELPER_SCRIPT} && echo V2 || echo FALTA; }`];
+        const r = await exec(cmd, timeoutMs);
+        const saida = String((r && r.stdout) || '').trim();
+        const erro = String((r && r.stderr) || '').trim();
+        helperOk = saida === 'V4'
+            ? { ok: true }
+            : saida === 'V2'
+                ? { ok: false, error: 'o helper do iPhone é antigo (v2, só fuso): falta a versão com "language get/set". Rode o Conectar para atualizar o helper.' }
+                : { ok: false, error: traduzirErro(erro) || 'o helper nova-locale não está instalado no iPhone.' };
+        helperOkEm = agora;
+        return helperOk;
+    }
+
     // exec(cmd: string[], timeoutMs: number) -> Promise<{ code, stdout, stderr }>
     async function rodar(cmd, timeoutMs) {
-        const r = await exec(cmd, timeoutMs);
+        let r = await exec(cmd, timeoutMs);
+        // Reserva: se o caminho com bash+script não existe, tenta o atalho.
+        if (r && r.code !== 0 && /nova-locale\.sh: No such file|no such file.*nova-locale\.sh/i.test(String(r.stderr || ''))) {
+            r = await exec([HELPER_ATALHO, ...cmd.slice(2)], timeoutMs);
+        }
         const saida = lerSaida((r && r.stdout) || '');
         if (r && r.stderr && !saida.error) {
             const err = String(r.stderr).trim();
-            if (err) saida.error = err;
+            if (err) saida.error = traduzirErro(err);
+        } else if (saida.error) {
+            saida.error = traduzirErro(saida.error);
         }
         if (r && typeof r.code === 'number' && r.code !== 0 && !saida.error) {
             saida.error = `o helper saiu com código ${r.code}`;
@@ -77,6 +128,8 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
 
     async function getLanguage({ domain = 'global' } = {}) {
         if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
+        const h = await verificarHelper();
+        if (!h.ok) return { success: false, error: h.error, domain };
         const s = await rodar(comando('get', ['--domain', domain]), 20000);
         if (s.error) return { success: false, error: s.error, domain };
         const avisos = [];
@@ -105,9 +158,6 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
             return { success: false, error: 'idioma inválido: informe algo como pt-BR ou en-US' };
         }
         if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
-        if (locale && !LOCALE_RE.test(String(locale))) {
-            return { success: false, error: 'locale inválido: informe algo como pt_BR' };
-        }
         // Global muda o que os sites recebem: exige confirmação explícita.
         if (domain === 'global' && confirmGlobal !== true) {
             return {
@@ -118,6 +168,11 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
             };
         }
 
+        const h = await verificarHelper();
+        if (!h.ok) return { success: false, error: h.error, avisos: [] };
+        if (locale && !LOCALE_RE.test(String(locale))) {
+            return { success: false, error: 'locale inválido: informe algo como pt_BR' };
+        }
         // "Aparelho inteiro": o global precisa de duas coisas para alcançar todos
         // os apps — derivar o AppleLocale do idioma (senão fica texto em pt com
         // data americana) e limpar o idioma próprio de quem tiver um.
@@ -173,6 +228,8 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
 
     async function revertLanguage({ domain = 'global', respring = false } = {}) {
         if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
+        const h = await verificarHelper();
+        if (!h.ok) return { success: false, error: h.error, avisos: [] };
         const args = ['--domain', domain];
         if (respring) args.push('--respring');
         const s = await rodar(comando('revert', args), respring ? 60000 : 25000);
@@ -200,19 +257,23 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
     }
 
     async function listarApps() {
-        const s = await rodar([HELPER, 'language', 'apps', '--format', 'lines'], 30000);
+        const h = await verificarHelper();
+        if (!h.ok) return { success: false, error: h.error };
+        const s = await rodar([HELPER_BASH, HELPER_SCRIPT, 'language', 'apps', '--format', 'lines'], 30000);
         if (s.error) return { success: false, error: s.error };
         const apps = s.apps ? String(s.apps).split(',').filter(Boolean) : [];
         return { success: true, count: apps.length, apps };
     }
 
     async function respring() {
-        const s = await rodar([HELPER, 'respring'], 40000);
+        const h = await verificarHelper();
+        if (!h.ok) return { success: false, error: h.error };
+        const s = await rodar([HELPER_BASH, HELPER_SCRIPT, 'respring'], 40000);
         if (s.error) return { success: false, error: s.error };
         return { success: s.respring === 'ok', avisos: [...(s.warnings || []), AVISO_RESPRING] };
     }
 
-    return { getLanguage, applyLanguage, revertLanguage, listarApps, respring, deviceId };
+    return { getLanguage, applyLanguage, revertLanguage, listarApps, respring, verificarHelper, deviceId };
 }
 
 /** Registra os handlers no app. `app` só é usado para o canal de log. */
@@ -238,16 +299,15 @@ function register(app, ipcMain, options = {}) {
  */
 function executarNoAparelho(cmd, timeoutMs = 25000) {
     return new Promise((resolve) => {
+        // Cada argumento vai entre aspas simples, com aspas internas escapadas
+        // pelo idioma padrão do shell (' -> '\''). Sem interpolar nada solto.
+        const cita = (c) => "'" + String(c).replace(/'/g, "'\\''") + "'";
         const seguro = cmd.map((c) => String(c));
-        if (seguro.some((c) => c.includes("'"))) {
-            resolve({ code: 64, stdout: '', stderr: 'argumento inválido' });
-            return;
-        }
         let sshOptions = [];
         try { sshOptions = require('./iphone-ssh').sshOptions(); } catch { /* usa o padrão */ }
         const args = ['-p', '2222', ...sshOptions,
             '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
-            'mobile@127.0.0.1', seguro.map((c) => `'${c}'`).join(' ')];
+            'mobile@127.0.0.1', seguro.map(cita).join(' ')];
         require('child_process').execFile('/usr/bin/ssh', args, { timeout: timeoutMs }, (err, stdout, stderr) => {
             resolve({ code: err ? (err.code || 1) : 0, stdout: String(stdout || ''), stderr: String(stderr || '') });
         });
@@ -255,4 +315,5 @@ function executarNoAparelho(cmd, timeoutMs = 25000) {
 }
 
 module.exports = { createHandlers, register, lerSaida, dominioValido, TAG_RE, NOMES,
-    AVISO_GLOBAL, AVISO_RESPRING, AVISO_CAM_LIVE, AVISO_APPS, AVISO_DISCO, HELPER };
+    AVISO_GLOBAL, AVISO_RESPRING, AVISO_CAM_LIVE, AVISO_APPS, AVISO_DISCO, HELPER,
+    HELPER_BASH, HELPER_SCRIPT, traduzirErro, executarNoAparelho };

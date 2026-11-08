@@ -39,7 +39,16 @@ else
     depois=$(shasum -a 256 "$APP/electron/main.js" | cut -d' ' -f1)
     [ "$antes" = "$depois" ] && echo "app instalado intocado (sha ${depois:0:16}…) " \
         || { echo "FALHA: o main.js do app mudou!"; falhas=$((falhas+1)); }
-    [ -f "$APP/electron/services/idioma-ipc.js" ] && { echo "FALHA: módulo copiado para o app"; falhas=$((falhas+1)); }
+    MOD_BRANCH=$(shasum -a 256 "$AQUI/../idioma-ipc.js" | cut -d' ' -f1)
+    if [ -f "$APP/electron/services/idioma-ipc.js" ]; then
+        MOD_APP=$(shasum -a 256 "$APP/electron/services/idioma-ipc.js" | cut -d' ' -f1)
+        if [ "$MOD_BRANCH" = "$MOD_APP" ]; then
+            echo "FALHA: este módulo da branch está copiado dentro do app"; falhas=$((falhas+1))
+        else
+            echo "AVISO: existe um idioma-ipc.js ÓRFÃO no app (sha ${MOD_APP:0:12}…, não é o desta branch,"
+            echo "       e o main.js não o usa). Não removo sem OK — é arquivo do app."
+        fi
+    fi
     rm -rf "$T"
 fi
 
