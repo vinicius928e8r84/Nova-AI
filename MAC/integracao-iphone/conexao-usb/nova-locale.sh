@@ -12,7 +12,7 @@ export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin
 # Sem a versão nova no status, o processo antigo ainda está rodando o texto velho
 # (o bash mantém aberto o arquivo que já tinha carregado). Suba o número a cada
 # mudança de comportamento deste script.
-HELPER_VERSION=2
+HELPER_VERSION=3
 
 CMD=/var/tmp/nova-locale.cmd
 PROC=/var/tmp/nova-locale.proc
@@ -28,8 +28,8 @@ PREF=/var/mobile/Library/Preferences/.GlobalPreferences.plist
 ORIG=/var/mobile/nova-globalprefs-original.plist
 TZLINK=/var/db/timezone/localtime
 ZONES=/var/db/timezone/zoneinfo
-KILLALL=/var/jb/usr/bin/killall
-SBRELOAD=/var/jb/usr/bin/sbreload
+KILLALL=${KILLALL:-/var/jb/usr/bin/killall}
+SBRELOAD=${SBRELOAD:-/var/jb/usr/bin/sbreload}
 
 status() {
     printf '{"ok":%s,"message":"%s"}\n' "$1" "$2" > "$STATUS"
@@ -73,6 +73,153 @@ if [ -n "$missing" ]; then
     printf '{"ok":false,"message":"helper sem comandos:%s"}\n' "$missing" > "$STATUS"
     echo "nova-locale v$HELPER_VERSION: faltam comandos:$missing (PATH=$PATH)" >&2
     exit 78
+fi
+
+# ─────────────────────── idioma: subcomandos de linha ───────────────────────
+# Nada aqui usa root: o store de preferências aceita escrita como `mobile` (foi
+# medido pelo time), e o respring é `kill -9` no SpringBoard, que roda como
+# mobile. O binário novalanguage fala com o cfprefsd; o .plist NUNCA é editado
+# à mão, porque a autoridade é o cache do cfprefsd e a edição se perde.
+NOVALANGUAGE=${NOVALANGUAGE:-/var/jb/usr/bin/novalanguage}
+LANGBACKUP_DIR=${LANGBACKUP_DIR:-/var/mobile/Library/Preferences}
+
+usage_language() {
+    cat >&2 <<'USO'
+uso:
+  nova-locale language get    [--domain global|<bundle-id>]
+  nova-locale language set    <tag> [--domain global|<bundle-id>] [--locale <xx_YY>|auto] [--respring]
+  nova-locale language revert [--domain global|<bundle-id>] [--respring]
+  nova-locale respring
+todas aceitam --format json (padrão) ou --format lines
+USO
+}
+
+# campo <texto> <chave>  → valor daquela chave no formato lines
+campo() {
+    printf '%s\n' "$1" | sed -n "s/^$2=//p" | head -1
+}
+
+backup_file() {
+    local d
+    d=$(printf '%s' "$1" | sed 's/[^A-Za-z0-9._-]/_/g')
+    printf '%s/com.aquiles.novalocale.idioma.%s.orig' "$LANGBACKUP_DIR" "$d"
+}
+
+cmd_language() {
+    local sub=${1:-}
+    [ $# -gt 0 ] && shift
+    local domain=global tag="" locale="" quer_respring=0 out before
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --domain|-d) domain=${2:-}; shift 2 ;;
+            --locale|-l) locale=${2:-}; shift 2 ;;
+            --respring)  quer_respring=1; shift ;;
+            --format|-f) local fmt=${2:-lines}; shift 2
+                         [ "$fmt" = json ] && FMT=json || FMT=lines ;;
+            -*) echo "error=opção desconhecida: $1"; exit 2 ;;
+            *)  tag=$1; shift ;;
+        esac
+    done
+    [ "$domain" = "system" ] || [ "$domain" = "aparelho" ] && domain=global
+    [ -x "$NOVALANGUAGE" ] || {
+        echo "error=novalanguage não instalado em $NOVALANGUAGE (pacote com.aquiles.novalanguage)"
+        exit 3
+    }
+
+    case "$sub" in
+        get)
+            out=$("$NOVALANGUAGE" read --domain "$domain" --format lines)
+            echo "$out"
+            ;;
+        set)
+            [ -n "$tag" ] || { echo "error=falta o idioma (ex.: pt-BR)"; usage_language; exit 2; }
+            # Guarda uma CÓPIA do que estava valendo antes do primeiro set deste
+            # domínio, para `revert` ter para onde voltar. Nunca sobrescreve.
+            before=$("$NOVALANGUAGE" read --domain "$domain" --format lines)
+            local bf orig_lang orig_loc
+            bf=$(backup_file "$domain")
+            orig_lang=$(campo "$before" language)
+            orig_loc=$(campo "$before" locale)
+            if [ ! -f "$bf" ]; then
+                {
+                    printf 'lang=%s\n' "${orig_lang:-none}"
+                    printf 'locale=%s\n' "${orig_loc:-none}"
+                    printf 'at=%s\n' "$(date '+%Y-%m-%d %H:%M:%S')"
+                } > "$bf" 2>/dev/null && chmod 600 "$bf" 2>/dev/null \
+                    || echo "warn=não consegui gravar o backup em $bf (revert não vai ter para onde voltar)"
+            fi
+            out=$("$NOVALANGUAGE" write "$tag" --domain "$domain" ${locale:+--locale "$locale"} --format lines)
+            local rc=$?
+            echo "$out"
+            [ "$domain" = "global" ] && \
+                echo "warn=idioma global muda o Accept-Language que os sites recebem (com IP dos EUA fica incoerente)"
+            local dml
+            dml=$(campo "$out" diskMatches)
+            [ "$domain" = "global" ] && [ "$dml" = "no" ] && \
+                echo "warn=o arquivo em disco ainda está diferente do store: um desligamento limpo volta ao idioma do disco"
+            local conf
+            conf=$(campo "$out" confirmed)
+            if [ "$conf" != "yes" ]; then
+                echo "error=o aparelho não confirmou a escrita no store"
+                exit 4
+            fi
+            if [ "$quer_respring" -eq 1 ]; then
+                respring
+                echo "respring=ok"
+                echo "warn=respring derruba o CAM LIVE; reconecte a câmera depois"
+            else
+                echo "warn=a interface só muda com respring (o CAM LIVE cai); rode: nova-locale respring"
+            fi
+            [ "$rc" -eq 0 ] || exit 4
+            ;;
+        revert)
+            local bf bl blo lo
+            bf=$(backup_file "$domain")
+            if [ ! -f "$bf" ]; then
+                echo "error=sem backup de idioma para $domain (nada foi aplicado por este helper)"
+                exit 5
+            fi
+            bl=$(sed -n 's/^lang=//p' "$bf" | head -1)
+            blo=$(sed -n 's/^locale=//p' "$bf" | head -1)
+            lo=$blo
+            [ "${blo:-none}" = "none" ] && lo="-"
+            if [ "${bl:-none}" = "none" ]; then
+                out=$("$NOVALANGUAGE" clear --domain "$domain" --locale "$lo" --format lines)
+            else
+                out=$("$NOVALANGUAGE" write "$bl" --domain "$domain" --locale "$lo" --format lines)
+            fi
+            echo "$out"
+            echo "revertido_de_backup=$bf"
+            if [ "$quer_respring" -eq 1 ]; then
+                respring
+                echo "respring=ok"
+                echo "warn=respring derruba o CAM LIVE; reconecte a câmera depois"
+            else
+                echo "warn=a interface só muda com respring (o CAM LIVE cai); rode: nova-locale respring"
+            fi
+            ;;
+        *)
+            usage_language
+            exit 2
+            ;;
+    esac
+}
+
+cmd_respring() {
+    respring
+    echo "respring=ok"
+    echo "warn=respring derruba o CAM LIVE; reconecte a câmera depois"
+}
+
+# Subcomando tem prioridade sobre o daemon: quem chama `nova-locale language set`
+# não quer um laço rodando. Sem argumento, o comportamento continua o de antes.
+if [ $# -gt 0 ]; then
+    case "$1" in
+        language) shift; cmd_language "$@" ;;
+        respring) cmd_respring ;;
+        *) echo "error=subcomando desconhecido: $1"; usage_language; exit 2 ;;
+    esac
+    exit $?
 fi
 
 # Guarda o estado original na primeira execução (fuso + prefs).
