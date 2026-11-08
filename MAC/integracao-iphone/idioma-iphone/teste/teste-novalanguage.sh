@@ -16,9 +16,20 @@ clang -fobjc-arc -framework Foundation -Wall -o "$BIN" "$FONTE" 2>/tmp/nl-build.
     echo "FALHA: não compilou"; cat /tmp/nl-build.log; exit 1; }
 echo "compilou: $BIN"
 
-limpar() { rm -f "$PLIST"; }
+PREFS_FAKE="${TMPDIR:-/tmp}/nl-prefs-fake"
+limpar() {
+    rm -f "$PLIST"
+    # o CFPreferences cria arquivo de 42 B ao sincronizar domínio vazio; apaga os do teste
+    rm -f "$HOME/Library/Preferences/com.teste.a.plist" "$HOME/Library/Preferences/com.teste.b.plist" \
+          "$HOME/Library/Preferences/com.aquiles.novalanguage.teste.global.plist"
+    rm -rf "$PREFS_FAKE"
+}
 trap limpar EXIT
 limpar
+# Estado limpo pelo STORE (apagar o arquivo não basta: a autoridade é o cfprefsd).
+"$BIN" clear --domain "$D" >/dev/null 2>&1 || true
+"$BIN" clear --domain com.teste.a >/dev/null 2>&1 || true
+"$BIN" clear --domain com.teste.b >/dev/null 2>&1 || true
 
 saida=$("$BIN" read --domain "$D" --format lines)
 ok "read-vazio" 'printf "%s" "$saida" | grep -q "^override=no$"'
@@ -52,6 +63,47 @@ ok "json-valido" 'printf "%s" "$saida" | node -e "let s=\"\";process.stdin.on(\"
 
 saida=$("$BIN" comando-que-nao-existe 2>&1); rc=$?
 ok "comando-desconhecido" '[ $rc -ne 0 ]'
+
+# ── aparelho inteiro: scan, limpar idioma próprio dos apps, locale derivado ──
+mkdir -p "$PREFS_FAKE"
+python3 - "$PREFS_FAKE" <<'FIX'
+import plistlib, sys, os
+d = sys.argv[1]
+plistlib.dump({"AppleLanguages": ["pt-BR"]}, open(os.path.join(d, "com.teste.a.plist"), "wb"), fmt=plistlib.FMT_BINARY)
+plistlib.dump({"AppleLanguages": ["es-ES"]}, open(os.path.join(d, "com.teste.b.plist"), "wb"), fmt=plistlib.FMT_BINARY)
+plistlib.dump({"Outra": 1}, open(os.path.join(d, "com.teste.sem.plist"), "wb"), fmt=plistlib.FMT_BINARY)
+FIX
+export NOVALANGUAGE_GLOBAL_DOMAIN=com.aquiles.novalanguage.teste.global NOVALANGUAGE_PREFS_DIRS="$PREFS_FAKE"
+
+saida=$("$BIN" scan --format lines)
+ok "scan-conta" 'printf "%s" "$saida" | grep -q "^count=2$"'
+ok "scan-lista" 'printf "%s" "$saida" | grep -q "com.teste.a" && printf "%s" "$saida" | grep -q "com.teste.b"'
+ok "scan-ignora-sem-idioma" '! printf "%s" "$saida" | grep -q "com.teste.sem"'
+
+# valores antes de limpar, para o 'antes' sair certo
+"$BIN" write pt-BR --domain com.teste.a >/dev/null
+"$BIN" write es-ES --domain com.teste.b >/dev/null
+
+saida=$("$BIN" write en-US --clear-apps --locale auto --format lines)
+ok "clear-conta" 'printf "%s" "$saida" | grep -q "^clearedCount=2$"'
+ok "clear-guarda-antes" 'printf "%s" "$saida" | grep -q "com.teste.a:pt-BR"'
+ok "locale-auto" 'printf "%s" "$saida" | grep -q "^locale=en_US$" && printf "%s" "$saida" | grep -q "^localeAuto=yes$"'
+ok "global-confirmado" 'printf "%s" "$saida" | grep -q "^confirmed=yes$"'
+ok "override-do-apps-limpo" 'saida2=$("$BIN" read --domain com.teste.a --format lines); printf "%s" "$saida2" | grep -q "^override=no$"'
+
+# sem --clear-apps, o app continua com o idioma dele
+"$BIN" write pt-BR --domain com.teste.a >/dev/null
+"$BIN" write en-US --no-clear-apps >/dev/null
+saida=$("$BIN" read --domain com.teste.a --format lines)
+ok "no-clear-respeita" 'printf "%s" "$saida" | grep -q "^override=yes$"'
+
+# locale auto sem região no tag não inventa locale
+saida=$("$BIN" write pt --locale auto --domain "$D" --format lines)
+ok "auto-sem-regiao" 'printf "%s" "$saida" | grep -q "^confirmed=yes$"'
+
+"$BIN" clear --domain "$D" >/dev/null 2>&1 || true
+"$BIN" clear --domain com.teste.a >/dev/null 2>&1 || true
+"$BIN" clear --domain com.teste.b >/dev/null 2>&1 || true
 
 echo
 if [ "$fails" -eq 0 ]; then echo "NOVALANGUAGE: TODOS OS TESTES PASSARAM"; else echo "$fails FALHA(S) NO NOVALANGUAGE"; fi

@@ -12,7 +12,7 @@ export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin
 # Sem a versão nova no status, o processo antigo ainda está rodando o texto velho
 # (o bash mantém aberto o arquivo que já tinha carregado). Suba o número a cada
 # mudança de comportamento deste script.
-HELPER_VERSION=3
+HELPER_VERSION=4
 
 CMD=/var/tmp/nova-locale.cmd
 PROC=/var/tmp/nova-locale.proc
@@ -87,9 +87,15 @@ usage_language() {
     cat >&2 <<'USO'
 uso:
   nova-locale language get    [--domain global|<bundle-id>]
-  nova-locale language set    <tag> [--domain global|<bundle-id>] [--locale <xx_YY>|auto] [--respring]
+  nova-locale language apps                      (quais apps têm idioma próprio)
+  nova-locale language set    <tag> [--domain global|<bundle-id>] [--locale <xx_YY>|auto|keep]
+                              [--no-clear-apps] [--respring]
   nova-locale language revert [--domain global|<bundle-id>] [--respring]
   nova-locale respring
+
+No domínio global (o padrão) ele é "aparelho inteiro": grava o idioma no store,
+deriva o AppleLocale do próprio código (pt-BR -> pt_BR) e limpa o idioma próprio
+dos apps que tinham um, senão esses apps continuariam no idioma deles.
 todas aceitam --format json (padrão) ou --format lines
 USO
 }
@@ -109,11 +115,14 @@ cmd_language() {
     local sub=${1:-}
     [ $# -gt 0 ] && shift
     local domain=global tag="" locale="" quer_respring=0 out before
+    local no_clear=0
     while [ $# -gt 0 ]; do
         case "$1" in
             --domain|-d) domain=${2:-}; shift 2 ;;
             --locale|-l) locale=${2:-}; shift 2 ;;
             --respring)  quer_respring=1; shift ;;
+            --no-clear-apps) no_clear=1; shift ;;
+            --clear-apps) no_clear=0; shift ;;
             --format|-f) local fmt=${2:-lines}; shift 2
                          [ "$fmt" = json ] && FMT=json || FMT=lines ;;
             -*) echo "error=opção desconhecida: $1"; exit 2 ;;
@@ -129,6 +138,17 @@ cmd_language() {
     case "$sub" in
         get)
             out=$("$NOVALANGUAGE" read --domain "$domain" --format lines)
+            echo "$out"
+            if [ "$domain" = "global" ]; then
+                local napps
+                napps=$(campo "$("$NOVALANGUAGE" scan --format lines)" count)
+                # Um app com idioma próprio IGNORA o global: sem isto, "aparelho
+                # inteiro" não vale para todos os apps.
+                echo "apps_com_idioma_proprio=${napps:-0}"
+            fi
+            ;;
+        apps)
+            out=$("$NOVALANGUAGE" scan --format lines)
             echo "$out"
             ;;
         set)
@@ -148,11 +168,32 @@ cmd_language() {
                 } > "$bf" 2>/dev/null && chmod 600 "$bf" 2>/dev/null \
                     || echo "warn=não consegui gravar o backup em $bf (revert não vai ter para onde voltar)"
             fi
-            out=$("$NOVALANGUAGE" write "$tag" --domain "$domain" ${locale:+--locale "$locale"} --format lines)
+            # Domínio global = aparelho inteiro: deriva o AppleLocale do idioma
+            # (senão fica texto em pt com data/número em padrão americano) e, por
+            # padrão, limpa o idioma próprio dos apps.
+            local locarg="" extra=""
+            if [ -n "$locale" ]; then
+                locarg=$locale
+            elif [ "$domain" = "global" ]; then
+                locarg=auto
+            fi
+            [ "$locale" = "keep" ] && locarg=""
+            if [ "$domain" = "global" ] && [ "$no_clear" -eq 0 ]; then
+                extra="--clear-apps"
+            fi
+            out=$("$NOVALANGUAGE" write "$tag" --domain "$domain" ${locarg:+--locale "$locarg"} $extra --format lines)
             local rc=$?
             echo "$out"
             [ "$domain" = "global" ] && \
                 echo "warn=idioma global muda o Accept-Language que os sites recebem (com IP dos EUA fica incoerente)"
+            local limpos
+            limpos=$(campo "$out" clearedApps)
+            if [ -n "$limpos" ]; then
+                printf 'apps=%s\n' "$limpos" >> "$bf" 2>/dev/null
+                echo "apps_limpos=$(campo "$out" clearedCount)"
+                echo "warn=$(( $(campo "$out" clearedCount) )) app(s) tinham idioma próprio e foram ajustados para seguir o aparelho inteiro"
+            fi
+            [ "$domain" = "global" ] && echo "escopo=aparelho" || echo "escopo=app"
             local dml
             dml=$(campo "$out" diskMatches)
             [ "$domain" = "global" ] && [ "$dml" = "no" ] && \
@@ -190,6 +231,18 @@ cmd_language() {
             fi
             echo "$out"
             echo "revertido_de_backup=$bf"
+            # Devolve o idioma próprio de cada app que este helper limpou.
+            local apps_line par d l n=0
+            apps_line=$(sed -n 's/^apps=//p' "$bf" | head -1)
+            if [ -n "$apps_line" ]; then
+                for par in $(printf '%s' "$apps_line" | tr ',' ' '); do
+                    d=${par%%:*}
+                    l=${par#*:}
+                    [ -n "$d" ] && [ -n "$l" ] && [ "$d" != "$par" ] || continue
+                    "$NOVALANGUAGE" write "$l" --domain "$d" --format lines >/dev/null 2>&1 && n=$((n + 1))
+                done
+                echo "apps_restaurados=$n"
+            fi
             if [ "$quer_respring" -eq 1 ]; then
                 respring
                 echo "respring=ok"

@@ -17,7 +17,7 @@ O que o time mediu e este trabalho usa:
 
 | Arquivo | O que é |
 |---|---|
-| `novalanguage/main.m` | binário pequeno (Objective-C/Foundation) que lê e grava o idioma pelo CFPreferences, com leitura de confirmação |
+| `novalanguage/main.m` | binário pequeno (Objective-C/Foundation): lê/grava o idioma pelo CFPreferences com leitura de confirmação, `scan` dos apps com idioma próprio, limpeza desses overrides guardando o valor anterior e `AppleLocale` derivado do idioma |
 | `novalanguage/{Makefile,control,layout}` | pacote `com.aquiles.novalanguage` 0.1, arm64/rootless, instala em `/var/jb/usr/bin/novalanguage`, `postinst` deixa 755 (sem SUID) |
 | `nova-locale.sh` (v3) | helper do aparelho com `language get/set/revert` e `respring` (as duas cópias do repo: `conexao-usb/` e `geo-proxy/helper/`) |
 | `idioma-ipc.js` | módulo do app com os handlers `spoofer:*language` (lógica pura, testável) |
@@ -26,6 +26,29 @@ O que o time mediu e este trabalho usa:
 
 Pacote construído (não instalado): `novalanguage/packages/com.aquiles.novalanguage_0.1-1+debug_iphoneos-arm64.deb` (9.672 B, binário `Mach-O arm64`).
 
+## Aparelho inteiro e todos os apps (o pedido do usuário)
+
+"Idioma igual à proxy, ao GPS e ao modelo: no aparelho inteiro e em todos os apps." Para isso o domínio **global** faz três coisas, e não só uma:
+
+1. **Grava `AppleLanguages` no store global** (é o que o sistema inteiro usa).
+2. **Deriva o `AppleLocale` do próprio idioma** (`pt-BR` → `pt_BR`), senão fica texto em português com data, número e vírgula decimal no padrão americano — o estado misto que o QA mediu hoje.
+3. **Limpa o idioma próprio dos apps que tinham um.** App com `AppleLanguages` no próprio domínio **ignora o global**; sem esta parte, "todos os apps" não é verdade. Antes de limpar, ele **guarda o idioma que o app tinha**, e `language revert` devolve cada app ao que era.
+
+Comandos:
+```sh
+nova-locale language apps                 # quais apps têm idioma próprio (bundle ids)
+nova-locale language set pt-BR            # aparelho inteiro: store + locale + limpa os apps
+nova-locale language set pt-BR --no-clear-apps   # só o global, deixa os apps como estão
+nova-locale language set pt-BR --locale keep     # não mexe no AppleLocale
+nova-locale language revert               # volta o global E devolve o idioma de cada app
+```
+
+Limites honestos desta parte:
+
+- **App já aberto pode continuar no idioma antigo** até ser reaberto: o idioma é lido quando o processo sobe. O respring resolve SpringBoard e os apps de sistema; um app de terceiro aberto precisa ser fechado e aberto de novo.
+- **`language apps` descobre pelo arquivo** de preferências de cada app (é o único jeito de saber o bundle id); a **gravação/limpeza** é sempre pelo CFPreferences, como manda o mecanismo provado.
+- App que **fixa o idioma no próprio binário** (sem ler `AppleLanguages`) não obedece a nada disso — nenhuma ferramenta resolve esse caso.
+
 ## Comandos exatos no aparelho
 
 O helper aceita `--format json` (padrão) ou `--format lines`, e `--domain global|<bundle-id>`.
@@ -33,6 +56,7 @@ O helper aceita `--format json` (padrão) ou `--format lines`, e `--domain globa
 ```sh
 # ler o idioma atual (do STORE, não do arquivo)
 /var/jb/usr/bin/nova-locale language get
+/var/jb/usr/bin/nova-locale language apps          # apps com idioma próprio
 /var/jb/usr/bin/nova-locale language get --domain com.apple.mobilesafari --format lines
 
 # aplicar no aparelho inteiro (avisa do Accept-Language e guarda backup do valor anterior)
@@ -58,6 +82,10 @@ domain=global
 language=pt-BR
 locale=pt_BR
 override=yes
+clearedApps=com.apple.Preferences:pt-BR   ← e o idioma que cada app tinha
+clearedCount=1
+localeAuto=yes
+escopo=aparelho     ← global; num app sai escopo=app
 diskMatches=no      ← disco diferente do store: desligamento limpo pode voltar
 warn=idioma global muda o Accept-Language que os sites recebem (com IP dos EUA fica incoerente)
 warn=a interface só muda com respring (o CAM LIVE cai); rode: nova-locale respring
@@ -94,7 +122,7 @@ Os avisos sempre incluem: global muda `Accept-Language` dos sites; respring derr
 
 ## Limites honestos
 
-- **Não foi executado no iPhone**: esta branch é código + testes de Mac. O que foi provado no aparelho pelo time (CFPreferences, respring sem root) é o que embasa o desenho; o binário novo ainda não rodou lá.
+- **Não foi executado no iPhone**: esta branch é código + testes de Mac. O `novalanguage` 0.2 acrescenta `scan` (aparelho inteiro) e é o que precisa ir junto com o helper v4. O que foi provado no aparelho pelo time (CFPreferences, respring sem root) é o que embasa o desenho; o binário novo ainda não rodou lá.
 - **Global muda o que os sites veem**: o `Accept-Language` segue o idioma primário do sistema. Idioma por app não muda header.
 - **Disco × store**: o arquivo `.GlobalPreferences.plist` pode ficar atrás do store; a ferramenta **mostra** isso (`diskMatches`) e a rota recomenda respring + repetir.
 - **Respring derruba o CAM LIVE** em qualquer caso.

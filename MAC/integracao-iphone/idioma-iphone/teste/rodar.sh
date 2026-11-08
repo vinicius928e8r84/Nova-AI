@@ -13,7 +13,7 @@ echo "════ 1/4 novalanguage (binário) ════"
 bash "$AQUI/teste-novalanguage.sh" || falhas=$((falhas+1))
 
 echo
-echo "════ 2/4 helper v3 (nova-locale.sh) ════"
+echo "════ 2/4 helper v4 (nova-locale.sh) ════"
 bash "$AQUI/teste-helper.sh" || falhas=$((falhas+1))
 
 echo

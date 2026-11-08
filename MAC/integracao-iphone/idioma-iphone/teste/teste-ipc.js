@@ -22,8 +22,8 @@ function fakeExec(respostas = []) {
     return fn;
 }
 
-const SAIDA_GET = 'domain=global\nlanguage=pt-BR\nlocale=pt_BR\nok=yes\noverride=yes\ndiskMatches=no\n';
-const SAIDA_SET_OK = 'confirmed=yes\ndomain=global\nlanguage=pt-BR\nlocale=pt_BR\nok=yes\noverride=yes\nrequested=pt-BR\nsynced=yes\ndiskMatches=no\n';
+const SAIDA_GET = 'apps_com_idioma_proprio=3\ndomain=global\nlanguage=pt-BR\nlocale=pt_BR\nok=yes\noverride=yes\ndiskMatches=no\n';
+const SAIDA_SET_OK = 'clearedApps=com.a:es-ES,com.b:pt-BR\nclearedCount=2\nconfirmed=yes\ndomain=global\nlanguage=pt-BR\nlocale=pt_BR\nlocaleAuto=yes\nok=yes\noverride=yes\nrequested=pt-BR\nsynced=yes\ndiskMatches=no\n';
 const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nrequested=pt-BR\n';
 
 (async () => {
@@ -35,6 +35,8 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('get', r.success === true, JSON.stringify(r));
         ok('get-language', r.language === 'pt-BR', r.language);
         ok('get-nome', r.nome === 'Português (Brasil)', r.nome);
+        ok('get-apps-proprios', r.appsComIdiomaProprio === 3, JSON.stringify(r));
+        ok('get-avisa-apps', r.avisos.some((a) => /idioma próprio/.test(a)), JSON.stringify(r.avisos));
         ok('get-disco', r.discoCombina === false && r.avisos.some((a) => /desligamento limpo/.test(a)), JSON.stringify(r.avisos));
         const cmd = exec.chamadas[0].cmd;
         ok('get-comando', cmd[0] === '/var/jb/usr/bin/nova-locale' && cmd[1] === 'language' && cmd[2] === 'get'
@@ -64,6 +66,12 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('global-cmd-dominio', cmd.includes('--domain') && cmd[cmd.indexOf('--domain') + 1] === 'global', cmd.join(' '));
         ok('global-cmd-sem-respring-padrao', !cmd.includes('--respring'), cmd.join(' '));
         ok('global-avisa-respring', r.avisos.some((a) => /CAM LIVE/.test(a)), JSON.stringify(r.avisos));
+        ok('global-escopo', r.escopo === 'aparelho', JSON.stringify(r));
+        ok('global-limpa-apps', exec.chamadas[0].cmd.includes('--clear-apps'), exec.chamadas[0].cmd.join(' '));
+        ok('global-locale-auto', exec.chamadas[0].cmd.includes('--locale')
+            && exec.chamadas[0].cmd[exec.chamadas[0].cmd.indexOf('--locale') + 1] === 'auto', exec.chamadas[0].cmd.join(' '));
+        ok('global-apps-limpos', Array.isArray(r.appsLimpos) && r.appsLimpos.length === 2, JSON.stringify(r.appsLimpos));
+        ok('global-avisa-apps', r.avisos.some((a) => /idioma próprio/.test(a)), JSON.stringify(r.avisos));
         ok('global-avisa-accept', r.avisos.some((a) => /Accept-Language/.test(a)), JSON.stringify(r.avisos));
     }
 
@@ -150,6 +158,24 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         const linha = exec.chamadas[0].cmd.join(' ');
         ok('sem-sudo', !/sudo|su -c|sh -c/.test(linha), linha);
         ok('argv-separado', Array.isArray(exec.chamadas[0].cmd) && exec.chamadas[0].cmd.every((x) => typeof x === 'string'), linha);
+    }
+
+    // 12b) limparApps:false é respeitado; app domain não limpa nada
+    {
+        const exec = fakeExec([{ code: 0, stdout: 'confirmed=yes\nlanguage=pt-BR\nok=yes\n', stderr: '' }]);
+        const h = idioma.createHandlers({ exec });
+        await h.applyLanguage({ tag: 'pt-BR', domain: 'global', confirmGlobal: true, limparApps: false });
+        ok('limparApps-false', exec.chamadas[0].cmd.includes('--no-clear-apps'), exec.chamadas[0].cmd.join(' '));
+        ok('limparApps-false-sem-clear', !exec.chamadas[0].cmd.includes('--clear-apps'), exec.chamadas[0].cmd.join(' '));
+    }
+
+    // 12c) lista de apps com idioma próprio
+    {
+        const exec = fakeExec([{ code: 0, stdout: 'apps=com.a,com.b,com.c\ncount=3\nok=yes\n', stderr: '' }]);
+        const h = idioma.createHandlers({ exec });
+        const r = await h.listarApps();
+        ok('lista-apps', r.success && r.count === 3 && r.apps.length === 3, JSON.stringify(r));
+        ok('lista-apps-cmd', exec.chamadas[0].cmd.includes('apps'), exec.chamadas[0].cmd.join(' '));
     }
 
     // 13) parser de saída tolera lixo e junta avisos repetidos

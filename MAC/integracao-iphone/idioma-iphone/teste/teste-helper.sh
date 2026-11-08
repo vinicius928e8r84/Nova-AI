@@ -1,5 +1,5 @@
 #!/bin/bash
-# Teste do helper v3 (nova-locale.sh) no Mac, sem aparelho.
+# Teste do helper v4 (nova-locale.sh) no Mac, sem aparelho.
 #
 # Usa um `novalanguage` FALSO e um `killall` FALSO num diretório temporário:
 # nada é escrito em preferência de sistema, nada respinga, nada toca o iPhone.
@@ -18,15 +18,18 @@ SUBIO=0
 # ── novalanguage falso: guarda o estado em arquivo, imita o formato lines ──
 cat > "$T/novalanguage" <<'STUB'
 #!/bin/bash
-# estado: $STUB_STATE/<domínio>.lang e .locale
+# estado: $STUB_STATE/<domínio>.lang e .locale ; chamadas em $STUB_ARGS
 set -u
+echo "$*" >> "$STUB_ARGS"
 cmd=$1; shift
-domain=global; locale=""; tag=""
+domain=global; locale=""; tag=""; clear=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --domain|-d) domain=$2; shift 2 ;;
         --locale|-l) locale=$2; shift 2 ;;
         --format|-f) shift 2 ;;
+        --clear-apps) clear=1; shift ;;
+        --no-clear-apps) shift ;;
         *) tag=$1; shift ;;
     esac
 done
@@ -35,29 +38,42 @@ mkdir -p "$STUB_STATE"
 cur=""; curloc=""
 [ -f "$d.lang" ] && cur=$(cat "$d.lang")
 [ -f "$d.locale" ] && curloc=$(cat "$d.locale")
-[ "$cmd" = "read" ] || [ "$cmd" = "write" ] || [ "$cmd" = "clear" ] || { echo "error=comando"; exit 64; }
+
+if [ "$cmd" = "scan" ]; then
+    echo "apps=${STUB_APPS:-}"
+    echo "count=${STUB_APPS_COUNT:-0}"
+    echo "ok=yes"
+    exit 0
+fi
+
 case "$cmd" in
     write)
         case "$tag" in
             *" "*) echo "error=idioma inválido: $tag"; exit 64 ;;
         esac
         printf '%s' "$tag" > "$d.lang"
-        [ -n "$locale" ] && [ "$locale" != "-" ] && printf '%s' "$locale" > "$d.locale"
+        [ "$locale" = "auto" ] && locale="${tag%%-*}_${tag##*-}"
+        [ -n "$locale" ] && [ "$locale" != "-" ] && [ "$locale" != "keep" ] && printf '%s' "$locale" > "$d.locale"
         ;;
     clear)
         rm -f "$d.lang"
         if [ "$locale" = "-" ]; then rm -f "$d.locale"
         elif [ -n "$locale" ]; then printf '%s' "$locale" > "$d.locale"; fi
         ;;
+    read) ;;
+    *) echo "error=comando"; exit 64 ;;
 esac
+
 cur=""; curloc=""
 [ -f "$d.lang" ] && cur=$(cat "$d.lang")
 [ -f "$d.locale" ] && curloc=$(cat "$d.locale")
 out_override=no; [ -n "$cur" ] && out_override=yes
 conf=""
 [ "$cmd" = "write" ] && { conf=no; [ "$cur" = "$tag" ] && conf=yes; }
-disk=no
-case "$domain" in global) disk=${STUB_DISK_MATCH:-no} ;; esac
+if [ "$cmd" = "write" ] && [ "$clear" = "1" ] && [ -n "${STUB_CLEARED:-}" ]; then
+    echo "clearedApps=$STUB_CLEARED"
+    echo "clearedCount=${STUB_CLEARED_COUNT:-1}"
+fi
 [ "$cmd" = "write" ] && echo "confirmed=$conf"
 echo "domain=$domain"
 echo "language=$cur"
@@ -65,7 +81,7 @@ echo "locale=$curloc"
 echo "ok=yes"
 echo "override=$out_override"
 [ "$cmd" = "write" ] && echo "synced=yes" && echo "requested=$tag"
-[ "$domain" = "global" ] && echo "diskMatches=$disk"
+[ "$domain" = "global" ] && echo "diskMatches=${STUB_DISK_MATCH:-no}"
 exit 0
 STUB
 chmod +x "$T/novalanguage"
@@ -77,8 +93,9 @@ echo "killall $*" >> "$STUB_KILLLOG"
 exit 0
 STUB
 chmod +x "$T/killall"
-export STUB_STATE="$T/state" STUB_KILLLOG="$T/kill.log"
+export STUB_STATE="$T/state" STUB_KILLLOG="$T/kill.log" STUB_ARGS="$T/args.log" STUB_APPS="com.a,com.b" STUB_APPS_COUNT=2 STUB_CLEARED="com.a:es-ES" STUB_CLEARED_COUNT=1
 : > "$STUB_KILLLOG"
+: > "$STUB_ARGS"
 
 fails=0
 roda() {   # roda <nome> <esperado-no-stdout|-> <args...>
@@ -158,6 +175,41 @@ saida=$(NOVALANGUAGE="$T/novalanguage" KILLALL="$T/killall" SBRELOAD="$T/nao-exi
 printf '%s' "$saida" | grep -qF "respring=ok" || { fails=$((fails+1)); echo "FALHA: respring não respondeu ok"; }
 printf '%s' "$saida" | grep -qF "warn=respring derruba o CAM LIVE" || { fails=$((fails+1)); echo "FALHA: respring sem aviso do CAM LIVE"; }
 
+echo "15) language apps lista quem tem idioma próprio"
+saida=$(roda apps "count=2" language apps --domain global)
+printf '%s' "$saida" | grep -qF "apps=com.a,com.b" || { fails=$((fails+1)); echo "FALHA [apps]: não listou os apps"; }
+
+echo "16) get informa quantos apps ignoram o global"
+saida=$(roda getapps "apps_com_idioma_proprio=2" language get)
+printf '%s' "$saida" | grep -qF "language=" || { fails=$((fails+1)); echo "FALHA [getapps]: não leu o idioma"; }
+
+echo "17) set global limpa apps e deriva o locale (aparelho inteiro)"
+: > "$STUB_ARGS"
+saida=$(NOVALANGUAGE="$T/novalanguage" KILLALL="$T/killall" SBRELOAD="$T/nao-existe" LANGBACKUP_DIR="$T/prefs" bash "$HELPER" language set pt-BR 2>&1)
+printf '%s' "$saida" | grep -qF "escopo=aparelho" || { fails=$((fails+1)); echo "FALHA [17]: faltou escopo=aparelho"; }
+printf '%s' "$saida" | grep -qF "apps_limpos=1" || { fails=$((fails+1)); echo "FALHA [17]: não reportou apps limpos"; }
+printf '%s' "$saida" | grep -qF "app(s) tinham idioma próprio" || { fails=$((fails+1)); echo "FALHA [17]: faltou aviso dos apps"; }
+grep -q -- "--clear-apps" "$STUB_ARGS" || { fails=$((fails+1)); echo "FALHA [17]: não pediu --clear-apps"; }
+grep -q -- "--locale auto" "$STUB_ARGS" || { fails=$((fails+1)); echo "FALHA [17]: não derivou o locale"; }
+grep -q "^apps=com.a:es-ES$" "$T/prefs/com.aquiles.novalocale.idioma.global.orig" 2>/dev/null     || { fails=$((fails+1)); echo "FALHA [17]: não guardou os apps no backup"; }
+
+echo "18) --no-clear-apps respeita a escolha"
+: > "$STUB_ARGS"
+saida=$(NOVALANGUAGE="$T/novalanguage" KILLALL="$T/killall" SBRELOAD="$T/nao-existe" LANGBACKUP_DIR="$T/prefs2" bash "$HELPER" language set pt-BR --no-clear-apps 2>&1)
+if grep -q -- "--clear-apps" "$STUB_ARGS"; then fails=$((fails+1)); echo "FALHA [18]: pediu --clear-apps mesmo com --no-clear-apps"; fi
+
+echo "19) revert devolve cada app ao idioma que tinha"
+: > "$STUB_ARGS"
+saida=$(NOVALANGUAGE="$T/novalanguage" KILLALL="$T/killall" SBRELOAD="$T/nao-existe" LANGBACKUP_DIR="$T/prefs" bash "$HELPER" language revert 2>&1)
+printf '%s' "$saida" | grep -qF "apps_restaurados=1" || { fails=$((fails+1)); echo "FALHA [19]: não restaurou o app"; }
+grep -q "write es-ES --domain com.a" "$STUB_ARGS" || { fails=$((fails+1)); echo "FALHA [19]: não devolveu es-ES ao com.a"; }
+
+echo "20) set por app não mexe em escopo nem em apps"
+: > "$STUB_ARGS"
+saida=$(NOVALANGUAGE="$T/novalanguage" KILLALL="$T/killall" SBRELOAD="$T/nao-existe" LANGBACKUP_DIR="$T/prefs" bash "$HELPER" language set en-US --domain com.apple.Preferences 2>&1)
+printf '%s' "$saida" | grep -qF "escopo=app" || { fails=$((fails+1)); echo "FALHA [20]: faltou escopo=app"; }
+if grep -q -- "--clear-apps" "$STUB_ARGS"; then fails=$((fails+1)); echo "FALHA [20]: limpou apps num set por app"; fi
+
 echo
-if [ "$fails" -eq 0 ]; then echo "HELPER v3: TODOS OS TESTES PASSARAM"; else echo "$fails FALHA(S) NO HELPER"; fi
+if [ "$fails" -eq 0 ]; then echo "HELPER v4: TODOS OS TESTES PASSARAM"; else echo "$fails FALHA(S) NO HELPER"; fi
 exit $([ "$fails" -eq 0 ] && echo 0 || echo 1)

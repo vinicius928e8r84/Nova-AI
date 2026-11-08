@@ -30,6 +30,7 @@ const AVISO_GLOBAL = 'Idioma do aparelho inteiro muda o Accept-Language que os s
     + 'com IP dos EUA isso fica incoerente com a localização.';
 const AVISO_RESPRING = 'A interface do iPhone só muda com respring (~10 s), e o respring derruba o CAM LIVE: '
     + 'reconecte a câmera depois.';
+const AVISO_APPS = (n) => `${n} app(s) tinham idioma próprio e foram ajustados para seguir o aparelho inteiro.`;
 const AVISO_CAM_LIVE = 'O CAM LIVE caiu junto com o respring: reconecte a câmera.';
 const AVISO_DISCO = 'O arquivo em disco ainda está com o idioma antigo: um desligamento limpo pode voltar a ele. '
     + 'Faça o respring e, se quiser garantia, repita o salvar depois do respring.';
@@ -80,9 +81,14 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         if (s.error) return { success: false, error: s.error, domain };
         const avisos = [];
         if (domain === 'global' && s.diskMatches === 'no') avisos.push(AVISO_DISCO);
+        const appsProprios = Number(s.apps_com_idioma_proprio || 0);
+        if (domain === 'global' && appsProprios > 0) {
+            avisos.push(`${appsProprios} app(s) têm idioma próprio e, sem limpar, continuam no idioma deles.`);
+        }
         return {
             success: true,
             domain,
+            appsComIdiomaProprio: appsProprios,
             language: s.language || null,
             nome: s.language ? (NOMES[s.language] || null) : null,
             locale: s.locale || null,
@@ -93,7 +99,8 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         };
     }
 
-    async function applyLanguage({ tag, domain = 'global', respring = false, locale = null, confirmGlobal = false } = {}) {
+    async function applyLanguage({ tag, domain = 'global', respring = false, locale = null,
+        confirmGlobal = false, limparApps = true } = {}) {
         if (!TAG_RE.test(String(tag || ''))) {
             return { success: false, error: 'idioma inválido: informe algo como pt-BR ou en-US' };
         }
@@ -111,12 +118,19 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
             };
         }
 
+        // "Aparelho inteiro": o global precisa de duas coisas para alcançar todos
+        // os apps — derivar o AppleLocale do idioma (senão fica texto em pt com
+        // data americana) e limpar o idioma próprio de quem tiver um.
         const args = ['--domain', domain];
-        if (locale) args.push('--locale', locale);
+        if (locale) args.push('--locale', String(locale));
+        else if (domain === 'global') args.push('--locale', 'auto');
+        if (domain === 'global') args.push(limparApps === false ? '--no-clear-apps' : '--clear-apps');
         if (respring) args.push('--respring');
 
         const s = await rodar(comando('set', [tag, ...args]), respring ? 60000 : 25000);
         const avisos = [...(s.warnings || [])];
+        const appsLimpos = s.clearedApps ? String(s.clearedApps).split(',').filter(Boolean) : [];
+        if (appsLimpos.length && !avisos.some((a) => /idioma próprio/.test(a))) avisos.push(AVISO_APPS(appsLimpos.length));
         if (domain === 'global' && !avisos.some((a) => a.includes('Accept-Language'))) avisos.unshift(AVISO_GLOBAL);
         if (respring) {
             if (!avisos.some((a) => /CAM LIVE/.test(a))) avisos.push(AVISO_CAM_LIVE);
@@ -144,6 +158,9 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         return {
             success: confirmado,
             domain,
+            escopo: domain === 'global' ? 'aparelho' : 'app',
+            appsLimpos,
+            localeAuto: s.localeAuto === 'yes',
             pedido: tag,
             aplicado: s.language || null,
             confirmed: confirmado,
@@ -166,9 +183,14 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
             avisos.push(AVISO_RESPRING);
         }
         if (s.error) return { success: false, error: s.error, avisos };
+        const appsProprios = Number(s.apps_com_idioma_proprio || 0);
+        if (domain === 'global' && appsProprios > 0) {
+            avisos.push(`${appsProprios} app(s) têm idioma próprio e, sem limpar, continuam no idioma deles.`);
+        }
         return {
             success: true,
             domain,
+            appsComIdiomaProprio: appsProprios,
             language: s.language || null,
             override: s.override === 'yes',
             backup: s.revertido_de_backup || null,
@@ -177,13 +199,20 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         };
     }
 
+    async function listarApps() {
+        const s = await rodar([HELPER, 'language', 'apps', '--format', 'lines'], 30000);
+        if (s.error) return { success: false, error: s.error };
+        const apps = s.apps ? String(s.apps).split(',').filter(Boolean) : [];
+        return { success: true, count: apps.length, apps };
+    }
+
     async function respring() {
         const s = await rodar([HELPER, 'respring'], 40000);
         if (s.error) return { success: false, error: s.error };
         return { success: s.respring === 'ok', avisos: [...(s.warnings || []), AVISO_RESPRING] };
     }
 
-    return { getLanguage, applyLanguage, revertLanguage, respring, deviceId };
+    return { getLanguage, applyLanguage, revertLanguage, listarApps, respring, deviceId };
 }
 
 /** Registra os handlers no app. `app` só é usado para o canal de log. */
@@ -196,6 +225,7 @@ function register(app, ipcMain, options = {}) {
     ipcMain.handle('spoofer:apply-language', async (_e, args) => h.applyLanguage(args || {}));
     ipcMain.handle('spoofer:set-language', async (_e, args) => h.applyLanguage(args || {}));
     ipcMain.handle('spoofer:revert-language', async (_e, args) => h.revertLanguage(args || {}));
+    ipcMain.handle('spoofer:list-language-apps', async () => h.listarApps());
     ipcMain.handle('spoofer:respring-iphone', async () => h.respring());
     if (app && app.log) app.log('idioma: IPCs spoofer:{get,apply,revert}-language registrados');
     return h;
@@ -225,4 +255,4 @@ function executarNoAparelho(cmd, timeoutMs = 25000) {
 }
 
 module.exports = { createHandlers, register, lerSaida, dominioValido, TAG_RE, NOMES,
-    AVISO_GLOBAL, AVISO_RESPRING, AVISO_CAM_LIVE, AVISO_DISCO, HELPER };
+    AVISO_GLOBAL, AVISO_RESPRING, AVISO_CAM_LIVE, AVISO_APPS, AVISO_DISCO, HELPER };
