@@ -35,7 +35,13 @@ function paths() {
 // Opções para ssh/scp: chave do app, sem outras identidades, known_hosts do app.
 function sshOptions(target) {
   const p = target || paths();
-  return ['-i', p.key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=' + p.knownHosts, '-o', 'GlobalKnownHostsFile=/dev/null'];
+  // `UserKnownHostsFile` e lido pelo parser de config do ssh, que separa por
+  // ESPACO: sem as aspas, "…/Application Support/…" virava o caminho
+  // "…/Library/Application" e o ssh lia outro arquivo (chave de host velha) —
+  // o app entao recusava com "Senha aceita, mas a chave de acesso nao foi
+  // validada. Verifique conflitos de chave SSH neste Mac."
+  const knownHosts = /\s/.test(p.knownHosts) ? '"' + p.knownHosts + '"' : p.knownHosts;
+  return ['-i', p.key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=' + knownHosts, '-o', 'GlobalKnownHostsFile=/dev/null'];
 }
 
 function migrateLegacy() {
