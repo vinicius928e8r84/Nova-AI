@@ -131,6 +131,22 @@ static int cmd_set(NSString *raw) {
     return 0;
 }
 
+// Reaplica a configuração já salva (usado depois de atualizar o pacote): sobe o
+// daemon com o binário novo e devolve o proxy do Wi-Fi para 127.0.0.1.
+static int cmd_reapply(void) {
+    ProxyConfig *cfg = [ProxyConfig load];
+    if (!cfg) { printf("sem proxy configurado\n"); return 0; }
+    restart_daemon(cfg.localPort);
+    NSString *err = nil;
+    if (!SysProxyApply(@"127.0.0.1", cfg.localPort, &err)) {
+        fprintf(stderr, "erro ao reaplicar no Wi-Fi: %s\n", err.UTF8String);
+        return 4;
+    }
+    printf("ok reaplicado %s://%s:%d via 127.0.0.1:%d\n", cfg.scheme.UTF8String, cfg.host.UTF8String,
+           cfg.port, cfg.localPort);
+    return 0;
+}
+
 static int cmd_clear(void) {
     NSString *err = nil;
     if (!SysProxyClear(&err)) {
@@ -187,6 +203,7 @@ static void usage(void) {
             "      aceita socks5://, socks4://, http:// ou https:// em qualquer ordem:\n"
             "      host:porta:usuario:senha, usuario:senha@host:porta, host:porta@usuario:senha, host:porta\n"
             "  novaproxy proxy clear\n"
+            "  novaproxy proxy reapply     (reaplica a configuracao salva)\n"
             "  novaproxy proxy status\n"
             "  novaproxy proxy check [system]\n"
             "  novaproxy proxyd            (daemon, roda pelo launchd)\n");
@@ -210,6 +227,7 @@ int main(int argc, char **argv) {
                 return cmd_set([NSString stringWithUTF8String:argv[3]]);
             }
             if ([sub isEqualToString:@"clear"]) return cmd_clear();
+            if ([sub isEqualToString:@"reapply"]) return cmd_reapply();
             if ([sub isEqualToString:@"status"]) return cmd_status();
             if ([sub isEqualToString:@"check"]) return cmd_check(argc >= 4 && strcmp(argv[3], "system") == 0);
         }

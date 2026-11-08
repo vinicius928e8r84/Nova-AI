@@ -15,4 +15,9 @@ chmod 4755 "$JB/usr/bin/novaproxy" 2>/dev/null || true
 "$JB/usr/bin/launchctl" bootstrap system "$JB/Library/LaunchDaemons/com.aquiles.novaproxy.plist" >/dev/null 2>&1 || \
 "$JB/usr/bin/launchctl" load -w "$JB/Library/LaunchDaemons/com.aquiles.novaproxy.plist" >/dev/null 2>&1 || true
 
+# Em atualização o daemon antigo continua rodando o binário antigo; kickstart troca.
+"$JB/usr/bin/launchctl" kickstart -k system/com.aquiles.novaproxy >/dev/null 2>&1 || true
+# Se o proxy do Wi-Fi tiver sido limpo em algum momento, devolve com a config salva.
+"$JB/usr/bin/novaproxy" proxy reapply >/dev/null 2>&1 || true
+
 exit 0
