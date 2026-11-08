@@ -11,7 +11,7 @@ function ok(nome, cond, extra) {
 }
 
 // exec falso: devolve o que for programado e guarda os comandos
-function fakeExec(respostas = [], helperVersao = 'V4') {
+function fakeExec(respostas = [], helperVersao = 'OK') {
     const chamadas = [];
     const fn = async (cmd, timeoutMs) => {
         // primeira chamada de cada handler é a checagem de versão do helper
