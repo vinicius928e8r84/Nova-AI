@@ -162,6 +162,10 @@ class CamLiveIphone {
     this.media = new UsbMedia({ idleFrame: BLACK_FRAME });
     try {
       await this.media.listen();
+      // `this.mobile` só é preenchido no _start(); quem liga a injeção antes de
+      // transmitir nunca passou por _start() e estourava "Cannot read properties
+      // of undefined (reading 'iosSsh')" em _camouflagedForward.
+      if (!this.mobile) this.mobile = this.getMobileService?.();
       await this._tunnel();
     } catch (error) {
       await this.closeTransport();
@@ -271,8 +275,12 @@ class CamLiveIphone {
       const check = await this.mobile.iosSsh(`chmod 666 ${quote(socketPath)} && test -S ${quote(socketPath)} && echo ok`);
       if (!check || !check.ok || !String(check.stdout || '').includes('ok')) throw new Error('O iPhone não aceitou o socket Unix.');
       return { type: 'unix', path: socketPath };
-    } catch (_) {
+    } catch (error) {
       if (this.tunnel) { this.tunnel.novaAbort = true; try { this.tunnel.kill(); } catch (__) {} this.tunnel = null; }
+      if (!this.mobile) {
+        this.socketPath = null;
+        throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção.');
+      }
       this.mobile.iosSsh(`rm -f ${quote(socketPath)}`).catch(() => {});
       this.socketPath = null;
       return this._tcpForward(localPort);
