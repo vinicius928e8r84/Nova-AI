@@ -30,6 +30,7 @@
   .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
   .tags span,.tags button{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)}
   .tags button{cursor:pointer}
+  .popup{padding:12px;border-radius:12px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.4);display:flex;flex-direction:column;gap:6px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -79,11 +80,31 @@
     <button class="restaurar">Restaurar celular</button>
   </div>
 
+  <div class="popup" id="popup" style="display:none">
+    <span class="lbl">Nome do modelo</span>
+    <input id="nome" placeholder="ex.: iPhone 15 · Texas · inglês" />
+    <div class="linha" style="margin-top:8px">
+      <button class="registrar" style="flex:1" id="salvarNome">Salvar modelo</button>
+      <button class="restaurar" id="cancelarNome">Cancelar</button>
+    </div>
+  </div>
+
   <div class="tags">
     <span>nenhum modelo registrado ainda</span>
   </div>
 
-  <div class="msg">tudo salvo no iPhone ✓</div>
+  <div class="msg" id="msg">tudo salvo no iPhone ✓ · CAM LIVE segue no ar</div>
+<script>
+  const popup=document.getElementById("popup");
+  document.querySelector(".registrar").addEventListener("click",()=>{popup.style.display="flex";document.getElementById("nome").focus()});
+  document.getElementById("cancelarNome").addEventListener("click",()=>{popup.style.display="none"});
+  document.getElementById("salvarNome").addEventListener("click",()=>{
+    const n=document.getElementById("nome").value.trim();
+    if(!n)return;
+    popup.style.display="none";
+    document.getElementById("msg").textContent='modelo registrado como "'+n+'" e gravado no iPhone';
+  });
+</script>
 </div>
 </body>
 </html>

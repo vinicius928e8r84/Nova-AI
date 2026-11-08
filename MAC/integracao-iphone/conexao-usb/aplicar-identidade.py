@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
-"""Nova aba "Identidade simulada": ordem nova (modelo+idioma, proxy, lat/lon, 3 botoes).
+"""Aba "Identidade simulada": modelo+idioma, proxy, coordenadas, 3 botoes (v2).
 
-Pedido do usuario (08/11): modelo primeiro, sem os botoes Aplicar/Limpar modelo;
-proxy logo abaixo e sem o botao Salvar proprio; latitude/longitude embaixo da proxy
-(vazias, digitaveis ou puxadas da proxy); no fim tres botoes:
-SALVAR (sobe tudo no iPhone) | REGISTRAR MODELO (guarda o perfil) | RESTAURAR CELULAR.
+Regras do usuario (08/11, respostas 1-5):
+ 1) Registrar modelo: GRAVA o modelo (aplica no aparelho) e guarda o perfil com um nome
+    que ele digita num popup.
+ 2) Restaurar celular: DESFAZ TUDO (modelo, proxy, GPS, fuso, idioma) - sem reiniciar.
+ 3) Coordenada DIGITADA vence a da proxy.
+ 4) Idioma PREENCHE automatico com o pais da proxy (sem aplicar sozinho).
+ 5) Salvar upa tudo (modelo, proxy, GPS, fuso, idioma) SEM derrubar o CAM LIVE:
+    o idioma vai sem respring (a interface do iPhone so muda se ele pedir depois).
 
-Estrategia para nao cirurgiar o JSX minificado: a coluna esquerda antiga e o par
-latitude/longitude antigo ficam ocultos (display:none) e um painel novo, feito do zero,
-entra no lugar. Nada de handler antigo e reaproveitado pela metade.
+Depende de aplicar-proxy-tipo.py e aplicar-idioma.py (usa pProxyX, pIdiomas, pLang, pLangErro).
 
-Depende de aplicar-proxy-tipo.py e aplicar-idioma.py rodados antes (usa pProxyX,
-pIdiomas, pLang, pLangErro).
-
-Idempotente. Uso: aplicar-identidade.py ALVO.js [--aplicar]
-Sem --aplicar so simula. Com --aplicar grava e deixa ALVO.js.bak-identidade.
+Idempotente e com atualizacao de versao do painel. Uso: aplicar-identidade.py ALVO.js [--aplicar]
 """
 import sys, os, shutil
 
@@ -32,37 +30,42 @@ for dep, marca in (("aplicar-proxy-tipo.py", "pProxyX="), ("aplicar-idioma.py", 
         print("ERRO: falta rodar antes o %s (nao achei %s)" % (dep, marca))
         sys.exit(2)
 
-# ── ID1: estado da mensagem do painel novo ───────────────────────────────────
-ANC_HOOK = '[pLangConfirm,pSetLangConfirm]=F.useState(!1)'
-if "[pIdMsg,pSetIdMsg]=F.useState" in s:
+# ── ID1: estados do painel ───────────────────────────────────────────────────
+NOVOS_ESTADOS = ('[pIdMsg,pSetIdMsg]=F.useState(""),'
+                 '[pIdNome,pSetIdNome]=F.useState(""),'
+                 '[pIdPrompt,pSetIdPrompt]=F.useState(!1)')
+if "[pIdPrompt,pSetIdPrompt]=F.useState" in s:
     print("ID1 ja aplicado")
+elif "[pIdMsg,pSetIdMsg]=F.useState" in s:
+    s = s.replace('[pIdMsg,pSetIdMsg]=F.useState("")', NOVOS_ESTADOS, 1)
+    print("ID1 ok (acrescentou nome/popup)")
 else:
+    ANC_HOOK = '[pLangConfirm,pSetLangConfirm]=F.useState(!1)'
     if s.count(ANC_HOOK) != 1:
         print("ID1 ERRO: ancora do estado x%d" % s.count(ANC_HOOK))
         sys.exit(2)
-    s = s.replace(ANC_HOOK, ANC_HOOK + ',[pIdMsg,pSetIdMsg]=F.useState("")')
+    s = s.replace(ANC_HOOK, ANC_HOOK + "," + NOVOS_ESTADOS)
     print("ID1 ok")
 
-# ── ID3: ocultar o par latitude/longitude antigo (fica no painel novo) ───────
-ANC_LAT = ('b.jsxs("div",{className:"grid grid-cols-2 gap-2",children:[b.jsxs("div",{children:['
-           'b.jsx("label",{className:"text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 block",'
-           'children:"Latitude"})')
-NOVO_LAT = ANC_LAT.replace('className:"grid grid-cols-2 gap-2"',
-                           'className:"grid grid-cols-2 gap-2",style:{display:"none"}')
-if NOVO_LAT in s:
-    print("ID3 ja aplicado")
+# ── ID1b: mapa pais -> idioma (para "preenche automatico com a proxy") ───────
+MAPA = ('pPaisIdioma=pC=>{const pM={US:"en-US",GB:"en-GB",AU:"en-AU",CA:"en-CA",NZ:"en-US",IE:"en-GB",'
+        'BR:"pt-BR",PT:"pt-PT",ES:"es-ES",MX:"es-419",AR:"es-419",CO:"es-419",CL:"es-419",PE:"es-419",'
+        'VE:"es-419",FR:"fr-FR",BE:"fr-FR",DE:"de-DE",AT:"de-DE",CH:"de-DE",IT:"it-IT",NL:"nl-NL",'
+        'PL:"pl-PL",RU:"ru-RU",SE:"sv-SE",TR:"tr-TR",SA:"ar-SA",AE:"ar-SA",EG:"ar-SA",IN:"hi-IN",'
+        'JP:"ja-JP",KR:"ko-KR",CN:"zh-Hans",TW:"zh-Hant",HK:"zh-Hant"};'
+        'return pM[String(pC||"").toUpperCase()]||"en-US"}')
+ANC_MAPA = '["zh-Hant","Chinês (tradicional)","zh_TW"]'
+if "pPaisIdioma=" in s:
+    print("ID1b ja aplicado")
 else:
-    c = s.count(ANC_LAT)
-    if c != 1:
-        print("ID3 ERRO: ancora das coordenadas antigas x%d (esperado 1)" % c)
+    if s.count(ANC_MAPA) != 1:
+        print("ID1b ERRO: ancora da lista de idiomas x%d" % s.count(ANC_MAPA))
         sys.exit(2)
-    s = s.replace(ANC_LAT, NOVO_LAT)
-    print("ID3 ok")
+    # insere como constante irma, logo depois da lista
+    s = s.replace(ANC_MAPA, ANC_MAPA + "," + MAPA)
+    print("ID1b ok")
 
-# ── ID2: ocultar a coluna esquerda antiga e inserir o painel novo ────────────
-ANC_GRID = 'b.jsxs("div",{className:"grid grid-cols-2 gap-5",children:[b.jsxs("div",{className:"space-y-3",children:['
-ESTILO = 'b.jsxs("div",{className:"grid grid-cols-2 gap-5",children:[b.jsxs("div",{className:"space-y-3",style:{display:"none"},children:['
-
+# ── pecas do painel ──────────────────────────────────────────────────────────
 MODELO = ('b.jsxs("div",{children:['
           'b.jsx("label",{className:"text-[9px] font-bold text-white/40 tracking-widest uppercase mb-1 block",children:"Modelo"}),'
           'b.jsxs("div",{className:"relative",children:['
@@ -117,9 +120,10 @@ GEO = ('b.jsxs("div",{children:['
        'children:"Coordenadas (vazio = puxa da proxy)"}),'
        'b.jsx("button",{onClick:()=>{if(!SI||!W)return;pSetIdMsg("puxando a geo da proxy...");'
        'SI.invoke("spoofer:geo-from-proxy",{deviceId:W,proxy:pProxyX.norm(pProxy)}).then(pG=>{'
-       'pG&&pG.success?(Gl(String(pG.lat)),cl(String(pG.lon)),'
-       'pSetIdMsg("geo da proxy: "+(pG.city||"?")+" / "+(pG.country||"?")+" (IP "+(pG.ip||"?")+")"))'
-       ':pSetIdMsg("não peguei a geo: "+((pG&&pG.error)||"sem resposta"))})'
+       'if(pG&&pG.success){Gl(String(pG.lat)),cl(String(pG.lon));'
+       'const pCc=pG.countryCode||pG.country;pSetLang(pPaisIdioma(pCc));'
+       'pSetIdMsg("geo da proxy: "+(pG.city||"?")+" / "+(pG.country||"?")+" (IP "+(pG.ip||"?")+") · idioma "+pPaisIdioma(pCc))}'
+       'else{pSetIdMsg("não peguei a geo: "+((pG&&pG.error)||"sem resposta"))}})'
        '.catch(pE=>pSetIdMsg(pLangErro(pE)))},'
        'className:"text-[8px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-white/[0.04] '
        'border border-white/10 text-white/50 hover:border-purple-400/40 hover:text-purple-300 transition-all",'
@@ -141,49 +145,47 @@ GEO = ('b.jsxs("div",{children:['
 
 SALVAR = ('b.jsx("button",{onClick:()=>{if(!SI||!W)return;(async()=>{'
           'try{'
+          'let pGeoTz="",pGeoPais="";'
           'pSetIdMsg("1/5 modelo...");'
           'if(pIphoneModel){const pMT=((pIphoneModels.find(pM=>pM.name===pIphoneModel)||{}).productType)||pIphoneModel;'
           'const pR1=await SI.invoke("spoofer:apply-ios-model",{deviceId:W,productType:pMT});'
-          'pSetIdMsg("modelo: "+(pR1&&pR1.success?"ok":"falhou "+((pR1&&pR1.error)||"")));}'
+          'if(!(pR1&&pR1.success))throw new Error("modelo: "+((pR1&&pR1.error)||"falhou"));}'
           'pSetIdMsg("2/5 proxy...");'
           'if(pProxy&&String(pProxy).trim()){const pR2=await SI.invoke("iphone:proxy:set",{id:W,'
           'proxy:pProxyX.norm(pProxy)});if(!(pR2&&pR2.success))throw new Error("proxy: "+((pR2&&pR2.error)||"falhou"));}'
           'pSetIdMsg("3/5 coordenadas...");'
-          'let pLa=j,pLo=II,pTz="";'
-          'if(!String(pLa).trim()||!String(pLo).trim()){const pG=await SI.invoke("spoofer:geo-from-proxy",'
-          '{deviceId:W,proxy:pProxyX.norm(pProxy)});if(pG&&pG.success){pLa=String(pG.lat);pLo=String(pG.lon);'
-          'pTz=pG.timezone||"";Gl(pLa);cl(pLo);}}'
-          'if(pLa&&pLo){const pR3=await SI.invoke("spoofer:set-location",{deviceId:W,'
+          'let pLa=String(j||"").trim(),pLo=String(II||"").trim();'
+          'if(!pLa||!pLo){const pG=await SI.invoke("spoofer:geo-from-proxy",{deviceId:W,proxy:pProxyX.norm(pProxy)});'
+          'if(!(pG&&pG.success))throw new Error("geo da proxy: "+((pG&&pG.error)||"sem resposta"));'
+          'pLa=String(pG.lat);pLo=String(pG.lon);pGeoTz=pG.timezone||"";pGeoPais=pG.countryCode||pG.country||"";'
+          'Gl(pLa);cl(pLo);pSetLang(pPaisIdioma(pGeoPais));}'
+          'const pR3=await SI.invoke("spoofer:set-location",{deviceId:W,'
           'latitude:parseFloat(pLa),longitude:parseFloat(pLo)});'
-          'if(!(pR3&&pR3.success))throw new Error("GPS: "+((pR3&&pR3.error)||"falhou"));}'
-          'if(pTz){pSetIdMsg("4/5 fuso "+pTz+"...");'
-          'await SI.invoke("spoofer:apply-locale",{deviceId:W,timezone:pTz}).catch(()=>{});}'
-          'pSetIdMsg("5/5 idioma...");'
+          'if(!(pR3&&pR3.success))throw new Error("GPS: "+((pR3&&pR3.error)||"falhou"));'
+          'if(pGeoTz){pSetIdMsg("4/5 fuso "+pGeoTz+"...");'
+          'await SI.invoke("spoofer:apply-locale",{deviceId:W,timezone:pGeoTz}).catch(()=>{});}'
+          'pSetIdMsg("5/5 idioma "+pLang+"...");'
           'const pLg=await SI.invoke("spoofer:get-language",{deviceId:W}).catch(()=>null);'
-          'if(pLg&&pLg.success&&pLg.language&&pLg.language!==pLang){'
-          'const pLc=((pIdiomas.find(pX=>pX[0]===pLang)||[])[2])||String(pLang).replace("-","_");'
+          'if(pLg&&pLg.success&&pLg.language){'
+          'if(pLg.language!==pLang){const pLc=((pIdiomas.find(pX=>pX[0]===pLang)||[])[2])||String(pLang).replace("-","_");'
           'const pR5=await SI.invoke("spoofer:apply-language",{deviceId:W,language:pLang,locale:pLc,'
-          'confirmGlobal:!0}).catch(pE=>({success:!1,error:String(pE&&pE.message||pE)}));'
-          'pSetIdMsg("idioma: "+(pR5&&pR5.success?pLang+" (tela do iPhone reiniciou)":"não aplicou: "+((pR5&&pR5.error)||"")));}'
-          'else if(!pLg||!pLg.success){pSetIdMsg("idioma: recurso ainda não ligado no app");}'
-          'pSetIdMsg("tudo salvo no iPhone ✓");'
+          'confirmGlobal:!0,respring:!1}).catch(pE=>({success:!1,error:String(pE&&pE.message||pE)}));'
+          'if(!(pR5&&pR5.success))throw new Error("idioma: "+((pR5&&pR5.error)||"falhou"));}}'
+          'else{pSetIdMsg("tudo salvo · idioma ainda não ligado no app (os apps novos abrem no idioma atual)");return;}'
+          'pSetIdMsg("tudo salvo no iPhone ✓ · CAM LIVE segue no ar (a interface do iPhone só muda com respring)");'
           '}catch(pE){pSetIdMsg("parei: "+pLangErro(pE))}})()},'
           'className:"flex-1 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl font-black '
           'text-[11px] uppercase tracking-widest hover:from-purple-500 hover:to-purple-400 active:scale-[0.98] '
           'transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)]",children:"Salvar"})')
 
-REGISTRAR = ('b.jsx("button",{onClick:()=>{if(!W)return;const pK="nova_identidade_"+W;'
-             'let pL=[];try{pL=JSON.parse(localStorage.getItem(pK)||"[]")}catch{pL=[]}'
-             'pL.unshift({nome:(pIphoneModel||"perfil")+" · "+(pProxyX.schemeOf(pProxy)||"socks5"),'
-             'modelo:pIphoneModel,proxy:pProxy,idioma:pLang,lat:j,lon:II,em:new Date().toISOString()});'
-             'try{localStorage.setItem(pK,JSON.stringify(pL.slice(0,8)))}catch{}'
-             'pSetIdMsg("modelo registrado: "+(pIphoneModel||"?")+" — aparece na lista abaixo")},'
+REGISTRAR = ('b.jsx("button",{onClick:()=>{if(!W)return;pSetIdNome((pIphoneModel||"perfil")+" 8/11");'
+             'pSetIdPrompt(!0);pSetIdMsg("")},'
              'className:"flex-1 py-3 bg-white/[0.04] border border-purple-500/30 text-purple-200 rounded-xl '
              'font-black text-[11px] uppercase tracking-widest hover:border-purple-400/60 transition-all",'
              'children:"Registrar modelo"})')
 
 RESTAURAR = ('b.jsx("button",{onClick:()=>{if(!SI||!W)return;(async()=>{'
-             'pSetIdMsg("restaurando o iPhone...");'
+             'pSetIdMsg("desfazendo tudo no iPhone...");'
              'await SI.invoke("spoofer:stop-gps",{deviceId:W}).catch(()=>{});'
              'await SI.invoke("spoofer:revert-locale",{deviceId:W}).catch(()=>{});'
              'await SI.invoke("iphone:proxy:clear",{id:W}).catch(()=>{});'
@@ -196,12 +198,38 @@ RESTAURAR = ('b.jsx("button",{onClick:()=>{if(!SI||!W)return;(async()=>{'
              'font-black text-[11px] uppercase tracking-widest hover:border-red-400/50 hover:text-red-300 '
              'transition-all",children:"Restaurar celular"})')
 
+POPUP = ('pIdPrompt&&b.jsxs("div",{className:"p-3 rounded-xl bg-purple-500/10 border border-purple-500/40 '
+         'flex flex-col gap-2",children:['
+         'b.jsx("label",{className:"text-[9px] font-bold text-purple-200 uppercase tracking-widest",'
+         'children:"Nome do modelo"}),'
+         'b.jsx("input",{type:"text",autoFocus:!0,value:pIdNome,onChange:pE=>pSetIdNome(pE.target.value),'
+         'placeholder:"ex.: iPhone 15 · Texas · inglês",'
+         'className:"w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-white text-xs '
+         'font-bold placeholder-white/25 focus:outline-none focus:border-purple-400/60"}),'
+         'b.jsxs("div",{className:"flex gap-2",children:['
+         'b.jsx("button",{onClick:()=>{const pNm=String(pIdNome||"").trim();if(!pNm)return;'
+         'const pK="nova_identidade_"+W;let pL=[];try{pL=JSON.parse(localStorage.getItem(pK)||"[]")}catch{pL=[]}'
+         'pL.unshift({nome:pNm,modelo:pIphoneModel,proxy:pProxy,idioma:pLang,lat:j,lon:II,'
+         'em:new Date().toISOString()});'
+         'try{localStorage.setItem(pK,JSON.stringify(pL.slice(0,12)))}catch{}'
+         'pSetIdPrompt(!1);pSetIdMsg("gravando o modelo "+pIphoneModel+" no iPhone...");'
+         'const pMT=((pIphoneModels.find(pM=>pM.name===pIphoneModel)||{}).productType)||pIphoneModel;'
+         'SI&&SI.invoke("spoofer:apply-ios-model",{deviceId:W,productType:pMT})'
+         '.then(pR=>pSetIdMsg(pR&&pR.success?"modelo registrado como \\""+pNm+"\\" e gravado no iPhone"'
+         ':"registrado como \\""+pNm+"\\", mas o iPhone não aplicou: "+((pR&&pR.error)||"")))'
+         '.catch(pE=>pSetIdMsg(pLangErro(pE)))},'
+         'className:"flex-1 py-2 rounded-lg bg-purple-500/30 border border-purple-400/50 text-white '
+         'text-[10px] font-black uppercase tracking-wider",children:"Salvar modelo"}),'
+         'b.jsx("button",{onClick:()=>{pSetIdPrompt(!1),pSetIdMsg("registro cancelado")},'
+         'className:"px-3 py-2 rounded-lg bg-white/[0.04] border border-white/15 text-white/60 text-[10px] '
+         'font-black uppercase tracking-wider",children:"Cancelar"})]})]}),')
+
 LISTA = ('b.jsx("div",{className:"flex flex-wrap gap-1",children:(()=>{'
          'let pL=[];try{pL=JSON.parse(localStorage.getItem("nova_identidade_"+W)||"[]")}catch{pL=[]}'
          'return pL.length?pL.map((pS,pI)=>b.jsx("button",{'
          'onClick:()=>{pSetIphoneModel(pS.modelo||pIphoneModel);pSetProxy(pS.proxy||"");'
          'pSetLang(pS.idioma||pLang);Gl(pS.lat||"");cl(pS.lon||"");'
-         'pSetIdMsg("perfil carregado: "+(pS.nome||"?"))},'
+         'pSetIdMsg("carregado: "+(pS.nome||"?")+" — clique Salvar para aplicar")},'
          'className:"px-2 py-1 bg-white/[0.03] border border-white/10 rounded-md text-[8px] font-bold '
          'text-white/50 uppercase tracking-wider hover:border-purple-400/40 hover:text-purple-300 transition-all",'
          'children:(pS.nome||"perfil")},pI)):'
@@ -216,34 +244,64 @@ PAINEL = (
  'b.jsxs("div",{className:"grid grid-cols-2 gap-2",children:[' + MODELO + IDIOMA + ']}),'
  + PROXY + GEO +
  'b.jsxs("div",{className:"flex gap-2",children:[' + SALVAR + ',' + REGISTRAR + ',' + RESTAURAR + ']}),'
- + LISTA +
+ + POPUP + LISTA +
  'pIdMsg&&b.jsx("p",{className:"text-[9px] font-mono text-white/60",children:pIdMsg}),'
  'pLangConfirm&&b.jsxs("div",{className:"p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 '
  'flex flex-col gap-2",children:['
  'b.jsxs("p",{className:"text-[9.5px] font-bold text-amber-200 leading-relaxed",children:['
- '"Confirma aplicar o idioma ",b.jsx("b",{children:pLang})," no aparelho inteiro? Os sites passam a '
- 'receber esse idioma e o respring derruba o CAM LIVE."]}),'
+ '"Confirma aplicar o idioma ",b.jsx("b",{children:pLang})," no aparelho inteiro? A interface do iPhone '
+ 'só muda com respring, e o respring derruba o CAM LIVE."]}),'
  'b.jsxs("div",{className:"flex gap-2",children:['
  'b.jsx("button",{onClick:()=>{const pLc=((pIdiomas.find(pX=>pX[0]===pLang)||[])[2])||String(pLang).replace("-","_");'
- 'SI&&SI.invoke("spoofer:apply-language",{deviceId:W,language:pLang,locale:pLc,confirmGlobal:!0})'
- '.then(pR=>{pSetLangConfirm(!1);pSetIdMsg(pR&&pR.success?"idioma aplicado: "+pLang'
+ 'SI&&SI.invoke("spoofer:apply-language",{deviceId:W,language:pLang,locale:pLc,confirmGlobal:!0,respring:!1})'
+ '.then(pR=>{pSetLangConfirm(!1);pSetIdMsg(pR&&pR.success?"idioma aplicado: "+pLang+" (sem respring)"'
  ':"não aplicou: "+((pR&&pR.error)||""))}).catch(pE=>{pSetLangConfirm(!1);pSetIdMsg(pLangErro(pE))})},'
  'className:"flex-1 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-100 text-[10px] '
- 'font-black uppercase tracking-wider",children:"Confirmar"}),'
+ 'font-black uppercase tracking-wider",children:"Aplicar sem respring"}),'
  'b.jsx("button",{onClick:()=>{pSetLangConfirm(!1),pSetIdMsg("idioma: cancelado")},'
  'className:"px-3 py-2 rounded-lg bg-white/[0.04] border border-white/15 text-white/60 text-[10px] '
  'font-black uppercase tracking-wider",children:"Cancelar"})]})]}),'
  ']}),'
 )
 
-if "Perfil do dispositivo" in s and "pIdMsg" in s:
-    print("ID2 ja aplicado")
-else:
-    if s.count(ANC_GRID) != 1:
-        print("ID2 ERRO: ancora do grid x%d (esperado 1)" % s.count(ANC_GRID))
+INICIO_PAINEL = 'b.jsxs("div",{className:"space-y-3 mb-4",children:['
+GRID = 'b.jsxs("div",{className:"grid grid-cols-2 gap-5",children:['
+GRID_OCULTO = 'b.jsxs("div",{className:"grid grid-cols-2 gap-5",children:[b.jsxs("div",{className:"space-y-3",style:{display:"none"},children:['
+
+# ── ID2: painel (troca de versao ou primeira insercao) ───────────────────────
+i = s.find(INICIO_PAINEL)
+if i >= 0:
+    fim = s.find(GRID_OCULTO, i)
+    if fim < 0:
+        print("ID2 ERRO: painel existe mas nao achei o fim")
         sys.exit(2)
-    s = s.replace(ANC_GRID, PAINEL + ESTILO)
+    if s[i:fim] == PAINEL:
+        print("ID2 ja aplicado")
+    else:
+        s = s[:i] + PAINEL + s[fim:]
+        print("ID2 ok (painel v2 no lugar do anterior)")
+else:
+    if s.count(GRID) != 1:
+        print("ID2 ERRO: ancora do grid x%d (esperado 1)" % s.count(GRID))
+        sys.exit(2)
+    s = s.replace(GRID, PAINEL + GRID_OCULTO)
     print("ID2 ok (painel novo + coluna antiga oculta)")
+
+# ── ID3: ocultar o par latitude/longitude antigo ────────────────────────────
+ANC_LAT = ('b.jsxs("div",{className:"grid grid-cols-2 gap-2",children:[b.jsxs("div",{children:['
+           'b.jsx("label",{className:"text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 block",'
+           'children:"Latitude"})')
+NOVO_LAT = ANC_LAT.replace('className:"grid grid-cols-2 gap-2"',
+                           'className:"grid grid-cols-2 gap-2",style:{display:"none"}')
+if NOVO_LAT in s:
+    print("ID3 ja aplicado")
+else:
+    c = s.count(ANC_LAT)
+    if c != 1:
+        print("ID3 ERRO: ancora das coordenadas antigas x%d (esperado 1)" % c)
+        sys.exit(2)
+    s = s.replace(ANC_LAT, NOVO_LAT)
+    print("ID3 ok")
 
 if s == o:
     print("nada a fazer")
