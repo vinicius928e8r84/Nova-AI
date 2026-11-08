@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nova AI — teste do seletor de idioma do iPhone</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#05080D; color:#E8EDF5; font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:28px 18px 60px; }
+  h1 { font-size:13px; letter-spacing:.22em; text-transform:uppercase; color:#A78BFA; margin:0 0 4px; font-weight:900; }
+  .sub { font-size:11px; color:#5F6B7D; margin:0 0 22px; }
+  .panel { max-width:700px; background:rgba(15,22,34,.92); border:1px solid rgba(255,255,255,.07); border-radius:18px; padding:18px; }
+  .lbl { display:block; font-size:9px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:#66708A; margin-bottom:6px; }
+  .row { display:flex; gap:8px; }
+  select { flex:1; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.1); color:#E8EDF5; border-radius:12px; padding:10px 12px; font-size:12px; font-weight:700; outline:none; }
+  select:focus { border-color:rgba(167,139,250,.6); }
+  button { background:rgba(167,139,250,.12); border:1px solid rgba(167,139,250,.45); color:#D8CCFF; border-radius:12px; padding:10px 14px; font-size:10px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
+  button:hover { background:rgba(167,139,250,.22); }
+  button.ghost { background:transparent; border-color:rgba(255,255,255,.15); color:#93A0B4; }
+  .msg { font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; margin:8px 0 0; color:#7A8699; }
+  .msg.ok { color:#5EEAD4; }
+  .msg.err { color:#F87171; }
+  .msg.warn { color:#FBBF24; }
+  .out { margin-top:12px; padding:10px 12px; border-radius:12px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.06); font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; color:#93A0B4; word-break:break-all; }
+  .out b { color:#5EEAD4; }
+  table { width:100%; border-collapse:collapse; margin-top:26px; max-width:820px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid rgba(255,255,255,.05); font-size:11px; }
+  th { color:#66708A; font-size:9px; letter-spacing:.16em; text-transform:uppercase; }
+  td.mono { font-family:ui-monospace,Menlo,monospace; color:#B8C2D4; }
+  code { background:rgba(255,255,255,.05); padding:1px 5px; border-radius:5px; font-size:10.5px; }
+  .split { display:flex; gap:12px; flex-wrap:wrap; margin-top:26px; max-width:980px; }
+  .card { flex:1 1 300px; background:rgba(15,22,34,.7); border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:14px; }
+  .card h2 { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:#66708A; margin:0 0 8px; }
+  .card p { font-size:11.5px; color:#93A0B4; margin:0 0 6px; }
+  .ok { color:#5EEAD4; } .no { color:#F87171; } .warn-t { color:#FBBF24; }
+</style>
+</head>
+<body>
+<h1>Controle do celular · idioma do iPhone</h1>
+<p class="sub">Protótipo de teste (fora do app). Nada aqui toca no iPhone: é a tela nova com um aparelho simulado para você aprovar o formato.</p>
+
+<div class="panel">
+  <label class="lbl" for="lang">Idioma do iPhone</label>
+  <div class="row">
+    <select id="lang" title="Idioma do iPhone"></select>
+    <button id="ler" class="ghost">Ler do aparelho</button>
+    <button id="aplicar">Aplicar</button>
+  </div>
+  <p id="msg" class="msg"></p>
+  <div id="out" class="out"></div>
+</div>
+
+<div class="split">
+  <div class="card">
+    <h2>O que já existe no app hoje</h2>
+    <p><span class="ok">✓</span> Ler o idioma do aparelho: o serviço já sabe (<code>iosPlistLanguage</code>, via plutil no plist).</p>
+    <p><span class="ok">✓</span> Lista de idiomas por país: já existe no serviço (49 países).</p>
+    <p><span class="no">—</span> Botão na tela: <b>não existe</b>. Esta tela é a parte nova.</p>
+    <p><span class="no">—</span> Ligação com a tela (IPC <code>spoofer:get-language</code> / <code>spoofer:set-language</code>): <b>não existe</b>. É do Backend/iOS.</p>
+  </div>
+  <div class="card">
+    <h2>Como o idioma muda de verdade (medido hoje)</h2>
+    <p><span class="ok">✓</span> Gravar no store de preferências como <code>mobile</code> (CFPreferences) — funcionou.</p>
+    <p><span class="no">—</span> Copiar o <code>.plist</code> à mão — não muda: quem manda é o cache do <code>cfprefsd</code>.</p>
+    <p><span class="no">—</span> API oficial <code>localizationswitcherd</code> — recusa (4097), até como root.</p>
+    <p><span class="warn-t">!</span> Depois de gravar, <b>respring</b> para a interface acompanhar.</p>
+  </div>
+</div>
+
+<table>
+  <thead><tr><th>Idioma</th><th>AppleLanguages</th><th>AppleLocale</th></tr></thead>
+  <tbody id="tabela"></tbody>
+</table>
+
+<script>
+const IDIOMAS = [
+  ["pt-BR", "Português (Brasil)"], ["en-US", "Inglês (EUA)"], ["en-GB", "Inglês (Reino Unido)"],
+  ["es-ES", "Espanhol (Espanha)"], ["es-MX", "Espanhol (México)"], ["fr-FR", "Francês"],
+  ["de-DE", "Alemão"], ["it-IT", "Italiano"], ["nl-NL", "Holandês"], ["ja-JP", "Japonês"],
+  ["ko-KR", "Coreano"], ["zh-CN", "Chinês (simplificado)"], ["ru-RU", "Russo"], ["tr-TR", "Turco"],
+  ["ar-SA", "Árabe"], ["hi-IN", "Hindi"]
+];
+
+// aparelho simulado (no app isto vem do iPhone)
+const ESTADO = { atual: "pt-BR", original: "en-US" };
+
+const sel = document.getElementById("lang");
+const msg = document.getElementById("msg");
+const out = document.getElementById("out");
+const tabela = document.getElementById("tabela");
+
+IDIOMAS.forEach(([codigo, nome]) => {
+  const o = document.createElement("option");
+  o.value = codigo;
+  o.textContent = nome + " — " + codigo;
+  sel.appendChild(o);
+});
+IDIOMAS.forEach(([codigo, nome]) => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<td class='mono'>" + nome + "</td><td class='mono'>[" + codigo + "]</td><td class='mono'>" + codigo.replace("-", "_") + "</td>";
+  tabela.appendChild(tr);
+});
+
+function desenha() {
+  sel.value = ESTADO.atual;
+  msg.className = "msg ok";
+  msg.textContent = "aparelho está em " + ESTADO.atual + " / " + ESTADO.atual.replace("-", "_");
+  out.innerHTML = "o botão Aplicar manda:<br><b>spoofer:set-language</b> { deviceId, language: " +
+    ESTADO.atual + ", locale: " + ESTADO.atual.replace("-", "_") + " }";
+  document.getElementById("ler").textContent = "Ler do aparelho";
+}
+
+document.getElementById("ler").addEventListener("click", () => {
+  desenha();
+});
+
+document.getElementById("aplicar").addEventListener("click", () => {
+  const novo = sel.value;
+  if (novo === ESTADO.atual) {
+    msg.className = "msg warn";
+    msg.textContent = "já está em " + novo + " — nada a fazer";
+    return;
+  }
+  ESTADO.atual = novo;
+  desenha();
+  msg.className = "msg ok";
+  msg.textContent = "aplicado: " + novo + " (respring feito para a interface acompanhar)";
+  out.innerHTML = "resposta esperada do aparelho:<br><b>{ success: true, language: " + novo +
+    ", respring: true }</b><br>voltar ao original: " + ESTADO.original;
+});
+
+desenha();
+</script>
+</body>
+</html>
