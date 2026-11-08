@@ -85,7 +85,7 @@ static int cmd_status(void) {
     NSDictionary *p = SysProxyCurrent();
     NSString *state = proxyLabel(p);
     int daemon = cfg ? port_open(cfg.localPort) : 0;
-    NSString *upstream = cfg ? [NSString stringWithFormat:@"%@:%d", cfg.host, cfg.port] : @"-";
+    NSString *upstream = cfg ? [NSString stringWithFormat:@"%@://%@:%d", cfg.scheme ?: @"socks5", cfg.host, cfg.port] : @"-";
     int wifi = wifi_power();
     printf("%s local=%d upstream=%s daemon=%s wifi=%s uid=%d\n",
            state.UTF8String,
@@ -119,10 +119,31 @@ static int cmd_set(NSString *raw) {
         return 4;
     }
 
+    if (cfg.schemeGuessed) {
+        fprintf(stderr, "aviso: a string não dizia o esquema; usei %s pela porta %d "
+                        "(para escolher, use socks5://, socks4://, http:// ou https:// na frente)\n",
+                cfg.scheme.UTF8String, cfg.port);
+    }
     int wifi = wifi_power();
-    printf("ok %s:%d via 127.0.0.1:%d wifi=%s\n", cfg.host.UTF8String, cfg.port, cfg.localPort,
-           wifi == 1 ? "on" : (wifi == 0 ? "off" : "unknown"));
+    printf("ok %s://%s:%d via 127.0.0.1:%d wifi=%s\n", cfg.scheme.UTF8String, cfg.host.UTF8String, cfg.port,
+           cfg.localPort, wifi == 1 ? "on" : (wifi == 0 ? "off" : "unknown"));
     if (wifi == 0) fprintf(stderr, "aviso: Wi-Fi desligado no momento\n");
+    return 0;
+}
+
+// Reaplica a configuração já salva (usado depois de atualizar o pacote): sobe o
+// daemon com o binário novo e devolve o proxy do Wi-Fi para 127.0.0.1.
+static int cmd_reapply(void) {
+    ProxyConfig *cfg = [ProxyConfig load];
+    if (!cfg) { printf("sem proxy configurado\n"); return 0; }
+    restart_daemon(cfg.localPort);
+    NSString *err = nil;
+    if (!SysProxyApply(@"127.0.0.1", cfg.localPort, &err)) {
+        fprintf(stderr, "erro ao reaplicar no Wi-Fi: %s\n", err.UTF8String);
+        return 4;
+    }
+    printf("ok reaplicado %s://%s:%d via 127.0.0.1:%d\n", cfg.scheme.UTF8String, cfg.host.UTF8String,
+           cfg.port, cfg.localPort);
     return 0;
 }
 
@@ -178,8 +199,11 @@ static int cmd_check(int useSystem) {
 static void usage(void) {
     fprintf(stderr,
             "uso:\n"
-            "  novaproxy proxy set <socks5://host:porta:usuario:senha>\n"
+            "  novaproxy proxy set <string do proxy>\n"
+            "      aceita socks5://, socks4://, http:// ou https:// em qualquer ordem:\n"
+            "      host:porta:usuario:senha, usuario:senha@host:porta, host:porta@usuario:senha, host:porta\n"
             "  novaproxy proxy clear\n"
+            "  novaproxy proxy reapply     (reaplica a configuracao salva)\n"
             "  novaproxy proxy status\n"
             "  novaproxy proxy check [system]\n"
             "  novaproxy proxyd            (daemon, roda pelo launchd)\n");
@@ -203,6 +227,7 @@ int main(int argc, char **argv) {
                 return cmd_set([NSString stringWithUTF8String:argv[3]]);
             }
             if ([sub isEqualToString:@"clear"]) return cmd_clear();
+            if ([sub isEqualToString:@"reapply"]) return cmd_reapply();
             if ([sub isEqualToString:@"status"]) return cmd_status();
             if ([sub isEqualToString:@"check"]) return cmd_check(argc >= 4 && strcmp(argv[3], "system") == 0);
         }

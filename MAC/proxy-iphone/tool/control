@@ -1,8 +1,8 @@
 Package: com.aquiles.novaproxy
 Name: novaproxy
-Version: 0.1
+Version: 0.2
 Architecture: iphoneos-arm64
-Description: Proxy SOCKS5 local (127.0.0.1) para o Nova AI Mac
+Description: Proxy local (127.0.0.1) para o Nova AI Mac, com upstream socks5/socks4/http
 Maintainer: Aquiles
 Author: Aquiles
 Section: Tweaks
