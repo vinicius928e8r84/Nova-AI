@@ -1,5 +1,17 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Seletor de modelo no app instalado (IPCs spoofer:*) — 06/11/2026
+
+Com o OK do usuário (OK1), implementados no app instalado em `/Applications/Nova AI Mac.app`:
+- `electron/main.js`: 4 canais com os nomes do contrato da UI — `spoofer:get-ios-models`, `spoofer:apply-ios-model`, `spoofer:clear-ios-model`, `spoofer:get-ios-model` (registrados junto dos demais `ipcMain.handle` de PHONE CONTROL).
+- `electron/services/physicalMobileService.js`: métodos `getIosModels()`, `applyIOSModel(deviceId, productType)`, `clearIOSModel(deviceId)`, `getIOSModel(deviceId)` + `require('./ios-modelo')` no topo. NÃO foi copiado o gêmeo do repo (armadilha documentada: o `.patched.js` divergiu e quebraria o app).
+- `electron/services/ios-modelo.js` e `electron/services/iosModels.json` copiados do repo (`MAC/integracao-iphone/`): módulo puro que monta os comandos do CLI `/var/jb/usr/bin/novamodel` (`set/clear/status`) via `iosSsh` (mesma sessão SSH do Conectar) e valida `productType` contra regex (sem shell injection).
+- Backups ao lado: `main.js.bak-*`, `physicalMobileService.js.bak-*` (padrão `.bak-AAAAAADD-HHMMSS`). `node --check` OK nos três arquivos tocados.
+
+Teste no aparelho (sem senha) já executado: `/var/jb/usr/bin/novamodel status` → `{"active":"iPhone10,2","enabled":false,"real":"iPhone10,2"}` (tweak funcional, nada aplicado).
+
+O que testar depois de reiniciar o Nova: abrir PHONE CONTROL → o select MODELO deve listar 27 modelos → escolher iPhone 13 (productType `iPhone14,5`) → **APLICAR MODELO** → conferir por SSH `novamodel status` com `enabled:true` e `active:iPhone14,5` (e Ajustes → Geral → Sobre mostra o modelo) → **LIMPAR MODELO** → status volta a `enabled:false`, `active` = real. Branch `agent/ios/modelo-ipc-20261106`, sem merge e sem push.
+
 ## Conectar instala novamodel + nova-locale com a senha já digitada — 06/11/2026
 
 O usuário pediu que a senha digitada no Conectar seja usada para instalar o que falta (modelo e GPS/fuso), sem digitar senha de novo. O `conexao-usb/setup.js` agora, no mesmo fluxo do Conectar (com a senha do modal):
