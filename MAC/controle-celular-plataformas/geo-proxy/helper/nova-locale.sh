@@ -3,11 +3,26 @@
 # Roda como root (launchd). Lê /var/tmp/nova-locale.cmd e responde em
 # /var/tmp/nova-locale-status.json. Nunca executa nada do arquivo de comando:
 # lê apenas as chaves action, tz e plist, e valida cada uma.
+# O launchd roda com PATH mínimo (só /usr/bin:/bin:/usr/sbin:/sbin). Sem isto,
+# comandos como `sleep` não existem e o daemon gira em erro (idioma UNDEFINED).
+export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+# Versão do helper. Ao subir, o serviço grava "pronto v<versão>" no status; o
+# Conectar lê isso depois de reiniciar o serviço e só então diz "atualizado".
+# Sem a versão nova no status, o processo antigo ainda está rodando o texto velho
+# (o bash mantém aberto o arquivo que já tinha carregado). Suba o número a cada
+# mudança de comportamento deste script.
+HELPER_VERSION=2
 
 CMD=/var/tmp/nova-locale.cmd
 PROC=/var/tmp/nova-locale.proc
 STATUS=/var/tmp/nova-locale-status.json
 LOG=/var/tmp/nova-locale.log
+# stdout/stderr do serviço (StandardOutPath/StandardErrorPath do plist). O launchd
+# só anexa e nunca gira esses arquivos: um erro em laço chegou a 571 MB em 19 h.
+ERRLOG=/var/tmp/nova-locale.err
+OUTLOG=/var/tmp/nova-locale.out
+MAXLOG=1048576
 STATE=/var/mobile/.nova-locale-state
 PREF=/var/mobile/Library/Preferences/.GlobalPreferences.plist
 ORIG=/var/mobile/nova-globalprefs-original.plist
@@ -28,6 +43,38 @@ respring() {
     return 0
 }
 
+# Mantém os logs pequenos: zera o que passar de 1 MB (o arquivo continua existindo
+# e o launchd segue anexando nele). Roda ao subir e a cada ~10 minutos.
+trim_logs() {
+    local f size
+    for f in "$ERRLOG" "$OUTLOG" "$LOG"; do
+        # Link simbólico fica de fora: `: >` seguiria o link e zeraria o arquivo de outro dono.
+        [ -f "$f" ] && [ ! -L "$f" ] || continue
+        # 2>/dev/null ANTES do <: se o redirecionamento falhar, a mensagem também some.
+        size=$(wc -c 2>/dev/null < "$f")
+        size=${size//[!0-9]/}
+        if [ "${size:-0}" -gt "$MAXLOG" ]; then
+            : > "$f"
+        fi
+    done
+}
+
+# Logs pequenos primeiro: uma falha em laço não pode crescer nem antes da checagem abaixo.
+trim_logs
+
+# Sem estes comandos o laço não atende nada. Não escreva "pronto v<n>" nesse caso: o
+# Conectar e o app leriam um serviço saudável que não existe. Avise no status, registre
+# uma linha e saia com 78; o launchd (KeepAlive) só religa depois de 10 s.
+missing=""
+for c in sleep sed head grep cp mv ln chown chmod rm; do
+    command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
+done
+if [ -n "$missing" ]; then
+    printf '{"ok":false,"message":"helper sem comandos:%s"}\n' "$missing" > "$STATUS"
+    echo "nova-locale v$HELPER_VERSION: faltam comandos:$missing (PATH=$PATH)" >&2
+    exit 78
+fi
+
 # Guarda o estado original na primeira execução (fuso + prefs).
 if [ ! -f "$STATE" ]; then
     orig_tz=$(readlink "$TZLINK" 2>/dev/null | sed -n 's#.*/zoneinfo/##p')
@@ -39,8 +86,9 @@ if [ ! -f "$STATE" ]; then
     cp -p "$PREF" "$ORIG" 2>/dev/null
 fi
 
-status true "pronto"
+status true "pronto v$HELPER_VERSION"
 
+ticks=0
 while true; do
     if [ -f "$CMD" ]; then
         mv -f "$CMD" "$PROC" 2>/dev/null
@@ -65,10 +113,14 @@ while true; do
                         esac
                     fi
                     if [ "$ok" -eq 1 ] && [ -n "$plist" ]; then
+                        # Só dentro de /var/tmp, sem ".." e sem link simbólico: o helper é root e o
+                        # arquivo de comando é gravável por qualquer processo.
                         case "$plist" in
+                            *..*) ok=0; msg="caminho de plist invalido" ;;
                             /var/tmp/*) ;;
                             *) ok=0; msg="caminho de plist invalido" ;;
                         esac
+                        if [ "$ok" -eq 1 ] && [ -L "$plist" ]; then ok=0; msg="caminho de plist invalido"; fi
                         if [ "$ok" -eq 1 ]; then
                             if head -c 40 "$plist" 2>/dev/null | grep -q '<?xml'; then
                                 # cfprefsd roda como root: mata antes de trocar para nao sobrescrever
@@ -98,7 +150,7 @@ while true; do
                     status true "revertido tz=${orig_tz:-?}"
                     ;;
                 ping)
-                    status true "pronto"
+                    status true "pronto v$HELPER_VERSION"
                     ;;
                 *)
                     status false "acao desconhecida"
@@ -107,5 +159,16 @@ while true; do
             rm -f "$PROC"
         fi
     fi
-    sleep 1
+    # Sem `sleep` o laço giraria sem pausa e encheria o log (foi o que o PATH mínimo
+    # do launchd causou: ~118 linhas por segundo). Aqui o serviço encerra: o launchd só
+    # reinicia depois de 10 s, então o erro vira ~1 linha a cada 10 s e o trim_logs
+    # (ao subir) mantém o arquivo abaixo de 1 MB.
+    sleep 1 || {
+        echo "nova-locale: sleep indisponivel (PATH=$PATH); encerrando" >&2
+        exit 1
+    }
+    ticks=$((ticks + 1))
+    if [ $((ticks % 600)) -eq 0 ]; then
+        trim_logs
+    fi
 done
