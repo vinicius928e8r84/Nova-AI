@@ -260,6 +260,21 @@ function criar(opts = {}) {
         ok('aplicar-registrado-inexistente', r2.success === false, JSON.stringify(r2));
     }
 
+    // 12b) O arquivo de perfis nasce 600 (guarda a senha da proxy)
+    {
+        const fsReal = require('fs'), os = require('os'), path = require('path');
+        const arq = path.join(os.tmpdir(), `identidade-teste-${process.pid}.json`);
+        try { fsReal.unlinkSync(arq); } catch { }
+        const store = identidade.criarLoja(fsReal, arq);
+        store.gravar({ versao: 1, modelos: [{ nome: 'x' }] });
+        const modo = fsReal.statSync(arq).mode & 0o777;
+        ok('arquivo-600', modo === 0o600, modo.toString(8));
+        fsReal.chmodSync(arq, 0o644);
+        store.gravar({ versao: 1, modelos: [{ nome: 'y' }] });
+        ok('arquivo-volta-a-600', (fsReal.statSync(arq).mode & 0o777) === 0o600, (fsReal.statSync(arq).mode & 0o777).toString(8));
+        fsReal.unlinkSync(arq);
+    }
+
     // 13) Loja com arquivo corrompido ou que não grava
     {
         const fsRuim = { readFileSync: () => '{lixo', writeFileSync: () => { throw new Error('disco cheio'); } };

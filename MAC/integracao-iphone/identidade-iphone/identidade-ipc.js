@@ -57,7 +57,11 @@ function criarLoja(fs, caminho) {
             }
         },
         gravar(dados) {
-            fs.writeFileSync(caminho, JSON.stringify({ versao: VERSAO_ARQUIVO, ...dados }, null, 2), 'utf8');
+            fs.writeFileSync(caminho, JSON.stringify({ versao: VERSAO_ARQUIVO, ...dados }, null, 2),
+                { encoding: 'utf8', mode: 0o600 });
+            // O perfil guarda a proxy COM senha: 600 sempre, mesmo se o arquivo já
+            // existia com permissão mais aberta (os outros JSONs do app são 644).
+            try { fs.chmodSync(caminho, 0o600); } catch { /* sistema de arquivos sem chmod */ }
         },
         caminho
     };
