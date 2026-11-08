@@ -6,6 +6,16 @@ static NSString *const kConfigPath = @"/var/jb/var/mobile/Library/Preferences/co
 
 + (NSString *)configPath { return kConfigPath; }
 
+// Casa a string inteira com o padrão e devolve os grupos (nil se não casar).
+static NSArray<NSString *> *Match(NSString *pattern, NSString *s) {
+    NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:pattern options:0 error:nil];
+    NSTextCheckingResult *m = [re firstMatchInString:s options:0 range:NSMakeRange(0, s.length)];
+    if (!m || m.range.length != s.length) return nil;
+    NSMutableArray *g = [NSMutableArray array];
+    for (NSUInteger i = 1; i < m.numberOfRanges; i++) [g addObject:[s substringWithRange:[m rangeAtIndex:i]]];
+    return g;
+}
+
 + (instancetype)parse:(NSString *)raw error:(NSString **)error {
     NSString *s = [raw stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     if (s.length == 0) { if (error) *error = @"proxy vazio"; return nil; }
@@ -21,35 +31,28 @@ static NSString *const kConfigPath = @"/var/jb/var/mobile/Library/Preferences/co
         return nil;
     }
 
-    NSString *user = @"", *pass = @"", *hostPort = s;
-
-    // usuario:senha@host:porta
-    NSRange at = [s rangeOfString:@"@" options:NSBackwardsSearch];
-    if (at.location != NSNotFound) {
-        NSString *creds = [s substringToIndex:at.location];
-        hostPort = [s substringFromIndex:at.location + 1];
-        NSRange colon = [creds rangeOfString:@":"];
-        if (colon.location == NSNotFound) { if (error) *error = @"credenciais sem ':'"; return nil; }
-        user = [creds substringToIndex:colon.location];
-        pass = [creds substringFromIndex:colon.location + 1];
+    // Só aceita formatos inteiros e sem ambiguidade. Nada de ler "o que der" e
+    // seguir: a porta só tem dígitos (1-65535) e não sobra texto no fim.
+    static NSString *const H = @"([A-Za-z0-9._-]+)";
+    NSString *host = nil, *portStr = nil, *user = @"", *pass = @"";
+    NSArray<NSString *> *g;
+    if ((g = Match([NSString stringWithFormat:@"%@:(\\d{1,5}):([^:@\\s]+):(.+)", H], s))) {
+        // formato Evomi: host:porta:usuario:senha (a senha pode ter ':' e '@')
+        host = g[0]; portStr = g[1]; user = g[2]; pass = g[3];
+    } else if ((g = Match([NSString stringWithFormat:@"([^:@\\s]+):(.*)@%@:(\\d{1,5})", H], s))) {
+        // usuario:senha@host:porta (usa o último '@'; a senha pode ter ':' e '@')
+        user = g[0]; pass = g[1]; host = g[2]; portStr = g[3];
+    } else if ((g = Match([NSString stringWithFormat:@"%@:(\\d{1,5})", H], s))) {
+        host = g[0]; portStr = g[1];
+    } else {
+        if (error) *error = @"formato inválido: use socks5://host:porta:usuario:senha, "
+                            @"usuario:senha@host:porta ou host:porta (a porta só tem números)";
+        return nil;
     }
 
-    NSMutableArray<NSString *> *parts = [[hostPort componentsSeparatedByString:@":"] mutableCopy];
-    if (parts.count < 2) { if (error) *error = @"falta a porta"; return nil; }
-
-    // formato Evomi: host:porta:usuario:senha (a senha pode conter ':')
-    if (at.location == NSNotFound && parts.count >= 4) {
-        hostPort = [NSString stringWithFormat:@"%@:%@", parts[0], parts[1]];
-        user = parts[2];
-        NSRange r = NSMakeRange(3, parts.count - 3);
-        pass = [[parts subarrayWithRange:r] componentsJoinedByString:@":"];
-        parts = [[hostPort componentsSeparatedByString:@":"] mutableCopy];
-    }
-
-    NSString *host = parts[0];
-    int port = [parts[1] intValue];
-    if (host.length == 0 || port <= 0 || port > 65535) {
-        if (error) *error = @"host/porta inválidos";
+    int port = [portStr intValue];
+    if (port <= 0 || port > 65535) {
+        if (error) *error = @"porta fora da faixa 1-65535";
         return nil;
     }
 
