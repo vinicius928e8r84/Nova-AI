@@ -64,6 +64,7 @@ function criarLoja(fs, caminho) {
 }
 
 function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', agora = () => new Date().toISOString() }) {
+    const agoraISO = () => String(agora());
     if (!service) throw new Error('service obrigatório');
 
     const log = [];
@@ -89,7 +90,7 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
 
     // ── Salvar tudo ────────────────────────────────────────────────────────────
     async function salvarTudo(pedido = {}) {
-        const { modelo, proxy, latitude, longitude, idioma, respring = true, confirmarIdiomaGlobal = true } = pedido;
+        const { modelo, proxy, latitude, longitude, idioma, respring = false, confirmarIdiomaGlobal = true } = pedido;
         const passos = [];
         const avisos = [];
         const falhar = (passo, erro) => ({ success: false, erro, passoQueFalhou: passo, passos, avisos });
@@ -165,11 +166,18 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
             if (!(r && r.success)) return falhar('idioma', (r && r.error) || 'não consegui aplicar o idioma');
         }
 
-        // 7) respring no fim, uma vez só (derruba o CAM LIVE)
+        // 7) respring: NÃO acontece por padrão. O usuário decidiu que o Salvar não
+        // pode derrubar o CAM LIVE; então o idioma fica gravado no store e vale
+        // para todo app aberto daqui em diante, mas a interface atual do iPhone
+        // só muda num reinício/respring que ele mesmo provocar.
         if (respring && idiomaFinal && language && typeof language.respring === 'function') {
             const r = await language.respring();
-            passos.push({ passo: 'respring', ok: !!(r && r.success), detalhe: 'interface do iPhone reiniciada' });
+            passos.push({ passo: 'respring', ok: !!(r && r.success), detalhe: 'respring pedido explicitamente' });
             avisos.push('O CAM LIVE caiu com o respring: reconecte a câmera.');
+        } else if (idiomaFinal) {
+            passos.push({ passo: 'respring', ok: true, pulado: true, detalhe: 'não reiniciado de propósito (CAM LIVE preservado)' });
+            avisos.push('Idioma gravado no aparelho inteiro. A interface do iPhone muda no próximo reinício ou respring; '
+                + 'o CAM LIVE continua funcionando agora.');
         }
 
         return {
@@ -190,7 +198,8 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
 
     // ── Restaurar celular (sem os sistemas rodando) ────────────────────────────
     async function restaurarCelular(pedido = {}) {
-        const { idioma = true, respring = true } = pedido;
+        // respring=false por padrão: desfazer não pode derrubar o CAM LIVE.
+        const { idioma = true, respring = false, pararCamLive = false } = pedido;
         const passos = [];
         const avisos = [];
         const tentar = async (passo, fn) => {
@@ -203,7 +212,12 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
         };
 
         // Ordem: primeiro tira o que dá acesso (câmera e proxy), depois o resto.
+        // `stopCamSpoof` desliga a INJEÇÃO (o vídeo no lugar da câmera). A
+        // transmissão do CAM LIVE só é parada se você pedir (pararCamLive).
         await tentar('camera', () => service.stopCamSpoof(deviceId));
+        if (pararCamLive && typeof service.iosStopStream === 'function') {
+            await tentar('cam-live', () => service.iosStopStream(deviceId));
+        }
         await tentar('proxy', () => service.iosProxyClear(deviceId));
         await tentar('gps', () => service.iosStopLocation(deviceId));
         await tentar('modelo', () => service.clearIOSModel(deviceId));
@@ -219,6 +233,9 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
             const r = await language.respring();
             passos.push({ passo: 'respring', ok: !!(r && r.success) });
             avisos.push('O CAM LIVE caiu com o respring: reconecte a câmera.');
+        } else {
+            passos.push({ passo: 'respring', ok: true, pulado: true, detalhe: 'não reiniciado (CAM LIVE preservado)' });
+            avisos.push('A interface do iPhone volta ao idioma anterior no próximo reinício; o CAM LIVE segue no ar.');
         }
 
         const falhou = passos.filter((p) => !p.ok).map((p) => p.passo);
@@ -235,9 +252,19 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
     }
 
     // ── Registrar modelo (snapshot para reusar depois) ─────────────────────────
+    /** Nome pronto para o popup (o usuário pode trocar). Ex.: "iPhone 15 · Fort Worth · 08/11 18:20". */
+    function sugerirNome(extra = {}) {
+        const modelo = String(extra.modelo || '').trim();
+        const cidade = String(extra.cidade || '').trim();
+        const agora = agoraISO();
+        const dia = agora.slice(8, 10), mes = agora.slice(5, 7), hora = agora.slice(11, 16);
+        const partes = [modelo || 'iPhone', cidade || null, `${dia}/${mes} ${hora}`].filter(Boolean);
+        return { success: true, nome: partes.join(' · ').replace(/ ·  · /g, ' · ') };
+    }
+
     async function registrarModelo(pedido = {}) {
         const nome = String(pedido.nome || '').trim();
-        if (nome.length < 2) return { success: false, error: 'dê um nome ao modelo registrado (mínimo 2 letras)' };
+        if (nome.length < 2) return { success: false, error: 'dê um nome ao modelo registrado (mínimo 2 letras)', precisaNome: true };
         const modelo = String(pedido.modelo || '').trim();
         if (!modelo) return { success: false, error: 'escolha o modelo do aparelho antes de registrar' };
         const proxy = String(pedido.proxy || '').trim();
@@ -254,6 +281,13 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
         };
         const idx = dados.modelos.findIndex((m) => String(m.nome).toLowerCase() === nome.toLowerCase());
         const substituiu = idx >= 0;
+        // Já existe com esse nome: NÃO sobrescreve sem você confirmar no popup.
+        if (substituiu && pedido.substituir !== true) {
+            return {
+                success: false, jaExiste: true, nomeExistente: dados.modelos[idx].nome,
+                error: `já existe um modelo chamado "${dados.modelos[idx].nome}". Confirme para substituir ou escolha outro nome.`
+            };
+        }
         if (substituiu) dados.modelos[idx] = registro;
         else dados.modelos.push(registro);
         try {
@@ -292,8 +326,21 @@ function createIdentidade({ service, language, geo, store, deviceId = 'ios-1', a
         });
     }
 
+    /** Idioma que combina com o país da proxy (só sugere; aplicar é no Salvar). */
+    async function idiomaDaProxy(proxy) {
+        const g = await geoDaProxy(proxy);
+        if (!g.success) return g;
+        const cc = g.paisCodigo;
+        if (!cc || typeof service.languageForCountry !== 'function') {
+            return { success: false, error: 'não consegui descobrir o país da proxy' };
+        }
+        const { language: tag, locale } = service.languageForCountry(cc);
+        return { success: true, paisCodigo: cc, pais: g.pais || null, idioma: tag, locale, cidade: g.cidade || null };
+    }
+
     return {
         salvarTudo, restaurarCelular, registrarModelo, listarModelos, removerModelo,
+        idiomaDaProxy, sugerirNome,
         aplicarModeloRegistrado, geoDaProxy, validarCoordenadas, log, deviceId
     };
 }
@@ -327,6 +374,8 @@ function register(app, ipcMain, options = {}) {
     ipcMain.handle('spoofer:aplicar-modelo-registrado', async (_e, args) => id.aplicarModeloRegistrado(args || {}));
     ipcMain.handle('spoofer:coords-da-proxy', async (_e, args) => id.geoDaProxy((args || {}).proxy));
     ipcMain.handle('spoofer:validar-coordenadas', async (_e, args) => validarCoordenadas((args || {}).latitude, (args || {}).longitude));
+    ipcMain.handle('spoofer:idioma-da-proxy', async (_e, args) => id.idiomaDaProxy((args || {}).proxy));
+    ipcMain.handle('spoofer:sugerir-nome-modelo', async (_e, args) => id.sugerirNome(args || {}));
 
     return { id, arquivo };
 }

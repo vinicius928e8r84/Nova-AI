@@ -26,6 +26,7 @@ function fakeService(opts = {}) {
         iosApplyLocale: reg('iosApplyLocale'),
         iosRevertLocale: reg('iosRevertLocale'),
         stopCamSpoof: reg('stopCamSpoof'),
+        iosStopStream: reg('iosStopStream'),
         languageForCountry: (cc) => ({ language: cc === 'BR' ? 'pt-BR' : 'en-US', locale: cc === 'BR' ? 'pt_BR' : 'en_US' })
     };
     s.chamadas = chamadas;
@@ -134,10 +135,12 @@ function criar(opts = {}) {
         ok('salvar-nao-inventou-idpais', r.resultado.idioma === 'en-US', JSON.stringify(r.resultado));
         ok('salvar-idioma-uma-vez', language.chamadas.filter((c) => c.nome === 'applyLanguage').length === 1, JSON.stringify(language.chamadas));
         ok('salvar-idioma-global', language.chamadas[0].args.domain === 'global', JSON.stringify(language.chamadas[0].args));
-        ok('salvar-respring', language.chamadas.some((c) => c.nome === 'respring'), JSON.stringify(language.chamadas.map((c) => c.nome)));
+        ok('salvar-sem-respring', !language.chamadas.some((c) => c.nome === 'respring'), JSON.stringify(language.chamadas.map((c) => c.nome)));
+        ok('salvar-respring-pulado', r.passos.some((p) => p.passo === 'respring' && p.pulado === true), JSON.stringify(r.passos));
+        ok('salvar-camlive-vivo', r.avisos.some((a) => /CAM LIVE continua funcionando/.test(a)), JSON.stringify(r.avisos));
+        ok('salvar-digitado-vence', r.resultado.latitude === 40.7128 && r.resultado.coordsDaProxy === false, JSON.stringify(r.resultado));
         ok('salvar-passos', r.passos.map((p) => p.passo).join(',') === 'modelo,proxy,gps,idioma,respring', r.passos.map((p) => p.passo).join(','));
-        ok('salvar-avisa-camlive', r.avisos.some((a) => /CAM LIVE/.test(a)), JSON.stringify(r.avisos));
-    }
+            }
 
     // 5) coordenadas VAZIAS → vêm da proxy
     {
@@ -183,9 +186,18 @@ function criar(opts = {}) {
         ok('restaurar-ordem', service.ordem().join('>') === 'stopCamSpoof>iosProxyClear>iosStopLocation>clearIOSModel>iosRevertLocale',
             service.ordem().join('>'));
         ok('restaurar-idioma', language.chamadas.some((c) => c.nome === 'revertLanguage'), JSON.stringify(language.chamadas));
-        ok('restaurar-respring', language.chamadas.some((c) => c.nome === 'respring'), JSON.stringify(language.chamadas));
+        ok('restaurar-sem-respring', !language.chamadas.some((c) => c.nome === 'respring'), JSON.stringify(language.chamadas.map((c) => c.nome)));
+        ok('restaurar-preserva-camlive', !service.ordem().includes('iosStopStream'), service.ordem().join(','));
+        ok('restaurar-avisa-interface', r.avisos.some((a) => /próximo reinício/.test(a)), JSON.stringify(r.avisos));
         ok('restaurar-avisa-ip-real', r.avisos.some((a) => /IP e ao GPS reais/.test(a)), JSON.stringify(r.avisos));
         ok('restaurar-nada-pendente', Array.isArray(r.naoRevertido) && r.naoRevertido.length === 0, JSON.stringify(r.naoRevertido));
+    }
+
+    // 9b) Restaurar com pararCamLive:true para a transmissão também
+    {
+        const { id, service } = criar();
+        await id.restaurarCelular({ pararCamLive: true });
+        ok('restaurar-parar-camlive', service.ordem().includes('iosStopStream'), service.ordem().join(','));
     }
 
     // 10) Restaurar com uma etapa falhando: continua e reporta
@@ -204,8 +216,11 @@ function criar(opts = {}) {
         const r1 = await id.registrarModelo({ nome: 'Casa', modelo: 'iPhone15,4', proxy: PROXY_OK, latitude: 32.72, longitude: -97.32, idioma: 'en-US' });
         ok('registrar-ok', r1.success && r1.total === 1, JSON.stringify(r1));
         ok('registrar-gravou', store.dados.modelos.length === 1, JSON.stringify(store.dados));
-        const r2 = await id.registrarModelo({ nome: 'casa', modelo: 'iPhone14,2' });
-        ok('registrar-substitui', r2.substituiu === true && store.dados.modelos.length === 1, JSON.stringify(r2));
+        const rDup = await id.registrarModelo({ nome: 'casa', modelo: 'iPhone14,2' });
+        ok('registrar-nao-sobrescreve-sozinho', rDup.success === false && rDup.jaExiste === true, JSON.stringify(rDup));
+        ok('registrar-nao-sobrescreve-disco', store.dados.modelos[0].modelo === 'iPhone15,4', JSON.stringify(store.dados.modelos[0]));
+        const r2 = await id.registrarModelo({ nome: 'casa', modelo: 'iPhone14,2', substituir: true });
+        ok('registrar-substitui-com-confirmacao', r2.substituiu === true && store.dados.modelos.length === 1, JSON.stringify(r2));
         const lista = id.listarModelos();
         ok('listar', lista.total === 1 && lista.modelos[0].modelo === 'iPhone14,2', JSON.stringify(lista));
         ok('remover', (await id.removerModelo({ nome: 'CASA' })).success === true && id.listarModelos().total === 0);
@@ -232,6 +247,25 @@ function criar(opts = {}) {
         const { id } = criar({ store });
         const r = await id.registrarModelo({ nome: 'Casa', modelo: 'iPhone15,4' });
         ok('loja-sem-gravar', r.success === false && /não consegui gravar/.test(r.error || ''), JSON.stringify(r));
+    }
+
+    // 13b) Nome sugerido para o popup
+    {
+        const { id } = criar();
+        const s1 = id.sugerirNome({ modelo: 'iPhone 15', cidade: 'Fort Worth' });
+        ok('sugerir-nome', s1.success && /^iPhone 15 · Fort Worth · 08\/11 18:00$/.test(s1.nome), JSON.stringify(s1));
+        const s2 = id.sugerirNome({});
+        ok('sugerir-nome-vazio', s2.success && s2.nome.startsWith('iPhone · '), JSON.stringify(s2));
+    }
+
+    // 13c) Idioma que a proxy sugere (preenche o campo, não aplica)
+    {
+        const { id, language } = criar();
+        const r = await id.idiomaDaProxy(PROXY_OK);
+        ok('idioma-proxy', r.success && r.idioma === 'en-US' && r.paisCodigo === 'US', JSON.stringify(r));
+        ok('idioma-proxy-nao-aplica', language.chamadas.length === 0, JSON.stringify(language.chamadas));
+        const r2 = await id.idiomaDaProxy('');
+        ok('idioma-proxy-vazia', r2.success === false, JSON.stringify(r2));
     }
 
     // 14) Nenhuma chamada pede sudo/shell

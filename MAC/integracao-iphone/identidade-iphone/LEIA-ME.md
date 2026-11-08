@@ -13,11 +13,25 @@ Este módulo entrega esse encadeamento:
 |---|---|
 | `spoofer:salvar-tudo({ modelo, proxy, latitude, longitude, idioma, respring })` | valida tudo **antes** de tocar no aparelho e aplica em ordem: modelo → proxy → GPS → idioma → respring. Devolve passo por passo |
 | `spoofer:restaurar-celular({ idioma, respring })` (alias `spoofer:revert-all`) | desliga os sistemas: câmera → proxy → GPS → modelo → idioma → fuso → respring |
-| `spoofer:registrar-modelo({ nome, modelo, proxy, latitude, longitude, idioma })` | grava o conjunto num arquivo para reusar depois |
+| `spoofer:registrar-modelo({ nome, modelo, proxy, latitude, longitude, idioma, substituir })` | **só grava** o conjunto no arquivo. Nome repetido **não** sobrescreve: volta `jaExiste: true` para o popup confirmar (aí mande `substituir: true`) |
+| `spoofer:sugerir-nome-modelo({ modelo, cidade })` | nome pronto para o popup, ex.: `iPhone 15 · Fort Worth · 08/11 18:20` |
+| `spoofer:idioma-da-proxy({ proxy })` | idioma/locale que combinam com o país da proxy (só preenche o campo) |
 | `spoofer:listar-modelos-registrados()` / `spoofer:remover-modelo-registrado({ nome })` | lista e apaga do arquivo (nunca do aparelho) |
 | `spoofer:aplicar-modelo-registrado({ nome })` | é o Salvar com o que estava guardado |
 | `spoofer:coords-da-proxy({ proxy })` | lat/lon/cidade/fuso reais do IP de saída, para preencher os campos |
 | `spoofer:validar-coordenadas({ latitude, longitude })` | confere número e faixa; vazio é válido (aí vale a proxy) |
+
+### As 5 respostas do usuário (08/11) e o que mudou no código
+
+| Pergunta | Resposta | Efeito no backend |
+|---|---|---|
+| „Registrar modelo“ faz o quê? | **só grava** | `registrar-modelo` grava no arquivo; **não** aplica nada no aparelho |
+| „Restaurar“ desfaz o quê? | **tudo** | camera (injeção) → proxy → GPS → modelo → idioma → fuso |
+| lat/lon digitado × proxy | **digitado vence** | quando há valor digitado, a proxy nunca sobrescreve |
+| idioma „da proxy“ | **preenche automático** | novo `spoofer:idioma-da-proxy`, só sugere; aplica no Salvar |
+| Salvar pode respringar? | **não** (CAM LIVE continua) | `respring` agora é **false** por padrão no Salvar e no Restaurar |
+
+Consequência honesta do último item: o idioma é gravado no store na hora (todo app aberto depois já nasce no idioma novo), mas **a interface atual do iPhone só muda num reinício/respring que você mesmo fizer**. O Salvar avisa isso em vez de derrubar o CAM LIVE.
 
 ### Regras do Salvar
 
@@ -25,11 +39,12 @@ Este módulo entrega esse encadeamento:
 - **Idioma:** se você escolher, vale o escolhido. Se não escolher e houver proxy, vem do **país da proxy** (mapa `languageForCountry` que o app já tem: US→en-US, BR→pt-BR, etc.). `idioma: 'keep'` não mexe.
 - **Nada é aplicado se a validação falhar:** proxy inválida, coordenada fora da faixa (-90..90 / -180..180), latitude sem longitude, ou tudo vazio.
 - **Se um passo falhar, para ali** e devolve `passoQueFalhou` + a lista dos passos que já rodaram — nunca diz "salvo" pela metade.
-- **Respring é o último passo** (só quando há idioma), porque derruba o CAM LIVE; o aviso vai na resposta.
+- **Sem respring por padrão** (decisão de 08/11): o passo aparece como `pulado: true` e o aviso diz que o CAM LIVE continua no ar. Só há respring se você passar `respring: true` explicitamente.
 
 ### Regras do Restaurar celular
 
-Ordem: `stopCamSpoof` → `iosProxyClear` → `iosStopLocation` → `clearIOSModel` → idioma `revert` → `iosRevertLocale` → respring.
+Ordem: `stopCamSpoof` → `iosProxyClear` → `iosStopLocation` → `clearIOSModel` → idioma `revert` → `iosRevertLocale`, e respring **só se pedido**.
+`stopCamSpoof` desliga a **injeção** (o vídeo no lugar da câmera). A transmissão do CAM LIVE **não** é parada, a menos que você peça `pararCamLive: true` — aí entra um passo `cam-live`.
 Continua mesmo se uma etapa falhar e devolve `naoRevertido: [...]`. Aviso fixo: *"o iPhone volta ao IP e ao GPS reais; se a proxy saiu, o Safari sai pela operadora"*.
 
 ### Onde fica o "modelo registrado"
@@ -58,6 +73,7 @@ Copia `identidade-ipc.js` e `idioma-ipc.js` para `electron/services/` e insere *
 - `spoofer:coords-da-proxy` → `{ success, latitude, longitude, cidade, regiao, pais, paisCodigo, fuso, ip }`; erro claro quando a proxy não responde.
 - `spoofer:validar-coordenadas` → `{ ok, vazio, latitude, longitude }` ou `{ ok:false, erro }`.
 - Os avisos já vêm prontos para exibir (idioma global, CAM LIVE, país da proxy, IP real).
+- **Popup de nome** (pedido de 08/11): antes de registrar, chame `spoofer:sugerir-nome-modelo` para preencher o campo; se a resposta do `registrar-modelo` vier com `jaExiste: true`, pergunte „substituir?“ e repita com `substituir: true`. Sem nome (ou com menos de 2 letras) volta `precisaNome: true`.
 
 ## Limites honestos
 
