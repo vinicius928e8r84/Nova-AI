@@ -136,7 +136,26 @@ static int socks4_connect(const char *proxy_host, int proxy_port,
 
     unsigned char resp[8];
     if (recv_full_fd(fd, resp, sizeof(resp)) < 0) { set_err(err, errlen, "proxy SOCKS4 não respondeu"); close(fd); return -1; }
-    if (resp[0] != 0x00) { set_err(err, errlen, "resposta SOCKS4 inválida (versão %d)", resp[0]); close(fd); return -1; }
+    if (resp[0] != 0x00) {
+        // Não é resposta SOCKS4: ou o servidor fala SOCKS5 (0x05), ou devolveu
+        // texto. Nos dois casos o proxy não serve por SOCKS4.
+        if (resp[0] == 0x05) {
+            set_err(err, errlen, "esse proxy fala SOCKS5, não SOCKS4: use socks5:// na mesma porta");
+        } else if (resp[0] >= 0x20 && resp[0] < 0x7F) {
+            char amostra[17];
+            size_t n = 0;
+            for (; n < 16 && n < sizeof(resp); n++) {
+                if (resp[n] < 0x20 || resp[n] >= 0x7F) break;
+                amostra[n] = (char)resp[n];
+            }
+            amostra[n] = 0;
+            set_err(err, errlen, "o proxy não é SOCKS4 (respondeu \"%s\"): use socks5:// ou http://", amostra);
+        } else {
+            set_err(err, errlen, "resposta SOCKS4 inesperada (0x%02x): use socks5:// ou http://", resp[0]);
+        }
+        close(fd);
+        return -1;
+    }
     if (resp[1] != 0x5A) { set_err(err, errlen, "proxy SOCKS4 recusou o destino (código %d)", resp[1]); close(fd); return -1; }
     return fd;
 }
@@ -172,7 +191,12 @@ static int http_connect(const char *proxy_host, int proxy_port,
     size_t used = 0;
     while (used < sizeof(resp) - 1) {
         ssize_t r = recv(fd, resp + used, sizeof(resp) - 1 - used, 0);
-        if (r <= 0) { set_err(err, errlen, "proxy HTTP não respondeu ao CONNECT"); close(fd); return -1; }
+        if (r <= 0) {
+            set_err(err, errlen, "o proxy não respondeu ao CONNECT (a porta pode ser TLS): "
+                                 "use http:// na porta 1000 ou socks5:// na 1002");
+            close(fd);
+            return -1;
+        }
         used += (size_t)r;
         resp[used] = 0;
         if (strstr(resp, "\r\n\r\n")) break;
