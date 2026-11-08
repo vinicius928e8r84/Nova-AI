@@ -1,5 +1,5 @@
 #import "Forwarder.h"
-#import "Socks5.h"
+#import "Upstream.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +13,7 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 
+static char g_scheme[16];
 static char g_proxy_host[256];
 static char g_proxy_user[256];
 static char g_proxy_pass[512];
@@ -142,8 +143,8 @@ static void *handle_client(void *arg) {
     }
 
     char err[256] = {0};
-    int up = socks5_connect(g_proxy_host, g_proxy_port, g_proxy_user, g_proxy_pass,
-                            host, port, err, sizeof(err));
+    int up = upstream_connect(g_scheme, g_proxy_host, g_proxy_port, g_proxy_user, g_proxy_pass,
+                              host, port, err, sizeof(err));
     if (up < 0) {
         fprintf(stderr, "[novaproxy] %s:%d falhou: %s\n", host, port, err);
         const char *bad = "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\n\r\n";
@@ -173,6 +174,7 @@ done:
 }
 
 int run_forwarder(ProxyConfig *config) {
+    snprintf(g_scheme, sizeof(g_scheme), "%s", config.scheme.UTF8String ?: "socks5");
     snprintf(g_proxy_host, sizeof(g_proxy_host), "%s", config.host.UTF8String ?: "");
     snprintf(g_proxy_user, sizeof(g_proxy_user), "%s", config.user.UTF8String ?: "");
     snprintf(g_proxy_pass, sizeof(g_proxy_pass), "%s", config.pass.UTF8String ?: "");
@@ -196,8 +198,8 @@ int run_forwarder(ProxyConfig *config) {
     }
     if (listen(srv, 128) < 0) { perror("listen"); close(srv); return 1; }
 
-    fprintf(stderr, "[novaproxy] escutando 127.0.0.1:%d -> socks5 %s:%d (auth=%s)\n",
-            config.localPort, g_proxy_host, g_proxy_port, g_proxy_user[0] ? "sim" : "nao");
+    fprintf(stderr, "[novaproxy] escutando 127.0.0.1:%d -> %s %s:%d (auth=%s)\n",
+            config.localPort, g_scheme, g_proxy_host, g_proxy_port, g_proxy_user[0] ? "sim" : "nao");
 
     for (;;) {
         int fd = accept(srv, NULL, NULL);

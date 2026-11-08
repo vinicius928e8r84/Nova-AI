@@ -11,51 +11,81 @@ const https = require('https');
 const GEO_BASE = 'https://ipwho.is';
 const UA = 'nova-geo/1.0';
 
+const SCHEMES = ['socks5', 'socks5h', 'socks4', 'socks4a', 'http', 'https'];
+
+/** Sem esquema na string, a porta é a pista (mesma regra do novaproxy no iPhone). */
+function schemeForPort(port) {
+  if ([1000, 3128, 8080, 8888, 8000].includes(port)) return 'http';
+  if (port === 1001) return 'https';
+  return 'socks5';
+}
+
 /**
- * Aceita os dois formatos usados no Nova e o formato URL padrão:
- *   socks5://host:porta:usuario:senha   (formato do painel do iPhone)
- *   socks5://usuario:senha@host:porta   (formato URL)
- *   host:porta
+ * Extrai só o necessário (esquema, host, porta, usuário, senha) e ignora o resto
+ * do enfeite. Aceita, nesta ordem de prioridade:
+ *   esquema://host:porta:usuario:senha    (painel da Evomi)
+ *   esquema://usuario:senha@host:porta    (URL)
+ *   esquema://host:porta@usuario:senha    (ordem invertida da Evomi)
+ *   esquema://host:porta
+ *   (sem esquema) as mesmas quatro formas terminando em host:porta
+ * Esquemas: socks5, socks5h, socks4, socks4a, http, https.
+ * Devolve null só quando não há host:porta utilizável.
  */
 function parseProxy(raw) {
-  const s = String(raw || '').trim();
+  let s = String(raw || '').trim();
+  if (!s) return null;
+  if (s.length >= 2 && /^["'`]/.test(s) && /["'`]$/.test(s)) s = s.slice(1, -1).trim();
+  s = s.replace(/\/+$/, '');
   if (!s) return null;
 
-  let m = s.match(/^(socks5h?|socks4):\/\/([^:@/\s]+):([^@/\s]+)@([^:/\s]+):(\d+)$/i);
-  if (m) {
-    return {
-      scheme: m[1].toLowerCase(),
-      host: m[4],
-      port: Number(m[5]),
-      user: decodeURIComponent(m[2]),
-      pass: decodeURIComponent(m[3])
-    };
+  let scheme = null;
+  const sm = s.match(/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/);
+  if (sm) {
+    scheme = sm[1].toLowerCase();
+    if (!SCHEMES.includes(scheme)) return null;
+    s = sm[2];
   }
 
-  m = s.match(/^(socks5h?|socks4):\/\/([^:/\s]+):(\d+)(?::([^:\s]+):(.+))?$/i);
-  if (m) {
-    return {
-      scheme: m[1].toLowerCase(),
-      host: m[2],
-      port: Number(m[3]),
-      user: m[4] || null,
-      pass: m[5] || null
-    };
+  const H = '([A-Za-z0-9._-]{3,})';
+  const U = '([^:@\\s]+)';
+  let host = null, port = 0, user = null, pass = null, m;
+  const reEvomi = new RegExp(`^${H}:(\\d{1,5}):${U}:(.+)$`);
+  const reUrl = new RegExp(`^${U}:(.*)@${H}:(\\d{1,5})$`);
+  const reInverted = new RegExp(`^${H}:(\\d{1,5})@${U}:(.+)$`);
+  const reHostPort = new RegExp(`^${H}:(\\d{1,5})$`);
+
+  if ((m = s.match(reEvomi))) {
+    host = m[1]; port = Number(m[2]); user = m[3]; pass = m[4];
+  } else if ((m = s.match(reUrl))) {
+    user = m[1]; pass = m[2]; host = m[3]; port = Number(m[4]);
+  } else if ((m = s.match(reInverted))) {
+    host = m[1]; port = Number(m[2]); user = m[3]; pass = m[4];
+  } else if ((m = s.match(reHostPort))) {
+    host = m[1]; port = Number(m[2]);
+  } else {
+    return null;
   }
 
-  m = s.match(/^([^:/\s]+):(\d+)$/);
-  if (m) {
-    return { scheme: 'socks5', host: m[1], port: Number(m[2]), user: null, pass: null };
-  }
-
-  return null;
+  if (!(port > 0 && port <= 65535)) return null;
+  const guessed = !scheme;
+  if (!scheme) scheme = schemeForPort(port);
+  return { scheme, host, port, user: user || null, pass: pass || null, schemeGuessed: guessed };
 }
 
 function agentFor(parsed) {
-  const { SocksProxyAgent } = require('socks-proxy-agent');
   const auth = parsed.user
     ? `${encodeURIComponent(parsed.user)}:${encodeURIComponent(parsed.pass || '')}@`
     : '';
+  const url = `${parsed.scheme}://${auth}${parsed.host}:${parsed.port}`;
+  if (parsed.scheme === 'http') {
+    const { HttpProxyAgent } = require('http-proxy-agent');
+    return new HttpProxyAgent(url);
+  }
+  if (parsed.scheme === 'https') {
+    const { HttpsProxyAgent } = require('https-proxy-agent');
+    return new HttpsProxyAgent(url);
+  }
+  const { SocksProxyAgent } = require('socks-proxy-agent');
   const scheme = parsed.scheme.startsWith('socks4') ? 'socks4' : 'socks5';
   return new SocksProxyAgent(`${scheme}://${auth}${parsed.host}:${parsed.port}`);
 }
@@ -99,7 +129,7 @@ function normalize(data) {
 /** Consulta a geo *através* do proxy (devolve o IP de saída e a geo dele). */
 async function throughProxy(proxy) {
   const parsed = parseProxy(proxy);
-  if (!parsed) throw new Error('Proxy inválido: use socks5://host:porta:usuario:senha');
+  if (!parsed) throw new Error('Proxy inválido: não achei host e porta na string');
   const data = await getJson(`${GEO_BASE}/`, agentFor(parsed));
   return normalize(data);
 }

@@ -85,7 +85,7 @@ static int cmd_status(void) {
     NSDictionary *p = SysProxyCurrent();
     NSString *state = proxyLabel(p);
     int daemon = cfg ? port_open(cfg.localPort) : 0;
-    NSString *upstream = cfg ? [NSString stringWithFormat:@"%@:%d", cfg.host, cfg.port] : @"-";
+    NSString *upstream = cfg ? [NSString stringWithFormat:@"%@://%@:%d", cfg.scheme ?: @"socks5", cfg.host, cfg.port] : @"-";
     int wifi = wifi_power();
     printf("%s local=%d upstream=%s daemon=%s wifi=%s uid=%d\n",
            state.UTF8String,
@@ -119,9 +119,14 @@ static int cmd_set(NSString *raw) {
         return 4;
     }
 
+    if (cfg.schemeGuessed) {
+        fprintf(stderr, "aviso: a string não dizia o esquema; usei %s pela porta %d "
+                        "(para escolher, use socks5://, socks4://, http:// ou https:// na frente)\n",
+                cfg.scheme.UTF8String, cfg.port);
+    }
     int wifi = wifi_power();
-    printf("ok %s:%d via 127.0.0.1:%d wifi=%s\n", cfg.host.UTF8String, cfg.port, cfg.localPort,
-           wifi == 1 ? "on" : (wifi == 0 ? "off" : "unknown"));
+    printf("ok %s://%s:%d via 127.0.0.1:%d wifi=%s\n", cfg.scheme.UTF8String, cfg.host.UTF8String, cfg.port,
+           cfg.localPort, wifi == 1 ? "on" : (wifi == 0 ? "off" : "unknown"));
     if (wifi == 0) fprintf(stderr, "aviso: Wi-Fi desligado no momento\n");
     return 0;
 }
@@ -178,7 +183,9 @@ static int cmd_check(int useSystem) {
 static void usage(void) {
     fprintf(stderr,
             "uso:\n"
-            "  novaproxy proxy set <socks5://host:porta:usuario:senha>\n"
+            "  novaproxy proxy set <string do proxy>\n"
+            "      aceita socks5://, socks4://, http:// ou https:// em qualquer ordem:\n"
+            "      host:porta:usuario:senha, usuario:senha@host:porta, host:porta@usuario:senha, host:porta\n"
             "  novaproxy proxy clear\n"
             "  novaproxy proxy status\n"
             "  novaproxy proxy check [system]\n"

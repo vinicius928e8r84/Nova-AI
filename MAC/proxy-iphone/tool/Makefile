@@ -6,7 +6,7 @@ include $(THEOS)/makefiles/common.mk
 
 TOOL_NAME = novaproxy
 
-novaproxy_FILES = main.m ProxyConfig.m SysProxy.m Socks5.m Forwarder.m
+novaproxy_FILES = main.m ProxyConfig.m SysProxy.m Socks5.m Upstream.m Forwarder.m
 novaproxy_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wall
 novaproxy_LDFLAGS = -framework Foundation -framework SystemConfiguration
 novaproxy_CODESIGN_FLAGS = -Sentitlements.plist
