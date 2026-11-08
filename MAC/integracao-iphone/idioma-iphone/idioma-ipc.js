@@ -91,13 +91,19 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
     async function verificarHelper(timeoutMs = 8000) {
         const agora = Date.now();
         if (helperOk !== null && agora - helperOkEm < 60000) return helperOk;
+        // Não basta procurar uma frase: o texto do script muda entre versões.
+        // Aqui: se existe a função `cmd_language` OU a versão declarada é >= 3,
+        // o helper aceita subcomando. (Mandei v4 e alguém recolocou v2 no
+        // aparelho em 08/11 14:36 — a checagem tem de pegar isso.)
         const cmd = [HELPER_BASH, '-c',
-            `test -f ${HELPER_SCRIPT} && grep -q 'language get' ${HELPER_SCRIPT} && echo V4 || `
-            + `{ test -f ${HELPER_SCRIPT} && echo V2 || echo FALTA; }`];
+            `F=${HELPER_SCRIPT}; test -f $F || { echo FALTA; exit 0; }; `
+            + `grep -q 'cmd_language' $F && { echo OK; exit 0; }; `
+            + `V=$(sed -n 's/^HELPER_VERSION=//p' $F | head -1 | tr -dc '0-9'); `
+            + `[ -n "$V" ] && [ "$V" -ge 3 ] && { echo OK; exit 0; }; echo V2`];
         const r = await exec(cmd, timeoutMs);
         const saida = String((r && r.stdout) || '').trim();
         const erro = String((r && r.stderr) || '').trim();
-        helperOk = saida === 'V4'
+        helperOk = saida === 'OK'
             ? { ok: true }
             : saida === 'V2'
                 ? { ok: false, error: 'o helper do iPhone é antigo (v2, só fuso): falta a versão com "language get/set". Rode o Conectar para atualizar o helper.' }
