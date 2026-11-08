@@ -255,4 +255,5 @@ function executarNoAparelho(cmd, timeoutMs = 25000) {
 }
 
 module.exports = { createHandlers, register, lerSaida, dominioValido, TAG_RE, NOMES,
-    AVISO_GLOBAL, AVISO_RESPRING, AVISO_CAM_LIVE, AVISO_APPS, AVISO_DISCO, HELPER };
+    AVISO_GLOBAL, AVISO_RESPRING, AVISO_CAM_LIVE, AVISO_APPS, AVISO_DISCO, HELPER,
+    executarNoAparelho };
