@@ -85,7 +85,19 @@ def main():
         return 2
 
     if MARCA in original:
-        print("já aplicado: o main.js já registra o identidade-ipc (nada a fazer)")
+        # A linha já está no main.js; mas os módulos podem ter mudado. Atualiza só
+        # eles (idempotente) para não deixar app e branch divergentes.
+        print("já aplicado: o main.js já registra o identidade-ipc")
+        if not a.aplicar:
+            print("  dry-run: nada gravado (use --aplicar para atualizar só os módulos)")
+            return 0
+        os.makedirs(services, exist_ok=True)
+        for m in presentes:
+            destino = os.path.join(services, os.path.basename(m))
+            iguais = os.path.isfile(destino) and sha(destino) == sha(m)
+            shutil.copy2(m, destino)
+            print(f"  módulo {'(sem mudança)' if iguais else '(atualizado)'}: {destino}")
+        print("  main.js não foi tocado (a linha já existia)")
         return 0
 
     n = original.count(ANCORA)

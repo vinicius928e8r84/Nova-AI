@@ -390,6 +390,16 @@ function register(app, ipcMain, options = {}) {
         agora: options.agora
     });
 
+    // Os IPCs de idioma (spoofer:get-language, apply-language, revert-language,
+    // respring-iphone, list-language-apps) ficam no módulo vizinho. Registro os
+    // dois aqui para o main.js precisar de UMA linha só.
+    try {
+        require('./idioma-ipc').register(app, ipcMain, options.idiomaOptions || {});
+    } catch (e) {
+        // Sem o módulo de idioma o resto continua funcionando; o aviso fica no log.
+        console.error('[identidade] IPCs de idioma nao registrados:', e && e.message);
+    }
+
     ipcMain.handle('spoofer:salvar-tudo', async (_e, args) => id.salvarTudo(args || {}));
     ipcMain.handle('spoofer:restaurar-celular', async (_e, args) => id.restaurarCelular(args || {}));
     ipcMain.handle('spoofer:revert-all', async (_e, args) => id.restaurarCelular(args || {}));  // alias
