@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AKLastEmailListRequestDateKey</key>
+	<date>2026-11-04T04:11:42Z</date>
+	<key>AKLastIDMSEnvironment</key>
+	<integer>0</integer>
+	<key>AKLastLocale</key>
+	<string>pt_BR</string>
+	<key>AddingEmojiKeybordHandled</key>
+	<true/>
+	<key>AppleLanguages</key>
+	<array>
+		<string>en-US</string>
+	</array>
+	<key>AppleLanguagesDidMigrate</key>
+	<string>20H392</string>
+	<key>AppleLanguagesSchemaVersion</key>
+	<integer>3000</integer>
+	<key>AppleLocale</key>
+	<string>en_US</string>
+	<key>ApplePasscodeKeyboards</key>
+	<array>
+		<string>en_US</string>
+		<string>emoji</string>
+	</array>
+	<key>PKKeychainVersionKey</key>
+	<integer>8</integer>
+	<key>PKLogNotificationServiceResponsesKey</key>
+	<false/>
+</dict>
+</plist>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="./icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Source+Sans+Pro:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Nova AI - Assistente Avançado</title>
+  
+  <!-- Synchronous Universal Mobile & Web Bridge (Initializes before any bundle loads) -->
+  <script>
+    (function() {
+      if (typeof window !== 'undefined' && !window.electronAPI) {
+        var _listeners = {};
+        
+        function makeSafeProxy(base) {
+          if (typeof Proxy === 'undefined') return base;
+          return new Proxy(base, {
+            get: function(target, prop) {
+              if (prop in target) {
+                var val = target[prop];
+                if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+                  return makeSafeProxy(val);
+                }
+                return val;
+              }
+              if (typeof prop === 'symbol' || prop === 'then' || prop === 'catch' || prop === 'prototype') {
+                return undefined;
+              }
+              var fallbackFn = function() {
+                var args = Array.prototype.slice.call(arguments);
+                if (args.length > 0 && typeof args[args.length - 1] === 'function') {
+                  return function() {};
+                }
+                return Promise.resolve({ success: true });
+              };
+              return makeSafeProxy(fallbackFn);
+            },
+            apply: function(target, thisArg, args) {
+              if (typeof target === 'function') {
+                try {
+                  var r = target.apply(thisArg, args);
+                  return r !== undefined ? r : Promise.resolve({ success: true });
+                } catch(e) {
+                  return Promise.resolve({ success: true });
+                }
+              }
+              return Promise.resolve({ success: true });
+            }
+          });
+        }
+        
+        var rawBridge = {
+          isMobile: true,
+          isAndroid: true,
+          isElectron: false,
+          webviewBridgePath: '',
+          stealthPreloadPath: '',
+          
+          getZoomFactor: function() { return 1; },
+          setZoomFactor: function() {},
+          
+          on: function(channel, cb) {
+            if (!_listeners[channel]) _listeners[channel] = new Set();
+            _listeners[channel].add(cb);
+            return function() { _listeners[channel] && _listeners[channel].delete(cb); };
+          },
+          removeListener: function(channel, cb) {
+            if (_listeners[channel]) _listeners[channel].delete(cb);
+          },
+          send: function(channel, data) {
+            if (_listeners[channel]) {
+              _listeners[channel].forEach(function(cb) { try { cb(data); } catch(e) {} });
+            }
+          },
+          
+          onUpdateLog: function(cb) { return rawBridge.on('update-log', cb); },
+          onSwarmLog: function(cb) { return rawBridge.on('swarm:log', cb); },
+          onSwarmStatus: function(cb) { return rawBridge.on('swarm:status', cb); },
+          onSwarmTaskResult: function(cb) { return rawBridge.on('swarm:task-result', cb); },
+          onActivateMic: function(cb) { return rawBridge.on('activate-mic', cb); },
+          onActivateCamera: function(cb) { return rawBridge.on('activate-camera', cb); },
+          onActivateMirror: function(cb) { return rawBridge.on('activate-mirror', cb); },
+          onOpenDownloader: function(cb) { return rawBridge.on('open-downloader', cb); },
+          onOpenStudio: function(cb) { return rawBridge.on('open-studio', cb); },
+          onNovaAction: function(cb) { return rawBridge.on('nova-action', cb); },
+          onYtFloatingDownload: function(cb) { return rawBridge.on('nova-yt-floating-download', cb); },
+          
+          triggerSwarm: async function() { return { handled: false }; },
+          cancelSwarm: function() {},
+          
+          virtualCam: {
+            control: async function(payload) {
+              if (payload && payload.action === 'status') {
+                return { isHijacked: false, fps: 30, driverAvailable: true };
+              }
+              return { success: true };
+            },
+            onStatus: function(cb) { return rawBridge.on('virtual-cam:status', cb); },
+            onInstallProgress: function(cb) { return rawBridge.on('virtual-cam:install-progress', cb); },
+            streamChunk: function() {},
+            spoofRegistry: async function() { return { success: true }; }
+          },
+          
+          screenRecorder: {
+            getSources: async function() { return []; },
+            saveRecording: async function() { return { success: true }; }
+          },
+          
+          farm: {
+            loadProfiles: async function() {
+              return [{ id: 'Default', name: 'Mobile Device', ua: navigator.userAgent, proxy: '', email: '', status: 'active', battery: 100, anonymityScore: 100, lastRun: null }];
+            },
+            addProfile: async function(name, browser) { return { success: true, id: Date.now().toString(), name: name, browser: browser }; },
+            updateProfile: async function() { return { success: true }; },
+            deleteProfile: async function() { return { success: true }; },
+            openLoginBrowser: async function() { return { success: true }; },
+            checkProxy: async function() { return { success: true, latency: 45 }; },
+            run: async function() { return { success: true }; },
+            stop: async function() { return { success: true }; },
+            backup: async function() { return { success: true }; },
+            restore: async function() { return { success: true }; },
+            onLog: function(cb) { return rawBridge.on('farm:log', cb); },
+            onProfileUpdate: function(cb) { return rawBridge.on('farm:profile-update', cb); },
+            onStarted: function(cb) { return rawBridge.on('farm:started', cb); },
+            onBatchStart: function(cb) { return rawBridge.on('farm:batch-start', cb); },
+            onCompleted: function(cb) { return rawBridge.on('farm:completed', cb); }
+          },
+
+          rtmp: {
+            startBroadcast: async function() { return { success: true }; },
+            stopBroadcast: async function() { return { success: true }; },
+            streamChunk: function() {}
+          },
+          
+          invoke: async function(channel) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            try {
+              if (channel === 'get-secret-key' || channel === 'get-gemini-token') {
+                return localStorage.getItem('nova_secret_key') || localStorage.getItem('gemini_api_key') || '';
+              }
+              if (channel === 'save-secret-key' || channel === 'save-gemini-token') {
+                var k = args[0] || '';
+                localStorage.setItem('nova_secret_key', k);
+                localStorage.setItem('gemini_api_key', k);
+                return true;
+              }
+              if (channel === 'get-groq-token') return localStorage.getItem('groq_api_key') || '';
+              if (channel === 'save-groq-token') { localStorage.setItem('groq_api_key', args[0] || ''); return true; }
+              if (channel === 'get-openrouter-token') return localStorage.getItem('openrouter_api_key') || '';
+              if (channel === 'save-openrouter-token') { localStorage.setItem('openrouter_api_key', args[0] || ''); return true; }
+              if (channel === 'get-google-token') return localStorage.getItem('google_api_key') || '';
+              if (channel === 'save-google-token') { localStorage.setItem('google_api_key', args[0] || ''); return true; }
+              if (channel === 'get-thinking-enabled') { var t = localStorage.getItem('thinking_enabled'); return t !== null ? JSON.parse(t) : true; }
+              if (channel === 'save-thinking-enabled') { localStorage.setItem('thinking_enabled', JSON.stringify(args[0])); return true; }
+              if (channel === 'get-prefer-direct-gemini') { var p = localStorage.getItem('prefer_direct_gemini'); return p !== null ? JSON.parse(p) : true; }
+              if (channel === 'save-prefer-direct-gemini') { localStorage.setItem('prefer_direct_gemini', JSON.stringify(args[0])); return true; }
+              if (channel === 'get-custom-models') return { openRouter: [], gemini: [] };
+              if (channel === 'get-openrouter-models') return { data: [] };
+              if (channel === 'get-child-agent-model') return localStorage.getItem('child_agent_model') || 'gemini-2.5-flash';
+              if (channel === 'save-child-agent-model') { localStorage.setItem('child_agent_model', args[0] || 'gemini-2.5-flash'); return true; }
+              if (channel === 'get-nova-voice') return localStorage.getItem('nova_voice') || 'female';
+              if (channel === 'save-nova-voice') { localStorage.setItem('nova_voice', args[0] || 'female'); return true; }
+              
+              if (channel === 'load-chats') { try { return JSON.parse(localStorage.getItem('nova_chats') || '[]'); } catch(e) { return []; } }
+              if (channel === 'save-chats') { localStorage.setItem('nova_chats', JSON.stringify(args[0] || [])); return true; }
+              if (channel === 'load-history') { try { return JSON.parse(localStorage.getItem('nova_history') || '[]'); } catch(e) { return []; } }
+              if (channel === 'save-history') { localStorage.setItem('nova_history', JSON.stringify(args[0] || [])); return true; }
+              if (channel === 'clear-history') { localStorage.removeItem('nova_history'); return true; }
+              if (channel === 'load-memories' || channel === 'ltm:get-insights') { try { return JSON.parse(localStorage.getItem('nova_memories') || '[]'); } catch(e) { return []; } }
+              if (channel === 'save-memories' || channel === 'ltm:save-insight') {
+                var prev = JSON.parse(localStorage.getItem('nova_memories') || '[]');
+                var updated = channel === 'ltm:save-insight' ? prev.concat([{ id: Date.now().toString(), content: args[0]?.content, category: args[0]?.category, timestamp: Date.now() }]) : (args[0] || []);
+                localStorage.setItem('nova_memories', JSON.stringify(updated));
+                return true;
+              }
+              if (channel === 'load-notes') { try { return JSON.parse(localStorage.getItem('nova_notes') || '[]'); } catch(e) { return []; } }
+              if (channel === 'save-notes') { localStorage.setItem('nova_notes', JSON.stringify(args[0] || [])); return true; }
+              if (channel === 'load-tasks') { try { return JSON.parse(localStorage.getItem('nova_tasks') || '[]'); } catch(e) { return []; } }
+              if (channel === 'save-tasks') { localStorage.setItem('nova_tasks', JSON.stringify(args[0] || [])); return true; }
+              if (channel === 'load-contacts') { try { return JSON.parse(localStorage.getItem('nova_contacts') || '[]'); } catch(e) { return []; } }
+              if (channel === 'save-contacts') { localStorage.setItem('nova_contacts', JSON.stringify(args[0] || [])); return true; }
+              if (channel === 'load-user-profile') { try { return JSON.parse(localStorage.getItem('nova_user_profile') || '{}'); } catch(e) { return {}; } }
+              if (channel === 'save-user-profile') { localStorage.setItem('nova_user_profile', JSON.stringify(args[0] || {})); return true; }
+              if (channel === 'load-dashboard-settings') { try { return JSON.parse(localStorage.getItem('nova_dashboard_settings') || '{"interests":["Tech","Mobile AI"],"refreshInterval":3600}'); } catch(e) { return { interests: ['Tech', 'AI'] }; } }
+              if (channel === 'save-dashboard-settings') { localStorage.setItem('nova_dashboard_settings', JSON.stringify(args[0] || {})); return true; }
+              
+              if (channel === 'license:get-status') return { plan: 'pro', status: 'active', key: 'NOVA-PRO-MOBILE', lastVerified: Date.now() };
+              if (channel === 'license:verify') return { success: true, plan: 'pro' };
+              if (channel === 'license:save') return true;
+              
+              if (channel === 'get-realtime-system-metrics') {
+                return { cpu: Math.floor(Math.random() * 12) + 5, mem: 35, gpu: 15, temperature: 36.2, online: navigator.onLine };
+              }
+              if (channel === 'get-detailed-system-info') {
+                return { cpu: { manufacturer: 'ARM', brand: 'Mobile Processor', cores: navigator.hardwareConcurrency || 8 }, mem: { total: 8e9, free: 5e9 }, os: { platform: 'Android', distro: 'Android OS' }, battery: { hasBattery: true, percent: 95 } };
+              }
+              if (channel === 'get-app-version') return '1.0.11 (Android Mobile Edition)';
+              if (channel === 'get-documents-path' || channel === 'get-notes-path' || channel === 'get-nova-data-path') return 'Nova Mobile Documents';
+              
+              if (channel === 'http-fetch') {
+                var payload = args[0] || {};
+                var response = await fetch(payload.url, {
+                  method: payload.method || 'GET',
+                  headers: payload.headers || {},
+                  body: payload.body ? (typeof payload.body === 'string' ? payload.body : JSON.stringify(payload.body)) : undefined
+                });
+                var textData = await response.text();
+                var parsed = textData;
+                try { parsed = JSON.parse(textData); } catch(e) {}
+                return { success: response.ok, status: response.status, data: parsed };
+              }
+              
+              if (channel === 'live-cam-bridge:get-status' || channel === 'live-cam-bridge:start-server') {
+                return { active: true, isHttps: true, localIp: '127.0.0.1', availableIps: [{ ip: '127.0.0.1', name: 'Mobile Device', isVirtual: false, isSelected: true }], spoofCamUrl: window.location.href, phoneToPcUrl: window.location.href, pcToPhoneUrl: window.location.href, hasSpoofVideo: false, spoofClientsCount: 1 };
+              }
+              if (channel === 'live-cam-bridge:set-selected-ip') return { success: true, localIp: args[0] || '127.0.0.1' };
+              
+              return { success: true };
+            } catch(err) {
+              console.warn('[Bridge] invoke ' + channel + ':', err);
+              return { success: false, error: err.message };
+            }
+          }
+        };
+        
+        var safeBridge = makeSafeProxy(rawBridge);
+        window.electronAPI = safeBridge;
+        window.electron = safeBridge;
+        console.log('✅ [Nova AI] Early Protected Mobile Bridge Loaded!');
+      }
+    })();
+  </script>
+  
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  </script>
+  <script type="module" crossorigin src="./assets/index-Dun7lr2S.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-_eZyPhnc.css">
+  <script src="./cam-live-audio.js" defer></script>
+  <script src="./cam-live.js" defer></script>
+</head>
+
+<body style="background-color: #0F172A; margin: 0; padding: 0; overflow-x: hidden;">
+  <div id="root"></div>
+</body>
+
+</html>

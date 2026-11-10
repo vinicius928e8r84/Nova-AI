@@ -1,0 +1,14 @@
+node_modules/
+*.bak
+*.bak-*
+*.bak_*
+.DS_Store
+*.log
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+.env
+.env.*
+iphone-hosts.json
+known_hosts
