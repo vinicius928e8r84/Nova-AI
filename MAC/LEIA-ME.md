@@ -238,3 +238,34 @@ Com o iPhone 8 Plus **plugado no cabo** (jailbreak religado, OpenSSH ativo — a
 | `LEIA-ME.md` | Este arquivo |
 
 Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
+
+## QA — testes de 08/11/2026 (fuso, idioma, persistência)
+
+Testado (somente leitura, nada alterado):
+- Fuso no aparelho: `America/New_York`; sobreviveu a dois resprings às 14:25 e a um respring às 14:42 (SpringBoard reiniciado), ou seja, não depende da tela nem da sessão. Persistência após **reboot não foi testada** (aparelho ligado há 1d21h).
+- `nova-locale`: daemon no launchd com `RunAtLoad` + `KeepAlive`; `/var/tmp/nova-locale.err` em 0 B há mais de um dia.
+- Idiomas: sistema em `en-US`/`en_US`; override por app (Ajustes, `pt-BR`) intacto e com backup; Ajustes tem `pt_BR.lproj` e `Localizable.loctable` com `pt_BR` ("Geral"), então há o que renderizar.
+- Bundle instalado: `idioma undefined` não existe mais (0 ocorrências; agora mostra o idioma só se vier preenchido).
+
+Falha encontrada nesta data:
+- **Fuso fora de sincronia com a proxy**: saída medida `72.217.16.159` = Phoenix/Arizona (`America/Phoenix`, UTC-7); aparelho em `America/New_York` (UTC-5), 2 h de diferença. O fuso só é reaplicado quando a aba do proxy abre ou o proxy é salvo; a credencial `session` gira o IP e o fuso fica velho. Precisa de `hardsession` (ou reaplicar depois da rotação).
+
+Sem teste possível daqui:
+- Prova visual do idioma por app: screenshot do aparelho sai 100% preto (1242×2208) porque a tela está apagada; precisa acordar o iPhone (botão lateral) para a captura funcionar.
+- Troca de idioma do sistema inteiro: só pela tela Ajustes → Geral → Idioma e Região (não há API).
+
+### QA — idioma do aparelho, 08/11/2026 17:18
+
+Medido:
+- `.GlobalPreferences.plist` no aparelho agora tem `AppleLanguages = ["pt-BR"]` (era `en-US`) — a mudança chegou ao disco, então **persiste após desligar**.
+- `AppleLocale` continua `en_US` e `ApplePasscodeKeyboards` em `en_US`: estado misto (texto em português, formato de data/número e teclado dos EUA).
+- 10+ domínios de app já gravaram `pt-BR` (Settings, MobileSMS, Notes, Photos, Accessibility, WatchListKit…), o que mostra que o idioma novo está sendo aplicado de fato. SpringBoard reiniciado (PID 13758).
+- Não existe backup do `.GlobalPreferences.plist` original no aparelho. Rollback disponível no Mac: `/tmp/gp-check.plist` (en-US, 435 B, conferido).
+
+Consequência: o Safari passa a mandar `Accept-Language: pt-BR` (segue o idioma primário do sistema). Com IP/GPS dos EUA isso é inconsistência.
+
+Não testado: prova visual (2 screenshots saíram 100% pretos, tela apagada); reversão de fato.
+
+### QA — "escolher o idioma no app"
+
+O app instalado não tem seletor nem IPC de idioma: só `spoofer:apply-locale`/`revert-locale` e `iosApplyLocale(deviceId, timezone)`, que ignora o terceiro argumento (país). Para ter escolha na tela é código novo: UI (Frontend) + escrita do idioma pelo `CFPreferences` como `mobile` (não por cópia de plist) + respring + leitura de volta para mostrar o valor real.
