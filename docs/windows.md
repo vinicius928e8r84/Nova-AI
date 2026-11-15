@@ -40,7 +40,7 @@ o Windows não tem um `python3` no PATH. Pule a checagem com `$env:YOUTUBE_DL_SK
 npm start
 ```
 
-Na primeira abertura aparece "Controle de Acesso" (chave secreta local). Dados do usuário em
+O app abre direto, sem a tela "Controle de Acesso". A chave de API do Gemini se informa em Configurações. Dados do usuário em
 `%APPDATA%\nova_dsktp\`.
 
 ## 4. Complementos que ficam fora do git

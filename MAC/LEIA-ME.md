@@ -1492,3 +1492,10 @@ Com o iPhone 8 Plus **plugado no cabo** (jailbreak religado, OpenSSH ativo — a
 | `LEIA-ME.md` | Este arquivo |
 
 Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
+
+## 2026-11-15 — Tela "Controle de Acesso" removida (Mac e Windows)
+
+- **O que era:** modal (`VX` no bundle) que pedia a chave de API do Gemini e a gravava em `secret_key.json`. Abria sozinho na inicialização quando `get-gemini-token` voltava vazio.
+- **O que mudou:** no bundle, `xI||j(!0)` foi removido do callback de `get-gemini-token`; o app abre direto. Sem chave, as funções do Gemini falham até a chave ser informada em Configurações.
+- **Arquivos:** `app/dist/assets/index-Dun7lr2S.js` e `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js`; docs `docs/windows.md` e `app/README.md`. `main.js` não mudou (`license:verify` segue como stub local).
+- **Sem testar:** abertura real do Electron (Mac/Windows).
