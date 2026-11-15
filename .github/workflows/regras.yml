@@ -1,0 +1,52 @@
+name: Regras
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regras-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regras:
+    name: Regras de revisão
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ESLINT_BIN: ${{ runner.temp }}/eslint/node_modules/eslint/bin/eslint.js
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Instalar o ESLint
+        run: npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/eslint" eslint@9.39.4
+      - name: Testes das regras
+        run: node --test "scripts/regras/test/*.test.js"
+      - name: Regras de revisão
+        run: node scripts/regras/verificar.js
+        env:
+          REGRAS_BASE: origin/${{ github.base_ref }}
+          REGRAS_EXIGE_FERRAMENTAS: "1"
+
+  auditoria:
+    name: Auditoria de dependências
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: npm audit (só alto e crítico, só o que a PR introduz)
+        run: node scripts/regras/auditoria.js --base "origin/$BASE"
+        env:
+          BASE: ${{ github.base_ref }}

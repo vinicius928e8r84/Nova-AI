@@ -1,5 +1,9 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Regras automáticas de qualidade nas PRs — 15/11/2026
+
+Toda PR passa a ser conferida por três checks do GitHub Actions: `Regras de revisão` (nenhum comentário novo, no máximo 1000 linhas por arquivo de código com uma linha de base que só encolhe, sem segredo, sem binário ou instalador, sem `console.log` novo, sintaxe válida, ESLint nas linhas novas), `Registro da PR` (linha `Atenção:`, prova real com o SHA do head quando ALTA, revisão independente no head exato, caminhos sensíveis contam como ALTA) e `Auditoria de dependências` (`npm audit` só do que a PR introduz). Arquivos: `scripts/regras/`, `.github/workflows/regras.yml`, `.github/workflows/registro-da-pr.yml`, `.github/PULL_REQUEST_TEMPLATE.md`, `CONTRIBUTING.md`, `AGENTS.md` (uma linha corrigida). Nenhum arquivo do app foi alterado. **Não testado:** a execução dos workflows no GitHub antes de a PR abrir; a proteção da `main` com os checks obrigatórios ainda não foi configurada (texto em `CONTRIBUTING.md`).
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.

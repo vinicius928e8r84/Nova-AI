@@ -1,0 +1,57 @@
+{
+  "limiteDeLinhas": 1000,
+  "linhasDoCabecalho": 5,
+  "marcasDeGerado": ["@generated", "DO NOT EDIT", "Code generated"],
+  "extensoesDoLimite": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "command", "m", "mm", "h", "x", "swift", "c", "cpp"],
+  "extensoesDeComentario": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "command"],
+  "ignorarCodigo": [
+    {"glob": "dist/", "motivo": "saída de build e bundle da interface"},
+    {"glob": "build/", "motivo": "saída de build"},
+    {"glob": "release/", "motivo": "instaladores gerados"},
+    {"glob": "browsers/", "motivo": "navegadores baixados"},
+    {"glob": "node_modules/", "motivo": "dependências de terceiros"},
+    {"glob": "vendor/", "motivo": "cópia de terceiros"},
+    {"glob": "third_party/", "motivo": "cópia de terceiros"},
+    {"glob": "coverage/", "motivo": "relatório de cobertura"},
+    {"glob": "fixtures/", "motivo": "dados de teste"},
+    {"glob": "reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
+    {"glob": "backup*/", "motivo": "cópias de segurança de arquivos"},
+    {"glob": "*.min.*", "motivo": "arquivo minificado"},
+    {"glob": "*.map", "motivo": "source map"},
+    {"glob": "*.lock", "motivo": "trava de pacotes"},
+    {"glob": "package-lock.json", "motivo": "trava de pacotes"},
+    {"glob": "npm-shrinkwrap.json", "motivo": "trava de pacotes"},
+    {"glob": "yarn.lock", "motivo": "trava de pacotes"},
+    {"glob": "pnpm-lock.yaml", "motivo": "trava de pacotes"}
+  ],
+  "consolePermitidoEm": [
+    {"glob": "scripts/", "motivo": "ferramentas de linha de comando escrevem na saída"},
+    {"glob": "test/", "motivo": "testes"},
+    {"glob": "teste/", "motivo": "testes"},
+    {"glob": "*.test.*", "motivo": "testes"},
+    {"glob": "MAC/", "motivo": "ferramentas de integração e aplicação de patches"}
+  ],
+  "binarios": {
+    "extensoesProibidas": ["dmg", "exe", "msi", "zip", "tgz", "gz", "bz2", "xz", "7z", "rar", "deb", "rpm", "pkg", "appimage", "apk", "ipa", "jar", "asar", "dll", "so", "dylib", "node", "pyc", "sqlite", "db"],
+    "assinaturasProibidas": [
+      {"nome": "executável Windows (MZ)", "hex": "4d5a"},
+      {"nome": "executável Linux (ELF)", "hex": "7f454c46"},
+      {"nome": "Mach-O 64 bits", "hex": "cffaedfe"},
+      {"nome": "Mach-O 32 bits", "hex": "cefaedfe"},
+      {"nome": "Mach-O universal", "hex": "cafebabe"},
+      {"nome": "arquivo ZIP", "hex": "504b0304"},
+      {"nome": "arquivo gzip", "hex": "1f8b"},
+      {"nome": "pacote ar (.deb)", "hex": "213c617263683e"}
+    ],
+    "tamanhoMaximoMB": 8,
+    "lixo": ["*.bak", "*.bak-*", "*.bak.*", "*.orig", "*.rej", "*.swp", "*~", "*.antes-*", ".DS_Store", "*.log"]
+  },
+  "arquivosProibidos": [
+    "secret_key.json", "*_key.json", "remote_tokens.json", "id_iphone", "id_iphone.pub", "id_rsa", "id_ed25519", "id_ecdsa",
+    ".env", ".env.*", "*.pem", "*.p12", "*.pfx", "*.keystore", "*.jks", "*.mobileprovision", ".npmrc", ".netrc",
+    "credentials.json", "service-account*.json", "*.kdbx", ".wwebjs_auth/", ".wwebjs_cache/", "Partitions/", "browser-data*/", "teste-perfil-*/"
+  ],
+  "auditoria": {
+    "nivelMinimo": ["high", "critical"]
+  }
+}
