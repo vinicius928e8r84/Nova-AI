@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Rodar e gerar instalador a partir do repositório — 15/11/2026
+
+`app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.
+
+**Comparação:** o `app/` do repositório é idêntico ao app do pacote `Nova-AI-Mac-AppleSilicon-2026-11-10.dmg` (só difere a chave do Google neutralizada em `admin.html`). O app Windows instalado (`app.asar`, 30/10/2026) difere em 27 de 115 arquivos; detalhes em `docs/windows.md`. O código só do Windows (licença Firebase com chave embutida) não foi trazido.
+
+**Testado no Mac (Node 22.23, macOS 15):** `npm install` do zero, `npm start` (`NOVA_SMOKE_TEST=1`: interface carregou), `npm run dist:mac` gerou o `.dmg` (1,06 GB com Chromium embutido), `codesign --verify --deep --strict` passou no `.app` copiado do DMG, e o `.app` copiado abriu e carregou a interface. **Não testado:** `npm run dist:win` em Windows (no Mac falha por compilação cruzada dos módulos nativos); `npm install` com Python 3.11+ de verdade (foi usado `YOUTUBE_DL_SKIP_PYTHON_CHECK=1`); recursos fora do git (`ffmpeg`, `adb`, `.deb`) no instalador gerado.
+
 ## Seletor de modelo no app instalado (IPCs spoofer:*) — 06/11/2026
 
 Com o OK do usuário (OK1), implementados no app instalado em `/Applications/Nova AI Mac.app`:
