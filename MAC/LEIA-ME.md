@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Menu e encerramento no Windows (PR-C da paridade) — 15/11/2026
+
+No Windows a janela agora tem o mesmo menu do Mac (Nova AI, Editar, Visualizar com Ctrl+R e DevTools, Janela); a barra continua escondida e aparece com Alt. Ao fechar a última janela no Windows, além de `stopWindowServices`, também são parados `ios-bridge`, CAM LIVE (iPhone e serviço), `live-cam-bridge`, difusão e servidor RTMP e a checagem do Telegram, a mesma lista que o Mac já usava. No Mac nada muda: o menu e a lista de parada são os mesmos, só passaram para `app/electron/services/nova-desktop-parity.js`.
+
+Arquivos: `app/electron/main.js`, `app/electron/services/nova-desktop-parity.js` (novo), `app/electron/services/test/nova-desktop-parity.test.js` (novo; `node --test app/electron/services/test/`). Para reaplicar no app instalado do Mac: copiar `main.js` e `nova-desktop-parity.js` para `Resources/app/electron/` (guardar o anterior em `reservas/`) e reiniciar o Nova.
+
+**Não testado:** Windows real (menu na tela, Ctrl+R, DevTools, processos `iproxy`/`ffmpeg`/Chrome no Gerenciador de Tarefas após fechar), Mac real e iPhone. No Windows não há limpeza de processos filhos por varredura como no Mac (`nova-shutdown.js` usa `/bin/ps`); só os serviços listados são parados.
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.
