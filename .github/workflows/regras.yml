@@ -16,8 +16,6 @@ jobs:
     name: Regras de revisão
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    env:
-      ESLINT_BIN: ${{ runner.temp }}/eslint/node_modules/eslint/bin/eslint.js
     steps:
       - uses: actions/checkout@v5
         with:
@@ -26,7 +24,9 @@ jobs:
         with:
           node-version: 24
       - name: Instalar o ESLint
-        run: npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/eslint" eslint@9.39.4
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$RUNNER_TEMP/eslint" eslint@9.39.4
+          echo "ESLINT_BIN=$RUNNER_TEMP/eslint/node_modules/eslint/bin/eslint.js" >> "$GITHUB_ENV"
       - name: Testes das regras
         run: node --test "scripts/regras/test/*.test.js"
       - name: Regras de revisão
