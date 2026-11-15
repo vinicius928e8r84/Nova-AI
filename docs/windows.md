@@ -1,10 +1,10 @@
 # Nova AI no Windows — rodar e gerar o instalador
 
-> **Estado dos testes:** o passo a passo abaixo **não foi executado em um Windows**. Foram
-> testados no Mac (Apple Silicon): `npm install`, `npm start` e `npm run dist:mac`. Para o
-> Windows foi testado só que a configuração do NSIS é válida (gerou um `.exe` de 295 MB no Mac com
-> `--config.npmRebuild=false`, sem módulos nativos de Windows, por isso esse arquivo não serve para uso).
-> Se algum passo falhar no Windows, anote o erro: é o primeiro teste real.
+> **Estado dos testes:** testado em um Windows real (cópia limpa do repositório, Node 24.15):
+> o app abre com `npm start` e `npm run dist:win` gera o instalador NSIS. O instalador gerado
+> **não foi executado**, e os recursos de iPhone/celular/câmera virtual, WhatsApp, Telegram, voz e
+> licença não foram testados no Windows. No Mac (Apple Silicon) foram testados `npm install`,
+> `npm start` e `npm run dist:mac`. Se algum passo falhar, anote o erro.
 
 ## 1. Instalar o que falta (uma vez)
 
@@ -15,7 +15,7 @@ winget install Python.Python.3.12         # Python 3.11+ (o npm install exige)
 winget install Git.Git
 ```
 
-Node.js: instale a versão **22 LTS** pelo instalador de nodejs.org/en/download (aba v22). Não use Node 26.
+Node.js: instale a versão **22 LTS** pelo instalador de nodejs.org/en/download (aba v22). O Node 24.15 também foi testado e funcionou; o Node 22 não foi testado no Windows. Não use Node 26.
 
 Feche e abra o PowerShell, depois confira: `node -v` (22.x), `npm -v`, `python --version`.
 
@@ -25,7 +25,7 @@ Se o `npm install` pedir compilador para `better-sqlite3` ou `@jitsi/robotjs`, i
 ## 2. Baixar o código e instalar dependências
 
 ```powershell
-git clone https://github.com/vinicius928e8r84/Nova-AI.git
+git clone -c core.symlinks=false https://github.com/vinicius928e8r84/Nova-AI.git
 cd Nova-AI\app
 npm install
 ```

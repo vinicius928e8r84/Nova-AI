@@ -7,9 +7,9 @@
   "scripts": {
     "start": "electron .",
     "browsers": "node scripts/baixar-navegador.js",
-    "postinstall": "electron-builder install-app-deps && npm --prefix electron/services/iphone-setup install",
+    "postinstall": "node scripts/postinstall.js && npm --prefix electron/services/iphone-setup install",
     "dist:mac": "electron-builder --mac dmg --arm64 --config.appId=local.nova.ai.mac \"--config.productName=Nova AI Mac\"",
-    "dist:win": "electron-builder --win nsis --x64"
+    "dist:win": "electron-builder --win nsis --x64 --config.npmRebuild=false"
   },
   "license": "ISC",
   "type": "commonjs",
@@ -74,8 +74,6 @@
     "yt-search": "^2.13.1"
   },
   "devDependencies": {
-    "@electron/packager": "18.3.6",
-    "@electron/rebuild": "3.7.2",
     "electron": "34.5.8",
     "electron-builder": "26.18.0"
   },
