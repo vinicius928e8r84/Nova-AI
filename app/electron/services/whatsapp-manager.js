@@ -104,6 +104,14 @@ class WhatsAppManager {
     }
 
     killSessionBrowserProcesses() {
+        if (process.platform === 'darwin') {
+            try {
+                spawnSync('pkill', ['-f', '--', '--user-data-dir=.*session-nova-desktop-client'], { timeout: 12000, encoding: 'utf8' });
+            } catch (error) {
+                console.warn('[WhatsApp] Failed to terminate stale browser process:', error.message || error);
+            }
+            return;
+        }
         if (process.platform !== 'win32') return;
 
         const psCommand = [

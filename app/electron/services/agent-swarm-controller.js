@@ -23,6 +23,7 @@ const http   = require('http');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { shell       } = require('electron');
 const { browserService } = require('./browser-manager');
+const { downloadFile } = require('./paridade-utils');
 
 //  Tiny HTTPS GET 
 function httpGet(url, redirects = 0) {
@@ -481,36 +482,18 @@ Generate ONE PowerShell command to accomplish this.
                 //  Log 2
                 this.log('downloader', ` Saving to: ...Nova Downloads\\${filename}`);
 
-                await new Promise((resolve, reject) => {
-                    const child = spawn('powershell.exe', [
-                        '-NoProfile', '-Command',
-                        `Invoke-WebRequest -Uri "${target}" -OutFile "${outPath}" -UseBasicParsing`
-                    ], { windowsHide: true });
-
-                    this.activeChild = child;
-
-                    let lastPct = -1;
-                    child.stdout.on('data', d => {
-                        const m = String(d).match(/(\d+)\s*%/);
-                        if (m) {
-                            const pct = parseInt(m[1], 10);
-                            if (pct !== lastPct) {
-                                lastPct = pct;
-                                this.setStatus('downloader', 'busy', pct);
-                                //  Log progress every 10%
-                                if (pct % 10 === 0 || pct >= 99) {
-                                    this.log('downloader', ` Progress: ${pct}%`);
-                                }
-                            }
+                let lastPct = -1;
+                await downloadFile(target, outPath, {
+                    onRequest: req => { this.activeChild = { kill: () => req.destroy(new Error('SWARM_CANCELLED')) }; },
+                    onProgress: pct => {
+                        if (pct === lastPct) return;
+                        lastPct = pct;
+                        this.setStatus('downloader', 'busy', pct);
+                        if (pct % 10 === 0 || pct >= 99) {
+                            this.log('downloader', ` Progress: ${pct}%`);
                         }
-                    });
-
-                    child.on('close', code => {
-                        this.activeChild = null;
-                        code === 0 ? resolve(outPath) : reject(new Error(`Exit code ${code}`));
-                    });
-                    child.on('error', reject);
-                });
+                    }
+                }).finally(() => { this.activeChild = null; });
 
                 //  Log 3
                 this.log('downloader', ` Saved: ${filename}`);

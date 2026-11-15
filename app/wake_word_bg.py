@@ -2,7 +2,7 @@ import speech_recognition as sr
 import sys
 import json
 
-if sys.platform == 'darwin':
+try:
     import sounddevice as sd
     class MacMicrophone(sr.AudioSource):
         def __init__(self):
@@ -25,6 +25,8 @@ if sys.platform == 'darwin':
             self._input.close()
             self.stream=None
     sr.Microphone=MacMicrophone
+except (ImportError, OSError):
+    sd = None
 
 
 def listen_for_nova():

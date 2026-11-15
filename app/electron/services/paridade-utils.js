@@ -1,0 +1,58 @@
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const https = require('https');
+
+function hasUpdateConfig(resourcesPath = process.resourcesPath) {
+  try {
+    return !!resourcesPath && fs.existsSync(path.join(resourcesPath, 'app-update.yml'));
+  } catch (_) {
+    return false;
+  }
+}
+
+function edgeTtsBinary(platform, macPython) {
+  if (platform === 'darwin') return `"${macPython()}" -m edge_tts`;
+  if (platform === 'win32') return 'python -m edge_tts';
+  return 'edge-tts';
+}
+
+function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } = {}) {
+  return new Promise((resolve, reject) => {
+    const fetch = (target, left) => {
+      let client;
+      try {
+        client = new URL(target).protocol === 'https:' ? https : http;
+      } catch (e) {
+        return reject(e);
+      }
+      const req = client.get(target, { headers: { 'User-Agent': 'Mozilla/5.0 NovaAI' } }, res => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          res.resume();
+          if (left <= 0) return reject(new Error('Muitos redirecionamentos'));
+          return fetch(new URL(res.headers.location, target).toString(), left - 1);
+        }
+        if (res.statusCode !== 200) {
+          res.resume();
+          return reject(new Error(`HTTP ${res.statusCode}`));
+        }
+        const total = parseInt(res.headers['content-length'] || '0', 10);
+        let received = 0;
+        const out = fs.createWriteStream(outPath);
+        res.on('data', chunk => {
+          received += chunk.length;
+          if (total && onProgress) onProgress(Math.floor((received / total) * 100));
+        });
+        res.on('error', err => { out.destroy(); reject(err); });
+        out.on('error', reject);
+        out.on('finish', () => resolve(outPath));
+        res.pipe(out);
+      });
+      req.on('error', reject);
+      if (onRequest) onRequest(req);
+    };
+    fetch(url, maxRedirects);
+  });
+}
+
+module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile };

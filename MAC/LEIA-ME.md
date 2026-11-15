@@ -1,5 +1,17 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Paridade Mac × Windows — correções pequenas (PR-B) — 15/11/2026
+
+- `app/wake_word_bg.py`: o microfone por `sounddevice` deixou de ser só do Mac; vale em qualquer sistema (se `sounddevice` não carregar, cai no `sr.Microphone()` de antes). No Mac nada muda.
+- `app/electron/main.js`: o `edge-tts` do Windows passa a rodar por `python -m edge_tts` (o Mac continua com `"<python do Nova>" -m edge_tts`). O `autoUpdater` (verificação ao abrir, `check-for-update`, `download-update`, `install-update`) só é chamado se existir `resources/app-update.yml`; o Mac já não usava atualização.
+- `app/electron/services/agent-swarm-controller.js`: download direto de URL (fallback sem yt-dlp) agora usa `http`/`https` do Node, sem PowerShell. Passa a funcionar no Mac; segue redirecionamentos e informa progresso.
+- `app/electron/services/whatsapp-manager.js`: `killSessionBrowserProcesses()` também limpa no Mac (`pkill -f -- '--user-data-dir=.*session-nova-desktop-client'`) o Chrome que sobrou da sessão do WhatsApp. Novo comportamento de limpeza no Mac.
+- Novo `app/electron/services/paridade-utils.js` (`hasUpdateConfig`, `edgeTtsBinary`, `downloadFile`) e teste `app/test/paridade-b.test.js` (`node --test app/test/paridade-b.test.js`).
+
+**Testado (Linux, sem Mac/Windows/iPhone):** `node --check` nos arquivos tocados; testes unitários com `app-update.yml` ausente/presente, `edge_tts` por plataforma e download com redirecionamento/404 contra servidor local; `wake_word_bg.py` carregado com `sounddevice` presente/ausente simulando `win32`/`darwin`/`linux`; `pkill -f --` casando só o processo com `--user-data-dir=...session-nova-desktop-client`. **Sem teste real:** microfone/wake word no Windows, TTS no Windows, download no Mac, `pkill` no macOS (BSD), app empacotado sem `app-update.yml`.
+
+**Fora deste PR (follow-up):** remover `*.antes-proxy-*` do git e do pacote (item vi do plano).
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.
