@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Resolvedor de ferramentas por sistema (tool-paths.js) — 15/11/2026
+
+Novo módulo `app/electron/services/tool-paths.js`: devolve `ssh`/`scp`/`ssh-keygen` (Mac `/usr/bin/…`; Windows `%SystemRoot%\System32\OpenSSH\….exe`), `ffmpeg` (com `.exe` e `path.delimiter` no Windows), as ferramentas de `ios-tools` (com `.exe` no Windows), `GlobalKnownHostsFile` (`/dev/null` no Mac, `NUL` no Windows) e caminhos do `-i`/`UserKnownHostsFile` com `/` no Windows. No Mac o resultado é exatamente o de antes.
+
+Trocados: `/usr/bin/ssh` fixo em `ios-bridge.js`, `ios-camera.js`, `cam-live-iphone.js`, `idioma-ipc.js`, `physicalMobileService.js` (também `/usr/bin/scp`); `/usr/bin/ssh-keygen` em `iphone-setup/setup.js`; `mac-native.tool('ffmpeg')` em `ios-camera.js`, `cam-live-iphone.js` e `rtmp-server.js` (que no Windows passa a procurar também no `PATH`, além de `resources\bin\ffmpeg.exe`); `ios-tools.js` e `iphone-ssh.js` usam o módulo. Arquivos do app instalado a trocar (guardar o anterior em `reservas/`): esses nove mais `tool-paths.js`; reaplicar com `cp` para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`.
+
+**Testado:** `node --check` e `MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs` (simula `darwin`/`win32` no Linux; compara `ffmpeg()` com `mac-native.tool('ffmpeg')`). **Sem teste real:** Mac com iPhone (Conectar, abrir controle, CAM LIVE, idioma), Windows e OpenSSH do Windows. Teste de regressão no Mac é obrigatório antes de unir.
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.

@@ -32,7 +32,7 @@ function run(cmd, args, timeoutMs) {
   });
 }
 
-function ssh(command) { return run('/usr/bin/ssh', SSH_ARGS.concat(command)); }
+function ssh(command) { return run(require('./tool-paths').ssh(), SSH_ARGS.concat(command)); }
 
 // ── iproxy: mantem o encaminhamento VNC do celular vivo ──
 function vncReachable() {
