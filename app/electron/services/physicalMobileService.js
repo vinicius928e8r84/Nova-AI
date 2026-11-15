@@ -52,7 +52,7 @@ class PhysicalMobileService {
     // Comprehensive Path Resolver for ADB
     resolveAdbPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
+            return require('./mac-native').tool('adb') || require('./android-tools-mac').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
         }
 
         if (this._adbPath && fs.existsSync(this._adbPath)) {
@@ -96,7 +96,7 @@ class PhysicalMobileService {
     // Comprehensive Path Resolver for Scrcpy
     resolveScrcpyPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
+            return require('./mac-native').tool('scrcpy') || require('./android-tools-mac').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
         }
 
         if (this._scrcpyPath && fs.existsSync(this._scrcpyPath)) {
@@ -142,9 +142,31 @@ class PhysicalMobileService {
     // Seamless Self-Provisioning: Auto-download & extract ADB & Scrcpy
     async ensureTools(force = false) {
         if (process.platform === "darwin") {
-            const adb = this.adbPath, scrcpy = this.scrcpyPath;
-            const ready = fs.existsSync(adb) && fs.existsSync(scrcpy);
-            return {success:ready, message:ready?'Native macOS tools ready.':'Native adb/scrcpy missing. Install platform-tools and scrcpy for macOS.', adbPath:adb, scrcpyPath:scrcpy};
+            const adbOk = fs.existsSync(this.adbPath), scrcpyOk = fs.existsSync(this.scrcpyPath);
+            if (adbOk && scrcpyOk && !force) {
+                return { success: true, message: 'Native macOS tools ready.', adbPath: this.adbPath, scrcpyPath: this.scrcpyPath };
+            }
+            if (this.isProvisioning) return { success: true, message: 'Configuração em andamento...' };
+            this.isProvisioning = true;
+            this.sendToFrontend('physical-mobile:setup-progress', { stage: 'starting', message: 'Configurando Motor de Controle Móvel...' });
+            try {
+                const errors = await require('./android-tools-mac').ensureMacTools({
+                    baseDir: this.baseDir, adbReady: adbOk, scrcpyReady: scrcpyOk, force,
+                    progress: (p) => this.sendToFrontend('physical-mobile:setup-progress', p)
+                });
+                const adb = this.adbPath, scrcpy = this.scrcpyPath;
+                const ready = fs.existsSync(adb) && fs.existsSync(scrcpy);
+                if (errors.length || !ready) {
+                    const message = 'Não foi possível instalar adb/scrcpy automaticamente. ' + (errors.join(' | ') || 'Arquivos não encontrados após a instalação.') + ' Alternativa: brew install android-platform-tools scrcpy';
+                    console.error('[PhysicalMobile] ensureTools (macOS):', message);
+                    this.sendToFrontend('physical-mobile:setup-progress', { stage: 'error', message });
+                    return { success: false, error: message, adbPath: adb, scrcpyPath: scrcpy };
+                }
+                this.sendToFrontend('physical-mobile:setup-progress', { stage: 'done', message: 'Motores prontos!' });
+                return { success: true, message: 'Native macOS tools ready.', adbPath: adb, scrcpyPath: scrcpy };
+            } finally {
+                this.isProvisioning = false;
+            }
         }
 
         const adbReady = fs.existsSync(this.adbPath);

@@ -194,6 +194,17 @@ O app instalado recebeu encaminhamento iOS para CAM HIJACK, correção do caminh
 
 **Instalador anterior:** `Nova-AI-Mac-sem-ativacao.dmg` (1/11/2026, 789 MB) — é idêntico ao app **já instalado em `/Applications/Nova AI Mac.app`**, que é o que você usa no dia a dia. O `.zip` é o mesmo app em formato zip (backup).
 
+## Atualização de 15/11/2026 — auto-download de ADB e scrcpy no Mac (PR-G)
+
+- **O que mudou:** `ensureTools` (`physicalMobileService.js`), que só baixava no Windows, agora também baixa no macOS quando `adb` ou `scrcpy` não são achados (Homebrew, `resources/bin`, PATH). Quem já tem as ferramentas não muda nada.
+- **Fontes oficiais e verificação:** ADB de `dl.google.com` (SHA-1 conferido contra `repository2-3.xml` do Google; sem hash no manifesto = instalação cancelada); scrcpy v5.0.1 de `github.com/Genymobile/scrcpy` (SHA-256 fixo no código, arm64 e x64). Hash errado = arquivo descartado. Hosts fora da lista são recusados.
+- **Destino:** `~/Library/Application Support/nova_dsktp/physical_mobile/platform-tools/` e `.../scrcpy/`.
+- **Falha:** nunca silenciosa — `ensureTools` devolve `success:false` com a causa e manda `physical-mobile:setup-progress` com `stage:'error'` (sugere `brew install android-platform-tools scrcpy`).
+- **Arquivos:** `app/electron/services/android-tools-mac.js` (novo), `physicalMobileService.js`, `app/tests/android-tools-mac.test.js`, `app/README.md`.
+- **Testado:** `node --check` e `node --test app/tests/android-tools-mac.test.js` (rede e extração simuladas); hashes conferidos contra os downloads reais no Linux.
+- **Sem testar:** extração real (`ditto`/`tar`) e execução de adb/scrcpy num Mac; Android real; Gatekeeper/quarentena nos binários baixados.
+- **Reaplicar no app instalado:** copiar `android-tools-mac.js` e `physicalMobileService.js` para `Resources/app/electron/services/` (guardar o anterior em `reservas/`) e reiniciar o Nova.
+
 ## O que já foi feito ✅
 
 ### Port e base
