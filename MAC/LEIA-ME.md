@@ -1,5 +1,11 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## plutil → biblioteca JS para idioma/região (PR-E, I4) — 15/11/2026
+
+`iosBuildLocalePlist` e `iosPlistLanguage` (`physicalMobileService.js`) deixam de chamar `/usr/bin/plutil` direto e passam por `app/electron/services/plist-prefs.js`. No `darwin` o módulo executa os mesmos comandos `plutil` de antes, na mesma ordem (o caminho do Mac não muda). No `win32` lê/grava o `.GlobalPreferences.plist` com `plist` (XML) e `bplist-parser` (binário); o arquivo gravado é XML, como o `plutil -convert xml1` já fazia. `bplist-creator` entra só para os testes. Arquivos: `app/electron/services/plist-prefs.js`, `physicalMobileService.js`, `app/package.json`, `app/package-lock.json`, testes em `app/electron/services/testes/` (`node --test app/electron/services/testes/plist-prefs.test.js`, com plist de exemplo em `fixtures/`).
+
+**Testado:** `node --check` e 4 testes unitários isolados em Linux (XML e binário no ramo win32; comandos do ramo darwin conferidos com `execFile` simulado). **Sem teste real:** Mac, Windows e iPhone — falta aplicar/reverter idioma + fuso num aparelho nos dois sistemas. Não unificamos o Mac para JS.
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.
