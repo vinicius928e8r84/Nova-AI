@@ -420,6 +420,16 @@ class PhysicalMobileService {
     }
 
     async getIosDevices() {
+        try {
+            const iosTools = require('./ios-tools');
+            if (!iosTools.has('idevice_id') || !iosTools.has('ideviceinfo')) return [];
+            return await this._listIosDevices();
+        } catch (e) {
+            return [];
+        }
+    }
+
+    _listIosDevices() {
         return new Promise((resolve) => {
             execFile(require('./ios-tools').tool('idevice_id'), ['-l'], { timeout: 6000 }, (err, stdout) => {
                 if (err || !stdout) return resolve([]);

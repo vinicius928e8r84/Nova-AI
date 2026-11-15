@@ -1492,3 +1492,10 @@ Com o iPhone 8 Plus **plugado no cabo** (jailbreak religado, OpenSSH ativo — a
 | `LEIA-ME.md` | Este arquivo |
 
 Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
+
+## 2026-11-15 — PR-A de paridade: o iPhone não derruba o Windows
+
+- **O que mudou:** `ios-tools.js` ganhou `tryTool()`, `has()` e `available()` (não lançam; `tool()` segue igual). `getIosDevices()` devolve `[]` se as ferramentas do iPhone faltarem ou algo lançar, então `getStatus()` não rejeita e a lista Android continua. `ios-bridge.start()` devolve `{ ok: false }` sem ferramentas (sem `iproxy`, sem `UnhandledPromiseRejection`). O item "Console do iPhone" da bandeja só aparece quando as ferramentas existem; o IPC `ios-console-url` devolve o erro em vez de abrir página vazia.
+- **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`; teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
+- **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
+- **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com `getConnectedDevices` simulado (sem adb real).
