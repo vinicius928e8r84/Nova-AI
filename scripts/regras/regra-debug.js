@@ -10,7 +10,8 @@ const conserto = 'Tire a linha de depuração. O que o app precisa registrar usa
   + 'Scripts de linha de comando, testes e ferramentas de MAC/ podem imprimir (lista em scripts/regras/configuracao.json).';
 
 const PADROES_JS = [
-  { regex: /\bconsole\.(?:log|debug|trace|dir)\s*\(/, nome: 'console.log' },
+  { regex: /\bconsole\s*\.\s*(?:log|debug|trace|dir)\b/, nome: 'console.log' },
+  { regex: /\bconsole\s*\[\s*['"`](?:log|debug|trace|dir)['"`]\s*\]/, nome: 'console.log', comTextos: true },
   { regex: /\bdebugger\b/, nome: 'debugger' },
   { regex: /\b(?:it|test|describe)\.only\s*\(/, nome: '.only esquecido em teste' },
 ];
@@ -20,9 +21,9 @@ const PADROES_PY = [
   { regex: /^\s*(?:import pdb|from pdb import)\b/, nome: 'import pdb' },
 ];
 
-function linhasDeCodigo(arquivo, texto) {
+function linhasDeCodigo(arquivo, texto, comTextos) {
   const inicios = indiceDeLinhas(texto);
-  const trechos = ehJs(arquivo) ? (({ comentarios, textos }) => [...comentarios, ...textos])(analisarJs(texto)) : comentariosPy(texto);
+  const trechos = ehJs(arquivo) ? (({ comentarios, textos }) => [...comentarios, ...(comTextos ? [] : textos)])(analisarJs(texto)) : comentariosPy(texto);
   const linhas = texto.split('\n');
   const limpas = linhas.slice();
   for (const [de, ate] of trechos) {
@@ -49,9 +50,10 @@ function verificar(ctx) {
     if (!arquivo || arquivo.binario) continue;
     const permiteConsole = casaAlgum(ctx.config.consolePermitidoEm, caminho);
     const padroes = (js ? PADROES_JS : PADROES_PY).filter(p => !(permiteConsole && p.nome === 'console.log'));
-    const limpas = linhasDeCodigo(caminho, arquivo.texto);
+    const limpas = linhasDeCodigo(caminho, arquivo.texto, false);
+    const comTextos = linhasDeCodigo(caminho, arquivo.texto, true);
     for (const numero of [...novas].sort((a, b) => a - b)) {
-      const achado = padroes.find(p => p.regex.test(limpas[numero - 1] || ''));
+      const achado = padroes.find(p => p.regex.test((p.comTextos ? comTextos : limpas)[numero - 1] || ''));
       if (achado) achados.push({ arquivo: caminho, linha: numero, detalhe: `${achado.nome} novo` });
     }
   }

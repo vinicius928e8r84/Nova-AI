@@ -11,6 +11,10 @@ function classificar(arquivos, configuracao = configuracaoPadrao) {
       if (casaAlgum(regra.globs, caminho)) motivos.push({ arquivo: caminho, id: regra.id, motivo: regra.motivo, tipo: 'caminho' });
     }
     if (!configuracao.extensoesDoConteudo.includes(extensaoDe(caminho))) continue;
+    if (adicionadas === null) {
+      motivos.push({ arquivo: caminho, id: 'diff-ausente', motivo: 'o GitHub não devolveu o diff deste arquivo, então o conteúdo sensível não pôde ser conferido', tipo: 'conteudo' });
+      continue;
+    }
     for (const regra of padroes) {
       const linha = adicionadas.findIndex(texto => regra.regex.test(texto));
       if (linha >= 0) motivos.push({ arquivo: caminho, id: regra.id, motivo: regra.motivo, tipo: 'conteudo' });

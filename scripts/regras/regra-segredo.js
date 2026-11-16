@@ -16,22 +16,40 @@ const PADROES = [
   { nome: 'chave de API (sk-)', regex: /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{24,}\b/ },
   { nome: 'JWT', regex: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/ },
   { nome: 'token de bot do Telegram', regex: /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/ },
-  { nome: 'URL com usuário e senha', regex: /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@'"]+:[^\s/@'"]{4,}@[^\s'"]+/i },
 ];
 
-const ATRIBUICAO = /\b[\w.-]*(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]*['"]?\s*[:=]\s*['"]([^'"\s]{16,})['"]/i;
+const URL_COM_SENHA = /[a-z][a-z0-9+.-]{1,20}:\/\/[^\s/:@'"]{1,100}:([^\s/@'"]{4,200})@[^\s'"]{1,200}/gi;
+const SENHA_DE_EXEMPLO = /^(?:senha|password|passwd|pass|pwd|secret|segredo|usuario|user|username|usr|xxx+|\*+|s3nh[a0-9]*|<[^>]*>|\{[^}]*\}|\$\{?\w*\}?|%\w*|\.\.\.)$/i;
+
+const ATRIBUICAO = /(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]{0,60}['"]?\s{0,5}[:=]\s{0,5}['"]([^'"\s]{16,})['"]/i;
+const TAMANHO_DA_JANELA = 2000;
+const SOBRA_ENTRE_JANELAS = 200;
 const PLACEHOLDER = /x{4,}|\*{3,}|example|exemplo|sample|your|seu[_-]|changeme|placeholder|dummy|fake|<[^>]*>|\$\{|%\(|\{\{|process\.env|os\.environ|\.\.\./i;
 
 const pareceSegredo = valor => {
   if (PLACEHOLDER.test(valor)) return false;
   const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter(r => r.test(valor)).length;
+  if (/^[0-9a-f]{32,}$/i.test(valor)) return true;
   return classes >= 3 && new Set(valor).size >= 8;
 };
 
-function acharNaLinha(texto) {
+function acharNaJanela(texto) {
   for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
+  for (const url of texto.matchAll(URL_COM_SENHA)) {
+    if (!SENHA_DE_EXEMPLO.test(url[1].split(':').pop())) return 'URL com usuário e senha';
+  }
   const m = ATRIBUICAO.exec(texto);
   if (m && pareceSegredo(m[1])) return 'valor literal em campo de segredo';
+  return null;
+}
+
+function acharNaLinha(texto) {
+  if (texto.length <= TAMANHO_DA_JANELA) return acharNaJanela(texto);
+  const passo = TAMANHO_DA_JANELA - SOBRA_ENTRE_JANELAS;
+  for (let inicio = 0; inicio < texto.length; inicio += passo) {
+    const nome = acharNaJanela(texto.slice(inicio, inicio + TAMANHO_DA_JANELA));
+    if (nome) return nome;
+  }
   return null;
 }
 

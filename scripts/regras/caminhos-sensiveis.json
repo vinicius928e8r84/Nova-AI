@@ -9,7 +9,7 @@
     {"id": "execucao-de-processos", "motivo": "execução de processos, scripts e arquivos fora da pasta do app", "globs": ["**/child-worker-agent.js", "**/agent-swarm-controller.js", "**/nova-human-controller.js", "**/ytdlp-manager.js", "**/rtmp-server.js", "**/mac-native.js", "**/platform-utils.js", "**/browser-manager.js", "**/browserFarmService.js", "**/*.sh", "**/*.command", "app/scripts/**", "app/wake_word_bg.py"]},
     {"id": "ponte-do-iphone", "motivo": "ponte do iPhone, câmera virtual e proxy de rede do aparelho", "globs": ["**/iphone-*", "**/ios-*", "**/*iphone*", "**/physicalMobileService*", "**/cam-live*", "**/live-cam-bridge.js", "**/virtual-cam-injector.js", "**/geo-proxy*", "physical_mobile/**", "MAC/integracao-iphone/**", "MAC/proxy-iphone/**", "MAC/controle-celular-plataformas/**", "MAC/integracao-sequestro-cam/**", "MAC/integracao-camlive/**"]},
     {"id": "ssh", "motivo": "conexões SSH e instalação no aparelho", "globs": ["**/*ssh*", "**/iphone-setup/**"]},
-    {"id": "regras-do-repositorio", "motivo": "as próprias regras de revisão e a automação do GitHub", "globs": [".github/**", "scripts/regras/**", ".gitignore", "CONTRIBUTING.md", "AGENTS.md"]}
+    {"id": "regras-do-repositorio", "motivo": "as próprias regras de revisão e a automação do GitHub", "globs": [".github/**", "scripts/regras/**", ".gitignore", ".gitattributes", ".gitmodules", "CONTRIBUTING.md", "AGENTS.md"]}
   ],
   "conteudo": [
     {"id": "ipc", "motivo": "registra canal IPC ou muda a segurança da janela", "padrao": "ipcMain\\.(?:handle|on|once)\\b|contextBridge|nodeIntegration|contextIsolation|webSecurity|sandbox\\s*:"},

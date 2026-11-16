@@ -48,6 +48,34 @@ function lerStatus(texto) {
   return itens;
 }
 
+const ESCAPES = { a: 7, b: 8, t: 9, n: 10, v: 11, f: 12, r: 13, '"': 34, '\\': 92 };
+
+function desfazerAspas(texto) {
+  const bytes = [];
+  const miolo = Buffer.from(texto.slice(1, -1), 'utf8');
+  for (let i = 0; i < miolo.length; i++) {
+    const c = String.fromCharCode(miolo[i]);
+    if (c !== '\\') {
+      bytes.push(miolo[i]);
+      continue;
+    }
+    const proximo = String.fromCharCode(miolo[i + 1]);
+    if (/[0-7]/.test(proximo)) {
+      bytes.push(parseInt(miolo.subarray(i + 1, i + 4).toString('latin1'), 8));
+      i += 3;
+    } else {
+      bytes.push(ESCAPES[proximo] === undefined ? miolo[i + 1] : ESCAPES[proximo]);
+      i += 1;
+    }
+  }
+  return Buffer.from(bytes).toString('utf8');
+}
+
+function nomeDoCabecalho(resto) {
+  const bruto = resto.startsWith('"') ? desfazerAspas(resto.replace(/\t$/, '')) : resto.replace(/\t$/, '');
+  return bruto.startsWith('b/') ? bruto.slice(2) : null;
+}
+
 function linhasAcrescentadas(diff) {
   const porArquivo = new Map();
   let atual = null;
@@ -57,9 +85,9 @@ function linhasAcrescentadas(diff) {
       noCabecalho = true;
       atual = null;
     } else if (noCabecalho && linha.startsWith('+++ ')) {
-      const arquivo = /^\+\+\+ b\/(.+)$/.exec(linha);
-      atual = arquivo ? new Set() : null;
-      if (arquivo) porArquivo.set(arquivo[1], atual);
+      const nome = nomeDoCabecalho(linha.slice(4));
+      atual = nome === null ? null : new Set();
+      if (nome !== null) porArquivo.set(nome, atual);
     } else if (linha.startsWith('@@')) {
       noCabecalho = false;
       const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(linha);
@@ -101,7 +129,7 @@ function hashesDaBase(raiz, desde) {
 function lerMudancas(raiz, base) {
   const { desde } = base;
   const itens = lerStatus(git(raiz, ['diff', '--name-status', '-M', '-z', '--no-color', '--no-ext-diff', desde]));
-  const diff = git(raiz, ['diff', '-U0', '-M', '--no-color', '--no-ext-diff', desde]);
+  const diff = git(raiz, ['diff', '-U0', '-M', '--text', '--ignore-cr-at-eol', '--no-textconv', '--no-color', '--no-ext-diff', desde]);
   const acrescentadas = linhasAcrescentadas(diff);
   const novosSoltos = git(raiz, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean);
   const conhecidos = new Set(itens.map(item => item.caminho));

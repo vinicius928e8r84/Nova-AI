@@ -45,7 +45,7 @@ function verificar(ctx) {
     const caminho = path.relative(ctx.raiz, arquivo.filePath).split(path.sep).join('/');
     const novas = ctx.mudancas.acrescentadas.get(caminho) || new Set();
     for (const m of arquivo.messages) {
-      if (!m.fatal && !novas.has(m.line)) continue;
+      if (!novas.has(m.line)) continue;
       achados.push({ arquivo: caminho, linha: m.line, detalhe: `${m.message}${m.ruleId ? ` (${m.ruleId})` : ''}` });
     }
   }

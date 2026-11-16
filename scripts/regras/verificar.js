@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { ErroDeUso, lerArquivo, lerMudancas, resolverBase, tentar } = require('./git');
 const { classificar, resumo } = require('./risco');
+const { extensaoDe } = require('./globs');
+const caminhosSensiveis = require('./caminhos-sensiveis.json');
 const linhas = require('./regra-linhas');
 
 const REGRAS = [
@@ -20,7 +22,7 @@ const REGRAS = [
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
                                      [--criar-linha-de-base | --atualizar-linha-de-base]
 
-Confere o que a mudança (merge-base com a base até a árvore de trabalho) acrescenta; código antigo nunca falha.
+Confere o que a mudança (merge-base com a base até a árvore de trabalho) acrescenta ou toca; linha que a mudança não toca nunca falha.
 
   --base <ref>                 a branch-alvo (padrão: $REGRAS_BASE, senão origin/main)
   --raiz <pasta>               outro repositório (os testes usam)
@@ -62,6 +64,15 @@ function contexto(raiz, base, env, avisos) {
   };
   const arquivos = mudancas.itens.filter(item => item.status !== 'D');
   return { raiz, config, mudancas, arquivos, ler, env, aviso: texto => avisos.push(texto) };
+}
+
+function linhasAcrescentadasDe(ctx, caminho) {
+  const numeros = ctx.mudancas.acrescentadas.get(caminho);
+  if (!numeros || !numeros.size || !caminhosSensiveis.extensoesDoConteudo.includes(extensaoDe(caminho))) return [];
+  const arquivo = ctx.ler(caminho);
+  if (!arquivo || arquivo.binario) return [];
+  const linhas = arquivo.texto.split('\n');
+  return [...numeros].map(n => linhas[n - 1] || '');
 }
 
 function formatar(regra, achados) {
@@ -124,10 +135,7 @@ function main(argv, env = process.env) {
     if (achados.length) falhas.push(formatar(regra, achados));
     else console.log(`✓ ${regra.id}`);
   }
-  const risco = classificar(ctx.arquivos.map(item => ({
-    caminho: item.caminho,
-    adicionadas: [...(ctx.mudancas.acrescentadas.get(item.caminho) || [])].map(n => (ctx.ler(item.caminho) || { texto: '' }).texto.split('\n')[n - 1] || ''),
-  })));
+  const risco = classificar(ctx.arquivos.map(item => ({ caminho: item.caminho, adicionadas: linhasAcrescentadasDe(ctx, item.caminho) })), caminhosSensiveis);
   console.log(risco.alta ? `risco: ALTA — a PR precisa de "Atenção: ALTA" e da seção Prova real:\n  ${resumo(risco.motivos).join('\n  ')}` : 'risco: nenhum caminho sensível mudou');
   for (const aviso of avisos) console.log(`aviso: ${aviso}`);
   if (falhas.length) {

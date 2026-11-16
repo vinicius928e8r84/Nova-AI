@@ -1,22 +1,16 @@
 {
   "limiteDeLinhas": 1000,
-  "linhasDoCabecalho": 5,
-  "marcasDeGerado": ["@generated", "DO NOT EDIT", "Code generated"],
-  "extensoesDoLimite": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "command", "m", "mm", "h", "x", "swift", "c", "cpp"],
-  "extensoesDeComentario": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "command"],
+  "extensoesDoLimite": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "zsh", "command", "m", "mm", "h", "hpp", "x", "swift", "c", "cc", "cpp", "java", "kt", "go", "rs", "rb"],
+  "extensoesDeComentario": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "zsh", "command", "c", "cc", "cpp", "h", "hpp", "m", "mm", "x", "swift", "java", "kt", "yml", "yaml", "toml", "rb", "plist", "xml"],
   "ignorarCodigo": [
-    {"glob": "dist/", "motivo": "saída de build e bundle da interface"},
-    {"glob": "build/", "motivo": "saída de build"},
-    {"glob": "release/", "motivo": "instaladores gerados"},
-    {"glob": "browsers/", "motivo": "navegadores baixados"},
-    {"glob": "node_modules/", "motivo": "dependências de terceiros"},
-    {"glob": "vendor/", "motivo": "cópia de terceiros"},
-    {"glob": "third_party/", "motivo": "cópia de terceiros"},
-    {"glob": "coverage/", "motivo": "relatório de cobertura"},
-    {"glob": "fixtures/", "motivo": "dados de teste"},
-    {"glob": "reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
-    {"glob": "backup*/", "motivo": "cópias de segurança de arquivos"},
-    {"glob": "*.min.*", "motivo": "arquivo minificado"},
+    {"glob": "app/dist/", "motivo": "bundle e recursos gerados da interface"},
+    {"glob": "MAC/**/dist/", "motivo": "bundle gerado da interface e seus patches"},
+    {"glob": "MAC/**/reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
+    {"glob": "backup-antes-traducao/", "motivo": "cópia de segurança anterior à tradução"},
+    {"glob": "MAC/**/backup-*/", "motivo": "cópia de segurança de uma tradução"},
+    {"glob": "MAC/**/fixtures/", "motivo": "dados de teste"},
+    {"glob": "MAC/**/index-Dun7lr2S*.js", "motivo": "bundle minificado da interface e seus patches (AGENTS.md seção 5)"},
+    {"glob": "app/electron/pwa/marked.min.js", "motivo": "biblioteca de terceiros minificada"},
     {"glob": "*.map", "motivo": "source map"},
     {"glob": "*.lock", "motivo": "trava de pacotes"},
     {"glob": "package-lock.json", "motivo": "trava de pacotes"},
@@ -32,7 +26,7 @@
     {"glob": "MAC/", "motivo": "ferramentas de integração e aplicação de patches"}
   ],
   "binarios": {
-    "extensoesProibidas": ["dmg", "exe", "msi", "zip", "tgz", "gz", "bz2", "xz", "7z", "rar", "deb", "rpm", "pkg", "appimage", "apk", "ipa", "jar", "asar", "dll", "so", "dylib", "node", "pyc", "sqlite", "db"],
+    "extensoesProibidas": ["dmg", "exe", "msi", "zip", "tgz", "gz", "bz2", "xz", "7z", "rar", "deb", "rpm", "pkg", "appimage", "tar", "iso", "img", "apk", "ipa", "jar", "asar", "dll", "so", "dylib", "node", "pyc", "sqlite", "db"],
     "assinaturasProibidas": [
       {"nome": "executável Windows (MZ)", "hex": "4d5a"},
       {"nome": "executável Linux (ELF)", "hex": "7f454c46"},
@@ -44,7 +38,7 @@
       {"nome": "pacote ar (.deb)", "hex": "213c617263683e"}
     ],
     "tamanhoMaximoMB": 8,
-    "lixo": ["*.bak", "*.bak-*", "*.bak.*", "*.orig", "*.rej", "*.swp", "*~", "*.antes-*", ".DS_Store", "*.log"]
+    "lixo": ["*.bak", "*.bak-*", "*.bak.*", "*.orig", "*.rej", "*.swp", "*~", "*.antes-*", ".DS_Store", "*.log", "node_modules/"]
   },
   "arquivosProibidos": [
     "secret_key.json", "*_key.json", "remote_tokens.json", "id_iphone", "id_iphone.pub", "id_rsa", "id_ed25519", "id_ecdsa",

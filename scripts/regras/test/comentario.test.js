@@ -22,7 +22,7 @@ test('passa: arquivo novo sem nenhum comentário', () => {
 
 test('passa: shebang, diretiva de ferramenta e cabeçalho de licença', () => {
   const r = tentar({
-    'app/a.js': '#!/usr/bin/env node\n// SPDX-License-Identifier: MIT\n/* eslint-disable no-console */\nconst a = 1; // eslint-disable-line no-unused-vars\n',
+    'app/a.js': '#!/usr/bin/env node\n// SPDX-License-Identifier: MIT\nconst a = 1;\n',
     'app/b.py': '#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\nx = 1  # noqa: E501\n',
     'app/c.sh': '#!/bin/bash\necho "$#" ${#PATH}\n',
   });

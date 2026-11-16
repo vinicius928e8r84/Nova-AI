@@ -21,6 +21,8 @@ ALTA é obrigatória se a PR mexe em caminho sensível (scripts/regras/caminhos-
 PROVADO 100% REAL
 Head: <SHA inteiro do head, 40 caracteres: git rev-parse HEAD>
 
-Depois do último commit, registre a revisão independente (outro autor, outro revisor):
+<o que você rodou no app de verdade e o que apareceu, pelo menos 40 caracteres>
+
+Depois do último commit, registre a revisão independente (outro autor, outro revisor; o revisor não é quem abriu a PR):
 node scripts/regras/registrar-na-pr.js revisao --pr <número> --head <SHA> --autor <quem> --revisor <quem> --publicar
 -->

@@ -11,13 +11,32 @@ const QUEM_REGISTRA = ['OWNER', 'MEMBER', 'COLLABORATOR'];
 const MODELO = '.github/PULL_REQUEST_TEMPLATE.md';
 const PUBLICADOR = 'scripts/regras/registrar-na-pr.js';
 const MINIMO_DA_DESCRICAO = 40;
+const MINIMO_DA_PROVA = 40;
 
 const SHA_INTEIRO = /^[0-9a-f]{40}$/;
-const TITULO = /^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
+const TITULO = /^ {0,3}(#{1,6})\s+(.*)$/;
 const CERCA = /^ {0,3}(`{3,}|~{3,})/;
 const CITACAO = /^ {0,3}>/;
 
-const semMarcacao = texto => texto.replace(/[*_`]/g, '').replace(/^[\s-]+|[\s.!]+$/g, '');
+function tituloDe(linha) {
+  const achado = TITULO.exec(linha);
+  if (!achado) return null;
+  const texto = achado[2].trimEnd();
+  let fim = texto.length;
+  while (fim > 0 && texto[fim - 1] === '#') fim--;
+  const comFecho = fim < texto.length && (fim === 0 || /\s/.test(texto[fim - 1]));
+  return { nivel: achado[1].length, texto: (comFecho ? texto.slice(0, fim) : texto).trim() };
+}
+
+function aparar(texto, doInicio, doFim) {
+  let inicio = 0;
+  let fim = texto.length;
+  while (inicio < fim && (/\s/.test(texto[inicio]) || doInicio.includes(texto[inicio]))) inicio++;
+  while (fim > inicio && (/\s/.test(texto[fim - 1]) || doFim.includes(texto[fim - 1]))) fim--;
+  return texto.slice(inicio, fim);
+}
+
+const semMarcacao = texto => aparar(texto.replace(/[*_`]/g, ''), '-', '.!');
 const semCaixaNemAcento = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const igual = (a, b) => semCaixaNemAcento(a) === semCaixaNemAcento(b);
 
@@ -29,8 +48,8 @@ function linhasQueValem(markdown) {
     if (abre && !cerca) cerca = abre[1];
     else if (abre && abre[1][0] === cerca[0] && abre[1].length >= cerca.length && linha.trim() === abre[1]) cerca = null;
     else if (!cerca && !CITACAO.test(linha)) {
-      const titulo = TITULO.exec(linha);
-      saida.push({ texto: semMarcacao(titulo ? titulo[2] : linha), nivel: titulo ? titulo[1].length : 0 });
+      const titulo = tituloDe(linha);
+      saida.push({ texto: semMarcacao(titulo ? titulo.texto : linha), nivel: titulo ? titulo.nivel : 0 });
     }
   }
   return saida;
@@ -51,8 +70,10 @@ const valoresDe = (textos, campo) => textos.filter(texto => texto.includes(':'))
 const hexasDe = textos => textos.join('\n').toLowerCase().match(/[0-9a-f]+/g) || [];
 
 function faltaDoHead(textos, head, oQue) {
-  const hexas = hexasDe(valoresDe(textos, 'Head'));
-  if (hexas.includes(head)) return null;
+  const valores = valoresDe(textos, 'Head').map(valor => valor.toLowerCase());
+  if (valores.length && valores.every(valor => valor === head)) return null;
+  const hexas = hexasDe(valores);
+  if (hexas.includes(head)) return `${oQue} tem na linha "Head:" mais do que o SHA do head (uma linha por SHA, só os 40 caracteres)`;
   const outro = hexas.find(hexa => SHA_INTEIRO.test(hexa));
   if (outro) return `${oQue} é do commit ${outro}, que não é o head (o head mudou: o que valia para o commit anterior não vale)`;
   if (hexas.some(hexa => hexa.length >= 7 && head.startsWith(hexa))) return `${oQue} tem o SHA do head abreviado; escreva os 40 caracteres`;
@@ -74,20 +95,26 @@ function faltaDaDescricao(linhas) {
     : `o corpo não descreve a mudança (escreva ao menos ${MINIMO_DA_DESCRICAO} caracteres sobre o que muda e por quê)`;
 }
 
-function faltaDaRevisao(registros, head) {
+function faltaDoRegistro(textos, autorDaPr) {
+  const [autor] = valoresDe(textos, 'Autor');
+  const [revisor] = valoresDe(textos, 'Revisor');
+  if (!autor || !revisor) return 'o registro de revisão não diz quem é o autor e quem é o revisor (linhas "Autor:" e "Revisor:")';
+  if (igual(autor, revisor)) return `o revisor do registro é o próprio autor (${autor})`;
+  if (autorDaPr && igual(revisor, autorDaPr)) return `o revisor do registro (${revisor}) é quem abriu a PR`;
+  return null;
+}
+
+function faltaDaRevisao(registros, head, autorDaPr) {
   const todos = registros.map(linhasQueValem).map(linhas => linhas.map(linha => linha.texto)).filter(textos => valoresDe(textos, 'Veredito').length);
-  const doHead = todos.filter(textos => !faltaDoHead(textos, head)).pop();
-  if (!doHead) {
+  const doHead = todos.filter(textos => !faltaDoHead(textos, head));
+  if (!doHead.length) {
     return todos.length ? faltaDoHead(todos[todos.length - 1], head, 'o registro de revisão mais recente')
       : 'nenhum comentário ou revisão da PR é o registro de revisão independente (linhas "Veredito: CLEAN", "Head: <SHA>", "Autor:" e "Revisor:")';
   }
-  const vereditos = valoresDe(doHead, 'Veredito');
-  if (!vereditos.every(veredito => veredito === VEREDITO_LIMPO)) return `o veredito do registro de revisão mais recente deste head é ${vereditos.join(' e ')}, não ${VEREDITO_LIMPO}`;
-  const [autor] = valoresDe(doHead, 'Autor');
-  const [revisor] = valoresDe(doHead, 'Revisor');
-  if (!autor || !revisor) return 'o registro de revisão não diz quem é o autor e quem é o revisor (linhas "Autor:" e "Revisor:")';
-  if (igual(autor, revisor)) return `o revisor do registro é o próprio autor (${autor})`;
-  return null;
+  const reprovado = doHead.map(textos => valoresDe(textos, 'Veredito')).flat().find(veredito => veredito !== VEREDITO_LIMPO);
+  if (reprovado) return `um registro de revisão deste head tem o veredito ${reprovado}, não ${VEREDITO_LIMPO}; um veredito que não é ${VEREDITO_LIMPO} no head não se desfaz com outro comentário: corrija e faça um commit novo`;
+  const faltas = doHead.map(textos => faltaDoRegistro(textos, autorDaPr));
+  return faltas.includes(null) ? null : faltas[faltas.length - 1];
 }
 
 function faltaDaProva(linhas, head) {
@@ -95,10 +122,13 @@ function faltaDaProva(linhas, head) {
   if (!prova) return `atenção ALTA: o corpo não tem a seção "${SECAO_DA_PROVA}"`;
   if (!prova.includes(FRASE)) return `atenção ALTA: a seção "${SECAO_DA_PROVA}" não tem a linha ${FRASE} (a frase sozinha na linha)`;
   const semHead = faltaDoHead(prova, head, `a seção "${SECAO_DA_PROVA}"`);
-  return semHead && `atenção ALTA: ${semHead}`;
+  if (semHead) return `atenção ALTA: ${semHead}`;
+  const explicacao = prova.filter(texto => texto && !igual(texto, FRASE) && !igual(texto.split(':')[0], 'Head')).join(' ');
+  return explicacao.length >= MINIMO_DA_PROVA ? null
+    : `atenção ALTA: a seção "${SECAO_DA_PROVA}" não explica o que foi provado no app (escreva ao menos ${MINIMO_DA_PROVA} caracteres sobre o que rodou e o que apareceu)`;
 }
 
-function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [] }) {
+function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
   const linhas = linhasQueValem(corpo);
   const textos = linhas.map(linha => linha.texto);
   const { atencao, falta: semAtencao } = atencaoDe(textos);
@@ -111,7 +141,7 @@ function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [] }) 
     faltaDaDescricao(linhas),
     semAtencao,
     subestimada,
-    faltaDaRevisao(registros, head),
+    faltaDaRevisao(registros, head, autor),
     alta && faltaDaProva(linhas, head),
   ].filter(Boolean);
   if (!faltas.length) return { ok: true, mensagem: `registro da PR ok no head ${head}: atenção ${atencao}, revisão ${VEREDITO_LIMPO}${alta ? `, ${FRASE}` : ''}` };
@@ -126,8 +156,9 @@ function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [] }) 
   };
 }
 
-function adicionadasDoPatch(patch) {
-  return String(patch || '').split('\n').filter(linha => linha.startsWith('+') && !linha.startsWith('+++')).map(linha => linha.slice(1));
+function adicionadasDoArquivo(arquivo) {
+  if (arquivo.patch === undefined && arquivo.changes > 0) return null;
+  return String(arquivo.patch || '').split('\n').filter(linha => linha.startsWith('+') && !linha.startsWith('+++')).map(linha => linha.slice(1));
 }
 
 async function lerDoGitHub(env) {
@@ -153,10 +184,10 @@ async function lerDoGitHub(env) {
     .sort((a, b) => a.quando.localeCompare(b.quando)).map(registro => registro.corpo);
   const arquivos = [];
   for (const arquivo of await todas(`pulls/${env.PR}/files`)) {
-    arquivos.push({ caminho: arquivo.filename, adicionadas: adicionadasDoPatch(arquivo.patch) });
+    arquivos.push({ caminho: arquivo.filename, adicionadas: adicionadasDoArquivo(arquivo) });
     if (arquivo.previous_filename) arquivos.push({ caminho: arquivo.previous_filename, adicionadas: [] });
   }
-  return { corpo: pr.body, rotulos: pr.labels.map(rotulo => rotulo.name), registros, head: pr.head.sha, arquivos };
+  return { corpo: pr.body, rotulos: pr.labels.map(rotulo => rotulo.name), registros, head: pr.head.sha, arquivos, autor: pr.user && pr.user.login };
 }
 
 async function main(env) {
@@ -184,4 +215,4 @@ async function main(env) {
 
 if (require.main === module) main(process.env).then(codigo => { process.exitCode = codigo; });
 
-module.exports = { FRASE, ROTULO_DE_RISCO_ALTO, SECAO_DA_PROVA, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem };
+module.exports = { FRASE, ROTULO_DE_RISCO_ALTO, SECAO_DA_PROVA, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, tituloDe };

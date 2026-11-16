@@ -39,9 +39,9 @@ function compilar(glob) {
   if (!cache.has(glob)) {
     const diretorio = glob.endsWith('/');
     const corpo = traduzir(diretorio ? glob.slice(0, -1) : glob);
-    const ancorado = glob.includes('/') && !diretorio ? `^${corpo}$` : null;
+    const comCaminho = (diretorio ? glob.slice(0, -1) : glob).includes('/');
     let expressao;
-    if (ancorado) expressao = ancorado;
+    if (comCaminho) expressao = diretorio ? `^${corpo}/` : `^${corpo}$`;
     else if (diretorio) expressao = `(?:^|/)${corpo}/`;
     else expressao = `(?:^|/)${corpo}$`;
     cache.set(glob, new RegExp(expressao));

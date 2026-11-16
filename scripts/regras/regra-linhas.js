@@ -13,11 +13,6 @@ const conserto = 'Divida o arquivo por responsabilidade em módulos menores (no 
   + 'não para o arquivo grande. A linha de base (scripts/regras/linha-de-base.json) lista os arquivos que já passavam do limite: ela só encolhe. '
   + 'Depois de encolher um deles, rode `node scripts/regras/verificar.js --atualizar-linha-de-base` e versione o arquivo.';
 
-const ehGerado = (config, texto) => {
-  const cabecalho = texto.split('\n').slice(0, config.linhasDoCabecalho).join('\n');
-  return config.marcasDeGerado.some(marca => cabecalho.includes(marca));
-};
-
 function lerLista(texto, origem) {
   let dados;
   try {
@@ -66,7 +61,6 @@ function verificar(ctx) {
       if (caminho in doRamo) falha(caminho, `tem ${linhas} linhas, dentro do limite de ${limite}: tire-o da linha de base (--atualizar-linha-de-base)`);
       continue;
     }
-    if (!naLista && ehGerado(config, arquivo.texto)) continue;
     if (!naLista) {
       falha(caminho, `${linhas} linhas, ${linhas - limite} acima do limite de ${limite}; arquivo novo (ou que não estava na linha de base) tem de caber no limite`);
     } else if (linhas > teto) {
@@ -105,7 +99,7 @@ function calcularLinhaDeBase(ctx) {
     const arquivo = ctx.ler(caminho);
     if (!arquivo || arquivo.binario) continue;
     const linhas = contarLinhas(arquivo.texto);
-    if (linhas > ctx.config.limiteDeLinhas && !ehGerado(ctx.config, arquivo.texto)) arquivos[caminho] = linhas;
+    if (linhas > ctx.config.limiteDeLinhas) arquivos[caminho] = linhas;
   }
   return arquivos;
 }
@@ -132,4 +126,4 @@ function gravar(raiz, arquivos) {
   fs.writeFileSync(path.join(raiz, ARQUIVO_DA_LINHA_DE_BASE), `${JSON.stringify({ arquivos: ordenado }, null, 2)}\n`);
 }
 
-module.exports = { id, titulo, conserto, verificar, ARQUIVO_DA_LINHA_DE_BASE, atualizarLinhaDeBase, calcularLinhaDeBase, gravar, ehGerado };
+module.exports = { id, titulo, conserto, verificar, ARQUIVO_DA_LINHA_DE_BASE, atualizarLinhaDeBase, calcularLinhaDeBase, gravar };

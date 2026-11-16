@@ -106,13 +106,12 @@ test('arquivo grande renomeado herda o teto do nome antigo', () => {
   assert.equal(depois.codigo, 0, depois.saida);
 });
 
-test('ignora dist, lock, arquivo gerado e dado; reservas aceita cópia mas o resto não', () => {
+test('ignora dist, lock e dado; reservas aceita cópia mas o resto não', () => {
   const grande = linhas(1500);
   const repo = criar({ 'app/grande.js': grande }, { 'app/grande.js': 1500 });
   repo.escrever({
     'app/dist/assets/bundle.js': grande,
     'app/package-lock.json': grande,
-    'app/gerado.js': `// @generated\n${grande}`,
     'app/dados.json': grande,
     'MAC/x/reservas/20261115/grande.js': grande,
   });
@@ -125,13 +124,23 @@ test('ignora dist, lock, arquivo gerado e dado; reservas aceita cópia mas o res
   assert.match(recusa.saida, /app\/outra-copia\.js: 1500 linhas/);
 });
 
-test('arquivo da linha de base não escapa da lista com a marca de gerado', () => {
+test('a marca de gerado não isenta arquivo novo nem arquivo da linha de base', () => {
   const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
-  repo.escrever({ 'app/grande.js': `// DO NOT EDIT\n${linhas(1300)}` });
+  repo.escrever({ 'app/grande.js': `// DO NOT EDIT\n${linhas(1300)}`, 'app/novo.js': `'@generated';\n${linhas(3000)}` });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 1);
   assert.match(r.saida, /arquivo grande não pode crescer/);
+  assert.match(r.saida, /app\/novo\.js: 3001 linhas/);
+});
+
+test('pastas com nome de dist, vendor ou reservas fora do lugar previsto não escapam do limite', () => {
+  const repo = criar();
+  repo.escrever({ 'app/electron/services/vendor/x.js': linhas(1500), 'app/electron/dist/y.js': linhas(1500), 'app/reservas/z.js': linhas(1500) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  for (const nome of ['vendor/x.js', 'dist/y.js', 'app/reservas/z.js']) assert.ok(r.saida.includes(nome), r.saida);
 });
 
 test('arquivo que não foi tocado não é cobrado', () => {

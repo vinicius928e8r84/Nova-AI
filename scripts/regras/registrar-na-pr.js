@@ -3,14 +3,14 @@
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
-const { FRASE, SECAO_DA_PROVA, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem } = require('./registro-da-pr');
+const { FRASE, SECAO_DA_PROVA, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, tituloDe } = require('./registro-da-pr');
 
 const WORKFLOW = 'registro-da-pr.yml';
 
 const AJUDA = `uso: node scripts/regras/registrar-na-pr.js <comando> --pr <número> [opções]
 
   conferir   diz o que o check "Registro da PR" diria agora
-  revisao    publica o registro da revisão independente num comentário e roda o check de novo
+  revisao    publica o registro da revisão independente como revisão (comentário) da PR e roda o check de novo
                --head <SHA revisado> --autor <quem escreveu> --revisor <quem revisou> [--veredito CLEAN] [--nota <arquivo>]
   prova      escreve (ou troca) a seção "${SECAO_DA_PROVA}" do corpo, com ${FRASE} e o head
                --head <SHA provado> --nota <arquivo com o que foi provado no produto de verdade e como>
@@ -26,7 +26,6 @@ O token vem de $GITHUB_TOKEN, de $GH_TOKEN ou de \`gh auth token\`. Sai com 0 qu
 class ErroDeUso extends Error {}
 
 const SHA_INTEIRO = /^[0-9a-f]{40}$/;
-const TITULO = /^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
 const CERCA = /^ {0,3}(`{3,}|~{3,})/;
 const nomeDoTitulo = texto => texto.replace(/[*_`]/g, '').trim().toLowerCase();
 
@@ -69,10 +68,10 @@ function corpoComAProva(corpo, secao) {
     const abre = CERCA.exec(visiveis[i]);
     if (abre && !cerca) cerca = abre[1];
     else if (abre && abre[1][0] === cerca[0] && abre[1].length >= cerca.length && visiveis[i].trim() === abre[1]) cerca = null;
-    const titulo = !cerca && !abre && TITULO.exec(visiveis[i]);
+    const titulo = !cerca && !abre && tituloDe(visiveis[i]);
     if (!titulo) continue;
-    if (inicio < 0 && nomeDoTitulo(titulo[2]) === SECAO_DA_PROVA.toLowerCase()) inicio = i;
-    else if (inicio >= 0 && titulo[1].length <= TITULO.exec(visiveis[inicio])[1].length) {
+    if (inicio < 0 && nomeDoTitulo(titulo.texto) === SECAO_DA_PROVA.toLowerCase()) inicio = i;
+    else if (inicio >= 0 && titulo.nivel <= tituloDe(visiveis[inicio]).nivel) {
       fim = i;
       break;
     }
@@ -96,7 +95,7 @@ function planejar(opcoes, pr, nota) {
   if (opcoes.comando === 'revisao') {
     const comentario = registroDaRevisao({ ...opcoes, head }, nota);
     const registros = [...pr.registros, comentario];
-    const falta = opcoes.veredito === 'CLEAN' && faltaDaRevisao(registros, head);
+    const falta = opcoes.veredito === 'CLEAN' && faltaDaRevisao(registros, head, pr.autor);
     if (falta) return { recusa: `o check não aceitaria este registro: ${falta}` };
     return { comentario, depois: conferir({ ...pr, registros, head }) };
   }
@@ -181,9 +180,9 @@ async function main(argv, env) {
       console.log(`${onde} da PR ${opcoes.pr}${opcoes.publicar ? '' : ' (ensaio: nada foi publicado; repita com --publicar)'}:\n\n${texto.replace(/^/gm, '    ')}\n`);
     }
     if (texto && opcoes.publicar) {
-      if (plano.comentario) await pedir('POST', `issues/${opcoes.pr}/comments`, { body: plano.comentario });
+      if (plano.comentario) await pedir('POST', `pulls/${opcoes.pr}/reviews`, { commit_id: pr.head, event: 'COMMENT', body: plano.comentario });
       else await pedir('PATCH', `pulls/${opcoes.pr}`, { body: plano.corpo });
-      console.log(plano.comentario ? 'Registro publicado.' : 'Corpo gravado (a edição do corpo dispara o check).');
+      console.log(plano.comentario ? 'Registro publicado como revisão da PR (o evento de revisão já roda o check).' : 'Corpo gravado (a edição do corpo dispara o check).');
     }
     console.log(`${texto ? 'Com isso publicado, o check diz:\n' : ''}${plano.depois.mensagem}`);
     if (plano.comentario && opcoes.publicar) console.log(await rodarDeNovo(pedir, pr, qual));

@@ -1,25 +1,25 @@
 # Como contribuir
 
-Este repositório é público e compartilhado por vários agentes e pessoas. Estas regras são conferidas por máquina em toda PR; o que não passa não é mesclado. Elas só olham o que a PR muda: código antigo nunca falha.
+Este repositório é público e compartilhado por vários agentes e pessoas. Estas regras são conferidas por máquina em toda PR; o que não passa não é mesclado. Elas só olham as linhas que a PR acrescenta ou toca; o que a PR não toca nunca falha. Linha tocada é linha que mudou, foi reindentada ou movida: um comentário antigo nessa linha conta, e converter um arquivo inteiro (por exemplo, o fim de linha) toca todas as linhas.
 
 Antes de começar, siga o `AGENTS.md` (uma branch por tarefa, nada direto na `main`).
 
 ## O que a máquina confere
 
-Rode tudo localmente com `node scripts/regras/verificar.js --base origin/main` (use a branch-alvo da sua PR no lugar de `origin/main`). Para o ESLint rodar, instale-o (`npm i -g eslint@9`) ou aponte `ESLINT_BIN` para o `eslint.js`.
+Rode tudo localmente com `node scripts/regras/verificar.js --base origin/main` (use a branch-alvo da sua PR no lugar de `origin/main`). Para o ESLint rodar, instale-o (`npm i -g eslint@9`) ou aponte `ESLINT_BIN` para o `eslint.js`. No GitHub, as regras que valem são as da **branch-alvo** (a PR não consegue afrouxá-las; a mudança vale a partir da PR seguinte), e só na PR que cria as regras valem as da própria PR.
 
 | Regra | O que pede | Por quê |
 | --- | --- | --- |
-| `sem-comentario-novo` | Nenhum comentário nas linhas que a PR acrescenta (JS, Python, shell, CSS e HTML). Passam só o `#!` da linha 1, as diretivas de ferramenta (`eslint-disable`, `noqa`, `@ts-ignore`, `coding:`…) e o cabeçalho de licença. Em Python, docstring nova também conta. | Comentário envelhece sozinho e o próximo agente o copia como regra. O nome carrega a ideia; a decisão vai no corpo da PR. |
-| `limite-de-linhas` | Arquivo de código novo tem no máximo 1000 linhas. Os que já passavam estão em `scripts/regras/linha-de-base.json` e não podem crescer. Essa lista só encolhe: rode `--atualizar-linha-de-base` depois de reduzir um arquivo. | Arquivo gigante não cabe na cabeça, e toda PR esbarra na do outro. |
+| `sem-comentario-novo` | Nenhum comentário nas linhas que a PR acrescenta (JS, Python, shell, CSS e HTML). Vale também para C, Objective-C, Swift, Logos (`.x`), YAML, TOML, plist e script sem extensão com `#!`. Passam só o `#!` da linha 1, as diretivas de ferramenta (`noqa`, `@ts-ignore`, `coding:`…) e o cabeçalho de licença; `eslint-disable` não passa e o ESLint ignora diretiva em linha. Em Python, docstring nova também conta. | Comentário envelhece sozinho e o próximo agente o copia como regra. O nome carrega a ideia; a decisão vai no corpo da PR. |
+| `limite-de-linhas` | Arquivo de código novo tem no máximo 1000 linhas; a marca `@generated` não isenta. Os que já passavam estão em `scripts/regras/linha-de-base.json` e não podem crescer. Essa lista só encolhe: rode `--atualizar-linha-de-base` depois de reduzir um arquivo. | Arquivo gigante não cabe na cabeça, e toda PR esbarra na do outro. |
 | `sem-segredo` | Nenhuma chave, token, senha, chave privada nem arquivo como `secret_key.json`, `remote_tokens.json`, `id_iphone`, `.env`, sessões de WhatsApp/Telegram. | O repositório é público; o que entra não sai. |
-| `sem-binario-nem-lixo` | Nenhum instalador (`.dmg`, `.exe`, `.zip`, `.deb`…), binário, arquivo novo acima de 8 MB nem cópia de backup (`*.bak-*`, `*.orig`, `*.antes-*`). | O git já guarda o arquivo anterior. Para trocar o do app instalado, a cópia vai em `reservas/` (`AGENTS.md` seção 5). |
-| `sem-depuracao-esquecida` | Nenhum `console.log`, `debugger`, `.only` de teste, `breakpoint()` nas linhas novas. Scripts, testes e `MAC/` podem imprimir. | Depuração esquecida vira ruído no app. |
+| `sem-binario-nem-lixo` | Nenhum instalador (`.dmg`, `.exe`, `.zip`, `.deb`…), binário, arquivo novo acima de 8 MB nem cópia de backup (`*.bak-*`, `*.orig`, `*.antes-*`), mesmo que idêntica a um arquivo que já existe. | O git já guarda o arquivo anterior. Para trocar o do app instalado, a cópia vai em `MAC/<área>/reservas/` (`AGENTS.md` seção 5). |
+| `sem-depuracao-esquecida` | Nenhum `console.log` (nem `console['log']`), `debugger`, `.only` de teste, `breakpoint()` nas linhas novas. Scripts, testes e `MAC/` podem imprimir. | Depuração esquecida vira ruído no app. |
 | `sintaxe-valida` | Os arquivos mudados compilam: `node --check`, compilação do Python, `bash -n`, JSON. | `AGENTS.md` já exige `node --check` antes de aplicar no app. |
 | `eslint-nas-linhas-novas` | ESLint (`scripts/regras/eslint.config.mjs`) sem erro nas linhas novas: variável não usada ou não declarada, código inalcançável, `==`. | Pega código morto e erro de digitação sem cobrar o código antigo. |
 | Auditoria de dependências | Só quando uma `package-lock.json` muda: nenhuma vulnerabilidade alta ou crítica nova (`npm audit --omit=dev`). | Dependência é a porta de entrada mais barata de código ruim. |
 
-Arquivos de `dist/`, `build/`, `node_modules/`, `vendor/`, `reservas/`, `backup*/`, minificados, `*.map`, travas de pacote e JSON/Markdown de dados não entram na contagem de linhas nem de comentários. As listas estão em `scripts/regras/configuracao.json`. Cópia idêntica de um arquivo que já existe no repositório não é cobrada por comentário, mas continua sujeita ao limite de linhas (fora de `reservas/`).
+Só estes lugares ficam fora da contagem de linhas, de comentário, de depuração, de sintaxe e de ESLint, com o caminho completo em `scripts/regras/configuracao.json`: `app/dist/`, `MAC/**/dist/`, `MAC/**/reservas/`, `backup-antes-traducao/`, `MAC/**/backup-*/`, `MAC/**/fixtures/`, o bundle `MAC/**/index-Dun7lr2S*.js`, `marked.min.js`, `*.map` e as travas de pacote. Uma pasta com o mesmo nome em outro lugar (`vendor/`, `dist/` dentro de `app/electron/`) é código e é cobrada. JSON e Markdown de dados não entram. Cópia idêntica de um arquivo que já existe no repositório não é cobrada por comentário, mas é cobrada pela regra de backup e pelo limite de linhas. Acrescentar um lugar a essa lista é mudar as regras: PR própria, atenção ALTA, revisão do dono (`.github/CODEOWNERS`).
 
 ## O corpo da PR (check "Registro da PR")
 
@@ -27,16 +27,18 @@ Use `.github/PULL_REQUEST_TEMPLATE.md`. O check confere, no commit exato (`head`
 
 1. **Descrição**: o que muda e por quê (pelo menos 40 caracteres de texto).
 2. **Atenção**: uma linha `Atenção: BAIXA`, `Atenção: MÉDIA` ou `Atenção: ALTA`.
-3. **Atenção ALTA** exige a seção abaixo, com o SHA inteiro (40 caracteres, `git rev-parse HEAD`) do último commit, e uma explicação do que foi provado no app de verdade:
+3. **Atenção ALTA** exige a seção abaixo, com uma única linha `Head:` com o SHA inteiro (40 caracteres, `git rev-parse HEAD`) do último commit, e uma explicação de pelo menos 40 caracteres do que foi provado no app de verdade:
 
    ```
    ## Prova real
 
    PROVADO 100% REAL
    Head: <SHA de 40 caracteres>
+
+   <o que você rodou no app e o que apareceu>
    ```
 
-4. **Revisão independente**: alguém que não escreveu a mudança registra um comentário na PR no head exato. `Autor` e `Revisor` precisam ser diferentes:
+4. **Revisão independente**: alguém que não escreveu a mudança registra uma revisão (comentário de revisão) na PR no head exato. `Autor` e `Revisor` precisam ser diferentes:
 
    ```
    Veredito: CLEAN
@@ -45,7 +47,7 @@ Use `.github/PULL_REQUEST_TEMPLATE.md`. O check confere, no commit exato (`head`
    Revisor: <quem revisou>
    ```
 
-   Só vale o comentário (ou revisão) de quem tem acesso de escrita ao repositório. Um commit novo muda o head: revisão e prova do commit anterior deixam de valer. Para escrever tudo isso sem errar o SHA: `node scripts/regras/registrar-na-pr.js --help`. Comentário não dispara o check; o `registrar-na-pr.js revisao --publicar` já roda o check de novo.
+   Só vale o registro de quem o GitHub marca como dono, membro ou colaborador do repositório (o check não sabe se essa pessoa tem escrita, então só convide colaborador em quem pode revisar). O `Revisor` não pode ser quem abriu a PR nem o `Autor`. Um `Veredito` diferente de `CLEAN` no head não se desfaz com outro registro: conserte e faça um commit novo. Um commit novo muda o head: revisão e prova do commit anterior deixam de valer. Para escrever tudo isso sem errar o SHA: `node scripts/regras/registrar-na-pr.js --help`. O `revisao --publicar` publica o registro como revisão da PR (evento que roda o check sozinho); um comentário comum não dispara o check.
 
 O check confere que o registro existe, é do head certo e tem as linhas certas; não prova que a revisão ou o teste aconteceram. Quem mescla é quem confere o conteúdo.
 
@@ -65,12 +67,13 @@ Configure em Settings → Branches → Branch protection rule (ou Rulesets) para
 - Require branches to be up to date before merging.
 - Require conversation resolution before merging.
 - Do not allow bypassing the above settings (inclui administradores); bloqueie force-push e exclusão da branch.
-- Opcional: um `.github/CODEOWNERS` cobrindo `scripts/regras/`, `.github/` e `CONTRIBUTING.md`, com "Require review from Code Owners", para ninguém afrouxar as regras sem revisão.
+- Require review from Code Owners: o `.github/CODEOWNERS` já cobre `.github/`, `scripts/regras/`, `CONTRIBUTING.md`, `AGENTS.md`, `.gitattributes` e `.gitmodules`. Sem isso, quem altera o workflow da própria PR pode afrouxar os checks.
 
-Se um job for renomeado nos workflows, o nome obrigatório muda junto, senão o merge fica esperando um check que não existe. O mesmo vale para toda branch-alvo de PR que se queira proteger (por exemplo, uma branch de integração): a regra de proteção é por branch.
+Se um job for renomeado nos workflows, o nome obrigatório muda junto, senão o merge fica esperando um check que não existe: `scripts/regras/checks-obrigatorios.json` lista os nomes e um teste confere com os workflows. O mesmo vale para toda branch-alvo de PR que se queira proteger (por exemplo, uma branch de integração): a regra de proteção é por branch, e sem ela nenhum check bloqueia o merge.
 
 ## Limites conhecidos
 
-- O workflow roda da própria PR: uma PR pode editar as regras. Por isso `.github/` e `scripts/regras/` contam como atenção ALTA, e o CODEOWNERS acima é o que fecha essa porta.
-- O check de registro confere texto e SHA; `Autor` e `Revisor` são os nomes que o registro declara.
+- Os workflows rodam as regras da branch-alvo e não as da PR (só a PR que cria as regras usa as próprias). Mas o arquivo do workflow vem da PR: quem muda `.github/workflows/` pode desligar um check. Fecham essa porta o CODEOWNERS com "Require review from Code Owners" e a proteção da branch; por isso `.github/` e `scripts/regras/` contam como atenção ALTA.
+- O check de registro confere texto, SHA e quem publicou (dono, membro ou colaborador); `Autor` e `Revisor` são os nomes que o registro declara. Se os agentes e o dono usam a mesma conta do GitHub, nenhuma máquina distingue uma revisão independente de uma auto-aprovação: quem mescla confere.
+- A heurística de segredo pega padrões conhecidos e valores longos em campos como `senha` ou `token`; não pega todo segredo.
 - Os testes das regras estão em `scripts/regras/test/` (`node --test "scripts/regras/test/*.test.js"`).

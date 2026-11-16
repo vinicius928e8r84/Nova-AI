@@ -1,7 +1,7 @@
-const globaisDoNode = ['require', 'module', 'exports', '__dirname', '__filename', 'process', 'Buffer', 'console', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'setImmediate', 'clearImmediate', 'queueMicrotask', 'structuredClone', 'URL', 'URLSearchParams', 'TextEncoder', 'TextDecoder', 'AbortController', 'AbortSignal', 'fetch', 'FormData', 'Headers', 'Request', 'Response', 'Blob', 'performance', 'global', 'globalThis', 'WebAssembly', 'atob', 'btoa'];
-const globaisDoNavegador = ['window', 'document', 'navigator', 'location', 'localStorage', 'sessionStorage', 'history', 'screen', 'alert', 'confirm', 'prompt', 'requestAnimationFrame', 'cancelAnimationFrame', 'MutationObserver', 'ResizeObserver', 'IntersectionObserver', 'Event', 'CustomEvent', 'HTMLElement', 'Element', 'Node', 'WebSocket', 'XMLHttpRequest', 'File', 'FileReader', 'MediaRecorder', 'MediaStream', 'AudioContext', 'Audio', 'Image', 'WebSocket', 'getComputedStyle', 'crypto', 'self', 'importScripts', 'caches', 'clients', 'chrome', 'indexedDB', 'DOMParser', 'OffscreenCanvas', 'speechSynthesis', 'SpeechSynthesisUtterance', 'webkitSpeechRecognition', 'SpeechRecognition', 'Notification', 'ServiceWorkerGlobalScope', 'registerProcessor', 'AudioWorkletProcessor', 'sampleRate', 'currentTime', 'KeyboardEvent', 'MouseEvent', 'ClipboardItem', 'postMessage', 'addEventListener', 'removeEventListener'];
+import { readFileSync } from 'node:fs';
 
-const globais = Object.fromEntries([...globaisDoNode, ...globaisDoNavegador].map(nome => [nome, 'readonly']));
+const { nomes } = JSON.parse(readFileSync(new URL('./globais.json', import.meta.url), 'utf8'));
+const globais = Object.fromEntries(nomes.map(nome => [nome, 'readonly']));
 
 const regras = {
   'no-undef': 'error',
@@ -28,8 +28,15 @@ const regras = {
   'no-throw-literal': 'error',
 };
 
+const opcoes = { noInlineConfig: true };
+
 export default [
-  { ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/release/**', '**/reservas/**', '**/*.min.js'] },
-  { files: ['**/*.js', '**/*.cjs'], languageOptions: { ecmaVersion: 'latest', sourceType: 'commonjs', globals: globais }, rules: regras },
-  { files: ['**/*.mjs'], languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: globais }, rules: regras },
+  {
+    ignores: [
+      '**/node_modules/**', 'app/dist/**', 'MAC/**/dist/**', 'MAC/**/reservas/**', 'backup-antes-traducao/**', 'MAC/**/backup-*/**',
+      'MAC/**/fixtures/**', 'MAC/**/index-Dun7lr2S*.js', 'app/electron/pwa/marked.min.js',
+    ],
+  },
+  { files: ['**/*.js', '**/*.cjs'], languageOptions: { ecmaVersion: 'latest', sourceType: 'commonjs', globals: globais }, linterOptions: opcoes, rules: regras },
+  { files: ['**/*.mjs'], languageOptions: { ecmaVersion: 'latest', sourceType: 'module', globals: globais }, linterOptions: opcoes, rules: regras },
 ];

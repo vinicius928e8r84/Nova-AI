@@ -4,7 +4,13 @@ const { casaAlgum, extensaoDe } = require('./globs');
 
 const ignoradoComoCodigo = (config, caminho) => casaAlgum(config.ignorarCodigo, caminho);
 
-const ehCodigoDeComentario = (config, caminho) => config.extensoesDeComentario.includes(extensaoDe(caminho)) && !ignoradoComoCodigo(config, caminho);
+const temShebang = texto => typeof texto === 'string' && texto.startsWith('#!');
+
+const ehCodigoDeComentario = (config, caminho, texto) => {
+  if (ignoradoComoCodigo(config, caminho)) return false;
+  const extensao = extensaoDe(caminho);
+  return config.extensoesDeComentario.includes(extensao) || (extensao === '' && temShebang(texto));
+};
 
 const ehCodigoDoLimite = (config, caminho) => config.extensoesDoLimite.includes(extensaoDe(caminho)) && !ignoradoComoCodigo(config, caminho);
 

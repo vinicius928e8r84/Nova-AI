@@ -8,13 +8,11 @@ const { ehCodigoDeComentario } = require('./escopo');
 const id = 'sem-comentario-novo';
 const titulo = 'Nenhum comentário novo nas linhas acrescentadas';
 const conserto = 'Apague o comentário. O que ele explicava vai para o nome da função ou da variável; a decisão (o porquê) vai para o corpo da PR '
-  + 'ou para a documentação. Passam só a linha 1 `#!`, as diretivas de ferramenta (eslint-disable/enable/env, @ts-*, noqa, type: ignore, '
+  + 'ou para a documentação. Passam só a linha 1 `#!`, as diretivas de ferramenta (@ts-*, noqa, type: ignore, '
   + 'istanbul/c8 ignore, prettier-ignore, coding:) e o cabeçalho de licença (SPDX-License-Identifier, Copyright) nas 5 primeiras linhas. '
   + 'Um comentário que já existia numa linha que a mudança tocou, reindentou ou moveu também conta: apague-o.';
 
 const DIRETIVAS = [
-  /^eslint-(?:disable|enable)(?:-next-line|-line)?(?:\s+[@\w/.-]+(?:\s*,\s*[@\w/.-]+)*)?$/,
-  /^eslint-env(?:\s+[\w-]+(?:\s*,\s*[\w-]+)*)?$/,
   /^@ts-(?:ignore|expect-error|nocheck|check)$/,
   /^noqa(?::\s*[A-Z]+\d*(?:\s*,\s*[A-Z]+\d*)*)?$/,
   /^type:\s*ignore(?:\[[\w,\s-]+\])?$/,
@@ -48,11 +46,11 @@ function verificar(ctx) {
   const achados = [];
   for (const item of ctx.arquivos) {
     const { caminho } = item;
-    if (!ehCodigoDeComentario(ctx.config, caminho)) continue;
     const novas = ctx.mudancas.acrescentadas.get(caminho);
     if (!novas || novas.size === 0) continue;
     const arquivo = ctx.ler(caminho);
     if (!arquivo || arquivo.binario) continue;
+    if (!ehCodigoDeComentario(ctx.config, caminho, arquivo.texto)) continue;
     const vistas = new Set();
     for (const { linha, corpo, bruto } of linhasDeComentario(caminho, arquivo.texto)) {
       if (!novas.has(linha) || !corpo || permitida(linha, corpo, bruto)) continue;

@@ -8,6 +8,7 @@ const fimDaString = (texto, i) => {
 };
 
 const ANTES_DE_REGEX = '(,=:[!&|?{};+-*%<>~^';
+const INCREMENTO_ANTES = /(?:\+\+|--)\s*$/;
 const PALAVRA_ANTES_DE_REGEX = /\b(?:return|typeof|case|in|of|void|delete|throw|else|do|yield|await)\s*$/;
 
 function fimDoRegex(fonte, inicio) {
@@ -85,7 +86,7 @@ function analisarJs(fonte) {
       i++;
       continue;
     }
-    if (c === '/' && (anterior === '' || ANTES_DE_REGEX.includes(anterior) || PALAVRA_ANTES_DE_REGEX.test(cauda))) {
+    if (c === '/' && (anterior === '' || ANTES_DE_REGEX.includes(anterior) || PALAVRA_ANTES_DE_REGEX.test(cauda)) && !INCREMENTO_ANTES.test(cauda)) {
       i = fimDoRegex(fonte, i) + 1;
       anterior = ')';
       continue;
@@ -276,12 +277,45 @@ function comentariosSh(fonte) {
   return comentarios;
 }
 
+function comentariosHash(fonte) {
+  const comentarios = [];
+  let i = 0;
+  while (i < fonte.length) {
+    const c = fonte[i];
+    if (c === '#' && (i === 0 || /\s/.test(fonte[i - 1]))) {
+      const fim = fonte.indexOf('\n', i);
+      const ate = fim < 0 ? fonte.length : fim;
+      comentarios.push([i, ate]);
+      i = ate;
+    } else if (c === '"' || c === "'") i = fimDaString(fonte, i) + 1;
+    else i++;
+  }
+  return comentarios;
+}
+
+const COM_BARRAS = /\.(?:js|mjs|cjs|jsx|ts|tsx|c|cc|cpp|h|hpp|m|mm|x|swift|java|kt)$/;
+const COM_HASH = /\.(?:yml|yaml|toml|rb)$/;
+const COM_TAGS = /\.(?:html|plist|xml)$/;
+const SHELL = /\.(?:sh|bash|zsh|command)$/;
+
+function linguagemDoShebang(fonte) {
+  const primeira = fonte.slice(0, fonte.indexOf('\n') < 0 ? fonte.length : fonte.indexOf('\n'));
+  if (!primeira.startsWith('#!')) return null;
+  if (/\bpython/.test(primeira)) return 'py';
+  if (/\b(?:node|deno|bun)\b/.test(primeira)) return 'js';
+  if (/\b(?:ba|z|da|k)?sh\b/.test(primeira)) return 'sh';
+  return null;
+}
+
 function trechosDeComentario(arquivo, fonte) {
-  if (/\.(?:js|mjs|cjs|jsx|ts|tsx)$/.test(arquivo)) return comentariosJs(fonte);
+  const semExtensao = !/\.[A-Za-z0-9]+$/.test(arquivo);
+  const linguagem = semExtensao ? linguagemDoShebang(fonte) : null;
+  if (COM_BARRAS.test(arquivo) || linguagem === 'js') return comentariosJs(fonte);
   if (arquivo.endsWith('.css')) return comentariosCss(fonte);
-  if (arquivo.endsWith('.py')) return comentariosPy(fonte);
-  if (arquivo.endsWith('.html')) return comentariosHtml(fonte);
-  if (/\.(?:sh|bash|command)$/.test(arquivo)) return comentariosSh(fonte);
+  if (arquivo.endsWith('.py') || linguagem === 'py') return comentariosPy(fonte);
+  if (COM_TAGS.test(arquivo)) return comentariosHtml(fonte);
+  if (SHELL.test(arquivo) || linguagem === 'sh') return comentariosSh(fonte);
+  if (COM_HASH.test(arquivo)) return comentariosHash(fonte);
   return [];
 }
 
@@ -320,4 +354,4 @@ function linhasDeComentario(arquivo, fonte) {
   return saida;
 }
 
-module.exports = { analisarJs, comentariosCss, comentariosHtml, comentariosJs, comentariosPy, comentariosSh, linhaDoIndice, indiceDeLinhas, linhasDeComentario, trechosDeComentario };
+module.exports = { analisarJs, comentariosCss, comentariosHash, comentariosHtml, comentariosJs, comentariosPy, comentariosSh, linhaDoIndice, indiceDeLinhas, linhasDeComentario, trechosDeComentario };

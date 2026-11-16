@@ -11,7 +11,7 @@ const HEAD = 'a'.repeat(40);
 const OUTRO = 'b'.repeat(40);
 const DESCRICAO = 'Corrige o botão do iPhone que mostrava Parar transmissão em vez de Abrir controle depois do patch do bundle.';
 const REVISAO = head => `Registro de revisão independente\n\nVeredito: CLEAN\nHead: ${head}\nAutor: agente-a\nRevisor: agente-b\n`;
-const PROVA = head => `## Prova real\n\nPROVADO 100% REAL\nHead: ${head}\n\nRodei o app e abri o cartão.\n`;
+const PROVA = head => `## Prova real\n\nPROVADO 100% REAL\nHead: ${head}\n\nRodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.\n`;
 const comum = { head: HEAD, rotulos: [], arquivos: [{ caminho: 'app/electron/pwa/app.js', adicionadas: ['const a = 1;'] }], registros: [REVISAO(HEAD)] };
 
 test('registro passa: descrição, atenção BAIXA e revisão limpa no head', () => {
@@ -103,7 +103,7 @@ test('registrar-na-pr: a seção de prova entra no corpo e troca a anterior', ()
   const corpo = `${DESCRICAO}\nAtenção: ALTA\n\n${PROVA(OUTRO)}\n## Outra\n\nfim\n`;
   const novo = corpoComAProva(corpo, `## Prova real\n\nPROVADO 100% REAL\nHead: ${HEAD}`);
   assert.ok(novo.includes(`Head: ${HEAD}`) && !novo.includes(OUTRO) && novo.includes('## Outra'));
-  const plano = planejar({ comando: 'prova', head: HEAD, nota: 'x' }, { ...comum, corpo }, 'rodei');
+  const plano = planejar({ comando: 'prova', head: HEAD, nota: 'x' }, { ...comum, corpo }, 'Rodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.');
   assert.equal(plano.depois.ok, true, plano.depois.mensagem);
 });
 
