@@ -9,7 +9,8 @@ const temShebang = texto => typeof texto === 'string' && texto.startsWith('#!');
 const ehCodigoDeComentario = (config, caminho, texto) => {
   if (ignoradoComoCodigo(config, caminho)) return false;
   const extensao = extensaoDe(caminho);
-  return config.extensoesDeComentario.includes(extensao) || (extensao === '' && temShebang(texto));
+  const nome = caminho.split('/').pop();
+  return config.extensoesDeComentario.includes(extensao) || (config.nomesDeComentario || []).includes(nome) || (extensao === '' && temShebang(texto));
 };
 
 const ehCodigoDoLimite = (config, caminho) => config.extensoesDoLimite.includes(extensaoDe(caminho)) && !ignoradoComoCodigo(config, caminho);

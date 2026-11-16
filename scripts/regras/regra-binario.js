@@ -1,5 +1,6 @@
 'use strict';
 
+const { bytesDaBase } = require('./git');
 const { casaAlgum, extensaoDe } = require('./globs');
 
 const id = 'sem-binario-nem-lixo';
@@ -20,13 +21,30 @@ const assinaturaDe = (config, buffer) => {
   return null;
 };
 
+function verificarModificado(ctx, item, arquivo, maximo) {
+  const antes = bytesDaBase(ctx.raiz, ctx.mudancas.base.desde, item.caminho);
+  if (!antes) return null;
+  const assinatura = assinaturaDe(ctx.config, arquivo.buffer);
+  if (assinatura && assinatura !== assinaturaDe(ctx.config, antes)) return `o conteúdo passou a ser ${assinatura}`;
+  if (arquivo.buffer.length > maximo && antes.length <= maximo) {
+    return `${(arquivo.buffer.length / 1048576).toFixed(1)} MB: passou do limite de ${ctx.config.binarios.tamanhoMaximoMB} MB`;
+  }
+  return null;
+}
+
 function verificar(ctx) {
   const achados = [];
   const { binarios } = ctx.config;
   const maximo = binarios.tamanhoMaximoMB * 1024 * 1024;
   for (const item of ctx.arquivos) {
-    if (item.status !== 'A' && item.status !== 'R') continue;
     const { caminho } = item;
+    if (item.status === 'M') {
+      const modificado = ctx.ler(caminho);
+      const problema = modificado && !casaAlgum(['MAC/**/reservas/'], caminho) ? verificarModificado(ctx, item, modificado, maximo) : null;
+      if (problema) achados.push({ arquivo: caminho, detalhe: problema });
+      continue;
+    }
+    if (item.status !== 'A' && item.status !== 'R') continue;
     const arquivo = ctx.ler(caminho);
     if (!arquivo) continue;
     const emReservas = casaAlgum(['MAC/**/reservas/'], caminho);

@@ -1,5 +1,6 @@
 'use strict';
 
+const { bytesDaBase } = require('./git');
 const { casaAlgum } = require('./globs');
 
 const id = 'sem-segredo';
@@ -15,13 +16,13 @@ const PADROES = [
   { nome: 'token do Slack', regex: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/ },
   { nome: 'chave de API (sk-)', regex: /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{24,}\b/ },
   { nome: 'JWT', regex: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/ },
-  { nome: 'token de bot do Telegram', regex: /\b\d{8,10}:[A-Za-z0-9_-]{35}\b/ },
+  { nome: 'token de bot do Telegram', regex: /(?:\b|(?<=bot))\d{8,10}:[A-Za-z0-9_-]{35}\b/ },
 ];
 
 const URL_COM_SENHA = /[a-z][a-z0-9+.-]{1,20}:\/\/[^\s/:@'"]{1,100}:([^\s/@'"]{4,200})@[^\s'"]{1,200}/gi;
 const SENHA_DE_EXEMPLO = /^(?:senha|password|passwd|pass|pwd|secret|segredo|usuario|user|username|usr|xxx+|\*+|s3nh[a0-9]*|<[^>]*>|\{[^}]*\}|\$\{?\w*\}?|%\w*|\.\.\.)$/i;
 
-const ATRIBUICAO = /(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]{0,60}['"]?\s{0,5}[:=]\s{0,5}['"]([^'"\s]{16,})['"]/i;
+const ATRIBUICAO = /(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]{0,60}['"]?\s{0,5}[:=]\s{0,5}['"]([^'"\s]{16,512})/i;
 const TAMANHO_DA_JANELA = 2000;
 const SOBRA_ENTRE_JANELAS = 200;
 const PLACEHOLDER = /x{4,}|\*{3,}|example|exemplo|sample|your|seu[_-]|changeme|placeholder|dummy|fake|<[^>]*>|\$\{|%\(|\{\{|process\.env|os\.environ|\.\.\./i;
@@ -53,6 +54,34 @@ function acharNaLinha(texto) {
   return null;
 }
 
+const TAMANHO_MAXIMO_DO_BINARIO = 32 * 1024 * 1024;
+const TRECHO_LEGIVEL = /[\x20-\x7e]{12,}/g;
+
+function segredoNoBinario(buffer) {
+  if (buffer.length > TAMANHO_MAXIMO_DO_BINARIO) return null;
+  const tamanhoPar = tamanho => tamanho - (tamanho % 2);
+  const visoes = [
+    buffer.toString('latin1'),
+    buffer.subarray(0, tamanhoPar(buffer.length)).toString('utf16le'),
+    buffer.subarray(1, 1 + tamanhoPar(buffer.length - 1)).toString('utf16le'),
+  ];
+  for (const visao of visoes) {
+    for (const trecho of visao.matchAll(TRECHO_LEGIVEL)) {
+      const nome = acharNaLinha(trecho[0]);
+      if (nome) return nome;
+    }
+  }
+  return null;
+}
+
+function segredoNovoNoBinario(ctx, item, arquivo) {
+  const nome = segredoNoBinario(arquivo.buffer);
+  if (!nome) return null;
+  const origem = item.status === 'M' ? item.caminho : item.status === 'R' ? item.antigo : null;
+  const antes = origem ? bytesDaBase(ctx.raiz, ctx.mudancas.base.desde, origem) : null;
+  return antes && segredoNoBinario(antes) ? null : nome;
+}
+
 function verificar(ctx) {
   const achados = [];
   for (const item of ctx.arquivos) {
@@ -61,10 +90,15 @@ function verificar(ctx) {
       achados.push({ arquivo: caminho, detalhe: 'arquivo de segredo, chave ou sessão não entra no repositório' });
       continue;
     }
+    const arquivo = ctx.ler(caminho);
+    if (arquivo && arquivo.binario) {
+      const nome = ctx.mudancas.copias.has(caminho) ? null : segredoNovoNoBinario(ctx, item, arquivo);
+      if (nome) achados.push({ arquivo: caminho, detalhe: `arquivo binário com texto que parece ${nome} (o valor não é mostrado)` });
+      continue;
+    }
     const novas = ctx.mudancas.acrescentadas.get(caminho);
     if (!novas || novas.size === 0) continue;
-    const arquivo = ctx.ler(caminho);
-    if (!arquivo || arquivo.binario) continue;
+    if (!arquivo) continue;
     const linhas = arquivo.texto.split('\n');
     for (const numero of [...novas].sort((a, b) => a - b)) {
       const nome = acharNaLinha(linhas[numero - 1] || '');

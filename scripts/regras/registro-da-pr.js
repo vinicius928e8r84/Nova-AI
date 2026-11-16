@@ -14,12 +14,12 @@ const MINIMO_DA_DESCRICAO = 40;
 const MINIMO_DA_PROVA = 40;
 
 const SHA_INTEIRO = /^[0-9a-f]{40}$/;
-const TITULO = /^ {0,3}(#{1,6})\s+(.*)$/;
+const TITULO = /^ {0,3}(#{1,6})[ \t]+(.*)$/;
 const CERCA = /^ {0,3}(`{3,}|~{3,})/;
 const CITACAO = /^ {0,3}>/;
 
 function tituloDe(linha) {
-  const achado = TITULO.exec(linha);
+  const achado = TITULO.exec(linha.split('\r')[0]);
   if (!achado) return null;
   const texto = achado[2].trimEnd();
   let fim = texto.length;

@@ -56,7 +56,7 @@ function lerArgumentos(argv) {
 
 function contexto(raiz, base, env, avisos) {
   const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'configuracao.json'), 'utf8'));
-  const mudancas = lerMudancas(raiz, base);
+  const mudancas = lerMudancas(raiz, base, config);
   const cache = new Map();
   const ler = caminho => {
     if (!cache.has(caminho)) cache.set(caminho, lerArquivo(raiz, caminho));

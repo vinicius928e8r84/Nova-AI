@@ -3,6 +3,7 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { casaAlgum } = require('./globs');
 
 const COMMIT_VAZIO = /^0+$/;
 
@@ -102,6 +103,24 @@ function linhasAcrescentadas(diff) {
 
 const ehBinario = buffer => buffer.subarray(0, 8000).includes(0);
 
+function decodificarUtf16(buffer) {
+  if (buffer.length < 2) return null;
+  const par = buffer.length - (buffer.length % 2);
+  if (buffer[0] === 0xff && buffer[1] === 0xfe) return buffer.subarray(2, par).toString('utf16le');
+  if (buffer[0] === 0xfe && buffer[1] === 0xff) return Buffer.from(buffer.subarray(2, par)).swap16().toString('utf16le');
+  const amostra = Math.min(par, 8000);
+  let zerosNoPar = 0;
+  let zerosNoImpar = 0;
+  for (let i = 0; i < amostra; i += 2) {
+    if (buffer[i] === 0) zerosNoPar++;
+    if (buffer[i + 1] === 0) zerosNoImpar++;
+  }
+  const casais = amostra / 2;
+  if (zerosNoImpar >= casais * 0.3 && zerosNoPar <= casais * 0.01) return buffer.subarray(0, par).toString('utf16le');
+  if (zerosNoPar >= casais * 0.3 && zerosNoImpar <= casais * 0.01) return Buffer.from(buffer.subarray(0, par)).swap16().toString('utf16le');
+  return null;
+}
+
 function lerArquivo(raiz, caminho) {
   const completo = path.join(raiz, caminho);
   let buffer;
@@ -110,7 +129,20 @@ function lerArquivo(raiz, caminho) {
   } catch {
     return null;
   }
-  return { buffer, binario: ehBinario(buffer), texto: ehBinario(buffer) ? null : buffer.toString('utf8') };
+  if (ehBinario(buffer)) {
+    const decodificado = decodificarUtf16(buffer);
+    if (decodificado !== null) return { buffer, binario: false, utf16: true, texto: decodificado };
+    return { buffer, binario: true, utf16: false, texto: null };
+  }
+  return { buffer, binario: false, utf16: false, texto: buffer.toString('utf8') };
+}
+
+function bytesDaBase(raiz, desde, caminho) {
+  try {
+    return git(raiz, ['show', `${desde}:${caminho}`], { encoding: 'buffer' });
+  } catch {
+    return null;
+  }
 }
 
 function contarLinhas(texto) {
@@ -121,12 +153,17 @@ function contarLinhas(texto) {
 
 function hashesDaBase(raiz, desde) {
   const saida = git(raiz, ['ls-tree', '-r', '-z', desde]);
-  const hashes = new Set();
-  for (const entrada of saida.split('\0').filter(Boolean)) hashes.add(entrada.split(/\s/)[2]);
+  const hashes = new Map();
+  for (const entrada of saida.split('\0').filter(Boolean)) {
+    const [, , hash] = entrada.split(/\s/);
+    const caminho = entrada.slice(entrada.indexOf('\t') + 1);
+    if (!hashes.has(hash)) hashes.set(hash, []);
+    hashes.get(hash).push(caminho);
+  }
   return hashes;
 }
 
-function lerMudancas(raiz, base) {
+function lerMudancas(raiz, base, config = null) {
   const { desde } = base;
   const itens = lerStatus(git(raiz, ['diff', '--name-status', '-M', '-z', '--no-color', '--no-ext-diff', desde]));
   const diff = git(raiz, ['diff', '-U0', '-M', '--text', '--ignore-cr-at-eol', '--no-textconv', '--no-color', '--no-ext-diff', desde]);
@@ -138,12 +175,26 @@ function lerMudancas(raiz, base) {
   }
   const hashes = hashesDaBase(raiz, desde);
   const copias = new Set();
+  const isento = caminho => Boolean(config) && casaAlgum(config.ignorarCodigo, caminho);
+  const todasAsLinhas = (caminho, arquivo) => {
+    if (arquivo.binario) return;
+    const total = contarLinhas(arquivo.texto);
+    acrescentadas.set(caminho, new Set(Array.from({ length: total }, (_, i) => i + 1)));
+  };
   for (const item of itens) {
+    if (item.status === 'R' && isento(item.antigo) && !isento(item.caminho)) {
+      const arquivo = lerArquivo(raiz, item.caminho);
+      if (arquivo) todasAsLinhas(item.caminho, arquivo);
+      continue;
+    }
     if (item.status !== 'A') continue;
     const arquivo = lerArquivo(raiz, item.caminho);
     if (!arquivo) continue;
     const hash = git(raiz, ['hash-object', '--', item.caminho]).trim();
-    if (hashes.has(hash)) {
+    const origens = hashes.get(hash);
+    if (origens && origens.every(isento) && !isento(item.caminho)) {
+      todasAsLinhas(item.caminho, arquivo);
+    } else if (origens) {
       copias.add(item.caminho);
       acrescentadas.set(item.caminho, new Set());
     } else if (!acrescentadas.has(item.caminho) && !arquivo.binario) {
@@ -162,4 +213,4 @@ function arquivoNaBase(raiz, desde, caminho) {
   }
 }
 
-module.exports = { ErroDeUso, arquivoNaBase, contarLinhas, git, lerArquivo, lerMudancas, resolverBase, tentar };
+module.exports = { ErroDeUso, arquivoNaBase, bytesDaBase, contarLinhas, git, lerArquivo, lerMudancas, resolverBase, tentar };

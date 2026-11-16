@@ -9,7 +9,7 @@ const fimDaString = (texto, i) => {
 
 const ANTES_DE_REGEX = '(,=:[!&|?{};+-*%<>~^';
 const INCREMENTO_ANTES = /(?:\+\+|--)\s*$/;
-const PALAVRA_ANTES_DE_REGEX = /\b(?:return|typeof|case|in|of|void|delete|throw|else|do|yield|await)\s*$/;
+const PALAVRA_ANTES_DE_REGEX = /(?<![\w$.])(?:return|typeof|case|in|of|void|delete|throw|else|do|yield|await)\s*$/;
 
 function fimDoRegex(fonte, inicio) {
   let j = inicio + 1;
@@ -293,7 +293,20 @@ function comentariosHash(fonte) {
   return comentarios;
 }
 
-const COM_BARRAS = /\.(?:js|mjs|cjs|jsx|ts|tsx|c|cc|cpp|h|hpp|m|mm|x|swift|java|kt)$/;
+function comentariosBat(fonte) {
+  const comentarios = [];
+  const inicio = /^[ \t]*(?:rem(?=[ \t]|$)|::)/gim;
+  for (const m of fonte.matchAll(inicio)) {
+    const de = m.index;
+    const fim = fonte.indexOf('\n', de);
+    comentarios.push([de, fim < 0 ? fonte.length : fim]);
+  }
+  return comentarios;
+}
+
+const COM_BARRAS = /\.(?:js|mjs|cjs|jsx|ts|tsx|c|cc|cpp|h|hpp|m|mm|x|swift|java|kt|go|rs)$/;
+const BAT = /\.(?:cmd|bat)$/i;
+const COM_HASH_POR_NOME = /(?:^|\/)(?:Makefile|GNUmakefile|Dockerfile)$/;
 const COM_HASH = /\.(?:yml|yaml|toml|rb)$/;
 const COM_TAGS = /\.(?:html|plist|xml)$/;
 const SHELL = /\.(?:sh|bash|zsh|command)$/;
@@ -315,7 +328,8 @@ function trechosDeComentario(arquivo, fonte) {
   if (arquivo.endsWith('.py') || linguagem === 'py') return comentariosPy(fonte);
   if (COM_TAGS.test(arquivo)) return comentariosHtml(fonte);
   if (SHELL.test(arquivo) || linguagem === 'sh') return comentariosSh(fonte);
-  if (COM_HASH.test(arquivo)) return comentariosHash(fonte);
+  if (COM_HASH.test(arquivo) || COM_HASH_POR_NOME.test(arquivo)) return comentariosHash(fonte);
+  if (BAT.test(arquivo)) return comentariosBat(fonte);
   return [];
 }
 

@@ -57,23 +57,21 @@ Mexer em qualquer caminho de `scripts/regras/caminhos-sensiveis.json` conta como
 
 ## Proteção da branch `main` (para quem administra o repositório)
 
-Configure em Settings → Branches → Branch protection rule (ou Rulesets) para `main`:
+Configure em Settings → Branches → Branch protection rule (ou Rulesets) para `main`. O repositório tem uma conta só e o GitHub não deixa o autor aprovar a própria PR, então a proteção não exige aprovação:
 
-- Require a pull request before merging, com **1 aprovação** e "Dismiss stale pull request approvals when new commits are pushed".
 - Require status checks to pass before merging, e marque como obrigatórios:
   - `Regras de revisão`
   - `Registro da PR`
   - `Auditoria de dependências`
 - Require branches to be up to date before merging.
-- Require conversation resolution before merging.
-- Do not allow bypassing the above settings (inclui administradores); bloqueie force-push e exclusão da branch.
-- Require review from Code Owners: o `.github/CODEOWNERS` já cobre `.github/`, `scripts/regras/`, `CONTRIBUTING.md`, `AGENTS.md`, `.gitattributes` e `.gitmodules`. Sem isso, quem altera o workflow da própria PR pode afrouxar os checks.
+- Não exigir aprovação de revisão (Require approvals desligado) e não exigir Code Owners (o `.github/CODEOWNERS` fica só como mapa de quem é dono de cada área).
+- Do not allow bypassing the above settings: nem administrador ignora (enforce_admins); bloqueie force-push e exclusão da branch.
 
 Se um job for renomeado nos workflows, o nome obrigatório muda junto, senão o merge fica esperando um check que não existe: `scripts/regras/checks-obrigatorios.json` lista os nomes e um teste confere com os workflows. O mesmo vale para toda branch-alvo de PR que se queira proteger (por exemplo, uma branch de integração): a regra de proteção é por branch, e sem ela nenhum check bloqueia o merge.
 
 ## Limites conhecidos
 
-- Os workflows rodam as regras da branch-alvo e não as da PR (só a PR que cria as regras usa as próprias). Mas o arquivo do workflow vem da PR: quem muda `.github/workflows/` pode desligar um check. Fecham essa porta o CODEOWNERS com "Require review from Code Owners" e a proteção da branch; por isso `.github/` e `scripts/regras/` contam como atenção ALTA.
+- Os workflows rodam as regras da branch-alvo e não as da PR (só a PR que cria as regras usa as próprias). Mas o arquivo do workflow vem da PR: quem muda `.github/workflows/` pode desligar um check. Como a proteção não exige aprovação nem Code Owners, nenhuma máquina fecha essa porta: o que sobra é a PR contar como atenção ALTA (prova real e revisão independente no head exato, que o check `Registro da PR` cobra) e quem mescla ler o diff de `.github/` e `scripts/regras/` antes. Os testes das regras rodam depois das regras, para um teste da PR não trocar o código que confere a própria PR.
 - O check de registro confere texto, SHA e quem publicou (dono, membro ou colaborador); `Autor` e `Revisor` são os nomes que o registro declara. Se os agentes e o dono usam a mesma conta do GitHub, nenhuma máquina distingue uma revisão independente de uma auto-aprovação: quem mescla confere.
 - A heurística de segredo pega padrões conhecidos e valores longos em campos como `senha` ou `token`; não pega todo segredo.
 - Os testes das regras estão em `scripts/regras/test/` (`node --test "scripts/regras/test/*.test.js"`).

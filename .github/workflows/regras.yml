@@ -40,13 +40,13 @@ jobs:
         run: |
           npm install --no-save --no-audit --no-fund --ignore-scripts --prefix "$RUNNER_TEMP/eslint" eslint@9.39.4
           echo "ESLINT_BIN=$RUNNER_TEMP/eslint/node_modules/eslint/bin/eslint.js" >> "$GITHUB_ENV"
-      - name: Testes das regras
-        run: node --test "scripts/regras/test/*.test.js"
       - name: Regras de revisão
         run: node "$REGRAS_DIR/verificar.js" --raiz "$GITHUB_WORKSPACE"
         env:
           REGRAS_BASE: origin/${{ github.event.pull_request.base.ref }}
           REGRAS_EXIGE_FERRAMENTAS: "1"
+      - name: Testes das regras
+        run: node --test "scripts/regras/test/*.test.js"
 
   auditoria:
     name: Auditoria de dependências
