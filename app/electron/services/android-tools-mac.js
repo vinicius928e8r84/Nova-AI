@@ -51,7 +51,9 @@ async function fetchBuffer(http, url, timeout = 120000) {
     assertOfficialUrl(url);
     let response;
     try {
-        response = await http({ url, method: 'GET', responseType: 'arraybuffer', timeout, maxRedirects: 5 });
+        response = await http({ url, method: 'GET', responseType: 'arraybuffer', timeout, maxRedirects: 5,
+            beforeRedirect: (options) => assertOfficialUrl(`${options.protocol}//${options.hostname || options.host}${options.path || ''}`)
+        });
     } catch (e) {
         throw new Error(`Falha ao baixar ${url}: ${e.message}`);
     }
@@ -74,9 +76,26 @@ async function extractInto(archivePath, kind, destDir, runner = run) {
 }
 
 function replaceDir(from, to) {
-    fs.rmSync(to, { recursive: true, force: true });
     fs.mkdirSync(path.dirname(to), { recursive: true });
-    fs.renameSync(from, to);
+    const old = to + '.old';
+    fs.rmSync(old, { recursive: true, force: true });
+    const hadOld = fs.existsSync(to);
+    if (hadOld) fs.renameSync(to, old);
+    try {
+        fs.renameSync(from, to);
+    } catch (e) {
+        if (hadOld) fs.renameSync(old, to);
+        throw e;
+    }
+    fs.rmSync(old, { recursive: true, force: true });
+}
+
+function sweepTemp(baseDir) {
+    let names = [];
+    try { names = fs.readdirSync(baseDir); } catch { return; }
+    for (const n of names) {
+        if (/^(adb|scrcpy)-tmp-/.test(n)) fs.rmSync(path.join(baseDir, n), { recursive: true, force: true });
+    }
 }
 
 function markExecutable(dir, names) {
@@ -144,6 +163,7 @@ function localToolPath(baseDir, name) {
 
 async function ensureMacTools({ baseDir, adbReady, scrcpyReady, force, progress = () => {}, deps = {} }) {
     const errors = [];
+    sweepTemp(baseDir);
     if (!adbReady || force) {
         progress({ stage: 'adb', message: 'Baixando Motor ADB Android (fonte oficial do Google)...' });
         try { await installAdb(baseDir, deps); } catch (e) { errors.push('ADB: ' + e.message); }
@@ -157,5 +177,5 @@ async function ensureMacTools({ baseDir, adbReady, scrcpyReady, force, progress 
 
 module.exports = {
     ensureMacTools, installAdb, installScrcpy, localToolPath, parseDarwinPlatformToolsSha1,
-    scrcpyRelease, assertOfficialUrl, SCRCPY_VERSION
+    scrcpyRelease, assertOfficialUrl, replaceDir, sweepTemp, fetchBuffer, SCRCPY_VERSION
 };

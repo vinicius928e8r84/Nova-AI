@@ -91,3 +91,43 @@ test('localToolPath', () => {
     fs.writeFileSync(path.join(base, 'platform-tools', 'adb'), '', { mode: 0o755 });
     assert.strictEqual(m.localToolPath(base, 'adb'), path.join(base, 'platform-tools', 'adb'));
 });
+
+test('replaceDir mantém a instalação anterior se o rename falhar', () => {
+    const base = tmp();
+    const to = path.join(base, 'dest');
+    fs.mkdirSync(to);
+    fs.writeFileSync(path.join(to, 'velho'), '1');
+    assert.throws(() => m.replaceDir(path.join(base, 'nao-existe'), to));
+    assert.ok(fs.existsSync(path.join(to, 'velho')));
+    assert.ok(!fs.existsSync(to + '.old'));
+});
+
+test('replaceDir troca e remove a cópia antiga', () => {
+    const base = tmp();
+    const to = path.join(base, 'dest');
+    const from = path.join(base, 'novo');
+    fs.mkdirSync(to);
+    fs.mkdirSync(from);
+    fs.writeFileSync(path.join(from, 'novo'), '2');
+    m.replaceDir(from, to);
+    assert.ok(fs.existsSync(path.join(to, 'novo')));
+    assert.ok(!fs.existsSync(to + '.old'));
+});
+
+test('sweepTemp remove temporários órfãos e preserva o resto', () => {
+    const base = tmp();
+    fs.mkdirSync(path.join(base, 'adb-tmp-x'));
+    fs.mkdirSync(path.join(base, 'scrcpy-tmp-y'));
+    fs.mkdirSync(path.join(base, 'platform-tools'));
+    m.sweepTemp(base);
+    assert.deepStrictEqual(fs.readdirSync(base), ['platform-tools']);
+});
+
+test('fetchBuffer revalida cada redirect via beforeRedirect', async () => {
+    let cfg;
+    const http = async (c) => { cfg = c; return { data: Buffer.from('ok') }; };
+    await m.fetchBuffer(http, 'https://dl.google.com/x');
+    assert.doesNotThrow(() => cfg.beforeRedirect({ protocol: 'https:', hostname: 'objects.githubusercontent.com', path: '/a' }));
+    assert.throws(() => cfg.beforeRedirect({ protocol: 'https:', hostname: 'evil.example.com', path: '/a' }));
+    assert.throws(() => cfg.beforeRedirect({ protocol: 'http:', hostname: 'dl.google.com', path: '/a' }));
+});

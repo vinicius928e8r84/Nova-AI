@@ -197,11 +197,13 @@ O app instalado recebeu encaminhamento iOS para CAM HIJACK, correção do caminh
 ## Atualização de 15/11/2026 — auto-download de ADB e scrcpy no Mac (PR-G)
 
 - **O que mudou:** `ensureTools` (`physicalMobileService.js`), que só baixava no Windows, agora também baixa no macOS quando `adb` ou `scrcpy` não são achados (Homebrew, `resources/bin`, PATH). Quem já tem as ferramentas não muda nada.
-- **Fontes oficiais e verificação:** ADB de `dl.google.com` (SHA-1 conferido contra `repository2-3.xml` do Google; sem hash no manifesto = instalação cancelada); scrcpy v5.0.1 de `github.com/Genymobile/scrcpy` (SHA-256 fixo no código, arm64 e x64). Hash errado = arquivo descartado. Hosts fora da lista são recusados.
+- **Fontes oficiais e verificação:** ADB de `dl.google.com` (SHA-1 conferido contra `repository2-3.xml` do Google; sem hash no manifesto = instalação cancelada); scrcpy v5.0.1 de `github.com/Genymobile/scrcpy` (SHA-256 fixo no código, arm64 e x64). Hash errado = arquivo descartado. Hosts fora da lista são recusados, inclusive em cada redirect (`beforeRedirect`).
+- **Correções da revisão:** o scrcpy no Mac é iniciado com `ADB=<adb do app>` para não haver conflito de versão com o `adb` embutido no pacote do scrcpy; a troca de pasta guarda a instalação anterior como `.old` e a restaura se o `rename` falhar; `adb-tmp-*`/`scrcpy-tmp-*` órfãos são varridos no início de `ensureTools`.
+- **Comportamento conhecido:** o download roda automaticamente ~2 s após abrir o app quando faltam as ferramentas (~16 MB ADB + ~13 MB scrcpy), igual ao Windows.
 - **Destino:** `~/Library/Application Support/nova_dsktp/physical_mobile/platform-tools/` e `.../scrcpy/`.
 - **Falha:** nunca silenciosa — `ensureTools` devolve `success:false` com a causa e manda `physical-mobile:setup-progress` com `stage:'error'` (sugere `brew install android-platform-tools scrcpy`).
 - **Arquivos:** `app/electron/services/android-tools-mac.js` (novo), `physicalMobileService.js`, `app/tests/android-tools-mac.test.js`, `app/README.md`.
-- **Testado:** `node --check` e `node --test app/tests/android-tools-mac.test.js` (rede e extração simuladas); hashes conferidos contra os downloads reais no Linux.
+- **Testado:** `node --check` e `node --test app/tests/android-tools-mac.test.js` (14 testes, rede e extração simuladas); hashes conferidos contra os downloads reais no Linux.
 - **Sem testar:** extração real (`ditto`/`tar`) e execução de adb/scrcpy num Mac; Android real; Gatekeeper/quarentena nos binários baixados.
 - **Reaplicar no app instalado:** copiar `android-tools-mac.js` e `physicalMobileService.js` para `Resources/app/electron/services/` (guardar o anterior em `reservas/`) e reiniciar o Nova.
 

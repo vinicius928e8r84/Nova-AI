@@ -783,7 +783,7 @@ class PhysicalMobileService {
 
         console.log(`[PhysicalMobile] Spawning Scrcpy v4.1 (Stable): ${this.scrcpyPath} with args:`, args);
         
-        const scrcpyProc = spawn(this.scrcpyPath, args, { windowsHide: false });
+        const scrcpyProc = spawn(this.scrcpyPath, args, process.platform === 'darwin' ? { windowsHide: false, env: { ...process.env, ADB: this.adbPath } } : { windowsHide: false });
         this.runningStreams.set(deviceId, scrcpyProc);
 
         scrcpyProc.stdout?.on('data', (d) => console.log(`[Scrcpy] ${d}`));
