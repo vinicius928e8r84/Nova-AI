@@ -1,5 +1,14 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Tela "Controle de Acesso" removida (Mac e Windows) — 15/11/2026
+
+- **O que era:** modal (`VX` no bundle) que pedia a chave de API do Gemini e a gravava em `secret_key.json`. Abria sozinho na inicialização quando `get-gemini-token` voltava vazio. Não é licença: `license:verify` segue como stub local.
+- **O que mudou:** no bundle, `xI||j(!0)` foi removido do callback de `get-gemini-token`. Nenhum outro caminho abre o modal (ele virou código morto); o app abre direto. Sem chave, as funções do Gemini falham até a chave ser informada em Configurações.
+- **Arquivos:** `app/dist/assets/index-Dun7lr2S.js` e `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js`; docs `docs/windows.md` e `app/README.md`. `main.js` não mudou.
+- **Qual copiar no Mac:** `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js` (tem os `<audio>` da tela de boot que o bundle de `app/dist` não tem). O de `app/dist/assets/` vale para `npm start` e `npm run dist:*`.
+- **Cópias antigas que ainda trazem a tela (não copiar para o app):** `MAC/integracao-iphone/index-Dun7lr2S.patched.js`, `MAC/controle-celular-plataformas/index-Dun7lr2S.patched.js`, `MAC/integracao-sequestro-cam/index-Dun7lr2S.patched.js`, `MAC/integracao-kling/index-Dun7lr2S.js`, `MAC/traducao-interface/index-Dun7lr2S.js`, `backup-antes-traducao/index-Dun7lr2S.js` e as de `reservas/`. Rodar `MAC/integracao-sequestro-cam/patch_bundle.py` com uma origem antiga também traz a tela de volta.
+- **Sem testar:** abertura real do Electron (Mac/Windows) e `NOVA_SMOKE_TEST=1`; ao aplicar no Mac, abrir uma vez sem `secret_key.json`.
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.
@@ -1494,10 +1503,3 @@ Com o iPhone 8 Plus **plugado no cabo** (jailbreak religado, OpenSSH ativo — a
 | `LEIA-ME.md` | Este arquivo |
 
 Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
-
-## 2026-11-15 — Tela "Controle de Acesso" removida (Mac e Windows)
-
-- **O que era:** modal (`VX` no bundle) que pedia a chave de API do Gemini e a gravava em `secret_key.json`. Abria sozinho na inicialização quando `get-gemini-token` voltava vazio.
-- **O que mudou:** no bundle, `xI||j(!0)` foi removido do callback de `get-gemini-token`; o app abre direto. Sem chave, as funções do Gemini falham até a chave ser informada em Configurações.
-- **Arquivos:** `app/dist/assets/index-Dun7lr2S.js` e `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js`; docs `docs/windows.md` e `app/README.md`. `main.js` não mudou (`license:verify` segue como stub local).
-- **Sem testar:** abertura real do Electron (Mac/Windows).
