@@ -4383,7 +4383,7 @@ if (process.platform === 'darwin') {
   process.on('SIGINT', () => app.quit());
 }
 
-if (process.platform === 'win32') {
+if (process.platform !== 'darwin') {
   guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
 }
 

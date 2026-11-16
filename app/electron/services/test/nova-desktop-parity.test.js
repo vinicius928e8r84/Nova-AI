@@ -63,3 +63,12 @@ test('guardBeforeQuit para os servicos uma vez e depois deixa sair', async () =>
   assert.strictEqual(quits, 1);
   assert.strictEqual(prevented, 2);
 });
+
+test('guardBeforeQuit sai mesmo se a parada nunca termina', async () => {
+  let handler; let quits = 0;
+  const app = { on: (_, fn) => { handler = fn; }, quit: () => { quits++; handler({ preventDefault() {} }); } };
+  guardBeforeQuit(app, () => new Promise(() => {}), 50);
+  handler({ preventDefault() {} });
+  await new Promise(r => setTimeout(r, 200));
+  assert.strictEqual(quits, 1);
+});

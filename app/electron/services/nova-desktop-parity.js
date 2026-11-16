@@ -39,14 +39,17 @@ async function runShutdownTasks(tasks, log = console.error) {
   }
 }
 
-function guardBeforeQuit(app, run) {
+function guardBeforeQuit(app, run, limitMs = 2000) {
   let state = 'idle';
   app.on('before-quit', event => {
     if (state === 'done') return;
     event.preventDefault();
     if (state === 'running') return;
     state = 'running';
-    Promise.resolve().then(run).catch(() => {}).finally(() => {
+    let timer;
+    const limit = new Promise(resolve => { timer = setTimeout(resolve, limitMs); });
+    Promise.race([Promise.resolve().then(run).catch(() => {}), limit]).finally(() => {
+      clearTimeout(timer);
       state = 'done';
       app.quit();
     });
