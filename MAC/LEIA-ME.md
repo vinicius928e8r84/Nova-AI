@@ -8,6 +8,10 @@
 - `app/electron/services/whatsapp-manager.js`: `killSessionBrowserProcesses()` também limpa no Mac (`pkill -f -- '--user-data-dir=.*session-nova-desktop-client'`) o Chrome que sobrou da sessão do WhatsApp. Novo comportamento de limpeza no Mac.
 - Novo `app/electron/services/paridade-utils.js` (`hasUpdateConfig`, `edgeTtsBinary`, `downloadFile`) e teste `app/test/paridade-b.test.js` (`node --test app/test/paridade-b.test.js`).
 
+**Aplicar no app instalado (AGENTS §5):** copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/` (ou o `app.asar` desempacotado equivalente), guardando antes o anterior em `reservas/`: `electron/main.js`, `electron/services/agent-swarm-controller.js`, `electron/services/whatsapp-manager.js`, **`electron/services/paridade-utils.js` (arquivo novo)** e `wake_word_bg.py`. O `main.js` faz `require('./services/paridade-utils')` no topo: copiar só o `main.js` impede o app de abrir (MODULE_NOT_FOUND). Depois: `node --check` em cada um e reiniciar o Nova.
+
+Correção de revisão: `downloadFile` rejeita redirecionamento para protocolo que não seja `http:`/`https:` e `Location` inválida, e captura erro síncrono de `client.get`, sem exceção não capturada.
+
 **Testado (Linux, sem Mac/Windows/iPhone):** `node --check` nos arquivos tocados; testes unitários com `app-update.yml` ausente/presente, `edge_tts` por plataforma e download com redirecionamento/404 contra servidor local; `wake_word_bg.py` carregado com `sounddevice` presente/ausente simulando `win32`/`darwin`/`linux`; `pkill -f --` casando só o processo com `--user-data-dir=...session-nova-desktop-client`. **Sem teste real:** microfone/wake word no Windows, TTS no Windows, download no Mac, `pkill` no macOS (BSD), app empacotado sem `app-update.yml`.
 
 **Fora deste PR (follow-up):** remover `*.antes-proxy-*` do git e do pacote (item vi do plano).

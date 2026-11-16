@@ -22,15 +22,25 @@ function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } 
     const fetch = (target, left) => {
       let client;
       try {
-        client = new URL(target).protocol === 'https:' ? https : http;
+        const protocol = new URL(target).protocol;
+        if (protocol !== 'https:' && protocol !== 'http:') throw new Error(`Protocolo nao suportado: ${protocol}`);
+        client = protocol === 'https:' ? https : http;
       } catch (e) {
         return reject(e);
       }
-      const req = client.get(target, { headers: { 'User-Agent': 'Mozilla/5.0 NovaAI' } }, res => {
+      let req;
+      try {
+        req = client.get(target, { headers: { 'User-Agent': 'Mozilla/5.0 NovaAI' } }, res => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           res.resume();
           if (left <= 0) return reject(new Error('Muitos redirecionamentos'));
-          return fetch(new URL(res.headers.location, target).toString(), left - 1);
+          let next;
+          try {
+            next = new URL(res.headers.location, target);
+          } catch (e) {
+            return reject(e);
+          }
+          return fetch(next.toString(), left - 1);
         }
         if (res.statusCode !== 200) {
           res.resume();
@@ -47,7 +57,10 @@ function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } 
         out.on('error', reject);
         out.on('finish', () => resolve(outPath));
         res.pipe(out);
-      });
+        });
+      } catch (e) {
+        return reject(e);
+      }
       req.on('error', reject);
       if (onRequest) onRequest(req);
     };

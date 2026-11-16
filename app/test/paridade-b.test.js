@@ -37,3 +37,19 @@ test('downloadFile: segue redirecionamento, reporta progresso e trata 404', asyn
   await assert.rejects(downloadFile(`${base}/x`, out + '2'), /HTTP 404/);
   srv.close();
 });
+
+test('downloadFile: redirecionamento ftp:, file: ou Location invalida rejeita sem derrubar o processo', async () => {
+  const srv = http.createServer((req, res) => {
+    const loc = { '/ftp': 'ftp://127.0.0.1/x', '/file': 'file:///etc/passwd', '/bad': 'http://[' }[req.url];
+    if (loc) { res.writeHead(302, { Location: loc }); return res.end(); }
+    res.writeHead(404); res.end();
+  });
+  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  const base = `http://127.0.0.1:${srv.address().port}`;
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nova-dl-')), 'a.bin');
+  await assert.rejects(downloadFile(`${base}/ftp`, out), /Protocolo nao suportado/);
+  await assert.rejects(downloadFile(`${base}/file`, out), /Protocolo nao suportado/);
+  await assert.rejects(downloadFile(`${base}/bad`, out), /Invalid URL/);
+  assert.strictEqual(fs.existsSync(out), false);
+  srv.close();
+});
