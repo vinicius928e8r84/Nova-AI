@@ -37,11 +37,14 @@ npm start
 - Teste rápido sem abrir janela e sem tocar nos seus dados:
   `NOVA_SMOKE_TEST=1 NOVA_SMOKE_DIR=/tmp/nova-smoke npm start` grava `screen.png` e `result.json` em
   `NOVA_SMOKE_DIR` e sai com código 0.
-- A ação de exportar a configuração grava `config_bak_C.dat` (cópia das chaves de API do usuário) na pasta
-  atual (`process.cwd()`), e `npm start` cria `data/` em `app/`. Ambos estão no `.gitignore` **e** fora do
-  instalador (`build.files` exclui `config_bak_C.dat`, `.env*`, `data/`, `secret_key.json`, `known_hosts`,
-  `iphone-hosts.json`, `Nova_Vault/`, `*.db`, `*.sqlite*`, `*.log`, `*.antes-proxy-*`). **Nunca** remova essas
-  exclusões: o electron-builder não lê o `.gitignore`.
+- O app grava segredos do usuário dentro de `app/` quando roda com `npm start`: `config_bak_C.dat` (ação de
+  exportar a configuração, na pasta atual), `youtube_auto/.env` (chave Gemini) e `youtube_auto/client_secret.json`
+  (OAuth do Google), `data/`, entre outros. Eles estão no `.gitignore` **e** fora do instalador: `build.files`
+  exclui, em qualquer pasta, `.env*`, `config_bak_C.dat`, `secret_key.json`, `*_key.json`, `remote_tokens.json`,
+  `id_iphone*`, `known_hosts`, `iphone-hosts.json`, `*.db*`, `*.sqlite*`, `*.log`, `*.antes-proxy-*`, e, na raiz,
+  `data/`, `Nova_Vault/`, `youtube_auto/client_secret.json`, `youtube_auto/token*.json` e `youtube_auto/exports/`.
+  **Nunca** remova essas exclusões: o electron-builder não lê o `.gitignore`. Antes de publicar um instalador,
+  confira com `find <app empacotado> -name '.env*' -o -name '*client_secret*' -o -name 'config_bak_C.dat'`.
 
 ## Gerar instalador
 
