@@ -235,3 +235,38 @@ test('segredo: exemplos de URL de proxy do repositório não são segredo, senha
   assert.equal(acharNaLinha(`postgres://admin:${SENHA_FORTE}@db.interno.com/x`), 'URL com usuário e senha');
   assert.equal(acharNaLinha(`postgres://admin:${SENHA_FORTE}@db.exemplo.com.evil.io/x`), 'URL com usuário e senha');
 });
+
+test('script ou código com BOM de UTF-16 não escapa: código entra em UTF-8', () => {
+  const sh = utf16('#!/bin/sh\n# comentario novo escondido\necho oi\n', true);
+  const novo = tentar('sem-binario-nem-lixo', { 'MAC/scripts-n/instalar.sh': sh });
+  assert.equal(novo.codigo, 1, novo.saida);
+  const cmd = tentar('sem-binario-nem-lixo', { 'app/nova-locale.cmd': utf16('rem comentario novo\n', true) });
+  assert.equal(cmd.codigo, 1, cmd.saida);
+  const modificado = tentar('sem-binario-nem-lixo', { 'MAC/scripts-n/instalar.sh': sh }, { 'MAC/scripts-n/instalar.sh': '#!/bin/sh\necho oi\n' });
+  assert.equal(modificado.codigo, 1, modificado.saida);
+  const texto = tentar('sem-binario-nem-lixo', { 'docs/notas.txt': utf16('notas\n', true), 'MAC/scripts-n/limpo.sh': '#!/bin/sh\necho oi\n' });
+  assert.equal(texto.codigo, 0, texto.saida);
+});
+
+const EVOMI = ['Kx9mP2', 'vLq8RtZw'].join('');
+
+test('segredo: URL de proxy no formato invertido da Evomi e senha com outro @exemplo.com depois são achadas', () => {
+  const ruins = [
+    `"http://core-residential.evomi.com:1000@aquiles77:${EVOMI}"`,
+    `'socks5://rp.evomi.com:1002@cliente9:${EVOMI}'`,
+    `"https://admin:${EVOMI}@api.interno.io/v1?avisar=ops@example.com"`,
+    `"https://admin:${EVOMI}@api.interno.io/#@exemplo.com"`,
+  ];
+  for (const linha of ruins) assert.equal(acharNaLinha(linha), 'URL com usuário e senha', linha);
+});
+
+test('shebang: regex linear e linha com CRLF não é comentário novo', { timeout: 20000 }, () => {
+  const inicio = Date.now();
+  const r = tentar('sem-comentario-novo', { 'tool/longo.sh': `#!/x${' -a'.repeat(60000)} !\necho oi\n` });
+  assert.ok(Date.now() - inicio < 8000, `levou ${Date.now() - inicio} ms`);
+  assert.equal(r.codigo, 1, r.saida);
+  for (const [arquivo, texto] of [['tool/crlf.sh', '#!/bin/bash\r\necho oi\r\n'], ['tool/crlf.cjs', '#!/usr/bin/env node\r\nx();\r\n']]) {
+    const ok = tentar('sem-comentario-novo', { [arquivo]: texto });
+    assert.equal(ok.codigo, 0, `${arquivo}: ${ok.saida}`);
+  }
+});

@@ -21,7 +21,7 @@ const PADROES = [
 
 const URL_COM_SENHA = /[a-z][a-z0-9+.-]{1,20}:\/\/[^\s/:@'"]{1,100}:([^\s/@'"]{4,200})@[^\s'"]{1,200}/gi;
 const HOST_DE_EXEMPLO = /^(?:[\w-]+\.)*(?:exemplo|example)\.(?:com|net|org)(?::\d+)?(?:[/?#]|$)/i;
-const SENHA_DE_EXEMPLO = /^(?:senha|password|passwd|pass|pwd|secret|segredo|usuario|user|username|usr|xxx+|\*+|porta|port|host|\d{1,5}|s3nh[a0-9]*|<[^>]*>|\{[^}]*\}|\$\{?\w*\}?|%\w*|\.\.\.)$/i;
+const SENHA_DE_EXEMPLO = /^(?:senha|password|passwd|pass|pwd|secret|segredo|usuario|user|username|usr|xxx+|\*+|porta|port|host|s3nh[a0-9]*|<[^>]*>|\{[^}]*\}|\$\{?\w*\}?|%\w*|\.\.\.)$/i;
 
 const ATRIBUICAO = /(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]{0,60}['"]?\s{0,5}[:=]\s{0,5}['"]([^'"\s]{16,512})/i;
 const TAMANHO_DA_JANELA = 2000;
@@ -38,9 +38,12 @@ const pareceSegredo = valor => {
 function acharNaJanela(texto) {
   for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
   for (const url of texto.matchAll(URL_COM_SENHA)) {
-    const host = url[0].slice(url[0].lastIndexOf('@') + 1);
+    const resto = url[0].slice(url[0].indexOf('@') + 1).split(/[/?#]/)[0];
+    const invertida = /^\d{1,5}$/.test(url[1]) && resto.includes(':');
+    const host = invertida ? url[0].slice(url[0].indexOf('://') + 3).split(':')[0] : resto;
     if (HOST_DE_EXEMPLO.test(host)) continue;
-    if (!SENHA_DE_EXEMPLO.test(url[1].split(':').pop())) return 'URL com usuário e senha';
+    const senha = invertida ? resto.slice(resto.indexOf(':') + 1) : url[1].split(':').pop();
+    if (!SENHA_DE_EXEMPLO.test(senha)) return 'URL com usuário e senha';
   }
   const m = ATRIBUICAO.exec(texto);
   if (m && pareceSegredo(m[1])) return 'valor literal em campo de segredo';

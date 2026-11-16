@@ -26,7 +26,7 @@ const LICENCA = [
   /^(?:SPDX-FileCopyrightText:\s*)?(?:Copyright(?:\s+\(c\)|\s+©)?|©)\s+\d{4}(?:\s*[-,]\s*\d{4})*\s+[\p{L}.'-]+(?:\s[\p{L}.'-]+){0,3}$/u,
 ];
 const ATE_A_LINHA_DA_LICENCA = 5;
-const SHEBANG = /^#![ \t]*\/\S+(?:[ \t]+-\S+)*(?:[ \t]+[\w.+-]+)?(?:[ \t]+-\S+)*[ \t]*$/;
+const SHEBANG = /^#![ \t]*\/\S+(?:[ \t]+-\S*)*(?:[ \t]+[\w.+][\w.+-]*(?:[ \t]+-\S*)*)?[ \t\r]*$/;
 
 const permitida = (linha, corpo, bruto) => {
   if (linha === 1 && SHEBANG.test(bruto)) return true;

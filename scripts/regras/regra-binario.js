@@ -41,9 +41,9 @@ function verificar(ctx) {
     const { caminho } = item;
     if (item.status !== 'D') {
       const lido = ctx.ler(caminho);
-      const codigo = lido && lido.binario && (ehCodigoDoLimite(ctx.config, caminho) || ehCodigoDeComentario(ctx.config, caminho, lido.buffer.toString('latin1')));
+      const codigo = lido && (lido.binario || lido.utf16) && (ehCodigoDoLimite(ctx.config, caminho) || ehCodigoDeComentario(ctx.config, caminho, lido.buffer.toString('latin1')));
       if (codigo) {
-        achados.push({ arquivo: caminho, detalhe: 'arquivo de código com byte nulo: as regras de linha não o leem' });
+        achados.push({ arquivo: caminho, detalhe: lido.utf16 ? 'arquivo de código em UTF-16: o interpretador o lê de outro jeito; código entra em UTF-8' : 'arquivo de código com byte nulo: as regras de linha não o leem' });
         continue;
       }
     }
