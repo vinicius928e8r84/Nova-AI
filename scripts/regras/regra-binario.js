@@ -1,6 +1,7 @@
 'use strict';
 
 const { bytesDaBase } = require('./git');
+const { ehCodigoDeComentario, ehCodigoDoLimite } = require('./escopo');
 const { casaAlgum, extensaoDe } = require('./globs');
 
 const id = 'sem-binario-nem-lixo';
@@ -38,6 +39,14 @@ function verificar(ctx) {
   const maximo = binarios.tamanhoMaximoMB * 1024 * 1024;
   for (const item of ctx.arquivos) {
     const { caminho } = item;
+    if (item.status !== 'D') {
+      const lido = ctx.ler(caminho);
+      const codigo = lido && lido.binario && (ehCodigoDoLimite(ctx.config, caminho) || ehCodigoDeComentario(ctx.config, caminho, lido.buffer.toString('latin1')));
+      if (codigo) {
+        achados.push({ arquivo: caminho, detalhe: 'arquivo de código com byte nulo: as regras de linha não o leem' });
+        continue;
+      }
+    }
     if (item.status === 'M') {
       const modificado = ctx.ler(caminho);
       const problema = modificado && !casaAlgum(['MAC/**/reservas/'], caminho) ? verificarModificado(ctx, item, modificado, maximo) : null;

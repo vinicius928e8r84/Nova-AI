@@ -59,7 +59,9 @@ function analisarJs(fonte) {
       } else i++;
       continue;
     }
-    if (c === '/' && d === '/') {
+    const noInicioDaLinha = () => /^[ \t]*$/.test(fonte.slice(fonte.lastIndexOf('\n', i - 1) + 1, i));
+    const sintaxeHtml = (c === '<' && fonte.startsWith('<!--', i)) || (c === '-' && fonte.startsWith('-->', i) && noInicioDaLinha());
+    if ((c === '/' && d === '/') || sintaxeHtml || (i === 0 && c === '#' && d === '!')) {
       const fim = fonte.indexOf('\n', i);
       const ate = fim < 0 ? fonte.length : fim;
       comentarios.push([i, ate]);
@@ -295,7 +297,7 @@ function comentariosHash(fonte) {
 
 function comentariosBat(fonte) {
   const comentarios = [];
-  const inicio = /^[ \t]*(?:rem(?=[ \t]|$)|::)/gim;
+  const inicio = /(?:^|[&|])[ \t]*@?(?:rem(?=[ \t]|$)|::)/gim;
   for (const m of fonte.matchAll(inicio)) {
     const de = m.index;
     const fim = fonte.indexOf('\n', de);

@@ -129,7 +129,8 @@ function lerArquivo(raiz, caminho) {
   } catch {
     return null;
   }
-  if (ehBinario(buffer)) {
+  const comBom = buffer.length >= 2 && ((buffer[0] === 0xff && buffer[1] === 0xfe) || (buffer[0] === 0xfe && buffer[1] === 0xff));
+  if (comBom || ehBinario(buffer)) {
     const decodificado = decodificarUtf16(buffer);
     if (decodificado !== null) return { buffer, binario: false, utf16: true, texto: decodificado };
     return { buffer, binario: true, utf16: false, texto: null };

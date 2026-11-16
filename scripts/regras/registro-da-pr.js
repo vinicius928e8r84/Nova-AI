@@ -111,7 +111,8 @@ function faltaDaRevisao(registros, head, autorDaPr) {
     return todos.length ? faltaDoHead(todos[todos.length - 1], head, 'o registro de revisão mais recente')
       : 'nenhum comentário ou revisão da PR é o registro de revisão independente (linhas "Veredito: CLEAN", "Head: <SHA>", "Autor:" e "Revisor:")';
   }
-  const reprovado = doHead.map(textos => valoresDe(textos, 'Veredito')).flat().find(veredito => veredito !== VEREDITO_LIMPO);
+  const citaOHead = textos => hexasDe(valoresDe(textos, 'Head')).includes(head);
+  const reprovado = todos.filter(citaOHead).map(textos => valoresDe(textos, 'Veredito')).flat().find(veredito => veredito !== VEREDITO_LIMPO);
   if (reprovado) return `um registro de revisão deste head tem o veredito ${reprovado}, não ${VEREDITO_LIMPO}; um veredito que não é ${VEREDITO_LIMPO} no head não se desfaz com outro comentário: corrija e faça um commit novo`;
   const faltas = doHead.map(textos => faltaDoRegistro(textos, autorDaPr));
   return faltas.includes(null) ? null : faltas[faltas.length - 1];

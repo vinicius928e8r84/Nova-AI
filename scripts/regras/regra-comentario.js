@@ -26,9 +26,10 @@ const LICENCA = [
   /^(?:SPDX-FileCopyrightText:\s*)?(?:Copyright(?:\s+\(c\)|\s+©)?|©)\s+\d{4}(?:\s*[-,]\s*\d{4})*\s+[\p{L}.'-]+(?:\s[\p{L}.'-]+){0,3}$/u,
 ];
 const ATE_A_LINHA_DA_LICENCA = 5;
+const SHEBANG = /^#![ \t]*\/\S+(?:[ \t]+-\S+)*(?:[ \t]+[\w.+-]+)?(?:[ \t]+-\S+)*[ \t]*$/;
 
 const permitida = (linha, corpo, bruto) => {
-  if (linha === 1 && bruto.startsWith('#!')) return true;
+  if (linha === 1 && SHEBANG.test(bruto)) return true;
   if (DIRETIVAS.some(d => d.test(corpo))) return true;
   return linha <= ATE_A_LINHA_DA_LICENCA && LICENCA.some(l => l.test(corpo));
 };

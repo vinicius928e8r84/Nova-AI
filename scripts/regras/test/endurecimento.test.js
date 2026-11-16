@@ -165,3 +165,73 @@ test('binário de tamanho ímpar e par é varrido sem quebrar', () => {
     assert.equal(r.codigo, 0, `tamanho ${tamanho}: ${r.saida}`);
   }
 });
+
+const NUL_NO_COMECO = 'const zz = "\0";\nmodule.exports.zz = zz;\n// comentario novo\nconsole.log(zz);\n';
+const preenchimento = quantas => Array.from({ length: quantas }, (_, i) => `module.exports.v${i} = ${i};\n`).join('');
+
+test('byte nulo em arquivo de código não desliga as regras de linha', () => {
+  const novo = tentar('sem-binario-nem-lixo', { 'app/electron/services/grande.js': NUL_NO_COMECO + preenchimento(3000) });
+  assert.equal(novo.codigo, 1, novo.saida);
+  const base = { 'app/electron/main.js': preenchimento(10) };
+  const crescido = tentar('sem-binario-nem-lixo', { 'app/electron/main.js': NUL_NO_COMECO + preenchimento(10) }, base);
+  assert.equal(crescido.codigo, 1, crescido.saida);
+  const script = tentar('sem-binario-nem-lixo', { 'scripts/sem-extensao': '#!/bin/sh\necho "\0"\n' });
+  assert.equal(script.codigo, 1, script.saida);
+});
+
+test('byte nulo: arquivo que não é código e JS limpo continuam passando', () => {
+  const png = Buffer.from(Array.from({ length: 4000 }, (_, i) => (i * 7919) % 251));
+  const r = tentar('sem-binario-nem-lixo', { 'app/electron/icone.png': png, 'app/electron/services/limpo.js': preenchimento(5) });
+  assert.equal(r.codigo, 0, r.saida);
+});
+
+test('UTF-16 com BOM sem byte nulo nos primeiros 8000 bytes ainda é decodificado', () => {
+  const texto = `${'中'.repeat(4100)}\n${SUJO_HTML}`;
+  for (const regra of ['sem-comentario-novo', 'sem-segredo']) {
+    const r = tentar(regra, { 'app/electron/pwa/cjk.html': utf16(texto, true) });
+    assert.equal(r.codigo, 1, `${regra}: ${r.saida}`);
+  }
+});
+
+test('comentário em sintaxe HTML e shebang com texto dentro de JS são achados', () => {
+  const casos = ['x();\n--> escondido1\n', 'const a = 1 <!-- escondido2\n', '<!-- escondido3\nx();\n', '#!/usr/bin/env node comentario escondido no shebang\nx();\n'];
+  for (const [i, texto] of casos.entries()) {
+    const r = tentar('sem-comentario-novo', { [`app/electron/services/h${i}.js`]: texto });
+    assert.equal(r.codigo, 1, `${i}: ${r.saida}`);
+  }
+  for (const bom of ['#!/usr/bin/env node\nx();\n', '#!/usr/bin/env -S node --no-warnings\nx();\n', 'const a = 1 < !--b;\n', 'const s = "<!-- nao e comentario -->";\n']) {
+    const r = tentar('sem-comentario-novo', { 'app/electron/services/bom.js': bom });
+    assert.equal(r.codigo, 0, `${JSON.stringify(bom)}: ${r.saida}`);
+  }
+});
+
+test('comentário em .bat com @rem e depois de & é achado', () => {
+  for (const texto of ['@echo off\n@rem por que\n', 'echo oi & rem por que\n', 'echo oi && rem por que\n']) {
+    assert.equal(tentar('sem-comentario-novo', { 'tool/nova.bat': texto }).codigo, 1, texto);
+  }
+  assert.equal(tentar('sem-comentario-novo', { 'tool/nova.bat': 'echo remover & echo oi\n' }).codigo, 0);
+});
+
+test('registro: NOT CLEAN com a linha Head mal formatada continua definitivo', () => {
+  const head = 'a'.repeat(40);
+  const ruim = `Veredito: NOT CLEAN\nHead: ${head} (atual)\nAutor: x\nRevisor: y\n`;
+  const bom = `Veredito: CLEAN\nHead: ${head}\nAutor: x2\nRevisor: y2\n`;
+  const r = conferir({ head, arquivos: [{ caminho: 'README.md', adicionadas: [] }], corpo: `${'Corrige o botão do iPhone que mostrava Parar transmissão.'.repeat(2)}\n\nAtenção: BAIXA\n`, registros: [ruim, bom] });
+  assert.equal(r.ok, false);
+  assert.match(r.mensagem, /não se desfaz com outro comentário/);
+});
+
+const SENHA_FORTE = ['Sup3r', 'S3cret'].join('');
+
+test('segredo: exemplos de URL de proxy do repositório não são segredo, senha real continua sendo', () => {
+  const livres = [
+    'esquema://host:porta@usuario:senha',
+    'check(@"socks5://h.exemplo.com:1002@usr:senha", @"socks5")',
+    'eq("x", P.parse("http://aquiles:segredo123@us.exemplo.com:8080"))',
+    '"socks5h://aquiles:pa:ss@host.exemplo.com:1080"',
+    'const SENHA = "segredoFalso_country-US_mode-quality_session-AAAABBBB_lifetime-1440";',
+  ];
+  for (const linha of livres) assert.equal(acharNaLinha(linha), null, linha);
+  assert.equal(acharNaLinha(`postgres://admin:${SENHA_FORTE}@db.interno.com/x`), 'URL com usuário e senha');
+  assert.equal(acharNaLinha(`postgres://admin:${SENHA_FORTE}@db.exemplo.com.evil.io/x`), 'URL com usuário e senha');
+});
