@@ -1,5 +1,11 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Limpeza de comentários em main.js e preload.js — 16/11/2026
+
+- **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST idênticos antes e depois.
+- **Arquivos:** `app/electron/main.js`, `app/electron/preload.js`. Mantidos: âncoras `CAMLIVE:begin/end`, comentários de porquê, contratos e segurança.
+- **Sem testar:** o app instalado não foi atualizado nem reiniciado.
+
 ## Seletor de modelo no app instalado (IPCs spoofer:*) — 06/11/2026
 
 Com o OK do usuário (OK1), implementados no app instalado em `/Applications/Nova AI Mac.app`:

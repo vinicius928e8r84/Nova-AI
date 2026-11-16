@@ -1,13 +1,11 @@
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    // ... existing apis ...
     onUpdateLog: (callback) => {
         const sub = (_event, value) => callback(value);
         ipcRenderer.on('update-log', sub);
         return () => ipcRenderer.removeListener('update-log', sub);
     },
-    // ... existing apis ...
     setZoomFactor: (factor) => webFrame.setZoomFactor(factor),
     getZoomFactor: () => webFrame.getZoomFactor(),
     webviewBridgePath: ipcRenderer.sendSync('get-webview-bridge-path'),
@@ -18,7 +16,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on(channel, subscription);
         return () => ipcRenderer.removeListener(channel, subscription);
     },
-    // Swarm IPC
     triggerSwarm: (command, apiKey) => ipcRenderer.invoke('trigger-swarm', { command, apiKey }),
     cancelSwarm: () => ipcRenderer.send('cancel-swarm'),
     onSwarmLog: (callback) => {
@@ -37,7 +34,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('swarm:task-result', sub);
     },
 
-    // Self-Voice Control Specific Listeners
     send: (channel, data) => ipcRenderer.send(channel, data),
     onActivateMic: (callback) => {
         const sub = (_event, val) => callback(val);
@@ -70,14 +66,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         return () => ipcRenderer.removeListener('nova-action', sub);
     },
 
-    // IDM-Style Floating Downloader Events
     onYtFloatingDownload: (callback) => {
         const sub = (_event, data) => callback(data);
         ipcRenderer.on('nova-yt-floating-download', sub);
         return () => ipcRenderer.removeListener('nova-yt-floating-download', sub);
     },
     
-    // Virtual Cam System (Global OS Hijack)
     virtualCam: {
         control: (payload) => ipcRenderer.invoke('virtual-cam:control', payload),
         onStatus: (callback) => {
@@ -94,13 +88,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         spoofRegistry: () => ipcRenderer.invoke('virtual-cam:spoof-registry'),
     },
 
-    // Screen Recorder
     screenRecorder: {
         getSources: () => ipcRenderer.invoke('screen-recorder:get-sources'),
         saveRecording: (buffer, extension) => ipcRenderer.invoke('screen-recorder:save', { buffer, extension })
     },
 
-    // Browser Farm
     farm: {
         loadProfiles:      ()                      => ipcRenderer.invoke('farm:load-profiles'),
         addProfile:        (name, browser)         => ipcRenderer.invoke('farm:add-profile', { name, browser }),
@@ -139,7 +131,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
     },
     
-    // RTMP Broadcasting
     rtmp: {
         startBroadcast: () => ipcRenderer.invoke('rtmp:start-broadcast'),
         stopBroadcast: () => ipcRenderer.invoke('rtmp:stop-broadcast'),
