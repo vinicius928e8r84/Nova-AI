@@ -113,8 +113,6 @@ let productionPort = process.env.NOVA_TEST_PORT || 45678;
 // Document Parsers
 const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
-
-// Auto-Updater
 const { autoUpdater } = require('electron-updater');
 const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
@@ -2071,7 +2069,6 @@ function registerHandlers() {
         if (speed !== 50) rateArg  = `--rate "${speed > 50 ? '+' : ''}${(speed - 50) * 2}%"`;
         if (pitch !== 50) pitchArg = `--pitch "${pitch > 50 ? '+' : ''}${pitch - 50}Hz"`;
 
-        // edge-tts: generate MP3 + VTT subtitles (word timings)
         const ttsCmd = [
           edgeTtsBinary(process.platform, () => macNative.python()),
           `--file "${tmpTxt}"`,
@@ -4582,7 +4579,6 @@ if (!gotTheLock) {
       }
     });
 
-    // Check for updates 5 seconds after app start (Production Only)
     if (app.isPackaged) {
       setTimeout(() => {
         if (process.platform !== 'darwin' && hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
