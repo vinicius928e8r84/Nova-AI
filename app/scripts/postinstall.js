@@ -1,6 +1,3 @@
-// Pos-instalacao: recompila os modulos nativos para o Electron (electron-builder install-app-deps).
-// No Mac a falha continua sendo fatal (igual ao comportamento anterior).
-// No Windows/Linux, sem compilador C++, usa o binario prebuilt do better-sqlite3.
 const { spawnSync } = require('child_process');
 const path = require('path');
 const raiz = path.join(__dirname, '..');

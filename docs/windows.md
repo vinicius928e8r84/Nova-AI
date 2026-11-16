@@ -71,8 +71,7 @@ npm run dist:win
 Resultado: `app\release\Nova AI-Setup-1.1.15.exe` (NSIS, x64, instalação por usuário, com escolha de pasta).
 Instale dando duplo clique. O instalador não é assinado: o SmartScreen mostra "Mais informações" > "Executar assim mesmo".
 
-Gere sempre no Windows: no Mac o `electron-builder` recusa (`node-gyp does not support cross-compiling`),
-porque os módulos nativos precisam ser compilados para Windows.
+Gere sempre no Windows: no Mac o `dist:win` gera um instalador com módulos nativos do Mac, que não funciona.
 
 ## 6. O app do Windows é o mesmo código de `app/`?
 
