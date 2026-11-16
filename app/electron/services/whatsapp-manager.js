@@ -3,6 +3,7 @@ const qrcode = require('qrcode');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { MAC_BROWSER_KILL_PATTERN } = require('./paridade-utils');
 const { spawnSync } = require('child_process');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -106,7 +107,7 @@ class WhatsAppManager {
     killSessionBrowserProcesses() {
         if (process.platform === 'darwin') {
             try {
-                spawnSync('pkill', ['-f', '--', '--user-data-dir=.*session-nova-desktop-client'], { timeout: 12000, encoding: 'utf8' });
+                spawnSync('pkill', ['-f', '--', MAC_BROWSER_KILL_PATTERN], { timeout: 12000, encoding: 'utf8' });
             } catch (error) {
                 console.warn('[WhatsApp] Failed to terminate stale browser process:', error.message || error);
             }

@@ -53,3 +53,38 @@ test('downloadFile: redirecionamento ftp:, file: ou Location invalida rejeita se
   assert.strictEqual(fs.existsSync(out), false);
   srv.close();
 });
+
+test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto', () => {
+  const { spawn, spawnSync } = require('child_process');
+  const { MAC_BROWSER_KILL_PATTERN } = require('../electron/services/paridade-utils');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-pk-'));
+  const mk = (rel) => {
+    const f = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.symlinkSync(process.execPath, f);
+    return f;
+  };
+  const IDLE = 'setTimeout(()=>{},60000)';
+  const sess = '--user-data-dir=/x/session-nova-desktop-client';
+  const chromium = mk('Chromium.app/Contents/MacOS/Chromium');
+  const chrome = mk('Google Chrome.app/Contents/MacOS/Google Chrome');
+  const outro = mk('Outro/Chromium.app/Contents/MacOS/Chromium');
+  const kids = [
+    spawn(chromium, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
+    spawn(chrome, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
+  ];
+  const vivos = [
+    spawn(outro, ['-e', IDLE, '--', '--user-data-dir=/x/pessoal'], { stdio: 'ignore' }),
+    spawn('bash', ['-c', 'sleep 60; : $0', sess], { stdio: 'ignore' }),
+    spawn(process.execPath, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
+  ];
+  return (() => {
+    return new Promise(r => setTimeout(r, 400)).then(() => {
+      spawnSync('pkill', ['-f', '--', MAC_BROWSER_KILL_PATTERN]);
+      return new Promise(r => setTimeout(r, 400));
+    }).then(() => {
+      kids.forEach(k => assert.strictEqual(k.signalCode, 'SIGTERM', 'deveria morrer'));
+      vivos.forEach(k => assert.strictEqual(k.signalCode, null, 'nao deveria morrer'));
+    }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
+  })();
+});

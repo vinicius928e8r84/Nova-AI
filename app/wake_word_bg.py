@@ -36,6 +36,8 @@ def listen_for_nova():
     
     try:
         source = sr.Microphone()
+        if sd is not None and isinstance(source, sr.AudioSource) and type(source).__name__ == 'MacMicrophone':
+            sd.query_devices(kind='input')
     except Exception as e:
         print(json.dumps({"type": "INFO", "msg": f"Microphone listener in background disabled (PyAudio not installed). Web/App voice mode active."}))
         sys.stdout.flush()

@@ -68,4 +68,6 @@ function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } 
   });
 }
 
-module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile };
+const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^/]* .*--user-data-dir=[^ ]*session-nova-desktop-client';
+
+module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, MAC_BROWSER_KILL_PATTERN };
