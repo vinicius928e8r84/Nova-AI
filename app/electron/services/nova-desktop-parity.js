@@ -14,8 +14,7 @@ function menuTemplate(platform) {
     return [
       {label: 'Nova AI', submenu: [{role: 'quit'}]},
       edit,
-      {label: 'Visualizar', submenu: [{role: 'reload'}, {role: 'togglefullscreen'}, {role: 'toggleDevTools'}]},
-      {label: 'Janela', submenu: [{role: 'minimize'}, {role: 'close'}]}
+      {label: 'Visualizar', submenu: [{role: 'reload'}, {role: 'togglefullscreen'}, {role: 'toggleDevTools'}]}
     ];
   }
   return null;
@@ -40,4 +39,18 @@ async function runShutdownTasks(tasks, log = console.error) {
   }
 }
 
-module.exports = {menuTemplate, extraShutdownTasks, runShutdownTasks};
+function guardBeforeQuit(app, run) {
+  let state = 'idle';
+  app.on('before-quit', event => {
+    if (state === 'done') return;
+    event.preventDefault();
+    if (state === 'running') return;
+    state = 'running';
+    Promise.resolve().then(run).catch(() => {}).finally(() => {
+      state = 'done';
+      app.quit();
+    });
+  });
+}
+
+module.exports = {menuTemplate, extraShutdownTasks, runShutdownTasks, guardBeforeQuit};

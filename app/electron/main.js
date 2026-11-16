@@ -321,8 +321,7 @@ function createWindow() {
     });
   }
 
-  // Remove default menu bar (File, Edit, etc.) completely
-  const appMenuTemplate = require('./services/nova-desktop-parity').menuTemplate(process.platform);
+  const appMenuTemplate = menuTemplate(process.platform);
   if (appMenuTemplate) Menu.setApplicationMenu(Menu.buildFromTemplate(appMenuTemplate));
   if (process.platform !== 'win32') mainWindow.setMenu(null);
 
@@ -4364,7 +4363,7 @@ function stopWindowServices() {
   });
 }
 
-const { extraShutdownTasks, runShutdownTasks } = require('./services/nova-desktop-parity');
+const { menuTemplate, extraShutdownTasks, runShutdownTasks, guardBeforeQuit } = require('./services/nova-desktop-parity');
 const shutdownExtras = () => extraShutdownTasks({
   app,
   getIosBridge: () => require('./services/ios-bridge'),
@@ -4384,8 +4383,11 @@ if (process.platform === 'darwin') {
   process.on('SIGINT', () => app.quit());
 }
 
+if (process.platform === 'win32') {
+  guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
+}
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') void runShutdownTasks([stopWindowServices, ...shutdownExtras()]);
   if (!isShuttingDown()) app.quit();
 });
 

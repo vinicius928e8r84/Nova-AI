@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
-const { menuTemplate, extraShutdownTasks, runShutdownTasks } = require('../nova-desktop-parity');
+const { menuTemplate, extraShutdownTasks, runShutdownTasks, guardBeforeQuit } = require('../nova-desktop-parity');
 
 const roles = tpl => tpl.flatMap(m => m.submenu.map(i => i.role).filter(Boolean));
 
@@ -44,4 +44,22 @@ test('sem servicos criados nao lanca', async () => {
   const logs = [];
   await runShutdownTasks(tasks, (...a) => logs.push(a));
   assert.strictEqual(logs.length, 0);
+});
+
+test('win32 nao tem close nem minimize no menu', () => {
+  const r = roles(menuTemplate('win32'));
+  assert.ok(!r.includes('close') && !r.includes('minimize') && r.includes('quit'));
+});
+
+test('guardBeforeQuit para os servicos uma vez e depois deixa sair', async () => {
+  let handler; let quits = 0; let runs = 0;
+  const app = { on: (_, fn) => { handler = fn; }, quit: () => { quits++; handler({ preventDefault() { prevented++; } }); } };
+  let prevented = 0;
+  guardBeforeQuit(app, async () => { runs++; });
+  handler({ preventDefault() { prevented++; } });
+  handler({ preventDefault() { prevented++; } });
+  await new Promise(r => setTimeout(r, 10));
+  assert.strictEqual(runs, 1);
+  assert.strictEqual(quits, 1);
+  assert.strictEqual(prevented, 2);
 });
