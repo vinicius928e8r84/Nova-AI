@@ -17,3 +17,4 @@ resources/
 config_bak_C.dat
 browsers/
 __pycache__/
+*.pyc
