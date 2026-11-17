@@ -115,7 +115,19 @@
       "!**/*.sqlite",
       "!**/*.sqlite3",
       "!**/*.log",
-      "!**/*.antes-proxy-*"
+      "!**/*.antes-proxy-*",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/config_bak_C.dat",
+      "!**/secret_key.json",
+      "!**/*_key.json",
+      "!**/remote_tokens.json",
+      "!**/id_iphone*",
+      "!**/known_hosts",
+      "!**/iphone-hosts.json",
+      "!youtube_auto/client_secret.json",
+      "!youtube_auto/token*.json",
+      "!youtube_auto/exports/**"
     ],
     "extraResources": [
       {
