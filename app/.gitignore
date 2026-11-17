@@ -16,3 +16,9 @@ release/
 resources/
 config_bak_C.dat
 browsers/
+secret_key.json
+data/
+Nova_Vault/
+client_secret.json
+token*.json
+*_key.json

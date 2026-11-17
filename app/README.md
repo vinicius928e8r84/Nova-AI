@@ -37,8 +37,14 @@ npm start
 - Teste rápido sem abrir janela e sem tocar nos seus dados:
   `NOVA_SMOKE_TEST=1 NOVA_SMOKE_DIR=/tmp/nova-smoke npm start` grava `screen.png` e `result.json` em
   `NOVA_SMOKE_DIR` e sai com código 0.
-- Rodar a partir de `app/` cria `config_bak_C.dat` (cópia das chaves de API do usuário) na pasta atual.
-  Ele está no `.gitignore`: **nunca** o remova de lá.
+- O app grava segredos do usuário dentro de `app/` quando roda com `npm start`: `config_bak_C.dat` (ação de
+  exportar a configuração, na pasta atual), `youtube_auto/.env` (chave Gemini) e `youtube_auto/client_secret.json`
+  (OAuth do Google), `data/`, entre outros. Eles estão no `.gitignore` **e** fora do instalador: `build.files`
+  exclui, em qualquer pasta, `.env*`, `config_bak_C.dat`, `secret_key.json`, `*_key.json`, `remote_tokens.json`,
+  `id_iphone*`, `known_hosts`, `iphone-hosts.json`, `*.db*`, `*.sqlite*`, `*.log`, `*.antes-proxy-*`, e, na raiz,
+  `data/`, `Nova_Vault/`, `youtube_auto/client_secret.json`, `youtube_auto/token*.json` e `youtube_auto/exports/`.
+  **Nunca** remova essas exclusões: o electron-builder não lê o `.gitignore`. Antes de publicar um instalador,
+  confira com `find <app empacotado> -name '.env*' -o -name '*client_secret*' -o -name 'config_bak_C.dat'`.
 
 ## Gerar instalador
 
@@ -74,7 +80,7 @@ Windows); no modo `npm start` é `app/resources/` (e `app/browsers/` para navega
 | Chromium embutido | `browsers/chromium-<rev>/` (Mac em dev: `app/browsers/`; empacotado: `Resources/browsers/`) | **script**: `npm run browsers` | Baixa o Chromium do Playwright (~370 MB) para `app/browsers/`. Sem isso o app usa Chrome/Firefox instalados ou o cache do Playwright |
 | Navegadores da Fazenda (`vivaldi`, `brave`, `firefox`, `chrome`) | `browsers/<nome>/` ou instalação do sistema | **fora** (1 GB cada) | Instale o navegador normalmente; o app também procura nos locais padrão do sistema |
 | Python e pacotes | Mac: `resources/python-runtime-portable/run-python`, `resources/python-env/bin/python3`, senão `python3` do sistema. Windows: `python` no PATH | **script**: `pip install -r requirements.txt` | Python 3.11+. O pacote Mac antigo embutia o Python 3.15 do Homebrew (~150 MB); não é necessário para desenvolver |
-| Ferramentas do iPhone (`iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller`) | `resources/ios-tools/` ou Homebrew | **fora** (só Mac) | `brew install libimobiledevice ideviceinstaller libusbmuxd` |
+| Ferramentas do iPhone (`iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller`) | `<Resources>/ios-tools/bin/` (o código não procura no Homebrew nem no `PATH`) | **fora** (só Mac) | Copie `Contents/Resources/ios-tools/` do app instalado para `app/resources/ios-tools/` antes de `npm run dist:mac`. Com `npm start` o `<Resources>` é o do Electron, então o iPhone por USB não acha as ferramentas (use o app instalado para isso). Receita: `MAC/integracao-iphone/distribuicao/empacotar-ferramentas.py` |
 | `nova-cam-spoofer.apk` | `resources/nova-cam-spoofer.apk` | **fora** (binário sem fonte neste repo) | Copie do app instalado ou do pacote `.dmg`/`.exe` |
 | `.deb` do iPhone (`camera.deb`, novamodel, novalanguage) | `electron/services/iphone-setup/` | **fora** (`*.deb` no `.gitignore`) | Gere com Theos a partir de `MAC/` ou copie do app instalado |
 | Modelos de rosto, áudios, ícones | `public/`, `audio/` | **dentro** do git (pequenos, sem segredo) | — |
