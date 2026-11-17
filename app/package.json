@@ -31,7 +31,6 @@
     "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.13.2",
     "better-sqlite3": "^12.9.0",
-    "bplist-creator": "^0.1.1",
     "bplist-parser": "^0.3.2",
     "chrome-remote-interface": "^0.34.0",
     "cloudflared": "^0.7.1",
@@ -79,6 +78,7 @@
   "devDependencies": {
     "@electron/packager": "18.3.6",
     "@electron/rebuild": "3.7.2",
+    "bplist-creator": "^0.1.1",
     "electron": "34.5.8",
     "electron-builder": "26.18.0"
   },
