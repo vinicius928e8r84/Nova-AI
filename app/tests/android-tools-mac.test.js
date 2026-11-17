@@ -131,3 +131,18 @@ test('fetchBuffer revalida cada redirect via beforeRedirect', async () => {
     assert.throws(() => cfg.beforeRedirect({ protocol: 'https:', hostname: 'evil.example.com', path: '/a' }));
     assert.throws(() => cfg.beforeRedirect({ protocol: 'http:', hostname: 'dl.google.com', path: '/a' }));
 });
+
+test('ensureForService devolve pronto sem baixar e falha com mensagem clara', async () => {
+    const base = tmp();
+    const eventos = [];
+    const svc = { baseDir: base, adbPath: path.join(base, 'adb'), scrcpyPath: path.join(base, 'scrcpy'), isProvisioning: false, sendToFrontend: (e, p) => eventos.push(p) };
+    fs.writeFileSync(svc.adbPath, 'x');
+    fs.writeFileSync(svc.scrcpyPath, 'x');
+    const ok = await m.ensureForService(svc, false);
+    assert.strictEqual(ok.success, true);
+    assert.strictEqual(eventos.length, 0);
+    const emAndamento = { ...svc, isProvisioning: true };
+    const busy = await m.ensureForService(emAndamento, true);
+    assert.strictEqual(busy.success, true);
+    assert.strictEqual(emAndamento.isProvisioning, true);
+});

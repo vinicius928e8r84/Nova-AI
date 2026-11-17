@@ -175,7 +175,35 @@ async function ensureMacTools({ baseDir, adbReady, scrcpyReady, force, progress 
     return errors;
 }
 
+async function ensureForService(service, force) {
+    const adbOk = fs.existsSync(service.adbPath), scrcpyOk = fs.existsSync(service.scrcpyPath);
+    if (adbOk && scrcpyOk && !force) {
+        return { success: true, message: 'Native macOS tools ready.', adbPath: service.adbPath, scrcpyPath: service.scrcpyPath };
+    }
+    if (service.isProvisioning) return { success: true, message: 'Configuração em andamento...' };
+    service.isProvisioning = true;
+    const report = (p) => service.sendToFrontend('physical-mobile:setup-progress', p);
+    report({ stage: 'starting', message: 'Configurando Motor de Controle Móvel...' });
+    try {
+        const errors = await ensureMacTools({
+            baseDir: service.baseDir, adbReady: adbOk, scrcpyReady: scrcpyOk, force, progress: report
+        });
+        const adb = service.adbPath, scrcpy = service.scrcpyPath;
+        const ready = fs.existsSync(adb) && fs.existsSync(scrcpy);
+        if (errors.length || !ready) {
+            const message = 'Não foi possível instalar adb/scrcpy automaticamente. ' + (errors.join(' | ') || 'Arquivos não encontrados após a instalação.') + ' Alternativa: brew install android-platform-tools scrcpy';
+            console.error('[PhysicalMobile] ensureTools (macOS):', message);
+            report({ stage: 'error', message });
+            return { success: false, error: message, adbPath: adb, scrcpyPath: scrcpy };
+        }
+        report({ stage: 'done', message: 'Motores prontos!' });
+        return { success: true, message: 'Native macOS tools ready.', adbPath: adb, scrcpyPath: scrcpy };
+    } finally {
+        service.isProvisioning = false;
+    }
+}
+
 module.exports = {
-    ensureMacTools, installAdb, installScrcpy, localToolPath, parseDarwinPlatformToolsSha1,
+    ensureMacTools, ensureForService, installAdb, installScrcpy, localToolPath, parseDarwinPlatformToolsSha1,
     scrcpyRelease, assertOfficialUrl, replaceDir, sweepTemp, fetchBuffer, SCRCPY_VERSION
 };
