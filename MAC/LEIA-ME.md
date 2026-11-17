@@ -16,6 +16,10 @@ Correção de revisão: `downloadFile` rejeita redirecionamento para protocolo q
 
 **Fora deste PR (follow-up):** remover `*.antes-proxy-*` do git e do pacote (item vi do plano).
 
+## Correções do passo a passo no Windows — 15/11/2026
+
+Teste real no Windows deu "funciona com ajustes". Corrigido: `app/package.json` (removidos `@electron/rebuild` e `@electron/packager`, que puxavam `node-gyp` via git; `postinstall` agora chama `app/scripts/postinstall.js`, que usa binários prebuilt do `better-sqlite3` se não houver compilador C++; `dist:win` com `--config.npmRebuild=false`), `app/package-lock.json` regerado sem dependência git, `docs/windows.md` (`git clone -c core.symlinks=false`, estado dos testes, Node 24.15 funcionou), `app/.gitignore` (`data/`) e removidos os 13 symlinks `.macho` de `MAC/integracao-iphone/distribuicao/inspecao-binarios/`. `postinstall.js`: no Mac a falha do `install-app-deps` continua fatal (só Windows/Linux usam o prebuilt) e erro no fallback agora sai com código ≠ 0; `inspecao-binarios/` no `.gitignore`. **Sem testar:** `npm install` + `npm start` no Mac (só `npm ci --ignore-scripts` no Linux); `ios-bridge` só no Mac e `app-update` ficam como pendência.
+
 ## Rodar e gerar instalador a partir do repositório — 15/11/2026
 
 `app/package.json` ganhou `npm start`, `npm run browsers`, `npm run dist:mac` (DMG Apple Silicon, assinatura ad hoc, `local.nova.ai.mac`) e `npm run dist:win` (NSIS x64), com `electron-builder` 26.18.0 e a configuração no campo `build`. O `postinstall` recompila os módulos nativos para o Electron e instala o `ssh2` de `electron/services/iphone-setup/`. Arquivos: `app/package.json`, `app/package-lock.json` (só adições), `app/scripts/baixar-navegador.js`, `app/requirements.txt`, `app/.gitignore` (`release/`, `resources/`, `browsers/`, `config_bak_C.dat`), `app/README.md`, `docs/windows.md`.
