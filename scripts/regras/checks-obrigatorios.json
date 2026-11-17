@@ -1,0 +1,4 @@
+{
+  "descricao": "Nomes dos jobs que a proteção da branch exige (Settings, Branches). Um teste confere esta lista com os workflows.",
+  "checks": ["Regras de revisão", "Registro da PR", "Auditoria de dependências"]
+}
