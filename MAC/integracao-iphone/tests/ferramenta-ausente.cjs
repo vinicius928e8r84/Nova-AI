@@ -16,10 +16,12 @@ test('ios-tools: tool lança, tryTool/has/available não lançam',()=>{
 test('getIosDevices devolve [] sem ferramenta',async()=>{
  assert.deepEqual(await Service.prototype.getIosDevices.call({}),[]);
 });
-test('getStatus não rejeita e mantém a lista Android',async()=>{
- const fake={adbPath:'/x/adb',scrcpyPath:'/x/scrcpy',runningStreams:new Map(),iosPrepared:()=>false,getIosDevices:Service.prototype.getIosDevices,_listIosDevices:Service.prototype._listIosDevices,
-  getConnectedDevices(){return Service.prototype.getConnectedDevices.call(this);}};
- fake.getConnectedDevices=async function(){const adb=[{id:'android1',status:'device',name:'Pixel',type:'usb'}];return adb.concat(await this.getIosDevices());};
+test('getStatus não rejeita e mantém a lista Android pelo getConnectedDevices real',async()=>{
+ const fs=require('node:fs'),os=require('node:os');
+ const adb=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'adb-falso-')),'adb');
+ fs.writeFileSync(adb,'#!/bin/sh\necho "List of devices attached"\necho "android1 device model:Pixel_7 device:panther"\n',{mode:0o755});
+ const fake={adbPath:adb,scrcpyPath:'/x/scrcpy',runningStreams:new Map(),iosPrepared:()=>false};
+ for(const nome of ['getConnectedDevices','getIosDevices'])fake[nome]=Service.prototype[nome];
  const st=await Service.prototype.getStatus.call(fake);
  assert.deepEqual(st.devices.map(d=>d.id),['android1']);
 });

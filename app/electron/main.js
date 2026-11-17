@@ -830,10 +830,8 @@ function registerHandlers() {
   ipcMain.handle('physical-mobile:ios-console-url', async () => {
     try {
       const iosBridge = require('./services/ios-bridge');
-      if (!iosBridge.isRunning()) {
-        const started = iosBridge.start();
-        if (started && started.ok === false) return { success: false, error: started.error };
-      }
+      const started = iosBridge.isRunning() ? null : iosBridge.start();
+      if (started && started.ok === false) return { success: false, error: started.error };
       const port = Number(iosBridge.PORT) || 8778;
       const deadline = Date.now() + 4000;
       while (Date.now() < deadline) {
