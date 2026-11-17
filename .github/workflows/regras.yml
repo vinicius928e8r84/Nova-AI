@@ -1,0 +1,76 @@
+name: Regras
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regras-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  regras:
+    name: Regras de revisão
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+      - name: Usar as regras da base
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if git cat-file -e "origin/$BASE:scripts/regras/verificar.js" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/regras-da-base"
+            git archive "origin/$BASE" scripts/regras | tar -x -C "$RUNNER_TEMP/regras-da-base"
+            echo "REGRAS_DIR=$RUNNER_TEMP/regras-da-base/scripts/regras" >> "$GITHUB_ENV"
+            echo "regras da base origin/$BASE: a PR não consegue afrouxá-las"
+          else
+            echo "REGRAS_DIR=$GITHUB_WORKSPACE/scripts/regras" >> "$GITHUB_ENV"
+            echo "a base ainda não tem as regras: usando as da PR (só acontece na PR que as cria)"
+          fi
+      - name: Instalar o ESLint
+        run: |
+          npm install --no-save --no-audit --no-fund --ignore-scripts --prefix "$RUNNER_TEMP/eslint" eslint@9.39.4
+          echo "ESLINT_BIN=$RUNNER_TEMP/eslint/node_modules/eslint/bin/eslint.js" >> "$GITHUB_ENV"
+      - name: Regras de revisão
+        run: node "$REGRAS_DIR/verificar.js" --raiz "$GITHUB_WORKSPACE"
+        env:
+          REGRAS_BASE: origin/${{ github.event.pull_request.base.ref }}
+          REGRAS_EXIGE_FERRAMENTAS: "1"
+      - name: Testes das regras
+        run: node --test "scripts/regras/test/*.test.js"
+
+  auditoria:
+    name: Auditoria de dependências
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+      - name: Usar as regras da base
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          if git cat-file -e "origin/$BASE:scripts/regras/auditoria.js" 2>/dev/null; then
+            mkdir -p "$RUNNER_TEMP/regras-da-base"
+            git archive "origin/$BASE" scripts/regras | tar -x -C "$RUNNER_TEMP/regras-da-base"
+            echo "REGRAS_DIR=$RUNNER_TEMP/regras-da-base/scripts/regras" >> "$GITHUB_ENV"
+          else
+            echo "REGRAS_DIR=$GITHUB_WORKSPACE/scripts/regras" >> "$GITHUB_ENV"
+          fi
+      - name: npm audit (só alto e crítico, só o que a PR introduz)
+        run: node "$REGRAS_DIR/auditoria.js" --raiz "$GITHUB_WORKSPACE" --base "origin/$BASE"
+        env:
+          BASE: ${{ github.event.pull_request.base.ref }}
