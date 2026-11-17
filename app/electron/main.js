@@ -3799,14 +3799,14 @@ function registerHandlers() {
           robot.typeString(text[i]);
           if (delayMs > 0) {
             const start = Date.now();
-            while (Date.now() - start < delayMs) { }
+            while (Date.now() - start < delayMs);
           }
         }
       };
 
       const sleep = (ms) => {
         const start = Date.now();
-        while (Date.now() - start < ms) { }
+        while (Date.now() - start < ms);
       };
 
       console.log(`[WhatsApp Robot] Step 1: Opening WhatsApp Desktop...`);
