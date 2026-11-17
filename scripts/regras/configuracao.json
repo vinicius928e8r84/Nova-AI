@@ -1,0 +1,52 @@
+{
+  "limiteDeLinhas": 1000,
+  "extensoesDoLimite": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "zsh", "command", "m", "mm", "h", "hpp", "x", "swift", "c", "cc", "cpp", "java", "kt", "go", "rs", "rb"],
+  "extensoesDeComentario": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "zsh", "command", "c", "cc", "cpp", "h", "hpp", "m", "mm", "x", "swift", "java", "kt", "yml", "yaml", "toml", "rb", "plist", "xml", "go", "rs", "cmd", "bat"],
+  "nomesDeComentario": ["Makefile", "GNUmakefile", "Dockerfile"],
+  "ignorarCodigo": [
+    {"glob": "app/dist/", "motivo": "bundle e recursos gerados da interface"},
+    {"glob": "MAC/**/dist/", "motivo": "bundle gerado da interface e seus patches"},
+    {"glob": "MAC/**/reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
+    {"glob": "backup-antes-traducao/", "motivo": "cópia de segurança anterior à tradução"},
+    {"glob": "MAC/**/backup-*/", "motivo": "cópia de segurança de uma tradução"},
+    {"glob": "MAC/**/fixtures/", "motivo": "dados de teste"},
+    {"glob": "MAC/**/index-Dun7lr2S*.js", "motivo": "bundle minificado da interface e seus patches (AGENTS.md seção 5)"},
+    {"glob": "app/electron/pwa/marked.min.js", "motivo": "biblioteca de terceiros minificada"},
+    {"glob": "*.map", "motivo": "source map"},
+    {"glob": "*.lock", "motivo": "trava de pacotes"},
+    {"glob": "package-lock.json", "motivo": "trava de pacotes"},
+    {"glob": "npm-shrinkwrap.json", "motivo": "trava de pacotes"},
+    {"glob": "yarn.lock", "motivo": "trava de pacotes"},
+    {"glob": "pnpm-lock.yaml", "motivo": "trava de pacotes"}
+  ],
+  "consolePermitidoEm": [
+    {"glob": "scripts/", "motivo": "ferramentas de linha de comando escrevem na saída"},
+    {"glob": "test/", "motivo": "testes"},
+    {"glob": "teste/", "motivo": "testes"},
+    {"glob": "*.test.*", "motivo": "testes"},
+    {"glob": "MAC/", "motivo": "ferramentas de integração e aplicação de patches"}
+  ],
+  "binarios": {
+    "extensoesProibidas": ["dmg", "exe", "msi", "zip", "tgz", "gz", "bz2", "xz", "7z", "rar", "deb", "rpm", "pkg", "appimage", "tar", "iso", "img", "apk", "ipa", "jar", "asar", "dll", "so", "dylib", "node", "pyc", "sqlite", "db"],
+    "assinaturasProibidas": [
+      {"nome": "executável Windows (MZ)", "hex": "4d5a"},
+      {"nome": "executável Linux (ELF)", "hex": "7f454c46"},
+      {"nome": "Mach-O 64 bits", "hex": "cffaedfe"},
+      {"nome": "Mach-O 32 bits", "hex": "cefaedfe"},
+      {"nome": "Mach-O universal", "hex": "cafebabe"},
+      {"nome": "arquivo ZIP", "hex": "504b0304"},
+      {"nome": "arquivo gzip", "hex": "1f8b"},
+      {"nome": "pacote ar (.deb)", "hex": "213c617263683e"}
+    ],
+    "tamanhoMaximoMB": 8,
+    "lixo": ["*.bak", "*.bak-*", "*.bak.*", "*.orig", "*.rej", "*.swp", "*~", "*.antes-*", ".DS_Store", "*.log", "node_modules/"]
+  },
+  "arquivosProibidos": [
+    "secret_key.json", "*_key.json", "remote_tokens.json", "id_iphone", "id_iphone.pub", "id_rsa", "id_ed25519", "id_ecdsa",
+    ".env", ".env.*", "*.pem", "*.p12", "*.pfx", "*.keystore", "*.jks", "*.mobileprovision", ".npmrc", ".netrc",
+    "credentials.json", "service-account*.json", "*.kdbx", ".wwebjs_auth/", ".wwebjs_cache/", "Partitions/", "browser-data*/", "teste-perfil-*/"
+  ],
+  "auditoria": {
+    "nivelMinimo": ["high", "critical"]
+  }
+}
