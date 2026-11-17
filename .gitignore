@@ -37,3 +37,6 @@ WINDOWS/
 # Estado local
 data/*
 !data/.gitkeep
+
+# rascunhos recriados por verificar-binarios.py (symlinks)
+MAC/integracao-iphone/distribuicao/inspecao-binarios/
