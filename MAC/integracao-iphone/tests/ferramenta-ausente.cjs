@@ -18,8 +18,10 @@ test('getIosDevices devolve [] sem ferramenta',async()=>{
 });
 test('getStatus não rejeita e mantém a lista Android pelo getConnectedDevices real',async()=>{
  const fs=require('node:fs'),os=require('node:os');
- const adb=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'adb-falso-')),'adb');
- fs.writeFileSync(adb,'#!/bin/sh\necho "List of devices attached"\necho "android1 device model:Pixel_7 device:panther"\n',{mode:0o755});
+ const windows=process.platform==='win32';
+ const adb=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'adb-falso-')),windows?'adb.cmd':'adb');
+ const roteiro=windows?'@echo off\r\necho List of devices attached\r\necho android1 device model:Pixel_7 device:panther\r\n':'#!/bin/sh\necho "List of devices attached"\necho "android1 device model:Pixel_7 device:panther"\n';
+ fs.writeFileSync(adb,roteiro,{mode:0o755});
  const fake={adbPath:adb,scrcpyPath:'/x/scrcpy',runningStreams:new Map(),iosPrepared:()=>false};
  for(const nome of ['getConnectedDevices','getIosDevices'])fake[nome]=Service.prototype[nome];
  const st=await Service.prototype.getStatus.call(fake);
