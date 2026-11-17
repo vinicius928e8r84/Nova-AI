@@ -1,0 +1,24 @@
+{
+  "descricao": "Caminhos e padrões de código que contam como atenção ALTA. Uma PR que muda um deles precisa de Atenção: ALTA, da seção Prova real e da revisão independente no head exato.",
+  "caminhos": [
+    {"id": "licenca-firebase", "motivo": "licença, Firebase, Supabase e acesso remoto", "globs": ["**/remote-access.js", "**/pwa/admin.html", "**/firebase*", "**/*licen[cs]*", "**/inventory-manager.js"]},
+    {"id": "credenciais", "motivo": "credenciais, tokens, chaves e sessões de WhatsApp/Telegram", "globs": ["**/*secret*", "**/*token*", "**/*credential*", "**/.env", "**/.env.*", "**/telegram-manager.js", "**/whatsapp-manager.js", "**/user-profile-manager.js", "**/id_*"]},
+    {"id": "keychain", "motivo": "keychain e preferências globais do sistema", "globs": ["**/*keychain*", "**/global-spoof-service.js", "**/*.plist"]},
+    {"id": "atualizacao-e-dependencias", "motivo": "atualização do app, build, instalador e dependências", "globs": ["app/package.json", "**/package.json", "**/package-lock.json", "app/requirements.txt", "MAC/distribuicao/**", "MAC/encerramento-nova/**", "app/electron/services/nova-shutdown.js"]},
+    {"id": "ipc-e-preload", "motivo": "processo principal, preload e canais IPC", "globs": ["**/main.js", "**/main.*.js", "**/preload*.js", "**/*-preload.js", "**/*-ipc.js", "**/webview-bridge.js", "**/cdp-shim.js"]},
+    {"id": "execucao-de-processos", "motivo": "execução de processos, scripts e arquivos fora da pasta do app", "globs": ["**/child-worker-agent.js", "**/agent-swarm-controller.js", "**/nova-human-controller.js", "**/ytdlp-manager.js", "**/rtmp-server.js", "**/mac-native.js", "**/platform-utils.js", "**/browser-manager.js", "**/browserFarmService.js", "**/*.sh", "**/*.command", "app/scripts/**", "app/wake_word_bg.py"]},
+    {"id": "ponte-do-iphone", "motivo": "ponte do iPhone, câmera virtual e proxy de rede do aparelho", "globs": ["**/iphone-*", "**/ios-*", "**/*iphone*", "**/physicalMobileService*", "**/cam-live*", "**/live-cam-bridge.js", "**/virtual-cam-injector.js", "**/geo-proxy*", "physical_mobile/**", "MAC/integracao-iphone/**", "MAC/proxy-iphone/**", "MAC/controle-celular-plataformas/**", "MAC/integracao-sequestro-cam/**", "MAC/integracao-camlive/**"]},
+    {"id": "ssh", "motivo": "conexões SSH e instalação no aparelho", "globs": ["**/*ssh*", "**/iphone-setup/**"]},
+    {"id": "regras-do-repositorio", "motivo": "as próprias regras de revisão e a automação do GitHub", "globs": [".github/**", "scripts/regras/**", ".gitignore", ".gitattributes", ".gitmodules", "CONTRIBUTING.md", "AGENTS.md"]}
+  ],
+  "conteudo": [
+    {"id": "ipc", "motivo": "registra canal IPC ou muda a segurança da janela", "padrao": "ipcMain\\.(?:handle|on|once)\\b|contextBridge|nodeIntegration|contextIsolation|webSecurity|sandbox\\s*:"},
+    {"id": "processos", "motivo": "executa processo externo", "padrao": "child_process|(?<![.\\w])(?:exec|execSync|execFile|execFileSync|spawn|spawnSync|fork)\\s*\\(|\\bsubprocess\\b|\\bos\\.system\\b|\\bPopen\\b|\\bosascript\\b|shell\\.(?:openExternal|openPath)"},
+    {"id": "arquivos-fora-do-app", "motivo": "apaga arquivo ou lê fora da pasta do app", "padrao": "\\b(?:rmSync|rmdirSync|unlinkSync)\\b|fs(?:\\.promises)?\\.(?:rm|rmdir|unlink)\\s*\\(|rmtree|os\\.(?:remove|unlink)\\b|rm\\s+-[a-z]*r|app\\.getPath\\s*\\(\\s*['\"](?:home|documents|desktop|downloads|appData|userData)['\"]|\\bhomedir\\s*\\("},
+    {"id": "credenciais-no-codigo", "motivo": "lida com chave, keychain ou autenticação", "padrao": "safeStorage|keytar|\\bsecret_key\\b|remote_tokens|id_iphone|sshpass|\\bBearer\\s|\\bAuthorization\\b|security\\s+(?:add|find)-generic-password"},
+    {"id": "atualizacao", "motivo": "atualização automática do app", "padrao": "autoUpdater|electron-updater|checkForUpdates"},
+    {"id": "licenca", "motivo": "validação de licença", "padrao": "\\b(?:activate|validate|check|verify)Licen[cs]e|licen[cs]eKey|firebase"},
+    {"id": "ssh", "motivo": "usa SSH", "padrao": "\\bssh2\\b|\\bnew\\s+Client\\s*\\(|sftp|\\bssh\\s+-"}
+  ],
+  "extensoesDoConteudo": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "sh", "bash", "command", "html"]
+}
