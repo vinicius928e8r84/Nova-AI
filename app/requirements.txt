@@ -1,0 +1,3 @@
+SpeechRecognition
+sounddevice
+edge-tts
