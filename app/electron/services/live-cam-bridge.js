@@ -311,7 +311,6 @@ class LiveCamBridgeService {
         }
     }
 
-    // Stop Live Bridge Server
     async stopServer() {
         if (this.wss) {
             try { for (const client of this.wss.clients) client.terminate(); } catch (e) {}
