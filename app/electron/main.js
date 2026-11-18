@@ -113,9 +113,8 @@ let productionPort = process.env.NOVA_TEST_PORT || 45678;
 // Document Parsers
 const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
-
-// Auto-Updater
 const { autoUpdater } = require('electron-updater');
+const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
@@ -259,8 +258,7 @@ function createWindow() {
     try {
       tray = new Tray(nativeImage.createFromPath(trayIconPath).resize({width:18,height:18}));
       const contextMenu = Menu.buildFromTemplate([
-        { label: 'Console do iPhone', click: openIphoneConsole },
-        { type: 'separator' },
+        ...(require('./services/ios-tools').available() ? [{ label: 'Console do iPhone', click: openIphoneConsole }, { type: 'separator' }] : []),
         { label: 'Nova AI — Mostrar Janela', click: () => {
             if (mainWindow) {
               mainWindow.show();
@@ -321,16 +319,9 @@ function createWindow() {
     });
   }
 
-  // Remove default menu bar (File, Edit, etc.) completely
-  mainWindow.setMenu(null);
-  if (process.platform === 'darwin') {
-    Menu.setApplicationMenu(Menu.buildFromTemplate([
-      {label:'Nova AI',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{role:'quit'}]},
-      {label:'Editar',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},
-      {label:'Visualizar',submenu:[{role:'reload'},{role:'togglefullscreen'},{role:'toggleDevTools'}]},
-      {label:'Janela',submenu:[{role:'minimize'},{role:'zoom'},{role:'front'}]}
-    ]));
-  }
+  const appMenuTemplate = menuTemplate(process.platform);
+  if (appMenuTemplate) Menu.setApplicationMenu(Menu.buildFromTemplate(appMenuTemplate));
+  if (process.platform !== 'win32') mainWindow.setMenu(null);
 
   // Set app ID for proper Windows taskbar grouping
   app.setAppUserModelId('com.nova.ai');
@@ -831,7 +822,8 @@ function registerHandlers() {
   ipcMain.handle('physical-mobile:ios-console-url', async () => {
     try {
       const iosBridge = require('./services/ios-bridge');
-      if (!iosBridge.isRunning()) iosBridge.start();
+      const started = iosBridge.isRunning() ? null : iosBridge.start();
+      if (started && started.ok === false) return { success: false, error: started.error };
       const port = Number(iosBridge.PORT) || 8778;
       const deadline = Date.now() + 4000;
       while (Date.now() < deadline) {
@@ -2070,9 +2062,8 @@ function registerHandlers() {
         if (speed !== 50) rateArg  = `--rate "${speed > 50 ? '+' : ''}${(speed - 50) * 2}%"`;
         if (pitch !== 50) pitchArg = `--pitch "${pitch > 50 ? '+' : ''}${pitch - 50}Hz"`;
 
-        // edge-tts: generate MP3 + VTT subtitles (word timings)
         const ttsCmd = [
-          process.platform === 'darwin' ? `"${macNative.python()}" -m edge_tts` : `edge-tts`,
+          edgeTtsBinary(process.platform, () => macNative.python()),
           `--file "${tmpTxt}"`,
           `--write-media "${tmpAudio}"`,
           `--write-subtitles "${tmpSubs}"`,
@@ -4173,6 +4164,7 @@ function registerHandlers() {
     if (!app.isPackaged) {
       return { success: false, message: 'Bypassed in dev mode' };
     }
+    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     try {
       const result = await autoUpdater.checkForUpdates();
       return { success: true, version: result?.updateInfo?.version };
@@ -4183,6 +4175,7 @@ function registerHandlers() {
 
   ipcMain.handle('download-update', async () => {
     if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
+    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     try {
       await autoUpdater.downloadUpdate();
       return { success: true };
@@ -4192,6 +4185,7 @@ function registerHandlers() {
   });
 
   ipcMain.handle('install-update', async () => {
+    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     autoUpdater.quitAndInstall(false, true);
     return { success: true };
   });
@@ -4370,33 +4364,31 @@ function stopWindowServices() {
   });
 }
 
+const { menuTemplate, extraShutdownTasks, runShutdownTasks, guardBeforeQuit } = require('./services/nova-desktop-parity');
+const shutdownExtras = () => extraShutdownTasks({
+  app,
+  getIosBridge: () => require('./services/ios-bridge'),
+  rtmp: RtmpServerService,
+  getTelegram: () => telegramManager,
+});
+
 let isShuttingDown = () => false;
 if (process.platform === 'darwin') {
   const { createProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
   const helpersPath = path.join(process.resourcesPath, '..', 'Frameworks') + path.sep;
   const processCleanup = createProcessCleanup(helpersPath);
   isShuttingDown = registerShutdown(app, async () => {
-    const stop = [
-      stopWindowServices,
-      () => require('./services/ios-bridge').stop(),
-      () => app.camLiveService?.iphone.stop(),
-      () => app.camLiveService?.stop(),
-      () => app.liveCamBridgeService?.stopServer(),
-      () => RtmpServerService.stopBroadcast(),
-      () => RtmpServerService.stopRtmpServer(),
-      () => telegramManager?.stopConnectionCheck(),
-    ];
-    const results = await Promise.allSettled(stop.map(fn => Promise.resolve().then(fn)));
-    for (const result of results) {
-      if (result.status === 'rejected') console.error('[Shutdown]', result.reason);
-    }
+    await runShutdownTasks([stopWindowServices, ...shutdownExtras()]);
   }, processCleanup);
   process.on('SIGTERM', () => app.quit());
   process.on('SIGINT', () => app.quit());
 }
 
+if (process.platform !== 'darwin') {
+  guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
+}
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') void stopWindowServices();
   if (!isShuttingDown()) app.quit();
 });
 
@@ -4578,10 +4570,9 @@ if (!gotTheLock) {
       }
     });
 
-    // Check for updates 5 seconds after app start (Production Only)
     if (app.isPackaged) {
       setTimeout(() => {
-        if (process.platform !== 'darwin') autoUpdater.checkForUpdates().catch(err => {
+        if (process.platform !== 'darwin' && hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
           console.log('[AutoUpdater] Production check failed:', err.message);
         });
       }, 5000);

@@ -12,3 +12,15 @@ node_modules/
 .env.*
 iphone-hosts.json
 known_hosts
+release/
+resources/
+config_bak_C.dat
+browsers/
+__pycache__/
+*.pyc
+secret_key.json
+data/
+Nova_Vault/
+client_secret.json
+token*.json
+*_key.json
