@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Menu e encerramento no Windows (PR-C da paridade) — 15/11/2026
+
+No Windows a janela agora tem o menu do Mac sem os itens exclusivos do macOS (Nova AI com Exit, Editar, Visualizar com Ctrl+R e DevTools); fica sem Janela de propósito, para Ctrl+W e Ctrl+M não fecharem nem minimizarem o Nova por reflexo; a barra continua escondida e aparece com Alt. Ao sair no Windows e no Linux (fechar a última janela, Exit no menu ou Sair do Nova na bandeja; a parada roda em `before-quit`, uma vez só; o app espera ela terminar por até 2 s e sai mesmo se algum serviço travar, como no Mac), além de `stopWindowServices`, também são parados `ios-bridge`, CAM LIVE (iPhone e serviço), `live-cam-bridge`, difusão e servidor RTMP e a checagem do Telegram, a mesma lista que o Mac já usava. No Mac nada muda: o menu e a lista de parada são os mesmos, só passaram para `app/electron/services/nova-desktop-parity.js`.
+
+Arquivos: `app/electron/main.js`, `app/electron/services/nova-desktop-parity.js` (novo), `app/electron/services/test/nova-desktop-parity.test.js` (novo; `node --test app/electron/services/test/nova-desktop-parity.test.js`). Para reaplicar no app instalado do Mac: copiar `main.js` e `nova-desktop-parity.js` para `Resources/app/electron/` (guardar o anterior em `reservas/`) e reiniciar o Nova.
+
+**Não testado:** Windows real (menu na tela, Ctrl+R, DevTools, processos `iproxy`/`ffmpeg`/Chrome no Gerenciador de Tarefas após fechar), Mac real e iPhone. No Windows não há limpeza de processos filhos por varredura como no Mac (`nova-shutdown.js` usa `/bin/ps`); só os serviços listados são parados.
+
 ## Correções do passo a passo no Windows — 15/11/2026
 
 Teste real no Windows deu "funciona com ajustes". Corrigido: `app/package.json` (removidos `@electron/rebuild` e `@electron/packager`, que puxavam `node-gyp` via git; `postinstall` agora chama `app/scripts/postinstall.js`, que usa binários prebuilt do `better-sqlite3` se não houver compilador C++; `dist:win` com `--config.npmRebuild=false`), `app/package-lock.json` regerado sem dependência git, `docs/windows.md` (`git clone -c core.symlinks=false`, estado dos testes, Node 24.15 funcionou), `app/.gitignore` (`data/`) e removidos os 13 symlinks `.macho` de `MAC/integracao-iphone/distribuicao/inspecao-binarios/`. `postinstall.js`: no Mac a falha do `install-app-deps` continua fatal (só Windows/Linux usam o prebuilt) e erro no fallback agora sai com código ≠ 0; `inspecao-binarios/` no `.gitignore`. **Sem testar:** `npm install` + `npm start` no Mac (só `npm ci --ignore-scripts` no Linux); `ios-bridge` só no Mac e `app-update` ficam como pendência.
