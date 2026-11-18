@@ -1,8 +1,9 @@
 import speech_recognition as sr
 import sys
 import json
+import contextlib
 
-if sys.platform == 'darwin':
+try:
     import sounddevice as sd
     class MacMicrophone(sr.AudioSource):
         def __init__(self):
@@ -25,6 +26,8 @@ if sys.platform == 'darwin':
             self._input.close()
             self.stream=None
     sr.Microphone=MacMicrophone
+except (ImportError, OSError):
+    sd = None
 
 
 def listen_for_nova():
@@ -34,12 +37,22 @@ def listen_for_nova():
     
     try:
         source = sr.Microphone()
+        if sd is not None and isinstance(source, sr.AudioSource) and type(source).__name__ == 'MacMicrophone':
+            sd.query_devices(kind='input')
     except Exception as e:
         print(json.dumps({"type": "INFO", "msg": f"Microphone listener in background disabled (PyAudio not installed). Web/App voice mode active."}))
         sys.stdout.flush()
         return
 
-    with source:
+    stack = contextlib.ExitStack()
+    try:
+        stack.enter_context(source)
+    except Exception:
+        print(json.dumps({"type": "INFO", "msg": "Microphone listener in background disabled (no usable input device). Web/App voice mode active."}))
+        sys.stdout.flush()
+        return
+
+    with stack:
         print(json.dumps({"type": "INFO", "msg": "Microphone initialized. Tuning ambient noise..."}))
         sys.stdout.flush()
         
