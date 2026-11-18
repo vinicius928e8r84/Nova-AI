@@ -6,6 +6,15 @@
 - **Arquivos:** `app/electron/main.js`, `app/electron/preload.js`. Mantidos: âncoras `CAMLIVE:begin/end`, comentários de porquê, contratos e segurança.
 - **Sem testar:** o app instalado não foi atualizado nem reiniciado.
 
+## Tela "Controle de Acesso" removida (Mac e Windows) — 15/11/2026
+
+- **O que era:** modal (`VX` no bundle) que pedia a chave de API do Gemini e a gravava em `secret_key.json`. Abria sozinho na inicialização quando `get-gemini-token` voltava vazio. Não é licença: `license:verify` segue como stub local.
+- **O que mudou:** no bundle, `xI||j(!0)` foi removido do callback de `get-gemini-token`. Nenhum outro caminho abre o modal (ele virou código morto); o app abre direto. Sem chave, as funções do Gemini falham até a chave ser informada em Configurações.
+- **Arquivos:** `app/dist/assets/index-Dun7lr2S.js` e `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js`; docs `docs/windows.md` e `app/README.md`. `main.js` não mudou.
+- **Qual copiar no Mac:** `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js` (tem os `<audio>` da tela de boot que o bundle de `app/dist` não tem). O de `app/dist/assets/` vale para `npm start` e `npm run dist:*`.
+- **Cópias antigas que ainda trazem a tela (não copiar para o app):** `MAC/integracao-iphone/index-Dun7lr2S.patched.js`, `MAC/controle-celular-plataformas/index-Dun7lr2S.patched.js`, `MAC/integracao-sequestro-cam/index-Dun7lr2S.patched.js`, `MAC/integracao-kling/index-Dun7lr2S.js`, `MAC/traducao-interface/index-Dun7lr2S.js`, `MAC/traducao-interface/backup-20261104-122239/index-Dun7lr2S.js`, `backup-antes-traducao/index-Dun7lr2S.js` e as de `reservas/`. Rodar `MAC/integracao-sequestro-cam/patch_bundle.py` com uma origem antiga também traz a tela de volta.
+- **Sem testar:** abertura real do Electron (Mac/Windows) e `NOVA_SMOKE_TEST=1`; ao aplicar no Mac, abrir uma vez sem `secret_key.json`.
+
 ## Paridade Mac × Windows — correções pequenas (PR-B) — 15/11/2026
 
 - `app/wake_word_bg.py`: o microfone por `sounddevice` deixou de ser só do Mac; vale em qualquer sistema (se `sounddevice` não carregar, cai no `sr.Microphone()` de antes). No Mac com microfone funcionando nada muda; sem microfone ou com o stream recusado, o traceback vira INFO e a escuta fica desabilitada.
