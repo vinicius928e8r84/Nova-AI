@@ -113,9 +113,8 @@ let productionPort = process.env.NOVA_TEST_PORT || 45678;
 // Document Parsers
 const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
-
-// Auto-Updater
 const { autoUpdater } = require('electron-updater');
+const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
@@ -2063,9 +2062,8 @@ function registerHandlers() {
         if (speed !== 50) rateArg  = `--rate "${speed > 50 ? '+' : ''}${(speed - 50) * 2}%"`;
         if (pitch !== 50) pitchArg = `--pitch "${pitch > 50 ? '+' : ''}${pitch - 50}Hz"`;
 
-        // edge-tts: generate MP3 + VTT subtitles (word timings)
         const ttsCmd = [
-          process.platform === 'darwin' ? `"${macNative.python()}" -m edge_tts` : `edge-tts`,
+          edgeTtsBinary(process.platform, () => macNative.python()),
           `--file "${tmpTxt}"`,
           `--write-media "${tmpAudio}"`,
           `--write-subtitles "${tmpSubs}"`,
@@ -4166,6 +4164,7 @@ function registerHandlers() {
     if (!app.isPackaged) {
       return { success: false, message: 'Bypassed in dev mode' };
     }
+    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     try {
       const result = await autoUpdater.checkForUpdates();
       return { success: true, version: result?.updateInfo?.version };
@@ -4176,6 +4175,7 @@ function registerHandlers() {
 
   ipcMain.handle('download-update', async () => {
     if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
+    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     try {
       await autoUpdater.downloadUpdate();
       return { success: true };
@@ -4185,6 +4185,7 @@ function registerHandlers() {
   });
 
   ipcMain.handle('install-update', async () => {
+    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     autoUpdater.quitAndInstall(false, true);
     return { success: true };
   });
@@ -4569,10 +4570,9 @@ if (!gotTheLock) {
       }
     });
 
-    // Check for updates 5 seconds after app start (Production Only)
     if (app.isPackaged) {
       setTimeout(() => {
-        if (process.platform !== 'darwin') autoUpdater.checkForUpdates().catch(err => {
+        if (process.platform !== 'darwin' && hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
           console.log('[AutoUpdater] Production check failed:', err.message);
         });
       }, 5000);
