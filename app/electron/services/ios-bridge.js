@@ -273,6 +273,7 @@ const MIME = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'te
 
 function start() {
   if (server) return { ok: true, port: PORT, already: true };
+  if (!require('./ios-tools').available()) return { ok: false, error: 'Ferramentas do iPhone ausentes neste sistema.' };
   server = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://127.0.0.1');
     const send = (code, body, type) => { res.writeHead(code, { 'Content-Type': type || 'application/json', 'Cache-Control': 'no-store' }); res.end(body); };

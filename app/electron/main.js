@@ -258,8 +258,7 @@ function createWindow() {
     try {
       tray = new Tray(nativeImage.createFromPath(trayIconPath).resize({width:18,height:18}));
       const contextMenu = Menu.buildFromTemplate([
-        { label: 'Console do iPhone', click: openIphoneConsole },
-        { type: 'separator' },
+        ...(require('./services/ios-tools').available() ? [{ label: 'Console do iPhone', click: openIphoneConsole }, { type: 'separator' }] : []),
         { label: 'Nova AI — Mostrar Janela', click: () => {
             if (mainWindow) {
               mainWindow.show();
@@ -823,7 +822,8 @@ function registerHandlers() {
   ipcMain.handle('physical-mobile:ios-console-url', async () => {
     try {
       const iosBridge = require('./services/ios-bridge');
-      if (!iosBridge.isRunning()) iosBridge.start();
+      const started = iosBridge.isRunning() ? null : iosBridge.start();
+      if (started && started.ok === false) return { success: false, error: started.error };
       const port = Number(iosBridge.PORT) || 8778;
       const deadline = Date.now() + 4000;
       while (Date.now() < deadline) {
