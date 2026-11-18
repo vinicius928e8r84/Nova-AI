@@ -16,6 +16,8 @@ release/
 resources/
 config_bak_C.dat
 browsers/
+__pycache__/
+*.pyc
 secret_key.json
 data/
 Nova_Vault/

@@ -6,6 +6,22 @@
 
 **Testado:** `node --check` e 4 testes unitários isolados em Linux (XML e binário no ramo win32; comandos do ramo darwin conferidos com `execFile` simulado). **Sem teste real:** Mac, Windows e iPhone — falta aplicar/reverter idioma + fuso num aparelho nos dois sistemas. Não unificamos o Mac para JS.
 
+## Paridade Mac × Windows — correções pequenas (PR-B) — 15/11/2026
+
+- `app/wake_word_bg.py`: o microfone por `sounddevice` deixou de ser só do Mac; vale em qualquer sistema (se `sounddevice` não carregar, cai no `sr.Microphone()` de antes). No Mac com microfone funcionando nada muda; sem microfone ou com o stream recusado, o traceback vira INFO e a escuta fica desabilitada.
+- `app/electron/main.js`: o `edge-tts` do Windows passa a rodar por `python -m edge_tts` (o Mac continua com `"<python do Nova>" -m edge_tts`). O `autoUpdater` (verificação ao abrir, `check-for-update`, `download-update`, `install-update`) só é chamado se existir `resources/app-update.yml`; o Mac já não usava atualização.
+- `app/electron/services/agent-swarm-controller.js`: download direto de URL (fallback sem yt-dlp) agora usa `http`/`https` do Node, sem PowerShell. Passa a funcionar no Mac; segue redirecionamentos e informa progresso.
+- `app/electron/services/whatsapp-manager.js`: `killSessionBrowserProcesses()` também limpa no Mac (`pkill -f --` com o padrão `MAC_BROWSER_KILL_PATTERN` de `paridade-utils.js`, ancorado no executável `.../Contents/MacOS/Google Chrome` ou `Chromium` e em `--user-data-dir=<...>/.wwebjs_auth/session-nova-desktop-client`, aceitando espaço no caminho como `Application Support`) o Chrome que sobrou da sessão do WhatsApp; processos que não sejam Chrome/Chromium (shell, editor, grep) não casam. `wake_word_bg.py`: sem dispositivo de entrada (`sounddevice.query_devices(kind='input')` falha) ou com falha ao abrir o stream vira INFO "desabilitado" em vez de traceback (no Mac sem microfone isso também troca o traceback por INFO). Novo comportamento de limpeza no Mac.
+- Novo `app/electron/services/paridade-utils.js` (`hasUpdateConfig`, `edgeTtsBinary`, `downloadFile`) e teste `app/test/paridade-b.test.js` (`node --test app/test/paridade-b.test.js`).
+
+**Aplicar no app instalado (AGENTS §5):** copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/` (ou o `app.asar` desempacotado equivalente), guardando antes o anterior em `reservas/`: `electron/main.js`, `electron/services/agent-swarm-controller.js`, `electron/services/whatsapp-manager.js`, **`electron/services/paridade-utils.js` (arquivo novo)** e `wake_word_bg.py`. O `main.js` faz `require('./services/paridade-utils')` no topo: copiar só o `main.js` impede o app de abrir (MODULE_NOT_FOUND). Depois: `node --check` em cada um e reiniciar o Nova.
+
+Correção de revisão: `downloadFile` rejeita redirecionamento para protocolo que não seja `http:`/`https:` e `Location` inválida, e captura erro síncrono de `client.get`, sem exceção não capturada.
+
+**Testado (Linux, sem Mac/Windows/iPhone):** `node --check` nos arquivos tocados; testes unitários com `app-update.yml` ausente/presente, `edge_tts` por plataforma e download com redirecionamento/404 contra servidor local; `wake_word_bg.py` carregado com `sounddevice` presente/ausente simulando `win32`/`darwin`/`linux`; `pkill -f --` com o padrão novo contra processos falsos (com caminho `~/Library/Application Support/Nova AI/.wwebjs_auth/...` com espaço, Chromium da sessão e Google Chrome da sessão morrem; Chromium de outro perfil, bash e node com o texto na linha de comando ficam vivos); `wake_word_bg.py` com `sounddevice` sem dispositivo (INFO desabilitado). **Sem teste real:** microfone/wake word no Windows, TTS no Windows, download no Mac, `pkill` no macOS (BSD), app empacotado sem `app-update.yml`.
+
+**Fora deste PR (follow-up):** remover `*.antes-proxy-*` do git e do pacote (item vi do plano).
+
 ## Menu e encerramento no Windows (PR-C da paridade) — 15/11/2026
 
 No Windows a janela agora tem o menu do Mac sem os itens exclusivos do macOS (Nova AI com Exit, Editar, Visualizar com Ctrl+R e DevTools); fica sem Janela de propósito, para Ctrl+W e Ctrl+M não fecharem nem minimizarem o Nova por reflexo; a barra continua escondida e aparece com Alt. Ao sair no Windows e no Linux (fechar a última janela, Exit no menu ou Sair do Nova na bandeja; a parada roda em `before-quit`, uma vez só; o app espera ela terminar por até 2 s e sai mesmo se algum serviço travar, como no Mac), além de `stopWindowServices`, também são parados `ios-bridge`, CAM LIVE (iPhone e serviço), `live-cam-bridge`, difusão e servidor RTMP e a checagem do Telegram, a mesma lista que o Mac já usava. No Mac nada muda: o menu e a lista de parada são os mesmos, só passaram para `app/electron/services/nova-desktop-parity.js`.
@@ -1518,3 +1534,10 @@ Com o iPhone 8 Plus **plugado no cabo** (jailbreak religado, OpenSSH ativo — a
 | `LEIA-ME.md` | Este arquivo |
 
 Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
+
+## 2026-11-15 — PR-A de paridade: o iPhone não derruba o Windows
+
+- **O que mudou:** `ios-tools.js` ganhou `tryTool()`, `has()` e `available()` (não lançam; `tool()` segue igual). `getIosDevices()` devolve `[]` se as ferramentas do iPhone faltarem ou algo lançar, então `getStatus()` não rejeita e a lista Android continua. `ios-bridge.start()` devolve `{ ok: false }` sem ferramentas (sem `iproxy`, sem `UnhandledPromiseRejection`). O item "Console do iPhone" da bandeja só aparece quando as ferramentas existem; o IPC `ios-console-url` devolve o erro em vez de abrir página vazia.
+- **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
+- **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
+- **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
