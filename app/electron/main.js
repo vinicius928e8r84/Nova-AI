@@ -320,16 +320,9 @@ function createWindow() {
     });
   }
 
-  // Remove default menu bar (File, Edit, etc.) completely
-  mainWindow.setMenu(null);
-  if (process.platform === 'darwin') {
-    Menu.setApplicationMenu(Menu.buildFromTemplate([
-      {label:'Nova AI',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{role:'quit'}]},
-      {label:'Editar',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},
-      {label:'Visualizar',submenu:[{role:'reload'},{role:'togglefullscreen'},{role:'toggleDevTools'}]},
-      {label:'Janela',submenu:[{role:'minimize'},{role:'zoom'},{role:'front'}]}
-    ]));
-  }
+  const appMenuTemplate = menuTemplate(process.platform);
+  if (appMenuTemplate) Menu.setApplicationMenu(Menu.buildFromTemplate(appMenuTemplate));
+  if (process.platform !== 'win32') mainWindow.setMenu(null);
 
   // Set app ID for proper Windows taskbar grouping
   app.setAppUserModelId('com.nova.ai');
@@ -4371,33 +4364,31 @@ function stopWindowServices() {
   });
 }
 
+const { menuTemplate, extraShutdownTasks, runShutdownTasks, guardBeforeQuit } = require('./services/nova-desktop-parity');
+const shutdownExtras = () => extraShutdownTasks({
+  app,
+  getIosBridge: () => require('./services/ios-bridge'),
+  rtmp: RtmpServerService,
+  getTelegram: () => telegramManager,
+});
+
 let isShuttingDown = () => false;
 if (process.platform === 'darwin') {
   const { createProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
   const helpersPath = path.join(process.resourcesPath, '..', 'Frameworks') + path.sep;
   const processCleanup = createProcessCleanup(helpersPath);
   isShuttingDown = registerShutdown(app, async () => {
-    const stop = [
-      stopWindowServices,
-      () => require('./services/ios-bridge').stop(),
-      () => app.camLiveService?.iphone.stop(),
-      () => app.camLiveService?.stop(),
-      () => app.liveCamBridgeService?.stopServer(),
-      () => RtmpServerService.stopBroadcast(),
-      () => RtmpServerService.stopRtmpServer(),
-      () => telegramManager?.stopConnectionCheck(),
-    ];
-    const results = await Promise.allSettled(stop.map(fn => Promise.resolve().then(fn)));
-    for (const result of results) {
-      if (result.status === 'rejected') console.error('[Shutdown]', result.reason);
-    }
+    await runShutdownTasks([stopWindowServices, ...shutdownExtras()]);
   }, processCleanup);
   process.on('SIGTERM', () => app.quit());
   process.on('SIGINT', () => app.quit());
 }
 
+if (process.platform !== 'darwin') {
+  guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
+}
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') void stopWindowServices();
   if (!isShuttingDown()) app.quit();
 });
 
