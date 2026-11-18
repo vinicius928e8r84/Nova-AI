@@ -32,7 +32,7 @@ npm start
 - npm 11 ou mais novo bloqueia scripts de instalação de dependências. Os que o app precisa estão
   liberados em `allowScripts` no `package.json`; o `puppeteer` fica de fora de propósito (baixaria
   um Chrome que o app não usa). No npm 10, se quiser evitar esse download: `PUPPETEER_SKIP_DOWNLOAD=1 npm install`.
-- A primeira abertura mostra a tela **Controle de Acesso** (chave secreta local). Os dados do usuário
+- O app abre direto, sem a tela **Controle de Acesso**; a chave de API do Gemini se informa em Configurações. Os dados do usuário
   ficam em `~/Library/Application Support/nova_dsktp/` (Mac) ou `%APPDATA%\nova_dsktp\` (Windows).
 - Teste rápido sem abrir janela e sem tocar nos seus dados:
   `NOVA_SMOKE_TEST=1 NOVA_SMOKE_DIR=/tmp/nova-smoke npm start` grava `screen.png` e `result.json` em
