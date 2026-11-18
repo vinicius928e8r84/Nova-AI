@@ -7,4 +7,7 @@ function tool(name){
  try{fs.accessSync(file,fs.constants.X_OK);}catch{throw new Error('Ferramenta USB ausente no Nova: '+name+'. Reinstale o aplicativo completo.');}
  return file;
 }
-module.exports={tool};
+function tryTool(name){try{return tool(name);}catch{return null;}}
+function has(name){return !!tryTool(name);}
+function available(){return ['iproxy','idevice_id','ideviceinfo'].every(has);}
+module.exports={tool,tryTool,has,available};
