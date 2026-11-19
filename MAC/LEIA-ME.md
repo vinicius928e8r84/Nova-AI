@@ -3,9 +3,16 @@
 ## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
 
 - **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4337 → 4335 linhas.
-- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro.
+- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro. Também apagado `physicalMobileService.languageForCountry` (19 linhas, sem chamador depois da remoção); `registro.test.js` passa a citar `idioma-ipc.js`.
 - **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
 - **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
+
+## Limpeza do Chrome órfão do CAM spoof no Mac (M1 da paridade) — 19/11/2026
+
+- **O que mudou:** `startHijack` (`global-spoof-service.js`) no `darwin` agora roda `pkill -f` com `MAC_CAM_SPOOF_KILL_PATTERN` (`paridade-utils.js`) e não tenta mais `wmic`/PowerShell, que falhavam e gravavam "Failed to run Chrome cleanup". O padrão é ancorado no executável `…/Contents/MacOS/(Google Chrome|Chromium)` e exige `--use-file-for-fake-video-capture=` apontando para `…/nova_webcam_hijack/`: o Y4M do CAM spoof fica nessa pasta, enquanto o perfil fica em `farm_profiles`, então `--user-data-dir` nunca casaria. Um Chrome pessoal, um `bash`/`node` com o mesmo texto e a pasta `nova_webcam_hijack_outro` não casam. Windows não mudou.
+- **Arquivos do app instalado a trocar** (guardar o anterior em `reservas/`): `app/electron/services/global-spoof-service.js` e `app/electron/services/paridade-utils.js`, para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/` (`cp`). Depois `node --check` nos dois e reiniciar o Nova. O bundle não muda.
+- **Também:** o resultado do `pkill` passa a ser logado quando falha (status > 1 ou timeout); removidos `this.profileDir` e sua criação (pasta `…/nova_webcam_hijack/chrome_profile` que ninguém usava, nos dois sistemas) e o comentário que falava de `chrome.exe`.
+- **Testado:** `node --test app/test/paridade-b.test.js` (processos falsos no Linux, `pkill` real) e `node --check`. **Sem testar:** Mac real com o CAM spoof aberto e um Chrome órfão de verdade.
 
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
@@ -1584,3 +1591,11 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — P10: `cloudflared` no Windows também em `resources\bin\` e no PATH
+
+- **O que mudou:** `remote-access.js` procura o `cloudflared` com `tool-paths.tool()` nos dois sistemas (antes: Mac por `mac-native.tool`, Windows só `resources\cloudflared.exe`). `resources\cloudflared.exe` segue como último recurso no Windows. Nada foi removido além do ramo `darwin` do ternário (1 linha trocada por 2).
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/remote-access.js` (guarde o anterior em `reservas/`; reaplicar com `cp`). Nenhum outro.
+- **Mac:** mesma ordem de pastas (`resources/bin`, Homebrew, PATH); comportamento igual. O túnel segue desligado por padrão (`NOVA_REMOTE_TUNNEL=1`).
+- **Teste:** `app/electron/services/testes/cloudflared-caminho.test.js` (`node --test`, com `exists` falso).
+- **Sem testar:** Windows e Mac reais, túnel real da Cloudflare.

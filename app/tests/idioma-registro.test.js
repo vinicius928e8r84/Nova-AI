@@ -17,6 +17,8 @@ test('main.js registra idioma-ipc e não referencia mais identidade-ipc', () => 
     assert.match(mainJs, /require\('\.\/services\/idioma-ipc'\)\.register\(app, ipcMain\)/);
     assert.doesNotMatch(mainJs, /identidade-ipc/);
     assert.equal(fs.existsSync(path.join(__dirname, '..', 'electron', 'services', 'identidade-ipc.js')), false);
+    const fisico = fs.readFileSync(path.join(__dirname, '..', 'electron', 'services', 'physicalMobileService.js'), 'utf8');
+    assert.doesNotMatch(fisico, /languageForCountry/);
 });
 
 test('não sobra cópia do módulo apagado nem instalador que o recoloca', () => {
