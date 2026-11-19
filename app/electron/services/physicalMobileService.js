@@ -282,7 +282,7 @@ class PhysicalMobileService {
             const args = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', command];
-            execFile('/usr/bin/ssh', args, { timeout: 12000 }, (err, stdout, stderr) => {
+            execFile(require('./tool-paths').ssh(), args, { timeout: 12000 }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
             });
         });
@@ -302,7 +302,7 @@ class PhysicalMobileService {
             const sshArgs = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', cmd];
-            execFile('/usr/bin/ssh', sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
+            execFile(require('./tool-paths').ssh(), sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || '').trim(), error: err ? (String(stderr || '').trim() || err.message) : null });
             });
         });
@@ -1801,7 +1801,7 @@ exit 0
 
     iosScp(args) {
         return new Promise((resolve, reject) => {
-            execFile('/usr/bin/scp', args, { timeout: 30000 }, (err, stdout, stderr) => {
+            execFile(require('./tool-paths').scp(), args, { timeout: 30000 }, (err, stdout, stderr) => {
                 if (err) return reject(new Error(String(stderr || err.message).slice(0, 200)));
                 resolve(true);
             });
