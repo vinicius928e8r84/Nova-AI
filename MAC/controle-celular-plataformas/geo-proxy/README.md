@@ -52,7 +52,7 @@ A DDI cai quando o iPhone reinicia; o auto-mount remonta na próxima vez que o G
 | `electron/main.js` | IPC `spoofer:geo-from-proxy` |
 | `dist/assets/index-Dun7lr2S.js` | `pGeoApply`, `pGeoOnOpen`, chamadas ao salvar, remoção do botão "Fixar GPS Falso" |
 
-Cópias dos arquivos já aplicados: `aplicado/`. Backup do original: `reservas/<data-hora>/`.
+Os arquivos aplicados vivem em `app/` (a pasta `aplicado/` foi apagada). Backup do original: `reservas/<data-hora>/`.
 
 ## Reaplicar (depois de atualizar o app)
 
