@@ -2,7 +2,7 @@
 
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
-- **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST idênticos antes e depois.
+- **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.
 - **Arquivos:** `app/electron/main.js`, `app/electron/preload.js`. Mantidos: âncoras `CAMLIVE:begin/end`, comentários de porquê, contratos e segurança.
 - **Sem testar:** o app instalado não foi atualizado nem reiniciado.
 
