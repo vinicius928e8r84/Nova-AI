@@ -19,15 +19,19 @@ function criarExecutavel(raiz, ...partes) {
 function carregar({ resources, userData, home }) {
   const originalLoad = Module._load;
   const originalHome = process.env.HOME;
+  const originalExists = fs.existsSync;
+  const base = path.dirname(home);
+  fs.existsSync = (p) => String(p).startsWith(base) && originalExists(p);
   process.env.HOME = home;
   process.resourcesPath = resources;
   Module._load = function (pedido, ...resto) {
+    if (pedido === 'playwright') throw new Error('sem playwright no teste');
     if (pedido === 'electron') return { app: { getPath: () => userData } };
     return originalLoad.call(this, pedido, ...resto);
   };
   delete require.cache[macNativePath];
   const modulo = require(macNativePath);
-  return { modulo, restaurar() { Module._load = originalLoad; process.env.HOME = originalHome; delete process.resourcesPath; delete require.cache[macNativePath]; } };
+  return { modulo, restaurar() { fs.existsSync = originalExists; Module._load = originalLoad; process.env.HOME = originalHome; delete process.resourcesPath; delete require.cache[macNativePath]; } };
 }
 
 test('navegador embutido em resources/browsers/<nome>/<App>.app', () => {
