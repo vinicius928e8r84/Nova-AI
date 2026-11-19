@@ -204,10 +204,10 @@ class GlobalSpoofService {
         // Kill any orphaned chrome.exe processes associated with Nova's profile to prevent session reuse
         try {
             console.log('[GlobalSpoof] Checking for orphaned Nova Chrome processes...');
-            const { execSync } = require('child_process');
-            
-            // Try using wmic first (very fast on Windows)
-            try {
+            const { execSync, spawnSync } = require('child_process');
+            if (process.platform === 'darwin') {
+                spawnSync('pkill', ['-f', '--', require('./paridade-utils').MAC_CAM_SPOOF_KILL_PATTERN], { timeout: 5000 });
+            } else try {
                 execSync('wmic process where "name=\'chrome.exe\' and CommandLine like \'%nova_webcam_hijack%\'" call terminate', { stdio: 'ignore', timeout: 3000 });
                 console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via WMIC.');
             } catch (wmicErr) {
