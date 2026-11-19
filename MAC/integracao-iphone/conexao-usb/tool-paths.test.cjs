@@ -63,3 +63,21 @@ test('sshOptions no Mac não muda e no Windows usa NUL e /', () => {
     assert.deepEqual(o, ['-i', 'C:/U/id', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=C:/U/kh', '-o', 'GlobalKnownHostsFile=NUL']);
   } finally { Object.defineProperty(process, 'platform', orig); }
 });
+
+test('GPS do iPhone: Mac mantém a lista de antes e Windows procura .exe, Scripts do Python e PATH', () => {
+  const visto = (opts, nome) => { const v = []; tp.gpsTool(nome, { ...opts, exists: (f) => { v.push(f); return false; } }); return v; };
+  const macOpts = { platform: 'darwin', homedir: '/Users/x', resourcesPath: '/App/Resources', env: { PATH: '/nao/entra' } };
+  assert.deepEqual(visto(macOpts, 'idevicesetlocation'), ['/App/Resources/bin/idevicesetlocation', '/opt/homebrew/bin/idevicesetlocation', '/usr/local/bin/idevicesetlocation', '/usr/bin/idevicesetlocation']);
+  assert.deepEqual(visto({ ...macOpts, env: { NOVA_PYMOBILEDEVICE3: '/custom/pmd3' } }, 'pymobiledevice3'), ['/custom/pmd3', '/Users/x/.local/bin/pymobiledevice3', '/opt/homebrew/bin/pymobiledevice3', '/usr/local/bin/pymobiledevice3']);
+  const winOpts = { ...win, env: { ...win.env, APPDATA: 'C:\\Users\\n\\AppData\\Roaming' }, readdir: () => ['Python311', 'Python312', 'Outro'] };
+  assert.deepEqual(visto(winOpts, 'pymobiledevice3'), [
+    'C:\\app\\resources\\ios-tools\\bin\\pymobiledevice3.exe',
+    'C:\\app\\resources\\bin\\pymobiledevice3.exe',
+    'C:\\Users\\n\\AppData\\Roaming\\Python\\Python311\\Scripts\\pymobiledevice3.exe',
+    'C:\\Users\\n\\AppData\\Roaming\\Python\\Python312\\Scripts\\pymobiledevice3.exe',
+    'C:\\a\\pymobiledevice3.exe',
+    'D:\\b\\pymobiledevice3.exe'
+  ]);
+  assert.equal(tp.gpsTool('idevicesetlocation', { ...winOpts, exists: (f) => f === 'D:\\b\\idevicesetlocation.exe' }), 'D:\\b\\idevicesetlocation.exe');
+  assert.equal(tp.gpsTool('idevicesetlocation', { ...winOpts, exists: () => false }), null);
+});

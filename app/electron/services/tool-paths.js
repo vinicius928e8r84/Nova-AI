@@ -74,4 +74,32 @@ function iosTool(name, opts) {
   return s.p.join(root, 'ios-tools', 'bin', exe(name, opts));
 }
 
-module.exports = { ssh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe };
+function pythonScripts(s) {
+  const appData = s.env.APPDATA;
+  if (!appData) return [];
+  const base = s.p.join(appData, 'Python');
+  let versoes = [];
+  try { versoes = (s.readdir || fs.readdirSync)(base); } catch { return []; }
+  return versoes.filter((v) => /^Python3/i.test(v)).sort().map((v) => s.p.join(base, v, 'Scripts'));
+}
+
+function gpsTool(name, opts) {
+  const s = sistema(opts);
+  s.readdir = (opts || {}).readdir;
+  const file = exe(name, opts);
+  const resources = s.resourcesPath;
+  const dirs = s.win
+    ? [
+        resources && s.p.join(resources, 'ios-tools', 'bin'),
+        resources && s.p.join(resources, 'bin'),
+        ...pythonScripts(s),
+        ...(s.env.PATH || s.env.Path || '').split(s.delimiter)
+      ]
+    : name === 'pymobiledevice3'
+      ? [s.p.join(s.home, '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin']
+      : [resources && s.p.join(resources, 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin'];
+  const override = name === 'pymobiledevice3' && s.env.NOVA_PYMOBILEDEVICE3;
+  return [override, ...dirs.filter(Boolean).map((d) => s.p.join(d, file))].filter(Boolean).find((f) => s.exists(f)) || null;
+}
+
+module.exports = { gpsTool, ssh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe };

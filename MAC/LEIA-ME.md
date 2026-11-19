@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## GPS do iPhone no Windows (P2 da paridade) — 19/11/2026
+
+- **O que mudou:** `idevicesetlocation` e `pymobiledevice3` passam por `tool-paths.gpsTool()`. No Windows procura `.exe` em `resources\ios-tools\bin`, `resources\bin`, `%APPDATA%\Python\Python3*\Scripts` e `PATH`. No Mac a lista é exatamente a de antes (teste de igualdade em `tool-paths.test.cjs`). A mensagem de erro não diz mais "no Mac".
+- **Removido:** as duas listas de caminhos soltas em `physicalMobileService.js` (o arquivo encolheu de 2498 para 2479 linhas; linha de base atualizada).
+- **Arquivos do app instalado no Mac que mudam** (guarde o anterior em `reservas/` antes): `Contents/Resources/app/electron/services/tool-paths.js` e `Contents/Resources/app/electron/services/physicalMobileService.js`. Reaplicar: `cp app/electron/services/{tool-paths,physicalMobileService}.js` para essa pasta, `node --check` e reiniciar o Nova.
+- **Sem testar:** prova real com Windows + iPhone (aplicar e resetar o GPS); depende de P1 (os `.exe`).
+
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
 - **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.
