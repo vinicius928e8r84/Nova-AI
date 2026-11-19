@@ -24,6 +24,7 @@ function scrcpyRelease(arch, platform = 'darwin') {
         if (arch !== 'x64') throw new Error('Arquitetura sem build oficial do scrcpy para Windows: ' + arch);
         return { ...WINDOWS_SCRCPY, kind: 'zip', url: `https://github.com/Genymobile/scrcpy/releases/download/${SCRCPY_VERSION}/${WINDOWS_SCRCPY.name}.zip` };
     }
+    if (platform !== 'darwin') throw new Error('Download automático do scrcpy não existe para esta plataforma: ' + platform);
     const rel = SCRCPY_RELEASE[arch];
     if (!rel) throw new Error('Arquitetura sem build oficial do scrcpy para macOS: ' + arch);
     return {

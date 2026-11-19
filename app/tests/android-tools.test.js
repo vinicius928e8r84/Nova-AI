@@ -245,3 +245,12 @@ test('ensureForService no Windows falha com mensagem clara e sem dica do brew', 
     assert.strictEqual(eventos[eventos.length - 1].stage, 'error');
     assert.strictEqual(svc.isProvisioning, false);
 });
+
+test('plataforma sem build oficial não baixa o scrcpy do macOS', async () => {
+    assert.throws(() => m.scrcpyRelease('x64', 'linux'), /plataforma/);
+    const base = tmp();
+    let baixou = false;
+    const http = async () => { baixou = true; return { data: Buffer.from('x') }; };
+    await assert.rejects(m.installScrcpy(base, { http, platform: 'linux', arch: 'x64' }), /plataforma/);
+    assert.strictEqual(baixou, false);
+});
