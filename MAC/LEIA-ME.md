@@ -3,7 +3,7 @@
 ## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
 
 - **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4337 → 4335 linhas.
-- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Os instaladores em `MAC/integracao-iphone/identidade-iphone/` não foram tocados.
+- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro.
 - **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
 - **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
 
