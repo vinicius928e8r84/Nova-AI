@@ -88,3 +88,36 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
     }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
   })();
 });
+
+test('pkill do CAM spoof no Mac: so mata o Chrome com o Y4M do nova_webcam_hijack', () => {
+  const { spawn, spawnSync } = require('child_process');
+  const { MAC_CAM_SPOOF_KILL_PATTERN } = require('../electron/services/paridade-utils');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-cam-'));
+  const mk = (rel) => {
+    const f = path.join(dir, rel);
+    fs.mkdirSync(path.dirname(f), { recursive: true });
+    fs.symlinkSync(process.execPath, f);
+    return f;
+  };
+  const IDLE = 'setTimeout(()=>{},60000)';
+  const hijack = '/var/folders/x/T/nova_webcam_hijack';
+  const chrome = mk('Google Chrome.app/Contents/MacOS/Google Chrome');
+  const outro = mk('Outro/Chromium.app/Contents/MacOS/Chromium');
+  const kids = [
+    spawn(chrome, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=${hijack}/fake_cam.y4m`, '--no-first-run'], { stdio: 'ignore' }),
+  ];
+  const vivos = [
+    spawn(outro, ['-e', IDLE, '--', '--user-data-dir=/x/pessoal'], { stdio: 'ignore' }),
+    spawn(chrome, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=/x/nova_webcam_hijack_outro/a.y4m`], { stdio: 'ignore' }),
+    spawn(chrome, ['-e', IDLE, '--', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
+    spawn('bash', ['-c', 'sleep 60; : $0', `--use-file-for-fake-video-capture=${hijack}/fake_cam.y4m`], { stdio: 'ignore' }),
+    spawn(process.execPath, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=${hijack}/fake_cam.y4m`], { stdio: 'ignore' }),
+  ];
+  return new Promise(r => setTimeout(r, 400)).then(() => {
+    spawnSync('pkill', ['-f', '--', MAC_CAM_SPOOF_KILL_PATTERN]);
+    return new Promise(r => setTimeout(r, 400));
+  }).then(() => {
+    kids.forEach(k => assert.strictEqual(k.signalCode, 'SIGTERM', 'deveria morrer'));
+    vivos.forEach(k => assert.strictEqual(k.signalCode, null, 'nao deveria morrer'));
+  }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
+});
