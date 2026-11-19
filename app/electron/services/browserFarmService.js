@@ -6,6 +6,7 @@ const fs = require('fs');
 const { chromium, firefox } = require('playwright');
 const crypto = require('crypto');
 const os = require('os');
+const { findBundledChromiumExecutable } = require('./platform-utils');
 const si = require('systeminformation');
 
 // ── Mobile User Agents Pool ──────────────────────────────────
@@ -453,13 +454,12 @@ class BrowserFarmService {
       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
       path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
-      path.join(process.resourcesPath || '', 'browsers', 'chromium-1208', 'chrome-win64', 'chrome.exe'),
-      path.join(app.getAppPath(), 'browsers', 'chromium-1208', 'chrome-win64', 'chrome.exe'),
+      findBundledChromiumExecutable([process.resourcesPath && path.join(process.resourcesPath, 'browsers'), path.join(app.getAppPath(), 'browsers')]),
       path.join(process.resourcesPath || '', 'browsers', 'chrome', 'chrome.exe'),
       path.join(app.getAppPath(), 'browsers', 'chrome', 'chrome.exe')
     ];
     for (const p of paths) {
-      if (fs.existsSync(p)) {
+      if (p && fs.existsSync(p)) {
         return p;
       }
     }

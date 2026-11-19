@@ -12,7 +12,7 @@ const path  = require('path');
 const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
-
+const { findBundledChromiumExecutable } = require('./platform-utils');
 // ── Helper to ensure profile has persistent stealth specifications ──
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
@@ -1666,7 +1666,7 @@ applyStealth(window);
                 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
                 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
                 path.join(os.homedir(), 'AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'),
-                path.join(baseBrowsersPath, 'chromium-1208', 'chrome-win64', 'chrome.exe'),
+                findBundledChromiumExecutable([baseBrowsersPath]),
             ];
         } else if (browserChoice === 'brave') {
             searchPaths = [
@@ -1716,7 +1716,7 @@ applyStealth(window);
                     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
                     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
                     path.join(os.homedir(), 'AppData\\Local\\Google\\Chrome\\Application\\chrome.exe'),
-                    path.join(baseBrowsersPath, 'chromium-1208', 'chrome-win64', 'chrome.exe'),
+                    findBundledChromiumExecutable([baseBrowsersPath]),
                 ];
             } else if (fb === 'brave') {
                 fbPaths = [

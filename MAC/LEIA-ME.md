@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Chromium de qualquer revisão no Windows (P6 da paridade) — 19/11/2026
+
+`browserFarmService.js` (`getChromeExecutablePath`) e `global-spoof-service.js` (`_findChrome`, os dois pontos que listavam `chromium-1208`) passam a usar `findBundledChromiumExecutable` de `platform-utils.js`, como `browser-manager.js` e `whatsapp-manager.js` já faziam. Uma pasta `browsers\chromium-<qualquer revisão>\chrome-win64\chrome.exe` agora é achada; a ordem de busca (Chrome do sistema antes do empacotado) não mudou. O Mac não muda: os dois caminhos retornam antes por `mac-native.browser`.
+
+Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js` e `app/electron/services/global-spoof-service.js` (comportamento idêntico no Mac, mas o arquivo muda; guardar o anterior em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). `platform-utils.js` já existe no app e não muda. Depois: `node --check` e reiniciar o Nova.
+
+**Testado:** `node --test app/test/chromium-revisao-windows.test.js` (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac.
+
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
 - **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.
