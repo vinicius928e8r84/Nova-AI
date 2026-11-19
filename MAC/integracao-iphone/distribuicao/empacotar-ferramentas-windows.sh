@@ -15,10 +15,11 @@ for nome in "${ferramentas[@]}"; do
   [ -f "$origem" ] || { echo "Falta $origem" >&2; exit 1; }
   cp -f "$origem" "$destino/bin/"
   saida="$(ldd "$origem")"
+  ! grep -F '=> not found' <<< "$saida" >&2 || { echo "DLL ausente para $origem" >&2; exit 1; }
   dlls="$(sed -n 's/.*=> \(.*\) (0x[0-9a-fA-F]*)$/\1/p' <<< "$saida" | grep -iv '^/c/windows' || true)"
   while IFS= read -r dll; do
     [ -n "$dll" ] || continue
-    cp -n "$dll" "$destino/bin/"
+    cp -f "$dll" "$destino/bin/"
   done <<< "$dlls"
 done
 ( cd "$destino/bin" && sha256sum -- * > ../manifest.sha256 )
