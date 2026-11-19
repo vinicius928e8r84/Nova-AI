@@ -1584,3 +1584,11 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — P10: `cloudflared` no Windows também em `resources\bin\` e no PATH
+
+- **O que mudou:** `remote-access.js` procura o `cloudflared` com `tool-paths.tool()` nos dois sistemas (antes: Mac por `mac-native.tool`, Windows só `resources\cloudflared.exe`). `resources\cloudflared.exe` segue como último recurso no Windows. Nada foi removido além do ramo `darwin` do ternário (1 linha trocada por 2).
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/remote-access.js` (guarde o anterior em `reservas/`; reaplicar com `cp`). Nenhum outro.
+- **Mac:** mesma ordem de pastas (`resources/bin`, Homebrew, PATH); comportamento igual. O túnel segue desligado por padrão (`NOVA_REMOTE_TUNNEL=1`).
+- **Teste:** `app/electron/services/testes/cloudflared-caminho.test.js` (`node --test`, com `exists` falso).
+- **Sem testar:** Windows e Mac reais, túnel real da Cloudflare.
