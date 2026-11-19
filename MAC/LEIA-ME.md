@@ -1577,3 +1577,10 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — D1 de paridade: `adb reverse` do RTMP com o `adb` do app
+
+- **O que mudou:** `rtmp:start-broadcast` passa `app.physicalMobileService.adbPath` para `startBroadcast()`, que roda `adb reverse tcp:1935 tcp:11935` com esse binário (`execFile`, argumentos separados) em vez do `adb` do PATH. Sem caminho, cai no `adb` do PATH como antes. Vale para Mac e Windows.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/main.js` e `Contents/Resources/app/electron/services/rtmp-server.js` (guarde os anteriores em `reservas/` antes de trocar; depois `node --check` e reinicie o Nova). O bundle da interface não muda.
+- **Teste:** `app/test/rtmp-adb.test.js` (`node --test`).
+- **Sem testar:** aparelho Android real recebendo o RTMP; Mac e Windows reais.

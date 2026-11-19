@@ -1,5 +1,5 @@
 const NodeMediaServer = require('node-media-server');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execFile } = require('child_process');
 const path = require('path');
 const { PassThrough } = require('stream');
 const fs = require('fs');
@@ -38,19 +38,18 @@ function stopRtmpServer() {
   }
 }
 
-async function startBroadcast() {
+function encaminharPortaAdb(adbPath, executar = execFile) {
+    executar(adbPath || 'adb', ['reverse', 'tcp:1935', 'tcp:11935'], (err) => {
+        if (err) console.warn('[RTMP-ADB] adb reverse não feito (normal sem aparelho ou em Wi-Fi):', err.message);
+    });
+}
+
+async function startBroadcast(adbPath) {
     if (ffmpegProcess) {
         await stopBroadcast();
     }
     
-    // Auto-forward port 1935 to the phone in case it was restarted or reconnected
-    exec('adb reverse tcp:1935 tcp:11935', (err) => {
-        if (err) {
-            console.log('[RTMP-ADB] ADB reverse setup skipped/failed (normal if no device connected or WiFi mode):', err.message);
-        } else {
-            console.log('[RTMP-ADB] ADB reverse forwarding 1935(android)->11935(mac) established successfully.');
-        }
-    });
+    encaminharPortaAdb(adbPath);
 
     videoStream = new PassThrough();
     
@@ -149,6 +148,7 @@ module.exports = {
     startRtmpServer,
     stopRtmpServer,
     startBroadcast,
+    encaminharPortaAdb,
     stopBroadcast,
     receiveVideoChunk
 };
