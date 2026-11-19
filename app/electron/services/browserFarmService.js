@@ -8,7 +8,6 @@ const crypto = require('crypto');
 const os = require('os');
 const si = require('systeminformation');
 
-// ── Mobile User Agents Pool ──────────────────────────────────
 const MOBILE_UAS = [
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
   'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
@@ -20,7 +19,6 @@ const MOBILE_UAS = [
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/122.0.6261.89 Mobile/15E148 Safari/604.1',
 ];
 
-// ── Stealth injection script ─────────────────────────────────
 const STEALTH_SCRIPT = `
 (function() {
   try {
@@ -37,7 +35,6 @@ const STEALTH_SCRIPT = `
 })();
 `;
 
-// ── Detect Email Script ──────────────────────────────────────
 const DETECT_EMAIL_SCRIPT = `
 (function() {
   try {
@@ -102,7 +99,6 @@ const DETECT_EMAIL_SCRIPT = `
 })();
 `;
 
-// ── Bypass Popups/Modals Script ──────────────────────────────
 const BYPASS_POPUPS_SCRIPT = `
 (function() {
   try {
@@ -159,7 +155,6 @@ const BYPASS_POPUPS_SCRIPT = `
 })();
 `;
 
-// ── Locale Mapping ───────────────────────────────────────────
 function getLocaleForCountry(countryCode) {
   const map = {
     US: 'en-US',
@@ -176,7 +171,6 @@ function getLocaleForCountry(countryCode) {
   return map[String(countryCode).toUpperCase()] || 'en-US';
 }
 
-// ── Platform detection ───────────────────────────────────────
 function detectPlatform(url) {
   if (!url) return 'unknown';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
@@ -186,7 +180,6 @@ function detectPlatform(url) {
   return 'unknown';
 }
 
-// ── Login page URLs ──────────────────────────────────────────
 function getLoginUrl(platform) {
   const map = {
     youtube: 'https://accounts.google.com/signin',
@@ -197,7 +190,6 @@ function getLoginUrl(platform) {
   return map[platform] || 'https://accounts.google.com/signin';
 }
 
-// ── Proxy parser helper ──────────────────────────────────────
 function parseProxy(proxyStr) {
   if (!proxyStr) return null;
   const str = proxyStr.trim();
@@ -211,7 +203,7 @@ function parseProxy(proxyStr) {
   let port = '';
   let username = '';
   let password = '';
-  let protocol = 'http'; // default
+  let protocol = 'http';
 
   let cleanStr = str;
   const protoMatch = str.match(/^([a-zA-Z0-9]+):\/\/(.*)$/);
@@ -254,24 +246,20 @@ function parseProxy(proxyStr) {
   };
 }
 
-// ── Helper to ensure profile has persistent stealth specifications ──
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
 
-  // CPU Cores fallback
   if (!p.cpuCores || p.cpuCores === 'Auto') {
     const coresOptions = ['4', '6', '8', '12', '16'];
     p.cpuCores = coresOptions[Math.floor(Math.random() * coresOptions.length)];
   }
 
-  // RAM Size fallback
   if (!p.ramSize || p.ramSize === 'Auto') {
     const ramOptions = ['4', '8', '12', '16', '32'];
     p.ramSize = ramOptions[Math.floor(Math.random() * ramOptions.length)];
   }
 
-  // WebGL GPU Vendors & Renderers
   if (!p.platformStr || !p.webglVendor || !p.webglRenderer) {
     if (platform === 'mac') {
       p.platformStr = 'MacIntel';
@@ -297,7 +285,7 @@ function ensureProfileStealthSpecs(p) {
       p.platformStr = 'iPhone';
       p.webglVendor = 'Apple Inc.';
       p.webglRenderer = 'Apple GPU';
-    } else { // windows
+    } else {
       p.platformStr = 'Win32';
       const winGpus = [
         'NVIDIA GeForce RTX 3060',
@@ -312,19 +300,16 @@ function ensureProfileStealthSpecs(p) {
     }
   }
 
-  // Device Name
   if (!p.deviceName || p.deviceName === 'USER-PC-X6NAGE1') {
     const rand = Math.random().toString(36).substring(2, 9).toUpperCase();
     p.deviceName = `LAPTOP-${rand}`;
   }
 
-  // MAC Address
   if (!p.macAddress || p.macAddress === '00-1B-21-29-FE-FA') {
     const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase();
     p.macAddress = `00-1B-21-${hex()}-${hex()}-${hex()}`;
   }
 
-  // Screen Resolution & Window Mode
   if (!p.screenResolution || p.screenResolution === 'Based on User-Agent') {
     if (platform === 'android' || platform === 'ios') {
       p.screenResolution = '412x915';
@@ -338,7 +323,6 @@ function ensureProfileStealthSpecs(p) {
     }
   }
 
-  // Noise seeds
   if (p.canvasNoiseSeed === undefined || p.canvasNoiseSeed === null) {
     p.canvasNoiseSeed = Math.floor(Math.random() * 200) + 1;
   }
@@ -349,7 +333,6 @@ function ensureProfileStealthSpecs(p) {
     p.audioNoiseSeed = parseFloat((Math.random() * 0.0001).toFixed(8));
   }
 
-  // Virtual Media Devices
   if (!p.virtualCamId) {
     p.virtualCamId = crypto.randomBytes(32).toString('hex');
   }
@@ -375,13 +358,12 @@ function ensureProfileStealthSpecs(p) {
   }
 }
 
-// ────────────────────────────────────────────────────────────
 class BrowserFarmService {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
-    this.profileWindows = new Map(); // profileId → BrowserWindow
-    this.playwrightContexts = new Map(); // profileId → PlaywrightContext
-    this.launchingProfiles = new Set(); // profileId
+    this.profileWindows = new Map();
+    this.playwrightContexts = new Map();
+    this.launchingProfiles = new Set();
     this.activeRunProfiles = new Set();
     this.profiles = [];
     this.isRunning = false;
@@ -437,7 +419,6 @@ class BrowserFarmService {
     return { width: w, height: h, maximized };
   }
 
-  // ── Paths ────────────────────────────────────────────────
   _profilesPath() {
     return path.join(app.getPath('userData'), 'farm_profiles.json');
   }
@@ -527,7 +508,6 @@ class BrowserFarmService {
     return null;
   }
 
-  // ── Profile CRUD ─────────────────────────────────────────
   loadProfiles() {
     try {
       const p = this._profilesPath();
@@ -660,12 +640,10 @@ class BrowserFarmService {
     return { success: true };
   }
 
-  // ── Open a real browser for manual login ─────────────────
   async openLoginBrowser(profileId, platform) {
     const profile = this.profiles.find(p => p.id === profileId);
     if (!profile) return { success: false, error: 'Profile not found' };
 
-    // Prevent duplicate launch race condition
     if (this.launchingProfiles.has(profileId)) {
       this._log(profileId, `Already launching browser, ignoring duplicate request.`, 'warn');
       return { success: true };
@@ -673,7 +651,6 @@ class BrowserFarmService {
     this.launchingProfiles.add(profileId);
 
     try {
-      // Check if Playwright instance is already open
       const existingPlaywright = this.playwrightContexts.get(profileId);
       if (existingPlaywright) {
         try {
@@ -711,7 +688,6 @@ class BrowserFarmService {
       }
 
       if (exePath) {
-        // Safeguard: only one login browser open at a time
         if (this.activeRunProfiles.size > 0 && !this.activeRunProfiles.has(profileId)) {
           return {
             success: false,
@@ -745,10 +721,9 @@ class BrowserFarmService {
             if (attempt === 3) {
               this._log(profileId, `Attempt 3: Final retry with fresh profile...`, 'warn');
               try { fs.rmSync(userDataDir, { recursive: true, force: true }); } catch (e) {}
-              await this._sleep(3500); // Even longer for final attempt
+              await this._sleep(3500);
             }
 
-            // Geo-sync
             let timezoneVal = profile.timezone === 'optimal' ? 'UTC' : (profile.timezone || 'UTC');
             let localeVal   = profile.locale   === 'optimal' ? 'en-US' : (profile.locale   || 'en-US');
             let latVal = (profile.latitude  !== undefined && profile.latitude  !== null) ? profile.latitude  : 0;
@@ -764,7 +739,6 @@ class BrowserFarmService {
               }
             }
 
-            // Window bounds / Maximized mode
             const sizeCfg = this._getProfileWindowSize(profile);
             const plt = profile.platform || 'windows';
             const isMobilePlt = (plt === 'android' || plt === 'ios');
@@ -778,7 +752,6 @@ class BrowserFarmService {
 
             this._log(profileId, `[Launch] Platform=${plt} Mode=${profile.windowMode || 'default'} Size=${sizeCfg.maximized ? 'Maximized' : `${sizeCfg.width}x${sizeCfg.height}`}`, 'info');
 
-            // Build Playwright proxy options (handles auth natively — no more white screens)
             const parsed = parseProxy(profile.proxy);
             const proxyOpts = parsed ? {
               server: parsed.proxyRules,
@@ -825,7 +798,6 @@ class BrowserFarmService {
               ignoreDefaultArgs: ['--enable-automation'],
             });
 
-            // Inject stealth scripts — runs before every page navigation
             const spoofScript = this.getStealthSpoofScript(profile);
             await context.addInitScript(spoofScript).catch(() => {});
             await context.addInitScript(STEALTH_SCRIPT).catch(() => {});
@@ -842,7 +814,6 @@ class BrowserFarmService {
             this._log(profileId, `Navigating to ${loginUrl}`, 'info');
             await page.goto(loginUrl, { timeout: 15000, waitUntil: 'domcontentloaded' }).catch(() => {});
 
-            // Auto-detect email from the logged-in page
             const checkEmailInterval = setInterval(async () => {
               try {
                 if (context.pages().length === 0) { clearInterval(checkEmailInterval); return; }
@@ -879,11 +850,9 @@ class BrowserFarmService {
         return { success: false, error: `Failed to launch ${browserChoice.toUpperCase()} Browser: ${lastError?.message}` };
       }
 
-      // FALLBACK: Standard Electron BrowserWindow
       const ses = session.fromPartition(`persist:farm_${profileId}`, { cache: true });
       ses.setUserAgent(profile.ua);
 
-      // Proxy setup
       ses.removeAllListeners('login');
       const parsed = parseProxy(profile.proxy);
       if (parsed) {
@@ -926,7 +895,6 @@ class BrowserFarmService {
 
       win.webContents.setUserAgent(profile.ua);
 
-      // Inject stealth on every navigation
       win.webContents.on('did-navigate', () => {
         win.webContents.executeJavaScript(STEALTH_SCRIPT).catch(() => {});
       });
@@ -971,7 +939,6 @@ class BrowserFarmService {
     }
   }
 
-  // ── Check proxy ──────────────────────────────────────────
   async checkProxy(profileId) {
     const profile = this.profiles.find(p => p.id === profileId);
     if (!profile) return { ok: false, error: 'Not found' };
@@ -1032,7 +999,6 @@ class BrowserFarmService {
     }
   }
 
-  // ── Run Farm ─────────────────────────────────────────────
   async runFarm({ profileIds, targetUrl, action, batchSize, launchDelay, actionDelay, commentText }) {
     // Always stop and clean up any existing runs or open login browsers first to guarantee a clean state
     this.stopFarm();
@@ -1062,7 +1028,6 @@ class BrowserFarmService {
     const totalBatches = Math.ceil(toRun.length / batchSize);
     this._log('SYSTEM', `🚀 Farm started — ${toRun.length} profiles | ${totalBatches} batches | Action: ${action.toUpperCase()} | URL: ${targetUrl}`, 'info');
 
-    // Notify frontend
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
       this.mainWindow.webContents.send('farm:started', { total: toRun.length, batches: totalBatches });
     }
@@ -1073,7 +1038,6 @@ class BrowserFarmService {
         const batch = toRun.slice(bi * batchSize, (bi + 1) * batchSize);
         this._log('SYSTEM', `═══ BATCH ${bi + 1}/${totalBatches} — ${batch.length} profiles ═══`, 'info');
 
-        // Notify batch start
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
           this.mainWindow.webContents.send('farm:batch-start', { batchNo: bi + 1, totalBatches });
         }
@@ -1170,7 +1134,6 @@ class BrowserFarmService {
 
             if (this.shouldStop || this.currentRunId !== runId) return;
 
-            // Geo-sync
             let timezoneVal = profile.timezone === 'optimal' ? 'UTC' : (profile.timezone || 'UTC');
             let localeVal   = profile.locale   === 'optimal' ? 'en-US' : (profile.locale   || 'en-US');
             let latVal = (profile.latitude  !== undefined && profile.latitude  !== null) ? profile.latitude  : 0;
@@ -1188,7 +1151,6 @@ class BrowserFarmService {
 
             if (this.shouldStop || this.currentRunId !== runId) return;
 
-            // Window bounds / Maximized mode
             const sizeCfg = this._getProfileWindowSize(profile);
             const plt2 = profile.platform || 'windows';
             const isMobilePlt2 = (plt2 === 'android' || plt2 === 'ios');
@@ -1202,7 +1164,6 @@ class BrowserFarmService {
 
             this._log(profile.id, `[Launch] Platform=${plt2} Mode=${profile.windowMode || 'default'} Size=${sizeCfg.maximized ? 'Maximized' : `${sizeCfg.width}x${sizeCfg.height}`}`, 'info');
 
-            // Playwright proxy options — handles auth natively (fixes YouTube white screen)
             const parsed = parseProxy(profile.proxy);
             const proxyOpts = parsed ? {
               server: parsed.proxyRules,
@@ -1247,7 +1208,7 @@ class BrowserFarmService {
               args: extraArgs,
               ignoreDefaultArgs: ['--enable-automation'],
             });
-            break; // success — exit retry loop
+            break;
           } catch (err) {
             lastError = err;
             this._log(profile.id, `Attempt ${attempt}/3 failed: ${err.message}`, 'warn');
@@ -1265,7 +1226,6 @@ class BrowserFarmService {
           return;
         }
 
-        // Inject stealth scripts — fires before every page navigation
         const spoofScript = this.getStealthSpoofScript(profile);
         await context.addInitScript(spoofScript).catch(() => {});
         await context.addInitScript(STEALTH_SCRIPT).catch(() => {});
@@ -1277,7 +1237,6 @@ class BrowserFarmService {
 
         this._log(profile.id, `📍 Navigating → ${targetUrl}`, 'info');
 
-        // Direct navigation — proxy auth & stealth handled by Playwright natively
         try {
           await page.goto(targetUrl, { timeout: 15000, waitUntil: 'domcontentloaded' });
         } catch (e) {
@@ -1306,7 +1265,6 @@ class BrowserFarmService {
           return;
         }
 
-        // Detect logged-in email
         try {
           const detectedEmail = await page.evaluate(DETECT_EMAIL_SCRIPT);
           if (detectedEmail && typeof detectedEmail === 'string' && detectedEmail.trim()) {
@@ -1320,13 +1278,11 @@ class BrowserFarmService {
           }
         } catch (e) {}
 
-        // Human scroll simulation
         await this._sleep(1500);
         await page.evaluate(() => {
           window.scrollBy({ top: Math.floor(Math.random() * 300) + 100, behavior: 'smooth' });
         }).catch(() => {});
 
-        // Wait with periodic popup dismissal
         if (actionDelay > 5) {
           await this._sleep((actionDelay - 4) * 1000);
           await dismissPopups();
@@ -1342,7 +1298,6 @@ class BrowserFarmService {
           return;
         }
 
-        // Execute the requested farm action
         const result = await this._executePlaywrightAction(page, action, commentText, profile.id, targetUrl);
 
         if (result.success) {
@@ -1369,11 +1324,9 @@ class BrowserFarmService {
       }
     }
 
-    // FALLBACK: Standard Electron BrowserWindow
     const ses = session.fromPartition(`persist:farm_${profile.id}`, { cache: true });
     ses.setUserAgent(profile.ua);
 
-    // Proxy setup
     ses.removeAllListeners('login');
     const parsed = parseProxy(profile.proxy);
     if (parsed) {
@@ -1420,7 +1373,6 @@ class BrowserFarmService {
         return;
       }
 
-      // Stealth injection
       win.webContents.on('did-navigate', () => {
         win.webContents.executeJavaScript(STEALTH_SCRIPT).catch(() => {});
       });
@@ -1462,15 +1414,12 @@ class BrowserFarmService {
 
       this._log(profile.id, `✓ Page loaded — human delay ${actionDelay}s...`, 'info');
 
-      // Helper to dismiss popups
       const dismissPopups = () => win.webContents.executeJavaScript(BYPASS_POPUPS_SCRIPT).catch(() => {});
 
-      // Periodically bypass popups (TikTok modal, cookie consents)
       await dismissPopups();
       await this._sleep(2000);
       await dismissPopups();
 
-      // Try to detect email if logged in
       try {
         const detectedEmail = await win.webContents.executeJavaScript(DETECT_EMAIL_SCRIPT);
         if (detectedEmail && typeof detectedEmail === 'string' && detectedEmail.trim()) {
@@ -1484,11 +1433,9 @@ class BrowserFarmService {
         }
       } catch (e) {}
 
-      // Human scroll
       await this._sleep(1500);
       win.webContents.executeJavaScript(`window.scrollBy({ top: ${Math.floor(Math.random() * 300) + 100}, behavior: 'smooth' })`).catch(() => {});
 
-      // Keep dismissing popups while sleeping
       if (actionDelay > 5) {
         await this._sleep((actionDelay - 4) * 1000);
         await dismissPopups();
@@ -1500,7 +1447,6 @@ class BrowserFarmService {
 
       if (this.shouldStop || this.currentRunId !== runId) { win.close(); return; }
 
-      // Execute action
       const result = await this._executeAction(win, action, commentText, profile.id, targetUrl);
 
       if (result.success) {
@@ -1516,7 +1462,6 @@ class BrowserFarmService {
       this._updateStatus(profile.id, 'error');
     }
 
-    // Wait a moment then close
     await this._sleep(3000);
     if (!win.isDestroyed()) { win.close(); }
     this.profileWindows.delete(profile.id);
@@ -1527,7 +1472,6 @@ class BrowserFarmService {
     const platform = detectPlatform(url);
     this._log(profileId, `Platform: ${platform} | Action: ${action}`, 'info');
 
-    // Mock win object that wraps page.evaluate
     const mockWin = {
       webContents: {
         executeJavaScript: async (script) => {
@@ -1710,7 +1654,6 @@ class BrowserFarmService {
     } catch (e) { return { success: false, error: e.message }; }
   }
 
-  // ── Stop ─────────────────────────────────────────────────
   stopFarm() {
     this.shouldStop = true;
     this.isRunning = false;
@@ -1725,7 +1668,6 @@ class BrowserFarmService {
     this.playwrightContexts.clear();
   }
 
-  // ── Backup/Restore (AES-256 Encrypted .nvm Format) ─────────
   async _getEncryptionKey() {
     let machineId = 'nova-farm-default-id';
     try {
@@ -1769,7 +1711,6 @@ class BrowserFarmService {
   }
 
   async getOptimalGeoDetails(profile) {
-    // Fetch optimal country, timezone, lat, lng via profile proxy (using temporary Electron session)
     const ses = session.fromPartition(`persist:farm_geo_${profile.id}`);
     const parsed = parseProxy(profile.proxy);
     if (parsed) {
@@ -1813,7 +1754,6 @@ class BrowserFarmService {
       });
       req.on('error', () => resolve(null));
       req.end();
-      // 3 second timeout
       setTimeout(() => resolve(null), 3000);
     });
   }
@@ -1842,7 +1782,6 @@ class BrowserFarmService {
       webglRenderer = 'Apple GPU';
     }
 
-    // Custom overrides if defined on the profile
     if (profile.webglVendor) {
       webglVendor = profile.webglVendor;
     }
@@ -1857,7 +1796,6 @@ class BrowserFarmService {
     const webglNoise = profile.webglNoise !== false;
     const audioNoise = profile.audioNoise !== false;
 
-    // New parameters
     const webglImageNoise = profile.webglImageNoise !== false;
     const mediaDeviceNoise = profile.mediaDeviceNoise !== false;
     const clientRectsNoise = profile.clientRectsNoise !== false;
@@ -1868,7 +1806,6 @@ class BrowserFarmService {
     const doNotTrack = profile.doNotTrack || 'default';
     const portScanProtection = profile.portScanProtection || 'enable';
 
-    // Ensure we have seeds and virtual media devices
     ensureProfileStealthSpecs(profile);
 
     return `
@@ -2114,7 +2051,6 @@ class BrowserFarmService {
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────
   _updateStatus(profileId, status) {
     const idx = this.profiles.findIndex(p => p.id === profileId);
     let email = undefined;
@@ -2153,7 +2089,6 @@ class BrowserFarmService {
     return new Promise(r => setTimeout(r, ms));
   }
 
-  // ── Register all IPC handlers ─────────────────────────────
   registerIPC() {
     ipcMain.handle('farm:load-profiles', () => this.loadProfiles());
 

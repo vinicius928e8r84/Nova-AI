@@ -7,33 +7,29 @@ const iosModelo = require('./ios-modelo');
 const plistPrefs = require('./plist-prefs');
 const net = require('net');
 const WebSocket = require('ws');
+const axios = require('axios');
 
 class PhysicalMobileService {
     constructor(mainWindow, app) {
         this.mainWindow = mainWindow;
         this.app = app;
         
-        // Base Directories
         this.baseDir = path.join(app ? app.getPath('userData') : process.cwd(), 'physical_mobile');
         this._adbPath = null;
         this._scrcpyPath = null;
         this.isProvisioning = false;
         
-        this.runningStreams = new Map(); // deviceId -> process
+        this.runningStreams = new Map();
 
-        // Ensure base directories exist
         if (!fs.existsSync(this.baseDir)) fs.mkdirSync(this.baseDir, { recursive: true });
         try { require('./iphone-ssh').migrateLegacy(); } catch (e) { console.error('[iPhone SSH] migração:', e.message); }
 
-        // Auto-detect and resolve tools immediately
         this.resolveAdbPath();
         this.resolveScrcpyPath();
 
-        // Trigger seamless background tool provisioning if missing
         if (process.env.NOVA_SMOKE_TEST !== '1') setTimeout(() => this.ensureTools(false), 2000);
     }
 
-    // Dynamic getter for adbPath
     get adbPath() {
         return this.resolveAdbPath();
     }
@@ -41,7 +37,6 @@ class PhysicalMobileService {
         this._adbPath = val;
     }
 
-    // Dynamic getter for scrcpyPath
     get scrcpyPath() {
         return this.resolveScrcpyPath();
     }
@@ -49,7 +44,6 @@ class PhysicalMobileService {
         this._scrcpyPath = val;
     }
 
-    // Comprehensive Path Resolver for ADB
     resolveAdbPath() {
         if (process.platform === "darwin") {
             return require('./mac-native').tool('adb') || require('./android-tools').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
@@ -93,7 +87,6 @@ class PhysicalMobileService {
         return path.join(this.baseDir, 'platform-tools', 'adb.exe');
     }
 
-    // Comprehensive Path Resolver for Scrcpy
     resolveScrcpyPath() {
         if (process.platform === "darwin") {
             return require('./mac-native').tool('scrcpy') || require('./android-tools').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
@@ -139,12 +132,10 @@ class PhysicalMobileService {
         }
     }
 
-    // Seamless Self-Provisioning: Auto-download & extract ADB & Scrcpy
     async ensureTools(force = false) {
         return require('./android-tools').ensureForService(this, force);
     }
 
-    // List connected devices via ADB with friendly names & statuses
     async getConnectedDevices() {
         const adbDevices = await new Promise((resolve) => {
             const adb = this.adbPath;
@@ -172,7 +163,6 @@ class PhysicalMobileService {
                         const status = parts[1];
                         const isWifi = id.includes(':') || id.match(/^\d+\.\d+\.\d+\.\d+/);
 
-                        // Extract model from line (e.g. model:SM_G998B product:p3s)
                         const modelMatch = line.match(/model:(\S+)/);
                         const deviceMatch = line.match(/device:(\S+)/);
                         const modelName = modelMatch ? modelMatch[1].replace(/_/g, ' ') : (deviceMatch ? deviceMatch[1] : id);
@@ -192,7 +182,6 @@ class PhysicalMobileService {
         return adbDevices.concat(iosDevices);
     }
 
-    // ── iOS (iPhone via USB) — adaptação macOS ──
     iosSsh(command) {
         return new Promise((resolve) => {
             const args = ['-p', '2222', ...iphoneSsh.sshOptions(),
@@ -211,7 +200,6 @@ class PhysicalMobileService {
         return m ? m[1].trim() : null;
     }
 
-    // ── Proxy do iPhone (novaproxy + regra de sudo sem senha) ──────────────
     iosProxyRun(args, timeoutMs = 30000) {
         return new Promise((resolve) => {
             const cmd = '/var/jb/usr/bin/novaproxy ' + args;
@@ -424,7 +412,6 @@ class PhysicalMobileService {
         return r.ok ? { success: true } : { success: false, error: r.error };
     }
 
-    // Get current setup status and list of devices
     async getStatus() {
         const adbExists = fs.existsSync(this.adbPath);
         const scrcpyExists = fs.existsSync(this.scrcpyPath);
@@ -444,7 +431,6 @@ class PhysicalMobileService {
         };
     }
 
-    // Auto-Restart ADB Server to unfreeze or repair connections
     async restartAdbServer() {
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) return { success: false, error: 'ADB not found.' };
@@ -464,7 +450,6 @@ class PhysicalMobileService {
         });
     }
 
-    // 1-Click Auto-Pair USB Device to Wireless
     async autoPairUsbToWireless(deviceId) {
         if (String(deviceId).startsWith('ios-')) {
             return { success: false, platform: 'ios', error: 'Wireless Switch é exclusivo para Android. Nesta versão, mantenha o iPhone conectado por USB.' };
@@ -499,15 +484,12 @@ class PhysicalMobileService {
         }
     }
 
-    // Auto-Scan Local Subnet on Port 5555 for Wireless Android Devices
-    // Auto-Scan Local Subnet and mDNS for Wireless Android Devices
     async scanWifiDevices() {
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) return { success: false, error: 'ADB not found.' };
 
         const discoveredIps = [];
 
-        // 1. Check mDNS Wireless Debugging broadcast services
         await new Promise((res) => {
             exec(`"${adb}" mdns services`, { timeout: 4000 }, (err, stdout) => {
                 if (stdout) {
@@ -523,7 +505,6 @@ class PhysicalMobileService {
             });
         });
 
-        // 2. Subnet port 5555 scan
         const interfaces = os.networkInterfaces();
         const baseIps = [];
 
@@ -569,7 +550,6 @@ class PhysicalMobileService {
             }
         }
 
-        // Auto-connect to all discovered endpoints
         const connectResults = [];
         for (const target of discoveredIps) {
             await new Promise((res) => {
@@ -589,7 +569,6 @@ class PhysicalMobileService {
         };
     }
 
-    // Android 11+ Pair Wireless Device via 6-Digit Pairing Code
     async pairWirelessDevice(ip, port, pairingCode) {
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) return { success: false, error: 'ADB not found.' };
@@ -605,7 +584,6 @@ class PhysicalMobileService {
         });
     }
 
-    // Connect device via Wi-Fi (Same Network)
     async connectWifi(ipAddress) {
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) {
@@ -626,7 +604,6 @@ class PhysicalMobileService {
         });
     }
 
-    // Disconnect a device
     async disconnectDevice(deviceId) {
         if (String(deviceId).startsWith('ios-')) return { success: false, error: 'iPhone é conexão USB — desconecte o cabo para desconectar.' };
         const adb = this.adbPath;
@@ -640,7 +617,6 @@ class PhysicalMobileService {
         });
     }
 
-    // Start streaming device screen via Scrcpy
     async startStream(deviceId) {
         if (String(deviceId).startsWith('ios-')) return this.iosStartStream(deviceId);
         if (this.runningStreams.has(deviceId)) {
@@ -681,7 +657,6 @@ class PhysicalMobileService {
         return { success: true };
     }
 
-    // Stop streaming
     async stopStream(deviceId) {
         if (String(deviceId).startsWith('ios-')) return this.iosStopStream(deviceId);
         const proc = this.runningStreams.get(deviceId);
@@ -711,7 +686,6 @@ class PhysicalMobileService {
         return r.ok ? { success: true } : { success: false, error: r.error };
     }
 
-    // Root-Level Settings Controls (Toggles)
     async toggleSetting(deviceId, setting, enable) {
         if (String(deviceId).startsWith('ios-')) return this.iosToggleSetting(deviceId, setting, enable);
         return new Promise((resolve) => {
@@ -737,7 +711,6 @@ class PhysicalMobileService {
 
             exec(cmd, (err, stdout, stderr) => {
                 if (err) {
-                    // Fallback to non-root shell command if su fails
                     const fallbackCmd = `"${this.adbPath}" -s ${deviceId} shell svc ${setting} ${action}`;
                     exec(fallbackCmd, (fbErr, fbStdout, fbStderr) => {
                         if (fbErr) {
@@ -754,7 +727,6 @@ class PhysicalMobileService {
         });
     }
 
-    // App Control Interface (Launch, Stop, Clear Cache)
     async controlApp(deviceId, packageName, action) {
         if (String(deviceId).startsWith('ios-')) return this.iosControlApp(deviceId, packageName, action);
         return new Promise((resolve) => {
@@ -765,13 +737,10 @@ class PhysicalMobileService {
 
             let shellCmd = '';
             if (action === 'start') {
-                // Universal launch via monkey package category
                 shellCmd = `shell monkey -p ${packageName} -c android.intent.category.LAUNCHER 1`;
             } else if (action === 'stop') {
-                // Root force stop
                 shellCmd = `shell su -c "am force-stop ${packageName}"`;
             } else if (action === 'clear') {
-                // Root clear data/cache
                 shellCmd = `shell su -c "pm clear ${packageName}"`;
             }
 
@@ -780,7 +749,6 @@ class PhysicalMobileService {
 
             exec(cmd, (err, stdout, stderr) => {
                 if (err && action !== 'start') {
-                    // Non-root fallback for stop
                     const fallbackCmd = `"${this.adbPath}" -s ${deviceId} shell am force-stop ${packageName}`;
                     exec(fallbackCmd, (fbErr) => {
                         resolve({ success: !fbErr });
@@ -792,7 +760,6 @@ class PhysicalMobileService {
         });
     }
 
-    // Advanced Browser Automation via Chrome Debugging (CDP)
     async automateBrowser(deviceId, url, searchText) {
         if (String(deviceId).startsWith('ios-')) return this.iosAutomateBrowser(deviceId, url, searchText);
         return new Promise(async (resolve) => {
@@ -803,7 +770,6 @@ class PhysicalMobileService {
 
             console.log(`[PhysicalMobile] Initializing browser automation on device ${deviceId}...`);
 
-            // Step 1: Forward local port 9222 to mobile Chrome DevTools socket
             const forwardCmd = `"${this.adbPath}" -s ${deviceId} forward tcp:9222 localabstract:chrome_devtools_remote`;
             
             exec(forwardCmd, async (err, stdout, stderr) => {
@@ -813,15 +779,12 @@ class PhysicalMobileService {
                     return;
                 }
 
-                // Step 2: Open Chrome on mobile
                 const chromeLaunchCmd = `"${this.adbPath}" -s ${deviceId} shell am start -n com.android.chrome/com.google.android.apps.chrome.Main`;
                 exec(chromeLaunchCmd);
 
-                // Wait 4 seconds for Chrome to spin up
                 await new Promise(r => setTimeout(r, 4000));
 
                 try {
-                    // Step 3: Fetch active tabs from local port 9222
                     const response = await axios.get('http://localhost:9222/json');
                     const tabs = response.data;
                     
@@ -830,7 +793,6 @@ class PhysicalMobileService {
                         return;
                     }
 
-                    // Select the first active page tab
                     const targetTab = tabs.find(t => t.type === 'page') || tabs[0];
                     const wsUrl = targetTab.webSocketDebuggerUrl;
                     
@@ -845,7 +807,6 @@ class PhysicalMobileService {
                     ws.on('open', () => {
                         let msgId = 1;
 
-                        // Helper function to send CDP commands
                         const sendCommand = (method, params = {}) => {
                             return new Promise((cmdResolve) => {
                                 const id = msgId++;
@@ -864,19 +825,16 @@ class PhysicalMobileService {
                             });
                         };
 
-                        // Run automation sequence
                         (async () => {
                             try {
                                 console.log(`[PhysicalMobile] Navigating to: ${url}`);
                                 await sendCommand('Page.navigate', { url });
 
-                                // Wait for navigation load
                                 await new Promise(r => setTimeout(r, 5000));
 
                                 if (searchText) {
                                     console.log(`[PhysicalMobile] Injecting search script for term: ${searchText}`);
                                     
-                                    // Inject JavaScript to type search query and submit Google or standard forms
                                     const jsCode = `
                                         (function() {
                                             // Check standard inputs
@@ -931,11 +889,7 @@ class PhysicalMobileService {
             });
         });
     }
-    // ─────────────────────────────────────────────
-    // DEVICE IDENTITY SPOOFER METHODS
-    // ─────────────────────────────────────────────
 
-    // Load spoofer database
     getSpooferDatabase() {
         try {
             const dbPath = path.join(__dirname, 'spooferDatabase.json');
@@ -946,7 +900,6 @@ class PhysicalMobileService {
         }
     }
 
-    // Get all models grouped by brand
     getSpooferModels() {
         const db = this.getSpooferDatabase();
         const result = {};
@@ -956,11 +909,9 @@ class PhysicalMobileService {
         return { success: true, brands: result };
     }
 
-    // Generate valid Luhn checksum IMEI
     generateIMEI(prefix) {
         const tac = prefix || '35' + Math.floor(Math.random() * 99999999).toString().padStart(8, '0');
         let digits = tac.split('').map(Number);
-        // Luhn algorithm
         let sum = 0;
         for (let i = 0; i < 14; i++) {
             let d = digits[i];
@@ -971,7 +922,6 @@ class PhysicalMobileService {
         return tac + checkDigit;
     }
 
-    // Generate random hex string
     randomHex(length) {
         let result = '';
         const chars = '0123456789abcdef';
@@ -979,36 +929,30 @@ class PhysicalMobileService {
         return result;
     }
 
-    // Generate random MAC address
     generateMAC() {
         const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0');
         return `02:${hex()}:${hex()}:${hex()}:${hex()}:${hex()}`;
     }
 
-    // Generate random serial number with brand prefix
     generateSerial(prefix) {
         const suffix = Math.random().toString(36).substring(2, 10).toUpperCase();
         return (prefix || 'RND1') + suffix;
     }
 
-    // Generate random Android ID (16 hex chars)
     generateAndroidId() {
         return this.randomHex(16);
     }
 
-    // Generate random UUID for Advertising ID
     generateGAID() {
         const s4 = () => this.randomHex(4);
         return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
     }
 
-    // Execute ADB root shell command helper
     adbRootExec(deviceId, shellCmd) {
         return new Promise((resolve) => {
             const cmd = `"${this.adbPath}" -s ${deviceId} shell su -c "${shellCmd}"`;
             exec(cmd, { timeout: 10000 }, (err, stdout, stderr) => {
                 if (err) {
-                    // Try without su as fallback
                     const fallback = `"${this.adbPath}" -s ${deviceId} shell ${shellCmd}`;
                     exec(fallback, { timeout: 10000 }, (fbErr, fbOut) => {
                         resolve({ success: !fbErr, output: fbOut });
@@ -1020,7 +964,6 @@ class PhysicalMobileService {
         });
     }
 
-    // Push a file to device
     adbPush(deviceId, localPath, remotePath) {
         return new Promise((resolve) => {
             exec(`"${this.adbPath}" -s ${deviceId} push "${localPath}" ${remotePath}`, (err) => {
@@ -1029,11 +972,9 @@ class PhysicalMobileService {
         });
     }
 
-    // Apply full device identity spoof
     async applySpoofProfile(deviceId, brandName, modelKey, customImei = null) {
         try {
             const db = this.getSpooferDatabase();
-            // ── FIX 1: Case-insensitive brand lookup so "Google" matches even if key differs
             const brandKey = Object.keys(db.brands).find(
                 k => k.toLowerCase() === brandName.toLowerCase()
             ) || brandName;
@@ -1043,7 +984,6 @@ class PhysicalMobileService {
             const profile = brand.find(m => m.model === modelKey);
             if (!profile) return { success: false, error: `Model "${modelKey}" not found.` };
 
-            // ── FIX 1b: IMEI TAC prefix per manufacturer (Luhn-valid prefix families)
             // Each brand family maps to an official TAC range registered with GSMA
             const IMEI_TAC = {
                 'samsung':   ['35265210', '35386910', '35617210', '35913410', '35265211'],
@@ -1085,7 +1025,6 @@ class PhysicalMobileService {
 
             console.log(`[Spoofer] Applying profile: ${profile.name} | Preserving real OS: Android ${av} (SDK ${sdk}) | Patch: ${patch}`);
 
-            // ── PROP LIST (used for both RAM injection + Magisk module) ──────
             const props = [
                 ['ro.product.model',                    profile.model],
                 ['ro.product.name',                     profile.device],
@@ -1141,18 +1080,15 @@ class PhysicalMobileService {
                 ['ro.oem_unlock_supported',             '0'],
             ];
 
-            // ── STEP 1: RAM injection (takes effect immediately) ─────────────
             for (const [key, val] of props) {
                 await this.adbRootExec(deviceId, `resetprop "${key}" "${val}" 2>/dev/null; true`);
             }
 
-            // ── STEP 1b: DEEP IMEI INJECTION — *#06# compatible ─────────────────
             // Strategy: Set ALL known IMEI prop paths persistently + trigger safe telephony
             // notification WITHOUT restarting ril-daemon (which causes blank IMEI).
             // *#06# reads from ril.gsm.imei OR ril.imei — we set both.
             console.log(`[Spoofer] Deep IMEI inject: writing all prop paths (no ril restart)`);
 
-            // Full persistent IMEI write — every known prop path
             const imeiProps = [
                 `ril.imei`, `ril.imei1`, `ril.imei2`,
                 `persist.radio.imei`, `persist.radio.imei1`,
@@ -1176,17 +1112,13 @@ class PhysicalMobileService {
                 `[ -f /efs/imei ] && printf '%s' '${imei}' > /efs/imei 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `sync 2>/dev/null; true`);
 
-            // ── STEP 1c: SAFE TELEPHONY REFRESH (no ril-daemon kill) ──────────────
             // Broadcast a safe Intent to tell TelephonyManager to re-read IMEI from props.
             // This makes *#06# and Settings show the spoofed IMEI WITHOUT killing ril-daemon.
             await this.adbRootExec(deviceId, `am broadcast -a android.intent.action.SERVICE_STATE 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `am broadcast -a android.telephony.action.SUBSCRIPTION_CARRIER_IDENTITY_CHANGED 2>/dev/null; true`);
-            // Also restart just telephony framework services (not ril itself)
             await this.adbRootExec(deviceId, `service call phone 1 2>/dev/null; true`);
             console.log(`[Spoofer] ✅ IMEI props set + telephony refresh triggered (check *#06# after soft reboot)`);
 
-            // ── STEP 1c: CARRIER DATABASE — match SIM carrier to manufacturer ────
-            // Each brand has a realistic carrier association
             const CARRIER_DB = {
                 'Samsung':  { name: 'T-Mobile US',  mcc: '310', mnc: '260', country: 'us', apn: 'fast.t-mobile.com' },
                 'Google':   { name: 'AT&T',          mcc: '310', mnc: '410', country: 'us', apn: 'phone' },
@@ -1207,7 +1139,6 @@ class PhysicalMobileService {
             const simOperatorName = carrier.name;
             const simCountryIso = carrier.country;
 
-            // Generate extra faker parameters
             const wifiSsid  = profile.manufacturer + '_' + this.randomHex(4).toUpperCase();
             const wifiBssid = this.generateMAC();
             const bluetoothId = this.generateMAC();
@@ -1219,7 +1150,6 @@ class PhysicalMobileService {
             const mediaDrmId = this.randomHex(32);
 
 
-            // Add these extra parameters to the config bridge for Nova internal use
             const spoofConfig = {
                 imei, imsi, serial, android_id: androidId, mac, gaid,
                 model: profile.name, brand: profile.manufacturer,
@@ -1233,24 +1163,17 @@ class PhysicalMobileService {
                 sim_country: simCountryIso, mcc, mnc
             };
 
-            // ── STEP 2: Settings database, Telephony database, GMS & framework SQLites ──────────────────────────────
-            // Secure Settings & System Settings
             await this.adbRootExec(deviceId, `settings put secure android_id ${androidId}`);
             await this.adbRootExec(deviceId, `settings put secure bluetooth_address ${bluetoothId}`);
             await this.adbRootExec(deviceId, `settings put secure wifi_ap_ssid ${wifiSsid}`);
             await this.adbRootExec(deviceId, `settings put secure wifi_ap_bssid ${wifiBssid}`);
 
-            // ── STEP 2b: LIVE WiFi MAC (network interface level) ─────────────
-            // This changes what wlan0 reports immediately — no reboot needed
             console.log(`[Spoofer] Changing live WiFi MAC → ${mac}`);
             await this.adbRootExec(deviceId,
                 `ip link set wlan0 down 2>/dev/null; ip link set wlan0 address ${mac} 2>/dev/null; ip link set wlan0 up 2>/dev/null; true`);
-            // Samsung: persist to EFS wifi partition
             await this.adbRootExec(deviceId,
                 `[ -f /efs/wifi/.mac.info ] && printf '%s' '${mac}' > /efs/wifi/.mac.info 2>/dev/null; true`);
 
-            // ── STEP 2c: LIVE Bluetooth MAC (bluedroid config) ───────────────
-            // Writing to bt_config.conf forces BT stack to use new MAC on restart
             console.log(`[Spoofer] Setting Bluetooth MAC → ${bluetoothId}`);
             await this.adbRootExec(deviceId,
                 `printf '[Adapter]\\nAddress = ${bluetoothId}\\n' > /data/misc/bluedroid/bt_config.conf 2>/dev/null; true`);
@@ -1259,29 +1182,22 @@ class PhysicalMobileService {
             await this.adbRootExec(deviceId,
                 `chown bluetooth:bluetooth /data/misc/bluedroid/bt_config.conf 2>/dev/null; chmod 660 /data/misc/bluedroid/bt_config.conf 2>/dev/null; true`);
 
-            // GMS Advertising ID update in database manager
             await this.adbRootExec(deviceId,
                 `sqlite3 /data/data/com.google.android.gms/databases/databasemanager.db "UPDATE main SET value='${gaid}' WHERE key='advertising_id'" 2>/dev/null; true`
             );
 
-            // GSF ID update in gservices database
             await this.adbRootExec(deviceId,
                 `sqlite3 /data/data/com.google.android.gsf/databases/gservices.db "UPDATE main SET value='${gsfIdValue}' WHERE name='android_id'" 2>/dev/null; true`
             );
 
-            // Telephony database updates (SIM Sub ID, SIM Serial, Phone Number)
             await this.adbRootExec(deviceId,
                 `sqlite3 /data/data/com.android.providers.telephony/databases/telephony.db "UPDATE siminfo SET icc_id='${simSerial}', number='${mobileNumber}', display_name='${simOperatorName}'" 2>/dev/null; true`
             );
 
-            // ── 15-STEP COMPREHENSIVE PROPS (matching Android Faker) ──────────
             props.push(
-                // Step 7: Serial
                 ['ro.boot.serialno',                    hwSerial],
                 ['ro.serialno',                         hwSerial],
-                // Step 8: IMEI persistent (already done via resetprop -p)
                 ['ro.ril.oem.imei',                     imei],
-                // Step 9: SIM Carrier — matched to manufacturer
                 ['gsm.sim.operator.numeric',            mcc + mnc],
                 ['gsm.sim.operator.alpha',              simOperatorName],
                 ['gsm.sim.operator.iso-country',        simCountryIso],
@@ -1289,32 +1205,24 @@ class PhysicalMobileService {
                 ['gsm.operator.alpha',                  simOperatorName],
                 ['gsm.operator.iso-country',            simCountryIso],
                 ['gsm.sim.state',                       'LOADED'],
-                // Step 10: WiFi MAC
                 ['ro.boot.wifi.mac',                    mac],
                 ['ro.wifi.bssid',                       wifiBssid],
                 ['wifi.interface',                      'wlan0'],
-                // Step 11: Bluetooth MAC
                 ['ro.boot.btmacaddr',                   bluetoothId],
                 ['bluetooth.address',                   bluetoothId],
-                // Step 12: Carrier / Network
                 ['ro.carrier',                          simOperatorName.toLowerCase().replace(/ /g, '_')],
                 ['ro.com.google.clientidbase',          'android-' + profile.manufacturer.toLowerCase()],
                 ['net.hostname',                        profile.device.toLowerCase() + '-' + this.randomHex(4)],
-                // Step 13: Media DRM ID
                 ['media.drm.uuid',                      mediaDrmId],
-                // Step 14: SIM MCC/MNC direct
                 ['ro.telephony.default_network',        '9'],
                 ['persist.radio.multisim.config',       'dsds'],
-                // Step 15: GSF / Play Store
                 ['ro.build.expect.bootloader',          profile.device.toLowerCase()],
             );
 
 
-            // ── STEP 3: MAGISK MODULE — persists across reboots ──────────────
             // Magisk reads system.prop from /data/adb/modules/<id>/ at boot
             // and applies them via resetprop BEFORE Zygote starts → all apps see spoofed props
 
-            // Store generated identity for later verification
             this._lastAppliedProfile = {
                 model: profile.model,
                 manufacturer: profile.manufacturer,
@@ -1333,12 +1241,10 @@ class PhysicalMobileService {
                 `description=Persistent device identity: ${profile.name} (Android ${av})`
             ].join('\n');
 
-            // system.prop format: key=value (one per line, no quotes)
             const systemProp = props
                 .map(([k, v]) => `${k}=${v}`)
                 .join('\n') + '\n';
 
-            // ── STEP 4: service.sh — 15-step re-apply at every boot ────────────
             const serviceSh = `#!/system/bin/sh
 # Nova Identity Spoof — 15-Step Deep Spoof (Boot Service)
 # Runs at every boot AFTER Zygote starts — applies to all Java apps
@@ -1426,53 +1332,43 @@ cmd notification post -S bigtext -t 'NOVA Spoof Active' 'NovaSpoofTag' \"Model: 
 
 exit 0
 `;
-            // Write files locally then push
             const localMod = path.join(this.baseDir, 'nova_magisk_module');
             fs.mkdirSync(localMod, { recursive: true });
             fs.writeFileSync(path.join(localMod, 'module.prop'),  moduleProp,  'utf8');
             fs.writeFileSync(path.join(localMod, 'system.prop'),  systemProp,  'utf8');
             fs.writeFileSync(path.join(localMod, 'service.sh'),   serviceSh,   'utf8');
 
-            // Create temporary staging directory in /data/local/tmp
             await this.adbRootExec(deviceId, `mkdir -p /data/local/tmp/nova_magisk_module`);
 
-            // Push files to staging directory (writable by adb shell user)
             await this.adbPush(deviceId, path.join(localMod, 'module.prop'), '/data/local/tmp/nova_magisk_module/module.prop');
             await this.adbPush(deviceId, path.join(localMod, 'system.prop'), '/data/local/tmp/nova_magisk_module/system.prop');
             await this.adbPush(deviceId, path.join(localMod, 'service.sh'),  '/data/local/tmp/nova_magisk_module/service.sh');
 
-            // Copy staging files to Magisk modules folder as root
             await this.adbRootExec(deviceId, `mkdir -p /data/adb/modules/nova_spoof`);
             await this.adbRootExec(deviceId, `cp /data/local/tmp/nova_magisk_module/module.prop /data/adb/modules/nova_spoof/module.prop`);
             await this.adbRootExec(deviceId, `cp /data/local/tmp/nova_magisk_module/system.prop /data/adb/modules/nova_spoof/system.prop`);
             await this.adbRootExec(deviceId, `cp /data/local/tmp/nova_magisk_module/service.sh /data/adb/modules/nova_spoof/service.sh`);
             
-            // Clean up staging directory on device
             await this.adbRootExec(deviceId, `rm -rf /data/local/tmp/nova_magisk_module`);
 
-            // Set correct ownership and permissions for Magisk module
             await this.adbRootExec(deviceId, `chown -R root:root /data/adb/modules/nova_spoof`);
             await this.adbRootExec(deviceId, `chmod 755 /data/adb/modules/nova_spoof`);
             await this.adbRootExec(deviceId, `chmod 644 /data/adb/modules/nova_spoof/module.prop`);
             await this.adbRootExec(deviceId, `chmod 644 /data/adb/modules/nova_spoof/system.prop`);
             await this.adbRootExec(deviceId, `chmod 755 /data/adb/modules/nova_spoof/service.sh`);
 
-            // Remove skip/disable flags if present
             await this.adbRootExec(deviceId, `rm -f /data/adb/modules/nova_spoof/skip /data/adb/modules/nova_spoof/disable 2>/dev/null; true`);
             console.log(`[Spoofer] ✅ Magisk module installed: /data/adb/modules/nova_spoof/`);
 
-            // ── STEP 4: Config bridge (for Nova internal use) ────────────────
             const tmpJsonPath = path.join(this.baseDir, 'nova_spoof.json');
             fs.writeFileSync(tmpJsonPath, JSON.stringify(spoofConfig, null, 2));
             await this.adbRootExec(deviceId, `mkdir -p /data/local/tmp`);
             await this.adbPush(deviceId, tmpJsonPath, '/data/local/tmp/nova_spoof.json');
 
-            // ── STEP 5: Soft GMS flush (no zygote crash) ─────────────────────
             await this.adbRootExec(deviceId, `am force-stop com.google.android.gms 2>/dev/null; true`);
 
             console.log(`[Spoofer] ✅ Profile applied: ${profile.name} (Android ${av}) — Triggering crash-safe zygote reboot`);
 
-            // ── STEP 6: Crash-safe soft reboot (zygote-only, Scrcpy mouse safe) ──
             // We do NOT use setTimeout — wait inline so Scrcpy has time to recover.
             await new Promise(r => setTimeout(r, 1500));
             console.log(`[Spoofer] Issuing zygote restart on ${deviceId}...`);
@@ -1482,7 +1378,6 @@ exit 0
             // ✔ Scrcpy connection survives  ✔ All Java framework restarts cleanly
             await this.adbRootExec(deviceId, `setprop ctl.restart zygote 2>/dev/null; true`);
 
-            // Wait for zygote to come back (polling up to 20s)
             let zygoteReady = false;
             for (let i = 0; i < 20; i++) {
                 await new Promise(r => setTimeout(r, 1000));
@@ -1499,14 +1394,11 @@ exit 0
                 console.warn('[Spoofer] ⚠ Zygote did not report running in 20s — may still be booting');
             }
 
-            // ── STEP 7: Show live confirmation on mobile screen (visible in Scrcpy) ──
             await new Promise(r => setTimeout(r, 3000)); // let system_server settle
             const toastMsg = `NOVA SPOOF ✓ | ${profile.name} | IMEI: ${imei}`;
-            // Try modern notification channel first, fallback to am startactivity overlay
             await this.adbRootExec(deviceId,
                 `cmd notification post -S bigtext -t 'NOVA Spoof Active' 'NovaSpoofTag' "${toastMsg}" 2>/dev/null; true`
             );
-            // Also log to device logcat for ADB-side confirmation
             await this.adbRootExec(deviceId,
                 `log -t NOVA_SPOOF -p i "${toastMsg}" 2>/dev/null; true`
             );
@@ -1530,7 +1422,6 @@ exit 0
         }
     }
 
-    // Get GSF Android ID (needed for Play Store certification)
     async getGSFAndroidId(deviceId) {
         return new Promise((resolve) => {
             const cmd = `"${this.adbPath}" -s ${deviceId} shell content query --uri content://com.google.android.gsf.gservices/prefix --projection value: --where "name='android_id'"`;
@@ -1560,7 +1451,6 @@ exit 0
         });
     }
 
-    // ── Localização a partir do proxy (IP de saída → lat/lon/fuso) ────────────
     async geoFromProxy(deviceId, proxy) {
         const geo = require('./geo-proxy');
         const id = String(deviceId || '');
@@ -1600,7 +1490,6 @@ exit 0
         }
     }
 
-    // ── Localização simulada no iPhone (idevicesetlocation + imagem de dev) ───
     idevicesetlocationPath() {
         const roots = [
             process.resourcesPath ? path.join(process.resourcesPath, 'bin') : null,
@@ -1684,7 +1573,6 @@ exit 0
         return { success: true };
     }
 
-    // ── Idioma/fuso via helper root nova-locale (instalado uma vez) ───────────
     languageForCountry(cc) {
         const map = {
             US: ['en-US', 'en_US'], GB: ['en-GB', 'en_GB'], CA: ['en-CA', 'en_CA'], AU: ['en-AU', 'en_AU'],
@@ -1800,7 +1688,6 @@ exit 0
         }
     }
 
-    // ── GPS SPOOF via background loop script ──────────────────────────────────
     async setSpoofLocation(deviceId, latitude, longitude) {
         if (String(deviceId || '').startsWith('ios-')) {
             return this.iosSetLocation(deviceId, latitude, longitude);
@@ -1808,15 +1695,12 @@ exit 0
         try {
             console.log(`[Spoofer] Setting persistent fake GPS: ${latitude}, ${longitude}`);
 
-            // 1. Stop any previous GPS spoof loop
             await this.adbRootExec(deviceId, `pkill -f nova_gps_loop 2>/dev/null; true`);
             await new Promise(r => setTimeout(r, 300));
 
-            // 2. Enable mock location in developer settings
             await this.adbRootExec(deviceId, `settings put secure mock_location 1`);
             await this.adbRootExec(deviceId, `settings put global development_settings_enabled 1`);
 
-            // 3. Build the persistent GPS injection shell script
             const ts = `$(date +%s%3N)`;
             const gpsScript = `#!/system/bin/sh
 # Nova GPS Spoof Loop — nova_gps_loop
@@ -1833,18 +1717,15 @@ while true; do
   sleep 2
 done
 `;
-            // 4. Write script to PC temp, push to phone
             const scriptPath = path.join(this.baseDir, 'nova_gps_loop.sh');
             fs.writeFileSync(scriptPath, gpsScript.replace(/\r\n/g, '\n'));
             await this.adbPush(deviceId, scriptPath, '/data/local/tmp/nova_gps_loop.sh');
             await this.adbRootExec(deviceId, `chmod +x /data/local/tmp/nova_gps_loop.sh`);
 
-            // 5. Run loop in background with nohup
             await this.adbRootExec(deviceId,
                 `nohup sh /data/local/tmp/nova_gps_loop.sh >/data/local/tmp/nova_gps.log 2>&1 &`
             );
 
-            // 6. Update config bridge with GPS coords
             const tmpJsonPath = path.join(this.baseDir, 'nova_spoof.json');
             let cfg = {};
             try { cfg = JSON.parse(fs.readFileSync(tmpJsonPath, 'utf8')); } catch(_){}
@@ -1861,7 +1742,6 @@ done
         }
     }
 
-    // Stop GPS spoof background loop
     async stopFakeGPS(deviceId) {
         if (String(deviceId || '').startsWith('ios-')) {
             return this.iosStopLocation(deviceId);
@@ -1873,7 +1753,6 @@ done
         return { success: true };
     }
 
-    // Mouse-Safe Soft Reboot — zygote-only strategy
     // ✔ Kernel stays alive  ✔ ADB stays alive  ✔ Input/touch/mouse stays alive
     // ✔ Scrcpy connection survives  ✔ All Java framework restarts cleanly
     async rebootDevice(deviceId, mode = 'soft') {
@@ -1910,7 +1789,6 @@ done
         }
     }
 
-    // Reset all spoofed values (restore real identity) — full hard reboot
     async resetSpoof(deviceId) {
         try {
             await this.stopFakeGPS(deviceId);
@@ -1925,7 +1803,6 @@ done
         }
     }
 
-    // ── DUAL IMEI — inject both SIM slot IMEIs ────────────────────────────────
     async applyDualIMEI(deviceId, imei1, imei2) {
         try {
             if (!imei1 || imei1.length !== 15) return { success: false, error: 'IMEI 1 must be exactly 15 digits.' };
@@ -1933,7 +1810,6 @@ done
 
             console.log(`[Spoofer] Applying Dual IMEI: SIM1=${imei1} SIM2=${imei2} on ${deviceId}`);
 
-            // SIM Slot 1
             const slot1Props = [
                 ['ril.imei',              imei1],
                 ['ril.imei1',             imei1],
@@ -1943,7 +1819,6 @@ done
                 ['vendor.ril.imei1',      imei1],
                 ['ro.ril.oem.imei',       imei1],
             ];
-            // SIM Slot 2
             const slot2Props = [
                 ['ril.imei2',             imei2],
                 ['persist.radio.imei2',   imei2],
@@ -1953,12 +1828,10 @@ done
 
             const allProps = [...slot1Props, ...slot2Props];
 
-            // RAM Injection (immediate effect)
             for (const [key, val] of allProps) {
                 await this.adbRootExec(deviceId, `resetprop "${key}" "${val}" 2>/dev/null; true`);
             }
 
-            // Persist to Magisk module system.prop
             const existingMod = `/data/adb/modules/nova_spoof/system.prop`;
             const imeiLines = allProps.map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
 
@@ -1983,14 +1856,12 @@ done
         }
     }
 
-    // ── AUTO PROFILE GENERATOR ────────────────────────────────────────────────
     async generateRandomProfile(deviceId, preferredBrand = null) {
         try {
             const db = this.getSpooferDatabase();
             const brandNames = Object.keys(db.brands);
             if (!brandNames.length) return { success: false, error: 'Spoofer database empty.' };
 
-            // Pick brand (prefer user selection or random)
             let brand = preferredBrand && db.brands[preferredBrand] ? preferredBrand
                 : brandNames[Math.floor(Math.random() * brandNames.length)];
 
@@ -1999,7 +1870,6 @@ done
 
             console.log(`[Spoofer] Auto-generating profile: ${brand} — ${profile.name}`);
 
-            // Apply the randomly selected profile
             const result = await this.applySpoofProfile(deviceId, brand, profile.model, null);
             if (result.success) {
                 result.generated = { brand, model: profile.model, name: profile.name };
@@ -2011,7 +1881,6 @@ done
         }
     }
 
-    // ── VERIFY APPLIED PROFILE — read live device props and compare ──────────
     async verifyAppliedProfile(deviceId) {
         try {
             console.log(`[Spoofer] Verifying applied identity on ${deviceId}...`);
@@ -2052,7 +1921,6 @@ done
                 { field: 'Android ID',         expected: expected.androidId  || '—', live: liveAndroidId,   ok: !expected.androidId  || liveAndroidId  === expected.androidId },
                 { field: 'Android Version',    expected: expected.android_version || '—', live: liveAndroidVer, ok: true },
                 { field: 'Security Patch',     expected: expected.security_patch || '—', live: livePatch,   ok: true },
-                // Anti-detection checks
                 { field: 'ro.debuggable',      expected: '0',  live: liveDebugFlag,    ok: liveDebugFlag   === '0' },
                 { field: 'ro.secure',          expected: '1',  live: liveSecure,       ok: liveSecure      === '1' },
                 { field: 'Build Type',         expected: 'user', live: liveBuildType,  ok: liveBuildType   === 'user' },
@@ -2071,9 +1939,6 @@ done
         }
     }
 
-    // ─────────────────────────────────────────────
-    // CAMERA HIJACK (SPOOF CAM) METHODS
-    // ─────────────────────────────────────────────
 
     /**
      * getCamSpoofStatus — Check if nova-cam-spoofer APK is installed on device
@@ -2110,7 +1975,6 @@ done
                 return;
             }
 
-            // Resolve APK path from project resources folder
             const apkPath = path.join(process.cwd(), 'resources', 'nova-cam-spoofer.apk');
             const altApkPath = path.join(__dirname, '..', '..', 'resources', 'nova-cam-spoofer.apk');
             const packagedApkPath = path.join(process.resourcesPath || '', 'nova-cam-spoofer.apk');
@@ -2156,13 +2020,11 @@ done
 
             console.log(`[CamSpoof] Preparing ${isImage ? 'IMAGE' : 'VIDEO'} camera hijack for device ${deviceId}...`);
 
-            // Step 1: Ensure standard VCam and DCIM directories exist on phone
             await new Promise((resolve) => {
                 const mkCmd = `"${this.adbPath}" -s ${deviceId} shell "mkdir -p /sdcard/DCIM/Camera1 /sdcard/DCIM/Camera /sdcard/DCIM"`;
                 exec(mkCmd, { timeout: 10000 }, () => resolve());
             });
 
-            // Step 2: Push media file to ALL standard Android Virtual Camera locations
             const pushTargets = isImage ? [
                 '/sdcard/DCIM/Camera1/virtual.bmp',
                 '/sdcard/DCIM/Camera1/virtual.jpg',
@@ -2181,13 +2043,11 @@ done
                 await this.adbPush(deviceId, videoPath, target).catch(() => {});
             }
 
-            // Step 3: Set full read/write permissions on device
             await new Promise((resolve) => {
                 const chCmd = `"${this.adbPath}" -s ${deviceId} shell "chmod -R 777 /sdcard/DCIM/Camera1 /sdcard/nova_fake_cam* /sdcard/DCIM/Camera"`;
                 exec(chCmd, { timeout: 8000 }, () => resolve());
             });
 
-            // Step 4: Broadcast to all LSPosed, VCam, and Nova modules
             const primaryPath = isImage ? '/sdcard/DCIM/Camera1/virtual.jpg' : '/sdcard/DCIM/Camera1/virtual.mp4';
             const novaPath = isImage ? '/sdcard/nova_fake_cam.jpg' : '/sdcard/nova_fake_cam.mp4';
 
@@ -2200,7 +2060,6 @@ done
             ];
 
             for (const bCmd of broadcastCommands) {
-                // Try with su first, fallback to standard shell
                 await new Promise((resolve) => {
                     const suCmd = `"${this.adbPath}" -s ${deviceId} shell su -c "${bCmd}"`;
                     exec(suCmd, { timeout: 5000 }, (err) => {
@@ -2242,7 +2101,6 @@ done
 
             exec(cmd, { timeout: 15000 }, (err, stdout, stderr) => {
                 if (err) {
-                    // Fallback without root
                     const fallback = `"${this.adbPath}" -s ${deviceId} shell am broadcast -a com.nova.action.STOP_SPOOF_CAM`;
                     exec(fallback, { timeout: 10000 }, (fbErr, fbOut) => {
                         if (fbErr) {
@@ -2258,7 +2116,6 @@ done
         });
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
     //  LIVE STREAM ENGINE — MJPEG over ADB Reverse Port Tunnel
     //  PC runs HTTP MJPEG server on :8899 → ADB reverse → phone localhost:8899
     //  LSPosed module reads frames from http://127.0.0.1:8899/stream
@@ -2276,12 +2133,10 @@ done
                 return { success: false, error: 'ADB not found. Install it from Phone Control tab.' };
             }
 
-            // Stop existing server if any
             await this.stopLiveStream(deviceId);
 
             const http = require('http');
 
-            // ── MJPEG HTTP server ──────────────────────────────────────────
             this._mjpegClients   = [];
             this._mjpegPort      = port;
             this._mjpegDeviceId  = deviceId;
@@ -2289,7 +2144,6 @@ done
 
             this._mjpegServer = http.createServer((req, res) => {
                 if (req.url === '/stream' || req.url === '/') {
-                    // MJPEG stream endpoint
                     res.writeHead(200, {
                         'Content-Type':  'multipart/x-mixed-replace; boundary=--novacamboundary',
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -2311,7 +2165,6 @@ done
                     });
 
                 } else if (req.url === '/ping') {
-                    // Health check endpoint
                     res.writeHead(200, { 'Content-Type': 'text/plain' });
                     res.end(`Nova Live Cam Stream OK — frames: ${this._mjpegFrameCount}`);
                 } else {
@@ -2328,8 +2181,6 @@ done
                 this._mjpegServer.on('error', reject);
             });
 
-            // ── ADB Reverse Port Tunnel ─────────────────────────────────────
-            // Maps phone's localhost:8899 → PC's localhost:8899
             const reverseResult = await new Promise((resolve) => {
                 const cmd = `"${this.adbPath}" -s ${deviceId} reverse tcp:${port} tcp:${port}`;
                 exec(cmd, { timeout: 15000 }, (err, stdout, stderr) => {
@@ -2343,11 +2194,9 @@ done
                 });
             });
 
-            // ── Send START_LIVE_STREAM broadcast to Android module ──────────
             const broadcastCmd = `"${this.adbPath}" -s ${deviceId} shell am broadcast -a com.nova.action.START_LIVE_STREAM --es stream_url "http://127.0.0.1:${port}/stream"`;
             exec(broadcastCmd, { timeout: 15000 }, (err, stdout) => {
                 if (err) {
-                    // Try with su fallback
                     const suCmd = `"${this.adbPath}" -s ${deviceId} shell su -c "am broadcast -a com.nova.action.START_LIVE_STREAM --es stream_url 'http://127.0.0.1:${port}/stream'"`;
                     exec(suCmd, { timeout: 15000 }, () => {});
                 }
@@ -2395,7 +2244,6 @@ done
                     deadClients.push(client);
                 }
             }
-            // Clean up dead clients
             if (deadClients.length > 0) {
                 this._mjpegClients = this._mjpegClients.filter(c => !deadClients.includes(c));
             }
@@ -2414,18 +2262,15 @@ done
         try {
             const port = this._mjpegPort || 8899;
 
-            // Send stop broadcast to Android module
             if (deviceId && fs.existsSync(this.adbPath)) {
                 const stopCmd = `"${this.adbPath}" -s ${deviceId} shell am broadcast -a com.nova.action.STOP_LIVE_STREAM`;
                 exec(stopCmd, { timeout: 10000 }, () => {});
 
-                // Remove ADB reverse tunnel
                 const removeCmd = `"${this.adbPath}" -s ${deviceId} reverse --remove tcp:${port}`;
                 exec(removeCmd, { timeout: 10000 }, () => {});
                 console.log(`[LiveStream] ADB reverse tcp:${port} removed`);
             }
 
-            // Close all MJPEG clients
             if (this._mjpegClients) {
                 for (const client of this._mjpegClients) {
                     try { client.end(); } catch (e) {}
@@ -2433,7 +2278,6 @@ done
                 this._mjpegClients = [];
             }
 
-            // Close HTTP server
             if (this._mjpegServer) {
                 await new Promise((resolve) => {
                     this._mjpegServer.close(() => resolve());
@@ -2452,11 +2296,9 @@ done
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
     //  FRIDA DEEP INJECT — Hardware-level camera replacement
     //  Starts frida-server on phone, spawns target app with camera hook
     //  Works for Camera1 + Camera2, ALL apps, Android 9-14
-    // ─────────────────────────────────────────────────────────────────────────
 
     /**
      * fridaInject — Start frida-server on phone + inject camera hook into app
@@ -2486,7 +2328,6 @@ done
 
             const adb = this.adbPath;
 
-            // 1. Push frida-server if it exists
             if (fs.existsSync(fridaServer)) {
                 console.log('[Frida] Pushing frida-server to phone...');
                 await new Promise((resolve) => {
@@ -2499,30 +2340,24 @@ done
                 });
             }
 
-            // 2. Kill existing frida-server, start fresh
             await new Promise((resolve) => {
                 exec(`"${adb}" -s ${deviceId} shell "su -c 'pkill frida-server 2>/dev/null; sleep 1; nohup /data/local/tmp/frida-server &'"`,
                     { timeout: 15000 }, () => resolve());
             });
             console.log('[Frida] frida-server started on phone');
 
-            // 3. Wait 2s for server to start
             await new Promise(r => setTimeout(r, 2000));
 
-            // 4. ADB reverse for USB frida connection
             await new Promise((resolve) => {
                 exec(`"${adb}" -s ${deviceId} forward tcp:27042 tcp:27042`,
                     { timeout: 10000 }, () => resolve());
             });
 
-            // 5. Run frida to spawn app with camera hook
             const { spawn: spawnProc } = require('child_process');
             console.log(`[Frida] Injecting into ${packageName}...`);
 
-            // Use python launcher if available, else direct frida CLI
             let fridaCmd, fridaArgs;
 
-            // Try frida CLI directly (installed via pip)
             fridaCmd = 'frida';
             fridaArgs = [
                 '-U', '-f', packageName,
@@ -2545,7 +2380,6 @@ done
                 }
             });
             
-            // Trigger LSPosed Broadcast explicitly
             ipcMain.handle('physical-mobile:trigger-lsposed-broadcast', async (event, params) => {
                 if (!params.id) return { success: false, error: 'No device ID provided' };
                 const port = params.port || 8899;
@@ -2565,7 +2399,6 @@ done
             fridaProc.stderr.on('data', (d) => console.warn('[Frida stderr]', d.toString().trim()));
             fridaProc.on('exit', (code) => console.log(`[Frida] Process exited: ${code}`));
 
-            // Store reference
             this._fridaProcess = fridaProc;
 
             return {
