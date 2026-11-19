@@ -27,4 +27,6 @@ function instalacaoPorSistema(platform) {
   return '';
 }
 
-module.exports = { hasUpdateConfig, edgeTtsBinary, MAC_BROWSER_KILL_PATTERN, instalacaoPorSistema };
+const MAC_CAM_SPOOF_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^/]* (.* )?--use-file-for-fake-video-capture=[^=]*/nova_webcam_hijack/';
+
+module.exports = { hasUpdateConfig, edgeTtsBinary, MAC_BROWSER_KILL_PATTERN, MAC_CAM_SPOOF_KILL_PATTERN, instalacaoPorSistema };
