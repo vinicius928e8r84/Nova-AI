@@ -103,10 +103,6 @@ const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-// Disable signature verification for unsigned builds
-autoUpdater.verifySourceSignature = false;
-autoUpdater.verifyUpdaterSignature = false;
-console.log('Auto-Updater logic: Signature verification disabled.');
 
 // FORCE DEV UPDATE CONFIG (For testing without building)
 if (process.env.NODE_ENV === 'development') {
@@ -3944,7 +3940,6 @@ function registerHandlers() {
 
 
   ipcMain.handle('check-for-update', async () => {
-    if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
     if (!app.isPackaged) {
       return { success: false, message: 'Bypassed in dev mode' };
     }
@@ -3958,7 +3953,6 @@ function registerHandlers() {
   });
 
   ipcMain.handle('download-update', async () => {
-    if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
     if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     try {
       await autoUpdater.downloadUpdate();
@@ -4310,7 +4304,7 @@ if (!gotTheLock) {
 
     if (app.isPackaged) {
       setTimeout(() => {
-        if (process.platform !== 'darwin' && hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
+        if (hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
           console.log('[AutoUpdater] Production check failed:', err.message);
         });
       }, 5000);

@@ -1577,3 +1577,10 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — E1a: atualizador igual no Windows e no Mac
+
+- **O que mudou:** `main.js` não desliga mais o atualizador no Mac. Saíram as duas guardas `process.platform === 'darwin'` dos IPCs de atualização, o `process.platform !== 'darwin' &&` da checagem na abertura e 4 linhas mortas no topo (flags de assinatura e `console.log`). A decisão passa só por `hasUpdateConfig()`: sem `publish`, nada muda em nenhum dos dois. `docs/windows.md` corrigido.
+- **Arquivos:** `app/electron/main.js`, `docs/windows.md`. Saldo de `main.js`: −6 linhas.
+- **Arquivos do app instalado que mudam no Mac:** `/Applications/Nova AI Mac.app/Contents/Resources/app.asar` (contém `electron/main.js`); guarde o anterior em `reservas/` antes de trocar. Reaplicar: rebuild com `npm run dist:mac` ou `cp` do `main.js` no app desempacotado; `node --check` e reiniciar o Nova.
+- **Sem testar:** Mac e Windows reais; atualização com feed `publish` de verdade.
