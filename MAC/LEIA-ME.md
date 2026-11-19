@@ -1589,5 +1589,6 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 
 - **O que mudou:** ao atingir o limite de 8 tentativas (`reconnect-limit-reached`), o app abre um aviso com a permissão a conferir (Mac: Gerenciamento de apps e Microfone; Windows: firewall, antivírus e pasta de dados; outros: aviso genérico) e o texto vai também no campo `hint` do evento de status. Mesma detecção nos dois sistemas; só o texto muda.
 - **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/whatsapp-manager.js` e `whatsapp-aviso.js` (novo). Guarde o `whatsapp-manager.js` anterior em `reservas/` e reaplique com `cp`.
-- **Teste:** `node --test app/electron/services/test/whatsapp-aviso.test.js`.
+- **Correções da revisão:** o aviso não abre mais duas vezes quando a última tentativa termina por tempo esgotado (`init-timeout`), porque `scheduleReconnect` sai se o limite já foi registrado; falha ao exibir o aviso (síncrona ou Promise rejeitada) agora é registrada no log com `[WhatsApp]`; o número de tentativas do texto vem de `maxReconnectAttempts`. Reinício manual continua avisando de novo.
+- **Teste:** `node --test app/electron/services/test/whatsapp-aviso.test.js app/electron/services/test/whatsapp-limite.test.js` (o segundo carrega o `whatsapp-manager.js` real com `whatsapp-web.js` e `electron` falsos).
 - **Sem testar:** Mac e Windows reais; o aviso nunca foi exibido num app em execução, e a causa real da falha no Mac (permissão Gerenciamento de apps) segue sem prova.

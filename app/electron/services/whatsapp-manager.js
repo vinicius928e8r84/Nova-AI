@@ -184,9 +184,11 @@ class WhatsAppManager {
         if (this.reconnectTimer) return;
 
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            if (this.statusReason === 'reconnect-limit-reached') return;
             console.error('[WhatsApp] Reconnect limit reached. Waiting for manual restart.');
             const aviso = avisarFalhaRepetida({
                 platform: process.platform,
+                tentativas: this.maxReconnectAttempts,
                 mostrar: texto => require('electron').dialog.showMessageBox(this.mainWindow, { type: 'warning', title: 'WhatsApp', message: texto })
             });
             this.setStatus('disconnected', { reason: 'reconnect-limit-reached', hint: aviso });
