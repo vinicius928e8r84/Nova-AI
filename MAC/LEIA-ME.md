@@ -1580,7 +1580,7 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 
 ## 2026-11-19 — D1 de paridade: `adb reverse` do RTMP com o `adb` do app
 
-- **O que mudou:** `rtmp:start-broadcast` passa `app.physicalMobileService.adbPath` para `startBroadcast()`, que roda `adb reverse tcp:1935 tcp:11935` com esse binário (`execFile`, argumentos separados) em vez do `adb` do PATH. Sem caminho, cai no `adb` do PATH como antes. Vale para Mac e Windows.
+- **O que mudou:** `rtmp:start-broadcast` passa `app.physicalMobileService.adbPath` para `startBroadcast()`, que roda `adb reverse tcp:1935 tcp:11935` com esse binário (`execFile`, argumentos separados) em vez do `adb` do PATH. Sem caminho, ou com caminho que não existe no disco, cai no `adb` do PATH como antes. Vale para Mac e Windows, sem ramo por sistema; `windowsHide` evita a janela de console no Windows.
 - **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/main.js` e `Contents/Resources/app/electron/services/rtmp-server.js` (guarde os anteriores em `reservas/` antes de trocar; depois `node --check` e reinicie o Nova). O bundle da interface não muda.
 - **Teste:** `app/test/rtmp-adb.test.js` (`node --test`).
 - **Sem testar:** aparelho Android real recebendo o RTMP; Mac e Windows reais.

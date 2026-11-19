@@ -12,8 +12,8 @@ Module._load = carregarOriginal;
 
 test('encaminharPortaAdb usa o adb informado, com argumentos separados', () => {
   const chamadas = [];
-  encaminharPortaAdb('C:\\Nova\\platform-tools\\adb.exe', (bin, args) => chamadas.push([bin, args]));
-  assert.deepStrictEqual(chamadas, [['C:\\Nova\\platform-tools\\adb.exe', ['reverse', 'tcp:1935', 'tcp:11935']]]);
+  encaminharPortaAdb(process.execPath, (bin, args, opcoes) => chamadas.push([bin, args, opcoes.windowsHide]));
+  assert.deepStrictEqual(chamadas, [[process.execPath, ['reverse', 'tcp:1935', 'tcp:11935'], true]]);
 });
 
 test('encaminharPortaAdb sem caminho cai no adb do PATH', () => {
@@ -22,6 +22,12 @@ test('encaminharPortaAdb sem caminho cai no adb do PATH', () => {
   assert.deepStrictEqual(chamadas, ['adb']);
 });
 
+test('encaminharPortaAdb com caminho que não existe cai no adb do PATH', () => {
+  const chamadas = [];
+  encaminharPortaAdb('C:\\nao\\existe\\platform-tools\\adb.exe', (bin) => chamadas.push(bin));
+  assert.deepStrictEqual(chamadas, ['adb']);
+});
+
 test('encaminharPortaAdb não lança quando o adb falha', () => {
-  assert.doesNotThrow(() => encaminharPortaAdb('/x/adb', (b, a, cb) => cb(new Error('sem aparelho'))));
+  assert.doesNotThrow(() => encaminharPortaAdb('/x/adb', (b, a, o, cb) => cb(new Error('sem aparelho'))));
 });

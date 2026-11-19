@@ -39,7 +39,7 @@ function stopRtmpServer() {
 }
 
 function encaminharPortaAdb(adbPath, executar = execFile) {
-    executar(adbPath || 'adb', ['reverse', 'tcp:1935', 'tcp:11935'], (err) => {
+    executar(adbPath && fs.existsSync(adbPath) ? adbPath : 'adb', ['reverse', 'tcp:1935', 'tcp:11935'], { windowsHide: true }, (err) => {
         if (err) console.warn('[RTMP-ADB] adb reverse não feito (normal sem aparelho ou em Wi-Fi):', err.message);
     });
 }
