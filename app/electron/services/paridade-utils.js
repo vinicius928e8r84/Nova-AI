@@ -73,15 +73,15 @@ const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^
 async function macAntigravityStats(mac) {
   const pid = Number((await mac.run('/usr/bin/pgrep', ['-x', 'Antigravity'])).split('\n')[0]);
   if (!pid) return null;
-  const [cpu, rss] = (await mac.run('/bin/ps', ['-p', String(pid), '-o', '%cpu=,rss='])).trim().split(/\s+/).map(Number);
+  const rss = Number((await mac.run('/bin/ps', ['-p', String(pid), '-o', 'rss='])).trim());
   let title = '';
   let responding = true;
   try {
     title = await mac.run('/usr/bin/osascript', ['-e', 'tell application "System Events" to tell process "Antigravity" to return name of front window'], { timeout: 3000 });
-  } catch {
-    responding = false;
+  } catch (e) {
+    responding = !e.killed;
   }
-  return { pid, cpu: Math.round(cpu), memory: Math.round(rss / 1024), responding, title };
+  return { pid, cpu: 0, memory: Math.round(rss / 1024), responding, title };
 }
 
 module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, macAntigravityStats, MAC_BROWSER_KILL_PATTERN };

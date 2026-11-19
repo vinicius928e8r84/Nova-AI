@@ -89,16 +89,18 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
   })();
 });
 
-test('macAntigravityStats: CPU e memória do ps; sem resposta do AppleScript vira não respondendo', async () => {
+test('macAntigravityStats: memória do ps, CPU 0 como no Windows; só o estouro de tempo vira não respondendo', async () => {
   const { macAntigravityStats } = require('../electron/services/paridade-utils');
   const falso = (osascript) => ({ run: async (file, args) => {
     if (file === '/usr/bin/pgrep') return '4242\n4300';
-    if (file === '/bin/ps') { assert.deepStrictEqual(args, ['-p', '4242', '-o', '%cpu=,rss=']); return ' 12.6 204800'; }
+    if (file === '/bin/ps') { assert.deepStrictEqual(args, ['-p', '4242', '-o', 'rss=']); return ' 204800'; }
     return osascript();
   } });
-  assert.deepStrictEqual(await macAntigravityStats(falso(async () => 'Projeto')), { pid: 4242, cpu: 13, memory: 200, responding: true, title: 'Projeto' });
-  const travado = await macAntigravityStats(falso(async () => { throw new Error('timeout'); }));
+  assert.deepStrictEqual(await macAntigravityStats(falso(async () => 'Projeto')), { pid: 4242, cpu: 0, memory: 200, responding: true, title: 'Projeto' });
+  const semJanela = await macAntigravityStats(falso(async () => { throw Object.assign(new Error('-1719'), { killed: false }); }));
+  assert.strictEqual(semJanela.responding, true);
+  assert.strictEqual(semJanela.title, '');
+  const travado = await macAntigravityStats(falso(async () => { throw Object.assign(new Error('timeout'), { killed: true, signal: 'SIGTERM' }); }));
   assert.strictEqual(travado.responding, false);
-  assert.strictEqual(travado.cpu, 13);
   await assert.rejects(macAntigravityStats({ run: async () => { throw new Error('sem processo'); } }));
 });
