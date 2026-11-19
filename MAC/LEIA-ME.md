@@ -1577,3 +1577,10 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — ISS14: aviso quando o WhatsApp falha 8 vezes ao iniciar
+
+- **O que mudou:** ao atingir o limite de 8 tentativas (`reconnect-limit-reached`), o app abre um aviso com a permissão a conferir (Mac: Gerenciamento de apps e Microfone; Windows: firewall, antivírus e pasta de dados; outros: aviso genérico) e o texto vai também no campo `hint` do evento de status. Mesma detecção nos dois sistemas; só o texto muda.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/whatsapp-manager.js` e `whatsapp-aviso.js` (novo). Guarde o `whatsapp-manager.js` anterior em `reservas/` e reaplique com `cp`.
+- **Teste:** `node --test app/electron/services/test/whatsapp-aviso.test.js`.
+- **Sem testar:** Mac e Windows reais; o aviso nunca foi exibido num app em execução, e a causa real da falha no Mac (permissão Gerenciamento de apps) segue sem prova.
