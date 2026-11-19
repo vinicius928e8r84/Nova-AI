@@ -14,9 +14,9 @@ test('hasUpdateConfig: sem app-update.yml devolve false e com ele true', () => {
   assert.strictEqual(hasUpdateConfig(dir), true);
 });
 
-test('edgeTtsBinary: Mac igual ao de antes, Windows por python -m', () => {
+test('edgeTtsBinary: Mac e Windows por python -m com o python resolvido', () => {
   assert.strictEqual(edgeTtsBinary('darwin', () => '/py/python3'), '"/py/python3" -m edge_tts');
-  assert.strictEqual(edgeTtsBinary('win32', () => { throw new Error('nao deve chamar'); }), 'python -m edge_tts');
+  assert.strictEqual(edgeTtsBinary('win32', () => 'python'), '"python" -m edge_tts');
   assert.strictEqual(edgeTtsBinary('linux', () => ''), 'edge-tts');
 });
 

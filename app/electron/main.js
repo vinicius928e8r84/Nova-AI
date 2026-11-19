@@ -1,10 +1,8 @@
 const { app, BrowserWindow, ipcMain, powerSaveBlocker, nativeImage, desktopCapturer, Tray, Menu } = require('electron');
 const { spawn } = require('child_process');
 const macNative = require('./services/mac-native');
-if (process.platform === 'darwin') {
- process.env.PATH = [pathForBin(), '/opt/homebrew/bin', '/usr/local/bin', process.env.PATH || ''].join(':');
-}
-function pathForBin() { return require('path').join(process.resourcesPath || __dirname, 'bin'); }
+const pythonRuntime = require('./services/python-runtime');
+process.env.PATH = pythonRuntime.pathComBin(process.platform, process.env.PATH || '', process.resourcesPath || __dirname);
 
 const path = require('path');
 const fs = require('fs');
@@ -1854,7 +1852,7 @@ function registerHandlers() {
         const { exec } = require('child_process');
         
         // Simple quoted command — no array-to-shell conversion issues
-        const cmd = `python "${scriptPath}" --args-file "${tmpFile}"`;
+        const cmd = `"${pythonRuntime.python()}" "${scriptPath}" --args-file "${tmpFile}"`;
         const pyProcess = exec(cmd, { cwd: ytDir });
         
         let extractedMetadata = null;
@@ -1956,7 +1954,7 @@ function registerHandlers() {
         if (pitch !== 50) pitchArg = `--pitch "${pitch > 50 ? '+' : ''}${pitch - 50}Hz"`;
 
         const ttsCmd = [
-          edgeTtsBinary(process.platform, () => macNative.python()),
+          edgeTtsBinary(process.platform, () => pythonRuntime.python()),
           `--file "${tmpTxt}"`,
           `--write-media "${tmpAudio}"`,
           `--write-subtitles "${tmpSubs}"`,
@@ -4074,7 +4072,7 @@ function startWakeWordDetector(mainWindow) {
     : path.join(process.resourcesPath, 'wake_word_bg.py');
 
   console.log(`Starting Wake Word Detector (Python) from: ${scriptPath}`);
-  wakeWordProcess = spawn(process.platform === 'darwin' ? (macNative.python()) : 'python', [scriptPath]);
+  wakeWordProcess = spawn(pythonRuntime.python(), [scriptPath]);
   wakeWordProcess.on('error', error => { console.error('[WakeWord]',error.message); wakeWordProcess = null; });
 
   wakeWordProcess.stdout.on('data', (data) => {

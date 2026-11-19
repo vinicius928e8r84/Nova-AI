@@ -1577,3 +1577,9 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — P8 de paridade: Python embutido e PATH iguais nos dois sistemas
+
+- **O que mudou:** `mac-native.python()` virou `app/electron/services/python-runtime.js` (`python()` e `pathComBin()`). Mac: mesma ordem de antes (`python-runtime-portable/run-python`, `python-env/bin/python3`, `python3`). Windows: `resources\python\python.exe`, senão `python` do PATH. O PATH do processo ganha `resources\bin` também no Windows. O YouTube Auto no `main.js` passou a usar o Python resolvido em vez de `python` solto (no Mac `python` nem existia). `edgeTtsBinary` usa o Python resolvido nos dois. Removido: `python()` de `mac-native.js` e `pathForBin()` do `main.js`.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/main.js`, `electron/services/python-runtime.js` (novo), `electron/services/mac-native.js`, `electron/services/paridade-utils.js`, `electron/services/agent-swarm-controller.js`. Guardar os anteriores em `reservas/`, copiar com `cp` do repositório, `node --check` e reiniciar o Nova. Sem mudança no bundle da interface.
+- **Sem testar:** Mac e Windows reais; wake word com microfone e TTS com o Python embutido; a receita do `resources\python` em `docs/windows.md` não foi executada.
