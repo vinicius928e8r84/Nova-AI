@@ -40,8 +40,11 @@ function sshOptions(target) {
   // "…/Library/Application" e o ssh lia outro arquivo (chave de host velha) —
   // o app entao recusava com "Senha aceita, mas a chave de acesso nao foi
   // validada. Verifique conflitos de chave SSH neste Mac."
-  const knownHosts = /\s/.test(p.knownHosts) ? '"' + p.knownHosts + '"' : p.knownHosts;
-  return ['-i', p.key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=' + knownHosts, '-o', 'GlobalKnownHostsFile=/dev/null'];
+  const toolPaths = require('./tool-paths');
+  const key = toolPaths.posixPath(p.key);
+  const known = toolPaths.posixPath(p.knownHosts);
+  const knownHosts = /\s/.test(known) ? '"' + known + '"' : known;
+  return ['-i', key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=' + knownHosts, '-o', 'GlobalKnownHostsFile=' + toolPaths.nullDevice()];
 }
 
 function migrateLegacy() {

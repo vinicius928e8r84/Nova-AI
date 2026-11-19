@@ -64,7 +64,7 @@ async function prepare(id,password,service){
  await command(client,'test -d /var/jb && command -v sudo >/dev/null');
  pins[udid]=fingerprint;fs.writeFileSync(pinsFile,JSON.stringify(pins,null,2),{mode:0o600});
  let sshPaths;try{sshPaths=require('../iphone-ssh').paths();}catch(_){const d=path.join(os.homedir(),'.ssh');sshPaths={dir:d,key:path.join(d,'id_iphone'),knownHosts:path.join(d,'known_hosts')};}fs.mkdirSync(sshPaths.dir,{recursive:true,mode:0o700});const key=sshPaths.key;
- if(!fs.existsSync(key))await run('/usr/bin/ssh-keygen',['-t','ed25519','-N','','-f',key,'-C','Nova AI USB']);
+ if(!fs.existsSync(key))await run(require('../tool-paths').sshKeygen(),['-t','ed25519','-N','','-f',key,'-C','Nova AI USB']);
  if(!fs.existsSync(key+'.pub'))throw new Error('A chave SSH existente não possui arquivo público. Nenhuma chave foi substituída.');
  const pub=fs.readFileSync(key+'.pub','utf8').trim();
  if(!/^ssh-(ed25519|rsa) [A-Za-z0-9+/=]+(?: .*)?$/.test(pub))throw new Error('Formato de chave pública não suportado.');

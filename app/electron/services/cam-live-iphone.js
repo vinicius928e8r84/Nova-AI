@@ -247,7 +247,7 @@ class CamLiveIphone {
   }
   _openForward(args) {
     return new Promise((resolve, reject) => {
-      const child = this.spawnProcess('/usr/bin/ssh', args, { stdio: ['ignore', 'ignore', 'pipe'] }); child.novaAbort = false; this.tunnel = child;
+      const child = this.spawnProcess(require('./tool-paths').ssh(), args, { stdio: ['ignore', 'ignore', 'pipe'] }); child.novaAbort = false; this.tunnel = child;
       let confirmed = false, settled = false, stderr = '';
       const close = () => { if (this.tunnel === child) this.tunnel = null; try { child.kill(); } catch (_) {} };
       const fail = error => {
@@ -299,7 +299,7 @@ class CamLiveIphone {
     throw lastError || new Error('Não foi possível abrir o túnel do iPhone.');
   }
   async _encoder(token) {
-    const ffmpeg = this.ffmpegPath || require('./mac-native').tool('ffmpeg');
+    const ffmpeg = this.ffmpegPath || require('./tool-paths').ffmpeg();
     if (!ffmpeg) throw new Error('FFmpeg não está incluído no Nova. Reinstale o aplicativo completo.');
     const child = this.spawnProcess(ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-probesize', '32', '-analyzeduration', '0', '-f', 's16le', '-ar', String(this.sampleRate), '-ac', '1', '-i', 'pipe:0', '-vn', '-c:a', 'aac', '-profile:a', 'aac_low', '-ar', '44100', '-ac', '1', '-b:a', '96k', '-flush_packets', '1', '-f', 'adts', 'pipe:1'], { stdio: ['pipe', 'pipe', 'pipe'] });
     this.encoder = child; this.encoderError = '';
