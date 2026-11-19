@@ -19,7 +19,7 @@ const crypto = require('crypto');
 const {spawn, execFile} = require('child_process');
 const iphoneSsh = require('./iphone-ssh');
 const CONTROL = '/var/tmp/obs-graph-bridge-control.json';
-const SSH = ['-p','2222', ...iphoneSsh.sshOptions(),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','StrictHostKeyChecking=yes'];
+const SSH = ['-p','2222', ...iphoneSsh.sshOptions(),'-o','BatchMode=yes','-o','ConnectTimeout=5','-o','StrictHostKeyChecking=accept-new'];
 const quote = s => "'" + String(s).replace(/'/g,"'\\''") + "'";
 function bridgePatch(state) {
  const match = /^0\.1-(\d+)/.exec(String((state && state.version) || ''));
