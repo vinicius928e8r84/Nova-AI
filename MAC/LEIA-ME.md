@@ -2,9 +2,9 @@
 
 ## Orquestrador morto apagado e receita de instalação por sistema (E5) — 19/11/2026
 
-- **O que mudou:** `agent-swarm-controller.js` perdeu `runResearcher`, `runCoder`, `runDownloader` e `runSysAdmin` (258 linhas que nenhum código chamava) e os auxiliares e imports que só eles usavam (`httpGet`, `parseDDGLinks`, `exec`, `fs`, `os`, `http`, `https`, `shell`, `GoogleGenerativeAI`, `downloadFile`): 781 para 472 linhas. O prompt do agente filho ganhou uma frase de instalação por sistema (`instalacaoPorSistema` em `paridade-utils.js`): no Mac, `.dmg` por `hdiutil` + `ditto` e `.pkg` por `installer` via `osascript` com senha do Mac; no Windows, `"ARQ" /S` e `msiexec /i ARQ /qn /norestart`.
+- **O que mudou:** `agent-swarm-controller.js` perdeu `runResearcher`, `runCoder`, `runDownloader` e `runSysAdmin` (258 linhas que nenhum código chamava) e os auxiliares e imports que só eles usavam (`httpGet`, `parseDDGLinks`, `exec`, `fs`, `os`, `http`, `https`, `shell`, `GoogleGenerativeAI`, `downloadFile`): 781 para 472 linhas. `downloadFile` e seus 2 testes saíram de `paridade-utils.js` e `paridade-b.test.js`, porque ninguém mais a chamava (`http`/`https` do `paridade-utils.js` também). O prompt do agente filho ganhou uma frase de instalação por sistema (`instalacaoPorSistema` em `paridade-utils.js`): no Mac, `.dmg` por `hdiutil` + `ditto` e `.pkg` por `installer` via `osascript` com senha do Mac; no Windows, `"ARQ" /S` e `msiexec /i ARQ /qn /norestart`.
 - **Arquivos do app instalado que mudam:** `electron/services/agent-swarm-controller.js`, `electron/services/child-worker-agent.js`, `electron/services/paridade-utils.js`. Guardar os anteriores em `reservas/` e reaplicar com `cp`; reiniciar o Nova.
-- **Limite nos dois sistemas:** `execute_shell` mata o comando em 15 s; instalador longo pode ser cortado.
+- **Limite e conserto nos dois sistemas:** `execute_shell` mata o comando em 15 s e, num comando simples, o SIGTERM atinge o próprio `osascript`. Por isso a receita do Mac roda em segundo plano (`>/dev/null 2>&1 &`) e manda conferir com `pkgutil --pkgs`; a do Windows já sobrevive ao corte e só ganhou o aviso. Outros sistemas não recebem receita.
 - **Sem testar:** instalar um `.dmg`/`.pkg` de verdade no Mac pelo agente; o app instalado não foi atualizado.
 
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
