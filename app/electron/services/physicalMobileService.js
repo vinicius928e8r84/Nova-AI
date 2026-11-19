@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const iphoneSsh = require('./iphone-ssh');
 const iosModelo = require('./ios-modelo');
+const plistPrefs = require('./plist-prefs');
 const net = require('net');
 const WebSocket = require('ws');
 const axios = require('axios');
@@ -1818,12 +1819,7 @@ exit 0
     async iosBuildLocalePlist(language, locale) {
         const local = path.join(this.baseDir, 'nova-globalprefs.plist');
         await this.iosScp(this.iosScpBase('/var/mobile/Library/Preferences/.GlobalPreferences.plist', local, 'from'));
-        const plutil = (args) => new Promise((res, rej) => {
-            execFile('/usr/bin/plutil', args, (err) => (err ? rej(err) : res()));
-        });
-        await plutil(['-convert', 'xml1', local]).catch(() => {});
-        await plutil(['-replace', 'AppleLanguages', '-json', JSON.stringify([language]), local]);
-        await plutil(['-replace', 'AppleLocale', '-string', locale, local]);
+        await plistPrefs.aplicarIdiomaLocale(local, language, locale);
         await this.iosScp(this.iosScpBase('/var/tmp/nova-gp.plist', local, 'to'));
         return local;
     }
@@ -1848,11 +1844,7 @@ exit 0
     async iosPlistLanguage() {
         const local = path.join(this.baseDir, 'nova-globalprefs-check.plist');
         await this.iosScp(this.iosScpBase('/var/mobile/Library/Preferences/.GlobalPreferences.plist', local, 'from'));
-        return new Promise((resolve) => {
-            execFile('/usr/bin/plutil', ['-extract', 'AppleLanguages.0', 'raw', '-o', '-', local], (err, stdout) => {
-                resolve(err ? null : String(stdout || '').trim());
-            });
-        });
+        return plistPrefs.lerPrimeiroIdioma(local);
     }
 
     // Idioma: o iOS 16 só troca de verdade pela tela de Ajustes — escrever o plist
