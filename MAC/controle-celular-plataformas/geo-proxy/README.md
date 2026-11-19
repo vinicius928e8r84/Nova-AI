@@ -64,8 +64,7 @@ python3 aplicar-geo.py reservas/<data>/index-Dun7lr2S.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
 ```
 
-Backend: copiar `aplicado/main.geo.js`, `aplicado/physicalMobileService.geo.js` e `geo-proxy.js`
-para os caminhos correspondentes (ou reaplicar os trechos manualmente).
+Backend: `geo-proxy.js` e os trechos de geo já estão em `app/electron/main.js` e `app/electron/services/physicalMobileService.js`.
 
 ## Desfazer
 
