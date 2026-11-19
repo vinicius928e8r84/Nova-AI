@@ -89,7 +89,7 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
   })();
 });
 
-test('pkill do CAM spoof no Mac: so mata o Chrome com o perfil/Y4M do nova_webcam_hijack', () => {
+test('pkill do CAM spoof no Mac: so mata o Chrome com o Y4M do nova_webcam_hijack', () => {
   const { spawn, spawnSync } = require('child_process');
   const { MAC_CAM_SPOOF_KILL_PATTERN } = require('../electron/services/paridade-utils');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-cam-'));
@@ -105,11 +105,11 @@ test('pkill do CAM spoof no Mac: so mata o Chrome com o perfil/Y4M do nova_webca
   const outro = mk('Outro/Chromium.app/Contents/MacOS/Chromium');
   const kids = [
     spawn(chrome, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=${hijack}/fake_cam.y4m`, '--no-first-run'], { stdio: 'ignore' }),
-    spawn(chrome, ['-e', IDLE, '--', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
   ];
   const vivos = [
     spawn(outro, ['-e', IDLE, '--', '--user-data-dir=/x/pessoal'], { stdio: 'ignore' }),
-    spawn(chrome, ['-e', IDLE, '--', '--user-data-dir=/x/nova_webcam_hijack_outro'], { stdio: 'ignore' }),
+    spawn(chrome, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=/x/nova_webcam_hijack_outro/a.y4m`], { stdio: 'ignore' }),
+    spawn(chrome, ['-e', IDLE, '--', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
     spawn('bash', ['-c', 'sleep 60; : $0', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
     spawn(process.execPath, ['-e', IDLE, '--', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
   ];
