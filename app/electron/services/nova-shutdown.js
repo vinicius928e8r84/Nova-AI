@@ -120,6 +120,24 @@ function createProcessCleanup(electronHelpersPath) {
   };
 }
 
+const WINDOWS_NOVA_TOOLS = new Set([
+  'ffmpeg', 'ffprobe', 'scrcpy', 'adb', 'iproxy', 'ssh', 'python', 'pythonw', 'py',
+  'cmd', 'powershell', 'pwsh', 'node', 'yt-dlp', 'cloudflared',
+]);
+const WINDOWS_AUTOMATED_BROWSERS = new Set(['chrome', 'msedge']);
+
+function windowsExecutableName(command) {
+  const first = command.match(/^\s*(?:"([^"]+)"|(\S+))/);
+  const file = first ? (first[1] || first[2]) : '';
+  return path.win32.basename(file).toLowerCase().replace(/\.exe$/, '');
+}
+
+function isNovaWindowsTool(command) {
+  const name = windowsExecutableName(command);
+  if (WINDOWS_AUTOMATED_BROWSERS.has(name)) return command.includes('--remote-debugging');
+  return WINDOWS_NOVA_TOOLS.has(name);
+}
+
 const WINDOWS_TABLE_SCRIPT = [
   '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
   "$tabela = @(Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ ProcessId = $_.ProcessId; ParentProcessId = $_.ParentProcessId; CommandLine = $_.CommandLine; Started = $(if ($_.CreationDate) { $_.CreationDate.ToFileTimeUtc() } else { 0 }) } })",
@@ -201,9 +219,11 @@ function createWindowsProcessCleanup({
         const entry = entries.get(pid);
         if (entry.started && parentStarted && entry.started < parentStarted) continue;
         if (isTableReader(entry.command)) continue;
+        const helper = isElectronHelper(entry.command);
+        if (!helper && !owned.has(parent) && !isNovaWindowsTool(entry.command)) continue;
         visited.add(pid);
         pending.push(pid);
-        if (!isElectronHelper(entry.command)) owned.set(pid, entry.identity);
+        if (!helper) owned.set(pid, entry.identity);
       }
     }
   }

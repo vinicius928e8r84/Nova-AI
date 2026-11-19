@@ -132,35 +132,31 @@ test('registerShutdown nao varre a cada intervalo quando a limpeza pede scanEver
   assert.ok(leituras <= 3, `leituras: ${leituras}`);
 });
 
-test('Antigravity no Windows abre por cmd start, sem ficar filho do Nova', async () => {
-  const fs = require('node:fs');
-  const os = require('node:os');
-  const path = require('node:path');
-  const Module = require('node:module');
-  const childProcess = require('node:child_process');
-  const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-'));
-  fs.writeFileSync(path.join(casa, 'AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'), '');
-  const chamadas = [];
-  const spawnOriginal = childProcess.spawn;
-  const requireOriginal = Module.prototype.require;
-  childProcess.spawn = (...args) => { chamadas.push(args); return { unref() {} }; };
-  Module.prototype.require = function (id) {
-    return id === 'electron' ? { clipboard: {} } : requireOriginal.apply(this, arguments);
-  };
-  const usuario = process.env.USERPROFILE;
-  process.env.USERPROFILE = casa;
-  try {
-    const AntigravityController = require('../antigravity-controller');
-    const controle = Object.create(AntigravityController.prototype);
-    controle.log = () => {};
-    assert.strictEqual(await controle.launchAntigravity(), true);
-  } finally {
-    childProcess.spawn = spawnOriginal;
-    Module.prototype.require = requireOriginal;
-    process.env.USERPROFILE = usuario;
-    fs.rmSync(casa, { recursive: true, force: true });
-  }
-  assert.strictEqual(chamadas.length, 1);
-  assert.strictEqual(chamadas[0][0], 'cmd.exe');
-  assert.deepStrictEqual(chamadas[0][1].slice(0, 3), ['/c', 'start', '']);
+test('poupa o que o Nova abre para o usuario: navegador, instalador da atualizacao e app de openPath', async () => {
+  const estado = { vivos: [
+    linha(NOVA, 4, `"${EXE}"`),
+    linha(102, NOVA, '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --single-argument https://exemplo.com'),
+    linha(103, NOVA, '"C:\\Users\\a\\AppData\\Local\\Temp\\Nova AI Setup 1.1.17.exe" --updated --force-run'),
+    linha(104, NOVA, '"C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" "C:\\v.mp4"'),
+    linha(105, 102, '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --type=renderer'),
+    linha(106, NOVA, 'C:\\Users\\a\\AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'),
+  ] };
+  const { limpeza, mortos } = criar(estado);
+  await limpeza.terminate();
+  assert.deepStrictEqual(mortos, []);
+});
+
+test('continua matando as ferramentas que o Nova inicia, inclusive o Chrome com depuracao remota', async () => {
+  const estado = { vivos: [
+    linha(NOVA, 4, `"${EXE}"`),
+    linha(102, NOVA, '"C:\\x\\resources\\ffmpeg.exe" -i x'),
+    linha(103, NOVA, '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --remote-debugging-pipe --user-data-dir=C:\\p'),
+    linha(104, NOVA, 'C:\\x\\scrcpy\\scrcpy.exe -s abc'),
+    linha(105, NOVA, 'C:\\x\\adb.exe -s abc shell'),
+    linha(106, NOVA, 'python.exe C:\\x\\script.py'),
+    linha(107, NOVA, 'C:\\Windows\\System32\\cmd.exe /c webui-user.bat'),
+  ] };
+  const { limpeza, mortos } = criar(estado);
+  await limpeza.terminate();
+  assert.deepStrictEqual(mortos.sort(), [102, 103, 104, 105, 106, 107]);
 });
