@@ -6,6 +6,12 @@
 - **Arquivos:** `app/electron/main.js`, `app/electron/preload.js`. Mantidos: âncoras `CAMLIVE:begin/end`, comentários de porquê, contratos e segurança.
 - **Sem testar:** o app instalado não foi atualizado nem reiniciado.
 
+## plutil → biblioteca JS para idioma/região (PR-E, I4) — 15/11/2026
+
+`iosBuildLocalePlist` e `iosPlistLanguage` (`physicalMobileService.js`) deixam de chamar `/usr/bin/plutil` direto e passam por `app/electron/services/plist-prefs.js`. No `darwin` o módulo executa os mesmos comandos `plutil` de antes, na mesma ordem (o caminho do Mac não muda). No `win32` lê/grava o `.GlobalPreferences.plist` com `plist` (XML) e `bplist-parser` (binário); o arquivo gravado é XML, como o `plutil -convert xml1` já fazia. `bplist-creator` entra só para os testes. Arquivos: `app/electron/services/plist-prefs.js`, `physicalMobileService.js`, `app/package.json`, `app/package-lock.json`, testes em `app/electron/services/testes/` (`node --test app/electron/services/testes/plist-prefs.test.js`, com plist de exemplo em `fixtures/`).
+
+**Testado:** `node --check` e 4 testes unitários isolados em Linux (XML e binário no ramo win32; comandos do ramo darwin conferidos com `execFile` simulado). **Sem teste real:** Mac, Windows e iPhone — falta aplicar/reverter idioma + fuso num aparelho nos dois sistemas. Não unificamos o Mac para JS.
+
 ## Resolvedor de ferramentas por sistema (tool-paths.js) — 15/11/2026
 
 Novo módulo `app/electron/services/tool-paths.js`: devolve `ssh`/`scp`/`ssh-keygen` (Mac `/usr/bin/…`; Windows `%SystemRoot%\System32\OpenSSH\….exe`), `ffmpeg` (com `.exe` e `path.delimiter` no Windows), as ferramentas de `ios-tools` (com `.exe` no Windows), `GlobalKnownHostsFile` (`/dev/null` no Mac, `NUL` no Windows) e caminhos do `-i`/`UserKnownHostsFile` com `/` no Windows. No Mac o resultado é exatamente o de antes.
