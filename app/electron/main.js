@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, powerSaveBlocker, nativeImage, desktopCapturer, Tray, Menu } = require('electron');
 const { spawn } = require('child_process');
 const macNative = require('./services/mac-native');
+const toolPaths = require('./services/tool-paths');
+const novaIconFile = toolPaths.iconFile();
 if (process.platform === 'darwin') {
  process.env.PATH = [pathForBin(), '/opt/homebrew/bin', '/usr/local/bin', process.env.PATH || ''].join(':');
 }
@@ -230,7 +232,7 @@ function createWindow() {
 
   const trayIconPath = process.env.NODE_ENV === 'development'
     ? path.join(__dirname, '../public/nova.ico')
-    : path.join(process.resourcesPath, 'public', process.platform === 'darwin' ? 'nova-icon.png' : 'nova.ico');
+    : path.join(process.resourcesPath, 'public', novaIconFile);
 
   if (fs.existsSync(trayIconPath)) {
     try {
@@ -285,7 +287,7 @@ function createWindow() {
     icon: nativeImage.createFromPath(
       process.env.NODE_ENV === 'development'
         ? path.join(__dirname, '../public/nova.ico')
-        : path.join(process.resourcesPath, 'public', process.platform === 'darwin' ? 'nova-icon.png' : 'nova.ico')
+        : path.join(process.resourcesPath, 'public', novaIconFile)
     )
   });
 
@@ -1076,11 +1078,8 @@ function registerHandlers() {
 
       finalSavePath = filePath;
 
-      let ffmpegPath = path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
-      if (!fs.existsSync(ffmpegPath)) {
-        ffmpegPath = path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
-      }
-      if (!fs.existsSync(ffmpegPath)) {
+      let ffmpegPath = toolPaths.ffmpeg();
+      if (!ffmpegPath) {
         ffmpegPath = 'ffmpeg';
       }
 
@@ -2013,7 +2012,7 @@ function registerHandlers() {
           exec(playCmd, (playErr) => {
             try { fs.unlinkSync(tmpAudio); } catch(e) {}
             if (playErr) {
-              if (process.platform === 'darwin') shell.openPath(tmpAudio); else exec(`start "" "${tmpAudio}"`);
+              shell.openPath(tmpAudio);
             }
             event.sender.send('preview-voice-status', { state: 'done', message: '✅ Pronto!' });
             resolve({ success: true });

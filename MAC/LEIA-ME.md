@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Plataforma: C1 passo 1, só subtração — 19/11/2026
+
+- **O que mudou:** `yt-dlp`/`ffmpeg` (e `.exe`) deixam de ser decididos por `process.platform` em `ytdlp-manager.js` (10 ramos), `global-spoof-service.js` (4) e `kling-video-service.js` (lista com os dois nomes); passam a usar `tool-paths.exe()`. Em `main.js`, o remux usa `tool-paths.ffmpeg()`, o ícone é escolhido uma vez (`tool-paths.iconFile()`, antes duplicado) e o fallback `exec('start ...')` da pré-escuta de voz virou `shell.openPath`, que serve aos dois sistemas. Mac e Windows mantêm o mesmo resultado; no Linux deixa de procurar `.exe`.
+- **Arquivos do app instalado no Mac que mudam:** `main.js`, `services/tool-paths.js`, `services/ytdlp-manager.js`, `services/global-spoof-service.js`, `services/kling-video-service.js`. Guardar os anteriores em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
+- **Testes:** `node --test MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs` simula `darwin` e `win32` (ícone, yt-dlp, ffmpeg).
+- **Sem testar:** exportação com remux, download com yt-dlp e câmera virtual em Mac e Windows reais; fica para a prova real.
+
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
 - **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.

@@ -7,7 +7,7 @@
 
 'use strict';
 
-const { spawn } = require('child_process');
+const { spawn } = require('child_process'); const toolPaths = require('./tool-paths');
 const path  = require('path');
 const fs    = require('fs');
 const crypto = require('crypto');
@@ -142,13 +142,13 @@ class GlobalSpoofService {
 
         const isPackaged = app ? app.isPackaged : false;
         let ffmpegPath = isPackaged
-            ? path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'))
-            : path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
+            ? path.join(process.resourcesPath, 'bin', toolPaths.exe('ffmpeg'))
+            : path.join(process.cwd(), 'resources', 'bin', toolPaths.exe('ffmpeg'));
 
         if (!fs.existsSync(ffmpegPath)) {
             const altPath = isPackaged
-                ? path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'))
-                : path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
+                ? path.join(process.cwd(), 'resources', 'bin', toolPaths.exe('ffmpeg'))
+                : path.join(process.resourcesPath, 'bin', toolPaths.exe('ffmpeg'));
             if (fs.existsSync(altPath)) {
                 ffmpegPath = altPath;
             } else {

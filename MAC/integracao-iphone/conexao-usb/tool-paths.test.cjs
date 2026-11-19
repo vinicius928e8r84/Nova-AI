@@ -63,3 +63,15 @@ test('sshOptions no Mac não muda e no Windows usa NUL e /', () => {
     assert.deepEqual(o, ['-i', 'C:/U/id', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=C:/U/kh', '-o', 'GlobalKnownHostsFile=NUL']);
   } finally { Object.defineProperty(process, 'platform', orig); }
 });
+
+test('ícone, yt-dlp e ffmpeg seguem o sistema nos dois lados', () => {
+  assert.equal(tp.iconFile(mac), 'nova-icon.png');
+  assert.equal(tp.iconFile(win), 'nova.ico');
+  assert.equal(tp.exe('yt-dlp', mac), 'yt-dlp');
+  assert.equal(tp.exe('yt-dlp', win), 'yt-dlp.exe');
+  assert.equal(tp.exe('ffmpeg', mac), 'ffmpeg');
+  assert.equal(tp.exe('ffmpeg', win), 'ffmpeg.exe');
+  const dentro = { ...win, exists: (f) => f === 'C:\\app\\resources\\bin\\ffmpeg.exe' };
+  assert.equal(tp.ffmpeg(dentro), 'C:\\app\\resources\\bin\\ffmpeg.exe');
+  assert.equal(tp.ffmpeg({ ...win, exists: () => false }), null);
+});
