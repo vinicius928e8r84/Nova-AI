@@ -247,7 +247,7 @@ class CamLiveIphone {
   }
   _openForward(args) {
     return new Promise((resolve, reject) => {
-      const child = this.spawnProcess(require('./tool-paths').ssh(), args, { stdio: ['ignore', 'ignore', 'pipe'] }); child.novaAbort = false; this.tunnel = child;
+      const child = this.spawnProcess(require('./tool-paths').sshExigido(), args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true }); child.novaAbort = false; this.tunnel = child;
       let confirmed = false, settled = false, stderr = '';
       const close = () => { if (this.tunnel === child) this.tunnel = null; try { child.kill(); } catch (_) {} };
       const fail = error => {

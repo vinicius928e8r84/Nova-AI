@@ -26,13 +26,16 @@ let vncWsCount = 0;
 
 function run(cmd, args, timeoutMs) {
   return new Promise((resolve) => {
-    execFile(cmd, args, { timeout: timeoutMs || 12000, maxBuffer: 4 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(cmd, args, { timeout: timeoutMs || 12000, maxBuffer: 4 * 1024 * 1024, windowsHide: true }, (err, stdout, stderr) => {
       resolve({ ok: !err, stdout: String(stdout || ''), stderr: String(stderr || ''), error: err ? err.message : null });
     });
   });
 }
 
-function ssh(command) { return run(require('./tool-paths').ssh(), SSH_ARGS.concat(command)); }
+function ssh(command) {
+  try { return run(require('./tool-paths').sshExigido(), SSH_ARGS.concat(command)); }
+  catch (erro) { return Promise.resolve({ ok: false, stdout: '', stderr: '', error: erro.message }); }
+}
 
 // ── iproxy: mantem o encaminhamento VNC do celular vivo ──
 function vncReachable() {
@@ -46,7 +49,7 @@ function vncReachable() {
 
 function spawnIproxy() {
   if (!server || iproxyChild) return;
-  iproxyChild = spawn(require('./ios-tools').tool('iproxy'), ['5900', '5900'], { stdio: 'ignore' });
+  iproxyChild = spawn(require('./ios-tools').tool('iproxy'), ['5900', '5900'], { stdio: 'ignore', windowsHide: true });
   iproxyChild.once('error', () => { iproxyChild = null; });
   iproxyChild.once('exit', () => { iproxyChild = null; });
 }
@@ -63,7 +66,7 @@ function portOpen(port) {
 let sshProxyChild = null;
 function spawnSshProxy() {
   if (!server || sshProxyChild) return;
-  sshProxyChild = spawn(require('./ios-tools').tool('iproxy'), ['2222', '22'], { stdio: 'ignore' });
+  sshProxyChild = spawn(require('./ios-tools').tool('iproxy'), ['2222', '22'], { stdio: 'ignore', windowsHide: true });
   sshProxyChild.once('error', () => { sshProxyChild = null; });
   sshProxyChild.once('exit', () => { sshProxyChild = null; });
 }

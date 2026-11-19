@@ -7,7 +7,7 @@ const fs=require('fs'),path=require('path'),os=require('os'),net=require('net');
 const {execFile,spawn}=require('child_process');
 let busy=false,proxy;
 const quote=s=>"'"+String(s).replace(/'/g,"'\\''")+"'";
-const run=(file,args)=>new Promise((resolve,reject)=>execFile(file,args,{timeout:15000},(e,out)=>e?reject(e):resolve(String(out).trim())));
+const run=(file,args)=>new Promise((resolve,reject)=>execFile(file,args,{timeout:15000,windowsHide:true},(e,out)=>e?reject(e):resolve(String(out).trim())));
 const portOpen=()=>new Promise(resolve=>{const s=net.connect({host:'127.0.0.1',port:2222});s.setTimeout(1000);s.once('connect',()=>{s.destroy();resolve(true)});s.once('error',()=>resolve(false));s.once('timeout',()=>{s.destroy();resolve(false)});});
 function command(client,cmd,input){return new Promise((resolve,reject)=>client.exec(cmd,(error,stream)=>{if(error)return reject(error);let stdout='',stderr='';const timer=setTimeout(()=>{stream.close();reject(new Error('O iPhone demorou demais para responder.'));},90000);stream.on('data',data=>stdout+=data);stream.stderr.on('data',data=>stderr+=data);stream.on('close',code=>{clearTimeout(timer);code===0?resolve(stdout):reject(new Error(stderr.includes('password')?'Senha administrativa recusada pelo iPhone.':stderr.trim()||'Comando não concluído no iPhone.'));});stream.end(input||'');}));}
 
@@ -17,7 +17,7 @@ async function ensureTunnel(){
  const net=require('net');
  const open=()=>new Promise(res=>{const s=net.connect({host:'127.0.0.1',port:2222,timeout:800});const done=v=>{try{s.destroy();}catch(_){}res(v);};s.once('connect',()=>done(true));s.once('error',()=>done(false));s.once('timeout',()=>done(false));});
  if(await open())return true;
- try{const {spawn}=require('child_process');const child=spawn(require('../ios-tools').tool('iproxy'),['2222','22'],{stdio:'ignore',detached:true});child.unref();}catch(_){}
+ try{const {spawn}=require('child_process');const child=spawn(require('../ios-tools').tool('iproxy'),['2222','22'],{stdio:'ignore',detached:true,windowsHide:true});child.unref();}catch(_){}
  for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,700));if(await open())return true;}
  return false;
 }
@@ -46,7 +46,7 @@ async function prepare(id,password,service){
  const ids=(await run(require('../ios-tools').tool('idevice_id'),['-l'])).split('\n').filter(Boolean);
  if(ids.length!==1||ids[0]!==udid)throw new Error('Conecte somente o iPhone selecionado por USB.');
  if(!await portOpen()){
- proxy=spawn(require('../ios-tools').tool('iproxy'),['-u',udid,'2222','22'],{stdio:'ignore'});proxy.on('error',()=>{});
+ proxy=spawn(require('../ios-tools').tool('iproxy'),['-u',udid,'2222','22'],{stdio:'ignore',windowsHide:true});proxy.on('error',()=>{});
  for(let i=0;i<20&&!await portOpen();i++)await new Promise(r=>setTimeout(r,100));
  }
  const pinsFile=path.join(service.baseDir,'iphone-hosts.json');const pins=fs.existsSync(pinsFile)?JSON.parse(fs.readFileSync(pinsFile,'utf8')):{};let fingerprint;

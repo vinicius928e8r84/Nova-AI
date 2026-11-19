@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Filhos de console escondidos e OpenSSH ausente (P3 da paridade) — 19/11/2026
+
+`windowsHide: true` em todo `spawn`/`execFile` de `iproxy`, `ssh`, `scp`, `ssh-keygen` e das ferramentas `idevice*`: sem isso, no Windows cada filho abre uma janela preta. No Mac a opção não faz nada. `tool-paths.js` ganhou `sshExigido()` e `execSsh()`: no Windows, se `System32\OpenSSH\ssh.exe` não existir, o erro passa a ser "O Cliente OpenSSH do Windows não está ativo. Ative-o em Configurações > Aplicativos > Recursos opcionais." (antes era um ENOENT cru). No Mac o caminho continua `/usr/bin/ssh`. Nada foi removido: o item só pede opção nos filhos que já existem.
+
+Arquivos do app instalado a trocar (guardar o anterior em `reservas/`), todos em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`: `tool-paths.js`, `ios-bridge.js`, `ios-camera.js`, `ios-devices.js`, `cam-live-iphone.js`, `idioma-ipc.js`, `physicalMobileService.js`, `iphone-setup/setup.js`. Reaplicar com `cp` de `app/electron/services/<arquivo>`. Depois `node --check` e reiniciar o Nova.
+
+**Testado:** `MAC/integracao-iphone/conexao-usb/windows-hide.test.cjs` (`execFile` simulado recebe `windowsHide`; Windows sem OpenSSH dá a mensagem e não executa nada; Mac mantém `/usr/bin/ssh`). **Sem teste real:** Windows com iPhone (ver que nenhuma janela abre), Mac com iPhone (regressão).
+
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
 - **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.
