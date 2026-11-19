@@ -84,3 +84,83 @@ test('tabela com um unico processo vem como objeto e ainda e lida', () => {
   assert.strictEqual(t.get(7).command, 'a.exe');
   assert.strictEqual(t.get(7).parent, 4);
 });
+
+test('pid do Nova reaproveitado: processo antigo cujo pai morto tinha o mesmo PID nao morre', async () => {
+  const estado = { vivos: [
+    linha(NOVA, 4, `"${EXE}"`, 2000),
+    linha(500, NOVA, '"C:\\Program Files\\Obsidian\\Obsidian.exe"', 1000),
+  ] };
+  const { limpeza, mortos } = criar(estado);
+  await limpeza.terminate();
+  assert.deepStrictEqual(mortos, []);
+});
+
+test('nao percorre a partir do leitor da tabela: o conhost dele nao vira dono', async () => {
+  const estado = { vivos: [
+    linha(NOVA, 4, `"${EXE}"`),
+    linha(102, NOVA, 'ffmpeg.exe'),
+    linha(200, NOVA, 'powershell.exe -Command Get-CimInstance Win32_Process'),
+    linha(201, 200, 'conhost.exe'),
+  ] };
+  const { limpeza, mortos } = criar(estado);
+  await limpeza.terminate();
+  assert.deepStrictEqual(mortos, [102]);
+});
+
+test('registerShutdown nao varre a cada intervalo quando a limpeza pede scanEveryMs 0', async () => {
+  const { EventEmitter } = require('node:events');
+  const { registerShutdown } = require('../nova-shutdown');
+  let leituras = 0;
+  const limpeza = createWindowsProcessCleanup({
+    readTable: () => { leituras++; return parseWindowsProcessTable(JSON.stringify([linha(NOVA, 4, `"${EXE}"`)])); },
+    killTree: () => {},
+    ownPid: NOVA,
+    execPath: EXE,
+  });
+  const app = new EventEmitter();
+  app.exit = () => {};
+  let saiu;
+  const fim = new Promise(resolve => { saiu = resolve; });
+  app.quit = () => {
+    const ev = { prevented: false, preventDefault() { this.prevented = true; } };
+    app.emit('before-quit', ev);
+    if (!ev.prevented) saiu();
+  };
+  registerShutdown(app, () => new Promise(resolve => setTimeout(resolve, 400)), limpeza);
+  app.quit();
+  await fim;
+  assert.ok(leituras <= 3, `leituras: ${leituras}`);
+});
+
+test('Antigravity no Windows abre por cmd start, sem ficar filho do Nova', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const Module = require('node:module');
+  const childProcess = require('node:child_process');
+  const casa = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-'));
+  fs.writeFileSync(path.join(casa, 'AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'), '');
+  const chamadas = [];
+  const spawnOriginal = childProcess.spawn;
+  const requireOriginal = Module.prototype.require;
+  childProcess.spawn = (...args) => { chamadas.push(args); return { unref() {} }; };
+  Module.prototype.require = function (id) {
+    return id === 'electron' ? { clipboard: {} } : requireOriginal.apply(this, arguments);
+  };
+  const usuario = process.env.USERPROFILE;
+  process.env.USERPROFILE = casa;
+  try {
+    const AntigravityController = require('../antigravity-controller');
+    const controle = Object.create(AntigravityController.prototype);
+    controle.log = () => {};
+    assert.strictEqual(await controle.launchAntigravity(), true);
+  } finally {
+    childProcess.spawn = spawnOriginal;
+    Module.prototype.require = requireOriginal;
+    process.env.USERPROFILE = usuario;
+    fs.rmSync(casa, { recursive: true, force: true });
+  }
+  assert.strictEqual(chamadas.length, 1);
+  assert.strictEqual(chamadas[0][0], 'cmd.exe');
+  assert.deepStrictEqual(chamadas[0][1].slice(0, 3), ['/c', 'start', '']);
+});

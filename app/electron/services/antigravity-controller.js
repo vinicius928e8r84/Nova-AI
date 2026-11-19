@@ -203,7 +203,7 @@ class AntigravityController {
             
             this.log(`Spawning Antigravity: "${exePath}"`);
             try {
-                const child = spawn(exePath, [], { detached: true, stdio: 'ignore' });
+                const child = spawn('cmd.exe', ['/c', 'start', '', exePath], { windowsHide: true, stdio: 'ignore' });
                 child.unref();
                 this.log('Spawn completed.');
                 resolve(true);

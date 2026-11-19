@@ -129,7 +129,7 @@ const WINDOWS_TABLE_SCRIPT = [
 function windowsProcessTable() {
   const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', WINDOWS_TABLE_SCRIPT], {
     encoding: 'utf8',
-    timeout: 8000,
+    timeout: 3000,
     windowsHide: true,
     maxBuffer: 16 * 1024 * 1024,
   });
@@ -145,6 +145,7 @@ function parseWindowsProcessTable(output) {
     const command = row.CommandLine || '';
     entries.set(row.ProcessId, {
       parent: row.ParentProcessId,
+      started: Number(row.Started) || 0,
       identity: row.Started + ' ' + command,
       command,
     });
@@ -194,12 +195,15 @@ function createWindowsProcessCleanup({
     const pending = [ownPid, ...owned.keys()];
     const visited = new Set(pending);
     for (const parent of pending) {
+      const parentStarted = entries.get(parent)?.started ?? 0;
       for (const pid of children.get(parent) ?? []) {
         if (visited.has(pid)) continue;
         const entry = entries.get(pid);
+        if (entry.started && parentStarted && entry.started < parentStarted) continue;
+        if (isTableReader(entry.command)) continue;
         visited.add(pid);
         pending.push(pid);
-        if (!isElectronHelper(entry.command) && !isTableReader(entry.command)) owned.set(pid, entry.identity);
+        if (!isElectronHelper(entry.command)) owned.set(pid, entry.identity);
       }
     }
   }
@@ -219,6 +223,7 @@ function createWindowsProcessCleanup({
 
   return {
     collect,
+    scanEveryMs: 0,
     async terminate() {
       for (let round = 0; round < 3; round++) {
         collect();
@@ -247,7 +252,7 @@ function registerShutdown(app, stopServices, processCleanup) {
       };
 
       collect();
-      const scans = setInterval(collect, 75);
+      const scans = processCleanup.scanEveryMs === 0 ? null : setInterval(collect, processCleanup.scanEveryMs ?? 75);
       let timeout;
       try {
         await Promise.race([
