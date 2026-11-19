@@ -63,10 +63,6 @@ function parsePlatformToolsSha1(xml, hostOs) {
     return hashes;
 }
 
-function parseDarwinPlatformToolsSha1(xml) {
-    return parsePlatformToolsSha1(xml, MANIFEST_HOST_OS.darwin);
-}
-
 async function fetchBuffer(http, url, timeout = 120000) {
     assertOfficialUrl(url);
     let response;
@@ -92,7 +88,7 @@ function run(file, args, options = {}) {
 async function extractInto(archivePath, kind, destDir, runner = run, platform = 'darwin') {
     fs.mkdirSync(destDir, { recursive: true });
     if (platform === 'win32') {
-        await runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', EXPAND_ARCHIVE_SCRIPT],
+        await runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', EXPAND_ARCHIVE_SCRIPT],
             { env: { ...process.env, NOVA_ARCHIVE: archivePath, NOVA_DESTINO: destDir } });
     } else if (kind === 'zip') await runner('/usr/bin/ditto', ['-x', '-k', archivePath, destDir]);
     else await runner('/usr/bin/tar', ['-xzf', archivePath, '-C', destDir]);
@@ -184,9 +180,8 @@ async function installScrcpy(baseDir, deps = {}) {
     }
 }
 
-function localToolPath(baseDir, name, platform = process.platform) {
-    const exe = toolFileName(name, platform);
-    const p = name === 'adb' ? path.join(baseDir, 'platform-tools', exe) : path.join(baseDir, 'scrcpy', exe);
+function localToolPath(baseDir, name) {
+    const p = name === 'adb' ? path.join(baseDir, 'platform-tools', 'adb') : path.join(baseDir, 'scrcpy', 'scrcpy');
     try { fs.accessSync(p, fs.constants.X_OK); return p; } catch { return null; }
 }
 
@@ -235,6 +230,6 @@ async function ensureForService(service, force, platform = process.platform, ext
 }
 
 module.exports = {
-    ensureAndroidTools, ensureForService, installAdb, installScrcpy, localToolPath, parseDarwinPlatformToolsSha1, parsePlatformToolsSha1,
+    ensureAndroidTools, ensureForService, installAdb, installScrcpy, localToolPath, parsePlatformToolsSha1,
     scrcpyRelease, assertOfficialUrl, replaceDir, sweepTemp, fetchBuffer, SCRCPY_VERSION
 };

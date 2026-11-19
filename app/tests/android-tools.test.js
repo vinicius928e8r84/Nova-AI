@@ -22,7 +22,7 @@ function fakeRunner(layout) {
 }
 
 test('parse pega só hashes macosx', () => {
-    assert.deepStrictEqual(m.parseDarwinPlatformToolsSha1(xmlFor('b'.repeat(40))), ['b'.repeat(40)]);
+    assert.deepStrictEqual(m.parsePlatformToolsSha1(xmlFor('b'.repeat(40)), 'macosx'), ['b'.repeat(40)]);
 });
 
 test('recusa host não oficial', () => {
@@ -86,10 +86,10 @@ test('ensureAndroidTools não baixa o que já existe', async () => {
 
 test('localToolPath', () => {
     const base = tmp();
-    assert.strictEqual(m.localToolPath(base, 'adb', 'darwin'), null);
+    assert.strictEqual(m.localToolPath(base, 'adb'), null);
     fs.mkdirSync(path.join(base, 'platform-tools'));
     fs.writeFileSync(path.join(base, 'platform-tools', 'adb'), '', { mode: 0o755 });
-    assert.strictEqual(m.localToolPath(base, 'adb', 'darwin'), path.join(base, 'platform-tools', 'adb'));
+    assert.strictEqual(m.localToolPath(base, 'adb'), path.join(base, 'platform-tools', 'adb'));
 });
 
 test('replaceDir mantém a instalação anterior se o rename falhar', () => {
@@ -224,14 +224,6 @@ test('installScrcpy no Windows sem scrcpy.exe no pacote falha', async () => {
     const zip = Buffer.from('zipscrcpy');
     const release = { ...m.scrcpyRelease('x64', 'win32'), sha256: sha(zip, 'sha256') };
     await assert.rejects(m.installScrcpy(base, { http: async () => ({ data: zip }), platform: 'win32', release, runner: winRunner([]) }), /não contém/);
-});
-
-test('localToolPath no Windows usa .exe', () => {
-    const base = tmp();
-    fs.mkdirSync(path.join(base, 'scrcpy'));
-    fs.writeFileSync(path.join(base, 'scrcpy', 'scrcpy.exe'), '', { mode: 0o755 });
-    assert.strictEqual(m.localToolPath(base, 'scrcpy', 'win32'), path.join(base, 'scrcpy', 'scrcpy.exe'));
-    assert.strictEqual(m.localToolPath(base, 'adb', 'win32'), null);
 });
 
 test('ensureForService no Windows falha com mensagem clara e sem dica do brew', async () => {
