@@ -6,6 +6,14 @@
 
 **Testado:** `node --check` e 4 testes unitários isolados em Linux (XML e binário no ramo win32; comandos do ramo darwin conferidos com `execFile` simulado). **Sem teste real:** Mac, Windows e iPhone — falta aplicar/reverter idioma + fuso num aparelho nos dois sistemas. Não unificamos o Mac para JS.
 
+## Resolvedor de ferramentas por sistema (tool-paths.js) — 15/11/2026
+
+Novo módulo `app/electron/services/tool-paths.js`: devolve `ssh`/`scp`/`ssh-keygen` (Mac `/usr/bin/…`; Windows `%SystemRoot%\System32\OpenSSH\….exe`), `ffmpeg` (com `.exe` e `path.delimiter` no Windows), as ferramentas de `ios-tools` (com `.exe` no Windows), `GlobalKnownHostsFile` (`/dev/null` no Mac, `NUL` no Windows) e caminhos do `-i`/`UserKnownHostsFile` com `/` no Windows. No Mac o resultado é exatamente o de antes.
+
+Trocados: `/usr/bin/ssh` fixo em `ios-bridge.js`, `ios-camera.js`, `cam-live-iphone.js`, `idioma-ipc.js`, `physicalMobileService.js` (também `/usr/bin/scp`); `/usr/bin/ssh-keygen` em `iphone-setup/setup.js`; `mac-native.tool('ffmpeg')` em `ios-camera.js`, `cam-live-iphone.js` e `rtmp-server.js` (que no Windows passa a procurar também no `PATH`, além de `resources\bin\ffmpeg.exe`); `ios-tools.js` e `iphone-ssh.js` usam o módulo. Arquivos do app instalado a trocar (guardar o anterior em `reservas/`): esses nove mais `tool-paths.js`; reaplicar com `cp` para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`.
+
+**Testado:** `node --check` e `MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs` (simula `darwin`/`win32` no Linux; compara `ffmpeg()` com `mac-native.tool('ffmpeg')`). **Sem teste real:** Mac com iPhone (Conectar, abrir controle, CAM LIVE, idioma), Windows e OpenSSH do Windows. Teste de regressão no Mac é obrigatório antes de unir.
+
 ## Tela "Controle de Acesso" removida (Mac e Windows) — 15/11/2026
 
 - **O que era:** modal (`VX` no bundle) que pedia a chave de API do Gemini e a gravava em `secret_key.json`. Abria sozinho na inicialização quando `get-gemini-token` voltava vazio. Não é licença: `license:verify` segue como stub local.
