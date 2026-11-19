@@ -1577,3 +1577,10 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — P4 de paridade: mensagens de celular sem "Mac"
+
+- **O que mudou:** só o texto. "no Mac"/"neste Mac"/"e o Mac" viraram "neste computador" nas mensagens do iPhone e do Android (câmera, GPS, Conectar, IP da rede); a dica do `instalar-iphone.command` saiu do erro do bridge. Nada removido além dessa citação; nenhuma lógica mudou.
+- **Arquivos do app instalado que mudam** (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guardar o anterior em `reservas/` antes): `ios-camera.js`, `physicalMobileService.js`, `iphone-setup/inapp.js`, `iphone-setup/setup.js`. Reaplicar com `cp` desses quatro; depois `node --check` e reiniciar o Nova. O bundle da interface não muda.
+- **Teste:** `node --test app/electron/services/testes/textos-celular.test.js`.
+- **Sem testar:** Mac e Windows reais; ver as mensagens na tela.
