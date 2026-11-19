@@ -31,14 +31,12 @@ const { findBundledChromiumExecutable, getDefaultUserAgent } = require('./platfo
 const BROWSER_DATA_DIR = path.join(app.getPath('userData'), 'browser-data');
 const DOWNLOAD_DIR = app.getPath('downloads');
 
-// ═══════════════════════════════════════════════════════════════
 //  Browser launch diagnostics log
 //
 //  In the packaged app console.log goes nowhere, which made every fresh-PC
 //  browser failure an unreproducible "CDP 503" with no cause attached. Every
 //  launch attempt and failure lands in this file so a user can just send it:
 //    %APPDATA%\<app>\logs\browser-launch.log
-// ═══════════════════════════════════════════════════════════════
 const BROWSER_LOG_PATH = path.join(app.getPath('userData'), 'logs', 'browser-launch.log');
 let _browserLogDirReady = false;
 function appendBrowserLog(message) {
@@ -47,7 +45,6 @@ function appendBrowserLog(message) {
             fs.mkdirSync(path.dirname(BROWSER_LOG_PATH), { recursive: true });
             _browserLogDirReady = true;
         }
-        // Keep the file from growing forever: start over past ~1MB.
         try {
             if (fs.statSync(BROWSER_LOG_PATH).size > 1024 * 1024) fs.unlinkSync(BROWSER_LOG_PATH);
         } catch { /* no file yet */ }
@@ -55,8 +52,6 @@ function appendBrowserLog(message) {
     } catch { /* diagnostics must never break the launch itself */ }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Poisoned profile recovery
 //
 //  browser-data/ is written by whichever Chromium shipped at the time. After
 //  an update to a build with a different Chromium revision, that profile can
@@ -69,7 +64,6 @@ function appendBrowserLog(message) {
 //  The profile is moved aside, never deleted: it holds the user's logins and
 //  cookies, and this recovery runs on a guess. Only the newest quarantine is
 //  kept so a repeatedly failing machine can't accumulate profile copies.
-// ═══════════════════════════════════════════════════════════════
 const QUARANTINE_PREFIX = 'browser-data.corrupt-';
 
 function quarantineBrowserProfile() {
@@ -96,8 +90,6 @@ function quarantineBrowserProfile() {
     return true;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  Dynamic CDP Port Resolution
 //
 //  Port 9222 is the conventional Chrome DevTools port, but OTHER apps
 //  also use it — Adobe Premiere Pro (Adobe UXP/CEF) binds 127.0.0.1:9222
@@ -109,14 +101,13 @@ function quarantineBrowserProfile() {
 //  a Chrome-family CDP endpoint (a leftover Stonic Chromium we can share).
 //  Foreign CDP-lookalikes (Browser: "Adobe UXP" etc.) are skipped.
 //  The chosen port flows to every consumer of the shared Chromium.
-// ═══════════════════════════════════════════════════════════════
 
 const CDP_PORT_SCAN_START = 9222;
 const CDP_PORT_SCAN_END = 9252;
 
-let resolvedCdpPort = null;       // number once resolved
-let cdpPortReservation = null;    // net.Server holding the port until Chromium launch
-let cdpPortPromise = null;        // in-flight resolution promise
+let resolvedCdpPort = null;
+let cdpPortReservation = null;
+let cdpPortPromise = null;
 
 function isChromeFamilyBrowser(browserField) {
     const b = String(browserField || '').toLowerCase();
@@ -207,7 +198,7 @@ function getCdpPort() {
 
 function releaseCdpPortReservation() {
     if (cdpPortReservation) {
-        try { cdpPortReservation.close(); } catch { /* already closed */ }
+        try { cdpPortReservation.close(); } catch { }
         cdpPortReservation = null;
     }
 }
@@ -302,7 +293,6 @@ function findMatchingDownloadPath(filename, earliestMtimeMs = 0) {
     return matches[0]?.fullPath || null;
 }
 
-// Common devices for emulation
 const KNOWN_DEVICES = {
     'iPhone 12': { viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1' },
     'iPhone 14': { viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1' },
@@ -313,10 +303,6 @@ const KNOWN_DEVICES = {
     'Desktop 1920': { viewport: { width: 1920, height: 1080 }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  OpenClaw Role Classification (from snapshot-roles.ts)
-//  3-tier system for precise element classification
-// ═══════════════════════════════════════════════════════════════
 
 /** Roles that represent user-interactive elements — always get a ref. */
 const INTERACTIVE_ROLES = new Set([
@@ -338,10 +324,6 @@ const STRUCTURAL_ROLES = new Set([
     'row', 'rowgroup', 'table', 'tablist', 'toolbar', 'tree', 'treegrid',
 ]);
 
-// ═══════════════════════════════════════════════════════════════
-//  AI-Friendly Error Converter (from pw-tools-core.shared.ts)
-//  Converts cryptic Playwright errors into actionable hints
-// ═══════════════════════════════════════════════════════════════
 
 function toAIFriendlyError(error, selector) {
     const message = error instanceof Error ? error.message : String(error);
@@ -371,18 +353,17 @@ class BrowserManagerService {
         this.browser = null;
         this.context = null;
         this.activePage = null;
-        this.stonicWin = null; // Reference to the themed window
+        this.stonicWin = null;
         this.elementMap = new Map();
-        this._pendingFileChooser = null;  // Captured during click for upload tools
+        this._pendingFileChooser = null;
         this._pendingFileChooserTimeout = null;
         this.isInitialized = false;
-        this.consoleMessages = [];   // Console log capture
-        this.pageErrors = [];        // JS error capture
-        this._dialogHandler = null;  // Pending dialog handler
+        this.consoleMessages = [];
+        this.pageErrors = [];
+        this._dialogHandler = null;
         this._isRelaunching = false; // Prevents concurrent relaunch attempts
     }
 
-    // ─── HEALTH CHECK: Verify browser context is alive ──────────────
     _isBrowserAlive() {
         try {
             if (!this.context) return false;
@@ -401,14 +382,12 @@ class BrowserManagerService {
         }
     }
 
-    // ─── Is a usable Chromium up right now? (no side effects) ───────
     // The CDP shim answers discovery requests from this: it must be able to
     // report the browser's state without launching one.
     isRunning() {
         return this.isInitialized && this._isBrowserAlive();
     }
 
-    // ─── FORCE CLOSE: Safely cleanup even when browser is dead ──────
     async _forceClose() {
         console.log('[BrowserService] Force-closing browser (cleaning up dead/stale state)...');
         this.isInitialized = false;
@@ -422,7 +401,6 @@ class BrowserManagerService {
         }
         this._pendingFileChooser = null;
 
-        // Try closing context — if already dead, just catch and move on
         if (this.context) {
             try {
                 await this.context.close();
@@ -434,14 +412,11 @@ class BrowserManagerService {
         this.browser = null;
     }
 
-    // ─── AUTO-RECOVERY WRAPPER: Retry operation once on browser death ─
-    //
     // Wraps every browser tool call. If the operation fails because the
     // user closed the browser window, we:
     //   1. Force-close the dead context
     //   2. Relaunch a fresh browser
     //   3. Retry the operation ONE time
-    //
     async _withAutoRecovery(toolName, fn) {
         try {
             return await fn();
@@ -461,11 +436,9 @@ class BrowserManagerService {
 
             if (!isBrowserDead) throw firstError;
 
-            // Browser was closed by user — recover
             console.warn(`[BrowserService] Browser died during ${toolName}. Auto-recovering...`);
 
             if (this._isRelaunching) {
-                // Another recovery is in progress — wait for it
                 await new Promise(r => setTimeout(r, 3000));
                 if (!this._isBrowserAlive()) {
                     return {
@@ -482,7 +455,6 @@ class BrowserManagerService {
             try {
                 this._isRelaunching = true;
                 await this._forceClose();
-                // Small pause to let OS release resources
                 await new Promise(r => setTimeout(r, 1000));
                 await this.launch();
                 console.log(`[BrowserService] ✅ Browser recovered! Retrying ${toolName}...`);
@@ -500,7 +472,6 @@ class BrowserManagerService {
                 this._isRelaunching = false;
             }
 
-            // Retry the original operation once
             try {
                 return await fn();
             } catch (retryError) {
@@ -533,17 +504,14 @@ class BrowserManagerService {
     }
 
     async launch() {
-        // If marked as initialized but browser is actually dead, clean up first
         if (this.isInitialized && this.context) {
             if (this._isBrowserAlive()) {
-                return; // Already running and healthy
+                return;
             }
-            // Browser was closed by user or crashed — force cleanup
             console.warn('[BrowserService] Browser was marked as initialized but is dead. Cleaning up...');
             await this._forceClose();
         }
 
-        // Cleanup any stale state from previous dead contexts
         if (this.context && !this._isBrowserAlive()) {
             console.warn('[BrowserService] Found stale context. Cleaning up before launch...');
             await this._forceClose();
@@ -564,7 +532,6 @@ class BrowserManagerService {
 
         let executablePath = process.platform === 'darwin' ? require('./mac-native').browser('chrome') : undefined;
 
-        // 1. Production bundle check
         const bundledBrowserPath = path.join(process.resourcesPath, 'browsers', 'chromium-1208', 'chrome-win64', 'chrome.exe');
         if (fs.existsSync(bundledBrowserPath)) {
             console.log('[BrowserService] Using BUNDLED browser binary:', bundledBrowserPath);
@@ -575,9 +542,6 @@ class BrowserManagerService {
                 console.log('[BrowserService] Using LOCAL DEV browser binary:', devBrowserPath);
                 executablePath = devBrowserPath;
             } else {
-                // Cross-platform scan: any chromium-<rev> folder with this
-                // platform's executable (macOS .app bundle, Linux, or a
-                // Windows build with a different revision number).
                 const scannedPath = findBundledChromiumExecutable([
                     process.resourcesPath ? path.join(process.resourcesPath, 'browsers') : null,
                     path.join(__dirname, '../../browsers'),
@@ -592,7 +556,6 @@ class BrowserManagerService {
         }
 
         const cdpPort = await resolveCdpPort();
-        // Release the reservation just before Chromium binds the port itself
         releaseCdpPortReservation();
         console.log(`[BrowserService] Launching Chromium with CDP port ${cdpPort}...`);
 
@@ -670,7 +633,7 @@ class BrowserManagerService {
             this.context.on('close', () => {
                 appendBrowserLog(`browser closed (uptime ${Math.round((Date.now() - launchStarted) / 1000)}s)`);
             });
-        } catch { /* diagnostics only */ }
+        } catch { }
 
         // Verify the DevTools server actually bound OUR port (it silently
         // fails to bind when another app grabbed it during the race window).
@@ -691,15 +654,12 @@ class BrowserManagerService {
             this.activePage = await this.context.newPage();
         }
 
-        // ─── Console & Error Listeners ────────────────────────────────
         this._attachPageListeners(this.activePage);
 
-        // ─── Download auto-save ───────────────────────────────────────
         this.isInitialized = true;
         console.log('[BrowserService] ✅ Browser launched successfully.');
     }
 
-    // ─── ATTACH PAGE LISTENERS (extracted for reuse after recovery) ──
     _attachPageListeners(page) {
         if (!page) return;
 
@@ -709,7 +669,6 @@ class BrowserManagerService {
                 text: msg.text(),
                 timestamp: new Date().toISOString()
             });
-            // Keep max 500 messages
             if (this.consoleMessages.length > 500) {
                 this.consoleMessages.shift();
             }
@@ -728,7 +687,6 @@ class BrowserManagerService {
     }
 
     async getPage() {
-        // Check if browser context is alive — if dead, relaunch
         if (!this.context || !this._isBrowserAlive()) {
             console.warn('[BrowserService] Browser context is dead or missing. Relaunching...');
             await this._forceClose();
@@ -747,7 +705,6 @@ class BrowserManagerService {
                 }
             }
         } catch (pageErr) {
-            // Context might have died between our check and page access
             console.warn('[BrowserService] getPage() failed — browser likely closed. Relaunching...');
             await this._forceClose();
             await new Promise(r => setTimeout(r, 500));
@@ -757,21 +714,12 @@ class BrowserManagerService {
         return this.activePage;
     }
 
-    // ─── ELEMENT RESOLVER (OpenClaw refLocator — pw-session.ts:519) ────────────
-    //
-    // KEY DIFFERENCE from old code:
-    //   OLD: getByRole().first().or(getByPlaceholder).or(getByLabel)... → WRONG ELEMENT
-    //   NEW: getByRole(role, {name, exact:true}).nth(n) → PRECISE MATCH
-    //
     // Supports ref formats: e1, e2, @e3, ref=e4, [5], 5, and CSS selectors
-    // ──────────────────────────────────────────────────────────────────────────
     resolveElement(page, selectorOrRef) {
         const raw = String(selectorOrRef).trim();
         if (!raw) return null;
 
-        // 1. OpenClaw e-format: e1, e2, @e3, ref=e4
         const eMatch = raw.match(/^(?:@|ref=)?(e\d+)$/i);
-        // 2. Legacy numeric format: [5], 5
         const numMatch = !eMatch && raw.match(/^\[?(\d+)\]?$/);
         const ref = eMatch ? eMatch[1].toLowerCase() : (numMatch ? `e${numMatch[1]}` : null);
 
@@ -779,16 +727,13 @@ class BrowserManagerService {
             const info = this.elementMap.get(ref);
             if (!info) return null;
 
-            // OpenClaw's exact matching — no .first() guessing
             const locator = info.name
                 ? page.getByRole(info.role, { name: info.name, exact: true })
                 : page.getByRole(info.role);
 
-            // nth() picks exact duplicate instance — no ambiguity
             return (info.nth !== undefined && info.nth !== null) ? locator.nth(info.nth) : locator;
         }
 
-        // 3. CSS selector fallback
         try {
             return page.locator(raw).first();
         } catch (e) {
@@ -796,9 +741,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  1. NAVIGATION
-    // ═══════════════════════════════════════════════════════════════
 
     async navigate(url) {
         const startTime = Date.now();
@@ -811,7 +753,6 @@ class BrowserManagerService {
             await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
             try { await page.waitForLoadState('networkidle', { timeout: 5000 }); } catch (e) { }
 
-            // Sync the themed window if it exists
             console.log('[BrowserService] Emitting sync signal for URL:', page.url());
             app.emit('sync-stonic-neural-browser', page.url());
 
@@ -843,7 +784,6 @@ class BrowserManagerService {
         try {
             await page.goBack({ waitUntil: 'domcontentloaded', timeout: 10000 });
             
-            // Sync the themed window
             app.emit('sync-stonic-neural-browser', page.url());
 
             const title = await page.title();
@@ -874,7 +814,6 @@ class BrowserManagerService {
         try {
             await page.goForward({ waitUntil: 'domcontentloaded', timeout: 10000 });
 
-            // Sync the themed window
             app.emit('sync-stonic-neural-browser', page.url());
 
             const title = await page.title();
@@ -906,7 +845,6 @@ class BrowserManagerService {
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
             try { await page.waitForLoadState('networkidle', { timeout: 5000 }); } catch (e) { }
             
-            // Sync the themed window
             app.emit('sync-stonic-neural-browser', page.url());
 
             const title = await page.title();
@@ -930,18 +868,7 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  2. SNAPSHOT & CONTENT
-    // ═══════════════════════════════════════════════════════════════
 
-    // ═══════════════════════════════════════════════════════════════
-    //  SNAPSHOT — OpenClaw ariaSnapshot() Engine
-    //  (from pw-tools-core.snapshot.ts + pw-role-snapshot.ts)
-    //
-    //  OLD: CDP Accessibility.getFullAXTree → flat list, no nth, 14 roles
-    //  NEW: Playwright ariaSnapshot() → tree structure, nth disambiguation,
-    //       17+10+19 role classification, compact mode
-    // ═══════════════════════════════════════════════════════════════
 
     async snapshot() {
         const startTime = Date.now();
@@ -949,12 +876,10 @@ class BrowserManagerService {
         this.elementMap.clear();
 
         try {
-            // ─── Step 1: Get ARIA snapshot via Playwright ──────────────
             let ariaText;
             try {
                 ariaText = await page.locator(':root').ariaSnapshot();
             } catch (ariaErr) {
-                // Fallback to CDP if ariaSnapshot() not available
                 ariaText = await this._fallbackCdpSnapshot(page);
             }
 
@@ -968,15 +893,13 @@ class BrowserManagerService {
                 };
             }
 
-            // ─── Step 2: Parse & assign refs (OpenClaw's buildRoleSnapshotFromAriaSnapshot) ──
             const lines = ariaText.split('\n');
             const resultLines = [];
             let counter = 0;
-            const roleCounts = {};  // "role:name" → count (nth disambiguation)
+            const roleCounts = {};
             let interactiveCount = 0;
 
             for (const line of lines) {
-                // Parse Playwright ARIA format: "  - role \"name\" ..."
                 const match = line.match(/^(\s*-\s*)(\w+)(?:\s+"([^"]*)")?(.*)$/);
                 if (!match) {
                     resultLines.push(line);
@@ -994,10 +917,8 @@ class BrowserManagerService {
                 const isContent = CONTENT_ROLES.has(role);
                 const isStructural = STRUCTURAL_ROLES.has(role);
 
-                // Compact mode: skip unnamed structural elements (less noise for AI)
                 if (isStructural && !name) continue;
 
-                // Assign ref if interactive or named content
                 const shouldHaveRef = isInteractive || (isContent && name);
                 if (shouldHaveRef) {
                     counter++;
@@ -1006,7 +927,6 @@ class BrowserManagerService {
                     const nth = roleCounts[key] || 0;
                     roleCounts[key] = nth + 1;
 
-                    // Store in elementMap — OpenClaw format with nth
                     this.elementMap.set(ref, {
                         role,
                         name: name || null,
@@ -1015,7 +935,6 @@ class BrowserManagerService {
 
                     if (isInteractive) interactiveCount++;
 
-                    // Build enhanced line with [ref=eN]
                     let enhanced = `${prefix}${roleRaw}`;
                     if (name) enhanced += ` "${name}"`;
                     enhanced += ` [ref=${ref}]`;
@@ -1027,7 +946,6 @@ class BrowserManagerService {
                 }
             }
 
-            // ─── Step 3: Compact tree — remove structural branches without refs ──
             const compactedLines = [];
             for (let i = 0; i < resultLines.length; i++) {
                 const line = resultLines[i];
@@ -1039,7 +957,6 @@ class BrowserManagerService {
                     compactedLines.push(line);
                     continue;
                 }
-                // Check if this structural line has children with refs
                 const currentIndent = Math.floor((line.match(/^(\s*)/)?.[1]?.length || 0) / 2);
                 let hasRelevantChildren = false;
                 for (let j = i + 1; j < resultLines.length; j++) {
@@ -1053,7 +970,6 @@ class BrowserManagerService {
                 if (hasRelevantChildren) compactedLines.push(line);
             }
 
-            // ─── Step 4: Build final output ───────────────────────────
             const title = await page.title();
             const snapshotText = `SNAPSHOT — "${title}" (${page.url()})\n${compactedLines.join('\n')}\n\n${interactiveCount} interactive elements. Use [ref=eN] to interact (e.g. browser_click with ref "e3").`;
 
@@ -1083,7 +999,6 @@ class BrowserManagerService {
         }
     }
 
-    // ─── Fallback CDP Snapshot (when Playwright ariaSnapshot() not available) ──
     async _fallbackCdpSnapshot(page) {
         try {
             const cdpSession = await page.context().newCDPSession(page);
@@ -1194,9 +1109,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  3. INTERACTIONS (enhanced)
-    // ═══════════════════════════════════════════════════════════════
 
     async click(selector, opts = {}) {
         const startTime = Date.now();
@@ -1219,7 +1131,6 @@ class BrowserManagerService {
 
             const clickOpts = { timeout: 5000, button, modifiers, delay: delayMs };
 
-            // ─── OpenClaw Pattern: Proactively capture filechooser ────────
             // Sites like Google Drive, YouTube, TikTok open native file dialogs
             // on click. The filechooser event fires NOW, but browser_upload_file
             // is called LATER. We capture it here so upload can use it.
@@ -1232,7 +1143,6 @@ class BrowserManagerService {
                 .then(chooser => {
                     this._pendingFileChooser = chooser;
                     console.log('[BrowserService] ✅ File chooser captured proactively');
-                    // Auto-expire after 60s if not used
                     this._pendingFileChooserTimeout = setTimeout(() => {
                         this._pendingFileChooser = null;
                         this._pendingFileChooserTimeout = null;
@@ -1246,7 +1156,6 @@ class BrowserManagerService {
                 await locator.click(clickOpts);
             }
 
-            // Give filechooser a moment to fire (it's async)
             await Promise.race([chooserPromise, new Promise(r => setTimeout(r, 500))]);
 
             return {
@@ -1537,9 +1446,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  4. SCROLL
-    // ═══════════════════════════════════════════════════════════════
 
     async scroll(direction, amount) {
         const startTime = Date.now();
@@ -1576,9 +1482,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  5. WAIT (enhanced — multi-condition)
-    // ═══════════════════════════════════════════════════════════════
 
     async wait(opts) {
         const startTime = Date.now();
@@ -1589,14 +1492,12 @@ class BrowserManagerService {
         } = (typeof opts === 'object' && opts !== null) ? opts : { selector: opts };
 
         try {
-            // Fixed time wait
             if (timeMs) {
                 const clampedMs = Math.min(timeMs, 30000);
                 await page.waitForTimeout(clampedMs);
                 return { success: true, toolName: 'browser_wait', result: `Waited ${clampedMs}ms`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Wait for text to appear
             if (text) {
                 await page.waitForFunction(
                     (t) => document.body.innerText.includes(t),
@@ -1606,7 +1507,6 @@ class BrowserManagerService {
                 return { success: true, toolName: 'browser_wait', result: `Text "${text}" appeared`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Wait for text to disappear
             if (textGone) {
                 await page.waitForFunction(
                     (t) => !document.body.innerText.includes(t),
@@ -1616,25 +1516,21 @@ class BrowserManagerService {
                 return { success: true, toolName: 'browser_wait', result: `Text "${textGone}" disappeared`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Wait for URL pattern
             if (url) {
                 await page.waitForURL(url, { timeout: timeout || 20000 });
                 return { success: true, toolName: 'browser_wait', result: `URL matched: ${page.url()}`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Wait for load state
             if (loadState) {
                 await page.waitForLoadState(loadState, { timeout: timeout || 20000 });
                 return { success: true, toolName: 'browser_wait', result: `Load state "${loadState}" reached`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Wait for JS function to return truthy
             if (jsFunction) {
                 await page.waitForFunction(jsFunction, { timeout: timeout || 20000 });
                 return { success: true, toolName: 'browser_wait', result: `JS condition met`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Wait for element (original behavior)
             if (selector) {
                 const waitState = state || 'visible';
                 const locator = await this.resolveElement(page, selector);
@@ -1646,7 +1542,6 @@ class BrowserManagerService {
                 return { success: true, toolName: 'browser_wait', result: `Element "${selector}" is now ${waitState}`, debugInfo: { executionTimeMs: Date.now() - startTime } };
             }
 
-            // Plain timeout
             if (timeout) {
                 await page.waitForTimeout(timeout);
                 return { success: true, toolName: 'browser_wait', result: `Waited for ${timeout}ms`, debugInfo: { executionTimeMs: Date.now() - startTime } };
@@ -1675,9 +1570,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  6. SCREENSHOT & EXTRACT
-    // ═══════════════════════════════════════════════════════════════
 
     async screenshot(opts) {
         const startTime = Date.now();
@@ -1780,9 +1672,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  7. JAVASCRIPT
-    // ═══════════════════════════════════════════════════════════════
 
     async executeScript(script) {
         const startTime = Date.now();
@@ -1812,18 +1701,13 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  8. FILE UPLOAD (fixed + multiple files + file_chooser)
-    // ═══════════════════════════════════════════════════════════════
 
     async uploadFile(selector, filePaths, timeoutMs = 30000) {
         const startTime = Date.now();
         const page = await this.getPage();
 
-        // Support both single string and array
         const pathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
 
-        // ─── SMART PATH RESOLUTION ────────────────────────────────────
         // Problem: AI often drops file extension (e.g. "final thumbnail" instead of "final thumbnail.png")
         // Solution: If exact path not found, search directory for matching filename with any extension
         const COMMON_EXTENSIONS = [
@@ -1837,10 +1721,8 @@ class BrowserManagerService {
         const resolvedPaths = pathsArray.map(p => {
             if (!p) return null;
 
-            // Exact path exists → use it directly
             if (fs.existsSync(p)) return p;
 
-            // Try adding common extensions
             for (const ext of COMMON_EXTENSIONS) {
                 const withExt = p + ext;
                 if (fs.existsSync(withExt)) {
@@ -1849,20 +1731,17 @@ class BrowserManagerService {
                 }
             }
 
-            // Try searching the directory for files starting with the basename
             try {
                 const dir = path.dirname(p);
                 const base = path.basename(p).toLowerCase();
                 if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
                     const entries = fs.readdirSync(dir);
-                    // Exact match (case-insensitive)
                     const exactMatch = entries.find(e => e.toLowerCase() === base);
                     if (exactMatch) {
                         const resolved = path.join(dir, exactMatch);
                         console.log(`[BrowserService] Smart resolve (case): "${p}" → "${resolved}"`);
                         return resolved;
                     }
-                    // Starts-with match (e.g. "final thumbnail" matches "final thumbnail.png")
                     const startsMatch = entries.find(e => e.toLowerCase().startsWith(base + '.'));
                     if (startsMatch) {
                         const resolved = path.join(dir, startsMatch);
@@ -1872,13 +1751,12 @@ class BrowserManagerService {
                 }
             } catch (e) { /* ignore directory read errors */ }
 
-            return null; // Could not resolve
+            return null;
         }).filter(Boolean);
 
         const validPaths = resolvedPaths.filter(p => p && fs.existsSync(p));
 
         if (validPaths.length === 0) {
-            // Build helpful error: show what was tried AND what's actually in the directory
             let dirHint = '';
             try {
                 const firstPath = pathsArray[0];
@@ -1907,12 +1785,10 @@ class BrowserManagerService {
 
         try {
             if (selector) {
-                // Method 1: Direct input element targeting
                 const locator = await this.resolveElement(page, selector);
                 if (locator) {
                     await locator.setInputFiles(validPaths, { timeout: timeoutMs });
 
-                    // Dispatch input + change events for React/Vue frameworks
                     try {
                         const handle = await locator.elementHandle();
                         if (handle) {
@@ -1921,7 +1797,7 @@ class BrowserManagerService {
                                 el.dispatchEvent(new Event('change', { bubbles: true }));
                             });
                         }
-                    } catch (e) { /* Non-critical */ }
+                    } catch (e) { }
 
                     return {
                         success: true,
@@ -1933,7 +1809,6 @@ class BrowserManagerService {
                 }
             }
 
-            // Method 2: File chooser intercept — for YouTube/TikTok/Google Drive hidden inputs
             // OpenClaw Pattern: Check if we already captured a filechooser during click
             if (this._pendingFileChooser) {
                 console.log('[BrowserService] ✅ Using pre-captured file chooser from click');
@@ -1953,7 +1828,6 @@ class BrowserManagerService {
                 };
             }
 
-            // Fallback: Wait for a new file chooser event
             const fileChooser = await page.waitForEvent('filechooser', { timeout: timeoutMs });
             await fileChooser.setFiles(validPaths);
 
@@ -1979,9 +1853,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  9. DOWNLOADS
-    // ═══════════════════════════════════════════════════════════════
 
     async waitDownload(timeoutMs = 30000) {
         const startTime = Date.now();
@@ -2056,9 +1927,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  10. DIALOG HANDLING
-    // ═══════════════════════════════════════════════════════════════
 
     async handleDialog(accept = true, promptText = null, timeoutMs = 10000) {
         const startTime = Date.now();
@@ -2095,9 +1963,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  11. PDF EXPORT
-    // ═══════════════════════════════════════════════════════════════
 
     async savePdf(savePath = null) {
         const startTime = Date.now();
@@ -2127,9 +1992,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  12. COOKIE MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
 
     async getCookies() {
         const startTime = Date.now();
@@ -2210,9 +2072,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  13. STORAGE MANAGEMENT (localStorage / sessionStorage)
-    // ═══════════════════════════════════════════════════════════════
 
     async getStorage(kind = 'local', key = null) {
         const startTime = Date.now();
@@ -2306,9 +2165,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  14. VIEWPORT & DEVICE EMULATION
-    // ═══════════════════════════════════════════════════════════════
 
     async resizeViewport(width, height) {
         const startTime = Date.now();
@@ -2507,9 +2363,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  15. CONSOLE & DEBUGGING
-    // ═══════════════════════════════════════════════════════════════
 
     async getConsoleMessages(level = null) {
         const startTime = Date.now();
@@ -2561,9 +2414,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  16. TAB MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
 
     async getTabs() {
         const startTime = Date.now();
@@ -2647,7 +2497,6 @@ class BrowserManagerService {
             const newPage = await this.context.newPage();
             this.activePage = newPage;
 
-            // Attach console & error listeners to new tab
             newPage.on('console', (msg) => {
                 this.consoleMessages.push({ level: msg.type(), text: msg.text(), timestamp: new Date().toISOString() });
                 if (this.consoleMessages.length > 500) this.consoleMessages.shift();
@@ -2735,9 +2584,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  17. DRAG & DROP
-    // ═══════════════════════════════════════════════════════════════
 
     async dragDrop(sourceSelector, targetSelector) {
         const startTime = Date.now();
@@ -2787,9 +2633,6 @@ class BrowserManagerService {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  18. CLOSE
-    // ═══════════════════════════════════════════════════════════════
 
     async close() {
         const startTime = Date.now();
@@ -2810,7 +2653,6 @@ class BrowserManagerService {
                 debugInfo: { executionTimeMs: Date.now() - startTime }
             };
         } catch (e) {
-            // Even if close throws, ensure state is cleaned up
             this.browser = null;
             this.context = null;
             this.activePage = null;
@@ -2832,23 +2674,19 @@ function registerBrowserHandlers() {
     // reserved) before any browser launch needs it.
     resolveCdpPort().catch((err) => console.error('[BrowserService] CDP port resolution failed:', err.message));
 
-    // Helper: wrap calls with auto-recovery so browser-closed-by-user is handled seamlessly
     const r = (toolName, fn) => browserService._withAutoRecovery(toolName, fn);
 
-    // ─── NAVIGATION ───────────────────────────────────────────────
     ipcMain.handle('browser-navigate',         async (e, url) => r('browser_navigate', () => browserService.navigate(url)));
     ipcMain.handle('browser-go-back',          async () => r('browser_go_back', () => browserService.goBack()));
     ipcMain.handle('browser-go-forward',       async () => r('browser_go_forward', () => browserService.goForward()));
     ipcMain.handle('browser-reload',           async () => r('browser_reload', () => browserService.reload()));
 
-    // ─── SNAPSHOT & CONTENT ───────────────────────────────────────
     ipcMain.handle('browser-snapshot',         async (e, s) => r('browser_snapshot', () => browserService.snapshot(s)));
     ipcMain.handle('browser-get-html',         async (e, { selector, maxChars }) => r('browser_get_html', () => browserService.getHtml(selector, maxChars)));
     ipcMain.handle('browser-query-selector',   async (e, { selector, limit, maxTextChars }) => r('browser_query_selector', () => browserService.querySelector(selector, limit, maxTextChars)));
     ipcMain.handle('browser-extract',          async (e, s) => r('browser_extract', () => browserService.extract(s)));
     ipcMain.handle('browser-screenshot',       async (e, a) => r('browser_screenshot', () => browserService.screenshot(a)));
 
-    // ─── INTERACTIONS ─────────────────────────────────────────────
     ipcMain.handle('browser-click',            async (e, { selector, doubleClick, button, modifiers, delayMs }) => r('browser_click', () => browserService.click(selector, { doubleClick, button, modifiers, delayMs })));
     ipcMain.handle('browser-type',             async (e, { selector, text, clearFirst, slowly }) => r('browser_type', () => browserService.type(selector, text, clearFirst, slowly)));
     ipcMain.handle('browser-fill-form',        async (e, { fields, timeoutMs }) => r('browser_fill_form', () => browserService.fillForm(fields, timeoutMs)));
@@ -2859,36 +2697,27 @@ function registerBrowserHandlers() {
     ipcMain.handle('browser-scroll-into-view', async (e, { selector }) => r('browser_scroll_into_view', () => browserService.scrollIntoView(selector)));
     ipcMain.handle('browser-highlight',        async (e, { selector }) => r('browser_highlight', () => browserService.highlight(selector)));
 
-    // ─── WAIT ─────────────────────────────────────────────────────
     ipcMain.handle('browser-wait',             async (e, opts) => r('browser_wait', () => browserService.wait(opts)));
 
-    // ─── JAVASCRIPT ───────────────────────────────────────────────
     ipcMain.handle('browser-execute-script',   async (e, s) => r('browser_execute_script', () => browserService.executeScript(s)));
 
-    // ─── FILE UPLOAD ──────────────────────────────────────────────
     ipcMain.handle('browser-upload-file',      async (e, { selector, filePath, filePaths, timeoutMs }) => r('browser_upload_file', () => browserService.uploadFile(selector, filePaths || filePath, timeoutMs)));
 
-    // ─── DOWNLOADS ────────────────────────────────────────────────
     ipcMain.handle('browser-wait-download',    async (e, { timeoutMs }) => r('browser_wait_download', () => browserService.waitDownload(timeoutMs)));
     ipcMain.handle('browser-download-by-click',async (e, { selector, timeoutMs }) => r('browser_download_by_click', () => browserService.downloadByClick(selector, timeoutMs)));
 
-    // ─── DIALOGS ──────────────────────────────────────────────────
     ipcMain.handle('browser-handle-dialog',    async (e, { accept, promptText, timeoutMs }) => r('browser_handle_dialog', () => browserService.handleDialog(accept, promptText, timeoutMs)));
 
-    // ─── PDF ──────────────────────────────────────────────────────
     ipcMain.handle('browser-save-pdf',         async (e, { savePath }) => r('browser_save_pdf', () => browserService.savePdf(savePath)));
 
-    // ─── COOKIES ──────────────────────────────────────────────────
     ipcMain.handle('browser-get-cookies',      async () => r('browser_get_cookies', () => browserService.getCookies()));
     ipcMain.handle('browser-set-cookie',       async (e, { cookie }) => r('browser_set_cookie', () => browserService.setCookie(cookie)));
     ipcMain.handle('browser-clear-cookies',    async () => r('browser_clear_cookies', () => browserService.clearCookies()));
 
-    // ─── STORAGE ──────────────────────────────────────────────────
     ipcMain.handle('browser-get-storage',      async (e, { kind, key }) => r('browser_get_storage', () => browserService.getStorage(kind, key)));
     ipcMain.handle('browser-set-storage',      async (e, { key, value, kind }) => r('browser_set_storage', () => browserService.setStorage(key, value, kind)));
     ipcMain.handle('browser-clear-storage',    async (e, { kind }) => r('browser_clear_storage', () => browserService.clearStorage(kind)));
 
-    // ─── EMULATION ────────────────────────────────────────────────
     ipcMain.handle('browser-resize-viewport',          async (e, { width, height }) => r('browser_resize_viewport', () => browserService.resizeViewport(width, height)));
     ipcMain.handle('browser-emulate-device',           async (e, { deviceName }) => r('browser_emulate_device', () => browserService.emulateDevice(deviceName)));
     ipcMain.handle('browser-emulate-color-scheme',     async (e, { scheme }) => r('browser_emulate_color_scheme', () => browserService.emulateColorScheme(scheme)));
@@ -2897,20 +2726,16 @@ function registerBrowserHandlers() {
     ipcMain.handle('browser-set-http-credentials',     async (e, { username, password, clear }) => r('browser_set_http_credentials', () => browserService.setHttpCredentials(username, password, clear)));
     ipcMain.handle('browser-set-geolocation',          async (e, { latitude, longitude, accuracy, clear }) => r('browser_set_geolocation', () => browserService.setGeolocation(latitude, longitude, accuracy, clear)));
 
-    // ─── CONSOLE & DEBUGGING ──────────────────────────────────────
     ipcMain.handle('browser-get-console',      async (e, { level }) => r('browser_get_console', () => browserService.getConsoleMessages(level)));
     ipcMain.handle('browser-get-errors',       async () => r('browser_get_errors', () => browserService.getPageErrors()));
 
-    // ─── TABS ─────────────────────────────────────────────────────
     ipcMain.handle('browser-get-tabs',         async () => r('browser_get_tabs', () => browserService.getTabs()));
     ipcMain.handle('browser-switch-tab',       async (e, { index }) => r('browser_switch_tab', () => browserService.switchTab(index)));
     ipcMain.handle('browser-new-tab',          async (e, { url }) => r('browser_new_tab', () => browserService.newTab(url)));
     ipcMain.handle('browser-close-tab',        async (e, { index }) => r('browser_close_tab', () => browserService.closeTab(index)));
 
-    // ─── DRAG & DROP ──────────────────────────────────────────────
     ipcMain.handle('browser-drag-drop',        async (e, { sourceSelector, targetSelector }) => r('browser_drag_drop', () => browserService.dragDrop(sourceSelector, targetSelector)));
 
-    // ─── CLOSE (no auto-recovery needed — explicit close action) ──
     ipcMain.handle('browser-close',            async () => browserService.close());
 
     console.log('[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)');

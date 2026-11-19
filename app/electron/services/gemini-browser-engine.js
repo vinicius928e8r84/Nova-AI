@@ -25,33 +25,22 @@ const path  = require('path');
 const fs    = require('fs');
 const axios = require('axios');
 
-// ──────────────────────────────────────────────────────────────────
-//  CONSTANTS
-// ──────────────────────────────────────────────────────────────────
 
-const SESSION_PARTITION = 'persist:nova_pro';   // Dedicated Partition
+const SESSION_PARTITION = 'persist:nova_pro';
 const SESSION_PATH      = path.join(app.getPath('userData'), 'NovaHardSession');
 const GEMINI_ORIGIN     = 'https://gemini.google.com';
 const GOOGLE_LOGIN_URL  = 'https://accounts.google.com/signin/v2/identifier?continue=https://gemini.google.com/&hl=en';
 const GEMINI_API_HOST   = 'https://gemini.google.com';
 
-// File that caches login status (true/false + email)
 const getAuthStatePath  = () => path.join(app.getPath('userData'), 'gemini_account_auth.json');
-// File that stores the selected model ID
 const getModelPrefPath  = () => path.join(app.getPath('userData'), 'gemini_browser_model.json');
 
-// ──────────────────────────────────────────────────────────────────
-//  STATE
-// ──────────────────────────────────────────────────────────────────
 
-let loginWindow    = null;   // The login popup BrowserWindow
+let loginWindow    = null;
 let isLoggedIn     = false;
 let loggedInEmail  = null;
-let selectedModel  = 'gemini-3.8-flash';  // Default model
+let selectedModel  = 'gemini-3.8-flash';
 
-// ──────────────────────────────────────────────────────────────────
-//  INTERNAL HELPERS
-// ──────────────────────────────────────────────────────────────────
 
 function loadAuthState() {
     try {
@@ -61,13 +50,13 @@ function loadAuthState() {
             isLoggedIn   = !!d.loggedIn;
             loggedInEmail = d.email || null;
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
 }
 
 function saveAuthState(loggedIn, email) {
     try {
         fs.writeFileSync(getAuthStatePath(), JSON.stringify({ loggedIn, email, updatedAt: Date.now() }, null, 2));
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
 }
 
 function loadModelPref() {
@@ -77,18 +66,15 @@ function loadModelPref() {
             const d = JSON.parse(fs.readFileSync(p, 'utf8'));
             selectedModel = d.model || 'gemini-3.8-flash';
         }
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
 }
 
 function saveModelPref(model) {
     try {
         fs.writeFileSync(getModelPrefPath(), JSON.stringify({ model, updatedAt: Date.now() }, null, 2));
-    } catch (e) { /* ignore */ }
+    } catch (e) { }
 }
 
-// ──────────────────────────────────────────────────────────────────
-//  GOOGLE LOGIN WINDOW
-// ──────────────────────────────────────────────────────────────────
 
 /**
  * Opens a dedicated login window using the persistent Electron session.
@@ -103,14 +89,13 @@ function openGoogleLoginWindow(parentWindow) {
         if (loginWindow) {
             return resolve({ success: false, email: null });
         }
-        loginWindow = true; // lock flag
+        loginWindow = true;
 
         try {
             const { browserService } = require('./browser-manager');
             const { chromium } = require('playwright');
             const geminiSession = session.fromPartition(SESSION_PARTITION);
 
-            // ── Ensure Playwright browser is running ──────────────────
             if (!browserService.isInitialized) {
                 console.log('[NOVA] Playwright not running, launching...');
                 await browserService.launch();
@@ -121,7 +106,6 @@ function openGoogleLoginWindow(parentWindow) {
                 throw new Error('Playwright context not available');
             }
 
-            // ── Open a NEW Playwright page for login ──────────────────
             const loginPage = await context.newPage();
             let resolved = false;
 
@@ -132,7 +116,6 @@ function openGoogleLoginWindow(parentWindow) {
 
                 if (success) {
                     try {
-                        // Transfer ALL cookies from Playwright → Electron session
                         const cookies = await context.cookies();
                         for (const c of cookies) {
                             const domain = c.domain.startsWith('.') ? c.domain : c.domain;
@@ -147,7 +130,7 @@ function openGoogleLoginWindow(parentWindow) {
                                     httpOnly: c.httpOnly || false,
                                     expirationDate: c.expires && c.expires > 0 ? c.expires : undefined
                                 });
-                            } catch (_) {} // skip bad cookies silently
+                            } catch (_) {}
                         }
                         console.log('[NOVA] ✅ Google Login SUCCESS — cookies transferred!');
                         isLoggedIn = true;
@@ -163,11 +146,9 @@ function openGoogleLoginWindow(parentWindow) {
                     resolve({ success: false, email: null });
                 }
 
-                // Close the login page quietly
                 try { await loginPage.close(); } catch (_) {}
             };
 
-            // Watch for successful redirect to gemini.google.com
             loginPage.on('framenavigated', async (frame) => {
                 if (frame !== loginPage.mainFrame()) return;
                 const url = frame.url();
@@ -178,7 +159,6 @@ function openGoogleLoginWindow(parentWindow) {
 
             loginPage.on('close', () => finish(false));
 
-            // Navigate to Google login
             await loginPage.goto(GOOGLE_LOGIN_URL, { waitUntil: 'domcontentloaded' });
 
         } catch (err) {
@@ -190,9 +170,6 @@ function openGoogleLoginWindow(parentWindow) {
 }
 
 
-// ──────────────────────────────────────────────────────────────────
-//  SESSION COOKIE HELPER
-// ──────────────────────────────────────────────────────────────────
 
 /**
  * Extracts cookies from our persistent session and returns them
@@ -204,9 +181,6 @@ async function getSessionCookieHeader() {
     return cookies.map(c => `${c.name}=${c.value}`).join('; ');
 }
 
-// ──────────────────────────────────────────────────────────────────
-//  CORE: SEND MESSAGE VIA BROWSER SESSION
-// ──────────────────────────────────────────────────────────────────
 
 /**
  * Maps our internal model IDs to the Gemini web API model parameter.
@@ -234,7 +208,6 @@ async function sendMessage({ prompt, imageBase64 = null, model = null, history =
     const apiVersions = ['v1beta', 'v1'];
     let lastError = null;
 
-    // ── Build the request payload ──
     const parts = [];
     if (history && history.length > 0) {
         const histCtx = history.slice(-10).map(h => `${h.role === 'user' ? 'User' : 'Nova'}: ${h.text}`).join('\n');
@@ -284,23 +257,21 @@ async function sendMessage({ prompt, imageBase64 = null, model = null, history =
  * This is the 'True Pro Core' mode.
  */
 async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
-    // If it's an image prompt, we use the Web UI Automation to get Imagen 3
     const promptPart = parts.find(p => p.text)?.text || '';
     
     const geminiSess = session.fromPartition(SESSION_PARTITION);
     return new Promise((resolve, reject) => {
         const automationWin = new BrowserWindow({
-            show: false, // Keep it hidden
+            show: false,
             width: 1280, height: 800,
             webPreferences: {
                 session: geminiSess,
                 nodeIntegration: false,
                 contextIsolation: false,
-                offscreen: true // NEW: Optimized for background automation
+                offscreen: true
             },
         });
 
-        // Stability: Mute audio to avoid background noise/resource usage
         automationWin.webContents.setAudioMuted(true);
 
         const timeout = setTimeout(() => {
@@ -312,7 +283,6 @@ async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
         
         automationWin.webContents.once('did-finish-load', async () => {
             try {
-                // Script to automate the Gemini Web UI
                 const result = await automationWin.webContents.executeJavaScript(`
                     (async () => {
                         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -446,9 +416,6 @@ async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
     });
 }
 
-// ──────────────────────────────────────────────────────────────────
-//  SESSION LOGOUT
-// ──────────────────────────────────────────────────────────────────
 
 async function logoutSession() {
     try {
@@ -463,11 +430,7 @@ async function logoutSession() {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────
-//  PUBLIC API
-// ──────────────────────────────────────────────────────────────────
 
-// Boot: load persisted state
 loadAuthState();
 loadModelPref();
 
@@ -484,9 +447,7 @@ async function checkAutoLogin() {
         
         if (hasSession) {
             isLoggedIn = true;
-            // Try to recover email if not in auth state
             if (!loggedInEmail) {
-                // Email might be hard to get without opening a window, but we know we are logged in
                 console.log('[GeminiBrowserEngine] Auto-Reconnect: Session found via cookies.');
             }
             return { success: true, loggedIn: true };
@@ -509,7 +470,6 @@ function setupSessionBypass() {
     });
 }
 
-// Perform initial check when app is ready
 if (app.isReady()) {
     setupSessionBypass();
     checkAutoLogin().then(() => startHeartbeat());
@@ -530,11 +490,10 @@ function startHeartbeat() {
             if (!status.loggedIn) {
                 console.warn('[GeminiBrowserEngine] Heartbeat: Session lost!');
                 isLoggedIn = false;
-                // Silently try to recover if cookies still exist
                 checkAutoLogin();
             }
         }
-    }, 5 * 60 * 1000); // Every 5 minutes
+    }, 5 * 60 * 1000);
 }
 
 module.exports = {
