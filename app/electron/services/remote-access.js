@@ -501,7 +501,8 @@ hone par ye file automatically update ho jayegi.
             } else {
                 // Production: use bundled binary from resources
                 const path = require('path');
-                binPath = process.platform === 'darwin' ? require('./mac-native').tool('cloudflared') : path.join(process.resourcesPath, 'cloudflared.exe');
+                const toolPaths = require('./tool-paths');
+                binPath = toolPaths.tool('cloudflared') || path.join(process.resourcesPath, toolPaths.exe('cloudflared'));
             }
 
             console.log('[RemoteAccess] Using binary path:', binPath);
