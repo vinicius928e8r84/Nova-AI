@@ -4251,9 +4251,7 @@ if (!gotTheLock) {
 
     const createdWindow = createWindow();
 
-    // Identidade simulada: tem de vir DEPOIS do createWindow, que é quem cria o
-    // app.physicalMobileService — registrado antes, o módulo lança 'service obrigatório'.
-    try { require('./services/identidade-ipc').register(app, ipcMain); } catch (e) { console.error('[identidade] IPC nao registrado:', e && e.message); }
+    try { require('./services/idioma-ipc').register(app, ipcMain); } catch (e) { console.error('[idioma] IPC nao registrado:', e && e.message); }
 
     autoUpdater.on('checking-for-update', () => {
       console.log('🔍 [NOVA UPDATE] Checking for updates...');
