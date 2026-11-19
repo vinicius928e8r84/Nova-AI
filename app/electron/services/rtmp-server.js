@@ -55,9 +55,7 @@ async function startBroadcast() {
     videoStream = new PassThrough();
     
     // Check if ffmpeg exists in resources/bin
-    let ffmpegPath = (process.platform === 'darwin')
-        ? require('./mac-native').tool('ffmpeg')
-        : path.join(process.cwd(), 'resources', 'bin', 'ffmpeg.exe');
+    let ffmpegPath = require('./tool-paths').ffmpeg();
     if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
         ffmpegPath = 'ffmpeg';
     }

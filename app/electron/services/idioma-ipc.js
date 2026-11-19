@@ -317,7 +317,7 @@ function executarNoAparelho(cmd, timeoutMs = 25000) {
         const args = ['-p', '2222', ...sshOptions,
             '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
             'mobile@127.0.0.1', seguro.map(cita).join(' ')];
-        require('child_process').execFile('/usr/bin/ssh', args, { timeout: timeoutMs }, (err, stdout, stderr) => {
+        require('child_process').execFile(require('./tool-paths').ssh(), args, { timeout: timeoutMs }, (err, stdout, stderr) => {
             resolve({ code: err ? (err.code || 1) : 0, stdout: String(stdout || ''), stderr: String(stderr || '') });
         });
     });
