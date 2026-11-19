@@ -1581,6 +1581,6 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 ## 2026-11-19 — E1a: atualizador igual no Windows e no Mac
 
 - **O que mudou:** `main.js` não desliga mais o atualizador no Mac. Saíram as duas guardas `process.platform === 'darwin'` dos IPCs de atualização, o `process.platform !== 'darwin' &&` da checagem na abertura e 4 linhas mortas no topo (flags de assinatura e `console.log`). A decisão passa só por `hasUpdateConfig()`: sem `publish`, nada muda em nenhum dos dois. `docs/windows.md` corrigido.
-- **Arquivos:** `app/electron/main.js`, `docs/windows.md`. Saldo de `main.js`: −6 linhas.
-- **Arquivos do app instalado que mudam no Mac:** `/Applications/Nova AI Mac.app/Contents/Resources/app.asar` (contém `electron/main.js`); guarde o anterior em `reservas/` antes de trocar. Reaplicar: rebuild com `npm run dist:mac` ou `cp` do `main.js` no app desempacotado; `node --check` e reiniciar o Nova.
+- **Arquivos:** `app/electron/main.js`, `docs/windows.md`. Saldo de `main.js`: −7 linhas. Teste novo em `app/test/paridade-b.test.js` trava o ramo por sistema nos IPCs de atualização.
+- **Arquivos do app instalado que mudam no Mac:** `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/main.js` (o app não usa `app.asar`: `asar: false`). Guarde o anterior em `reservas/`; reaplique com `cp app/electron/main.js "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/main.js"`, `node --check` e reinicie o Nova.
 - **Sem testar:** Mac e Windows reais; atualização com feed `publish` de verdade.

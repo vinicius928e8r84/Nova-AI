@@ -88,3 +88,18 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
     }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
   })();
 });
+
+test('main.js: atualizador sem ramo por sistema e sem linha em branco dupla na configuração', () => {
+  const fonte = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+  const ipcs = ['check-for-update', 'download-update', 'install-update'];
+  for (const canal of ipcs) {
+    const inicio = fonte.indexOf(`ipcMain.handle('${canal}'`);
+    assert.ok(inicio > 0, canal);
+    const corpo = fonte.slice(inicio, fonte.indexOf('\n  });', inicio));
+    assert.ok(!corpo.includes('process.platform'), canal);
+  }
+  const abertura = fonte.slice(fonte.indexOf('autoUpdater.checkForUpdates()') - 120, fonte.indexOf('autoUpdater.checkForUpdates()'));
+  assert.ok(!abertura.includes('process.platform'));
+  const marca = fonte.indexOf('autoUpdater.autoInstallOnAppQuit');
+  assert.ok(!fonte.slice(marca, marca + 200).includes('\n\n\n'));
+});

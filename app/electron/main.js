@@ -103,7 +103,6 @@ const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-
 // FORCE DEV UPDATE CONFIG (For testing without building)
 if (process.env.NODE_ENV === 'development') {
   autoUpdater.forceDevUpdateConfig = true;
