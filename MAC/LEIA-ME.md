@@ -1,5 +1,14 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Download de ADB/scrcpy no Windows com a regra do Mac (P5) — 19/11/2026
+
+- **O que mudou:** `android-tools-mac.js` virou `android-tools.js` e atende `darwin` e `win32`. No Windows, ADB de `dl.google.com` com SHA-1 do manifesto (`host-os` `windows`) e scrcpy v5.0.1 (`scrcpy-win64-v5.0.1.zip`, SHA-256 `b12a2c4ee8be317422451fc7dcf8ee20a71b5ea7ef9ad73ddd825a25316227a5`), só hosts oficiais (também em cada redirect), troca atômica com `.old`, extração por `execFile('powershell.exe')` com `Expand-Archive -LiteralPath` lendo o caminho de variáveis de ambiente (nada interpolado no comando) e falha do scrcpy não engolida (`success:false` com a causa). O ramo antigo do Windows em `ensureTools` (ADB sem hash, scrcpy v2.4 sem hash) foi apagado; `ensureMacTools` passou a se chamar `ensureAndroidTools`.
+- **No Mac:** o caminho é o mesmo (mesmas URLs, hashes e mensagens, inclusive a dica do `brew`); os 15 testes antigos seguem passando, agora com `platform: 'darwin'` explícito.
+- **Arquivos:** `app/electron/services/android-tools.js` (era `android-tools-mac.js`), `app/electron/services/physicalMobileService.js`, `app/tests/android-tools.test.js` (era `android-tools-mac.test.js`), `scripts/regras/linha-de-base.json`.
+- **Arquivos do app instalado no Mac que mudam:** `Resources/app/electron/services/android-tools.js` (novo; apagar o `android-tools-mac.js` antigo depois de guardá-lo em `reservas/`) e `Resources/app/electron/services/physicalMobileService.js`. Reaplicar com `cp` e reiniciar o Nova.
+- **Testado:** `node --check` e `node --test app/tests/android-tools.test.js` (25 testes, rede e extração simuladas).
+- **Sem testar:** extração real com PowerShell, execução de adb/scrcpy, espelhar e câmera num Windows com Android; Mac real.
+
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
 - **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.
