@@ -206,7 +206,11 @@ class WhatsAppManager {
 
     resolveBrowserExecutable() {
         if (process.platform === "darwin") {
-            return require('./mac-native').browser('chrome');
+            const macNative = require('./mac-native');
+            const fromEnv = process.env.PUPPETEER_EXECUTABLE_PATH;
+            return (fromEnv && fs.existsSync(fromEnv) ? fromEnv : null)
+                || macNative.browser('chrome')
+                || macNative.browser('edge');
         }
 
         const candidates = [];

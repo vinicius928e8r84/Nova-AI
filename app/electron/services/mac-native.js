@@ -10,15 +10,23 @@ function tool(name) {
   const dirs = [process.resourcesPath && path.join(process.resourcesPath,'bin'),path.join(__dirname,'../../resources/bin'),'/opt/homebrew/bin','/usr/local/bin',path.join(os.homedir(),'Library/Android/sdk/platform-tools'),...(process.env.PATH||'').split(':')].filter(Boolean);
   return dirs.map(d=>path.join(d,name)).find(p=>{try{fs.accessSync(p,fs.constants.X_OK);return true;}catch{return false;}})||null;
 }
+function userDataBrowsers() {
+  try {return path.join(require('electron').app.getPath('userData'),'browsers');} catch {return null;}
+}
 function browser(kind='chrome') {
   const names={chrome:['Google Chrome','Google Chrome for Testing'],brave:['Brave Browser'],vivaldi:['Vivaldi'],firefox:['Firefox'],edge:['Microsoft Edge']};
-  for(const name of names[kind]||names.chrome) for(const root of ['/Applications',path.join(os.homedir(),'Applications')]) {
-    const p=path.join(root,name+'.app','Contents','MacOS',name==='Firefox'?'firefox':name);
-    if(fs.existsSync(p)) return p;
+  const bundledRoots=[process.resourcesPath&&path.join(process.resourcesPath,'browsers'),path.join(__dirname,'../../browsers'),userDataBrowsers()].filter(Boolean);
+  for(const name of names[kind]||names.chrome) {
+    const exe=name==='Firefox'?'firefox':name;
+    const apps=[...['/Applications',path.join(os.homedir(),'Applications')].map(root=>path.join(root,name+'.app')),...bundledRoots.map(root=>path.join(root,kind,name+'.app'))];
+    for(const app of apps) {
+      const p=path.join(app,'Contents','MacOS',exe);
+      if(fs.existsSync(p)) return p;
+    }
   }
   if(kind==='chrome') {
     const {findBundledChromiumExecutable}=require('./platform-utils');
-    const p=findBundledChromiumExecutable([process.resourcesPath&&path.join(process.resourcesPath,'browsers'),path.join(__dirname,'../../browsers')]);
+    const p=findBundledChromiumExecutable(bundledRoots);
     if(p)return p;
     try {const p=require('playwright').chromium.executablePath();if(fs.existsSync(p))return p;}catch{}
   }
