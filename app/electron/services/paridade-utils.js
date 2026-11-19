@@ -19,10 +19,10 @@ const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^
 
 function instalacaoPorSistema(platform) {
   if (platform === 'darwin') {
-    return 'INSTALL (macOS, runs in background because execute_shell kills after 15 s): .dmg = (hdiutil attach -nobrowse -readonly -mountpoint TMP "ARQ" && ditto TMP/X.app /Applications/X.app; hdiutil detach TMP) >/dev/null 2>&1 &; .pkg = osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' >/dev/null 2>&1 & (asks the Mac password once; ARQ without single quotes; check with pkgutil --pkgs afterwards).';
+    return 'INSTALL (macOS, runs in background because execute_shell kills after 15 s): .dmg = (hdiutil attach -nobrowse -readonly -mountpoint "TMP" "ARQ" && ditto "TMP/X.app" "/Applications/X.app"; hdiutil detach "TMP") >/dev/null 2>&1 & (check with ls /Applications afterwards) | .pkg = osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' >/dev/null 2>&1 & (asks the Mac password once; ARQ without single quotes; check with pkgutil --pkgs afterwards).';
   }
   if (platform === 'win32') {
-    return 'INSTALL (Windows, keeps running in background after execute_shell\'s 15 s limit): .exe = "ARQ" /S; .msi = msiexec /i ARQ /qn /norestart (asks UAC when needed; check the installed program afterwards).';
+    return 'INSTALL (Windows, keeps running in background after execute_shell\'s 15 s limit): .exe = "ARQ" /S; .msi = msiexec /i "ARQ" /qn /norestart (asks UAC when needed; check the installed program afterwards).';
   }
   return '';
 }

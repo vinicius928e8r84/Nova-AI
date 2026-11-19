@@ -60,11 +60,22 @@ test('instalacaoPorSistema: Mac traz hdiutil/ditto/installer e Windows traz /S e
   assert.ok(mac.includes('hdiutil attach') && mac.includes('ditto') && mac.includes('installer -pkg') && mac.includes('administrator privileges'));
   assert.ok(!mac.includes('msiexec'));
   const win = instalacaoPorSistema('win32');
-  assert.ok(win.includes('"ARQ" /S') && win.includes('msiexec /i ARQ /qn /norestart'));
+  assert.ok(win.includes('"ARQ" /S') && win.includes('msiexec /i "ARQ" /qn /norestart'));
   assert.ok(!win.includes('hdiutil'));
 });
 
-test('instalacaoPorSistema: nos dois sistemas o instalador sobrevive ao limite de 15 s do execute_shell', () => {
+test('instalacaoPorSistema: todo caminho da receita vai entre aspas e o .dmg manda conferir depois', () => {
+  const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
+  const mac = instalacaoPorSistema('darwin');
+  assert.ok(mac.includes('ditto "TMP/X.app" "/Applications/X.app"'));
+  assert.ok(mac.includes('-mountpoint "TMP"') && mac.includes('hdiutil detach "TMP"'));
+  assert.ok(mac.includes('ls /Applications'));
+  assert.ok(!/&;|&\s*;/.test(mac));
+  const win = instalacaoPorSistema('win32');
+  assert.ok(!/msiexec \/i ARQ/.test(win));
+});
+
+test('instalacaoPorSistema: a receita do Mac roda em segundo plano e a do Windows avisa do limite de 15 s', () => {
   const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
   const mac = instalacaoPorSistema('darwin');
   assert.ok(mac.includes(' >/dev/null 2>&1 &'));
