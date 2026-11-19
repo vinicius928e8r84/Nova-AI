@@ -33,7 +33,7 @@ class IosCamera {
   this.transport=null; this.socketPath=null; this.url=null;
  }
  run(file,args,timeout=15000) { return new Promise((resolve,reject)=>execFile(file,args,{timeout,maxBuffer:1024*1024,windowsHide:true},(err,out,stderr)=>err?reject(new Error(String(stderr||err.message).trim())):resolve(String(out)))); }
- ssh(cmd) { return this.run(require('./tool-paths').sshExigido(),[...SSH,'mobile@127.0.0.1',cmd]); }
+ ssh(cmd) { return this.run(require('./tool-paths').exigirOpenssh('ssh'),[...SSH,'mobile@127.0.0.1',cmd]); }
  async status() {
   try {
    const state=JSON.parse(await this.ssh('cat /var/tmp/obs-graph-bridge-status.json'));
@@ -81,7 +81,7 @@ class IosCamera {
  }
  _openForward(args) {
   return new Promise((resolve,reject)=>{
-   const child=spawn(require('./tool-paths').sshExigido(),args,{stdio:['ignore','ignore','pipe'],windowsHide:true});
+   const child=spawn(require('./tool-paths').exigirOpenssh('ssh'),args,{stdio:['ignore','ignore','pipe'],windowsHide:true});
    child.novaAbort=false; this.tunnelProcess=child;
    let stderr='',settled=false;
    const close=()=>{if(this.tunnelProcess===child)this.tunnelProcess=null;try{child.kill();}catch{}}
@@ -127,7 +127,7 @@ class IosCamera {
     : `http://127.0.0.1:${this.transport.port}${this.framePath}`;
    const ffmpeg=require('./tool-paths').ffmpeg();
    if(!ffmpeg) throw new Error('FFmpeg não encontrado no Mac.');
-   this.decoder=spawn(ffmpeg,['-nostdin','-loglevel','error','-re','-stream_loop','-1','-i',videoPath,'-an','-vf','fps=15,scale=1280:1280:force_original_aspect_ratio=decrease','-f','image2pipe','-vcodec','mjpeg','-q:v','4','pipe:1'],{stdio:['ignore','pipe','pipe']});
+   this.decoder=spawn(ffmpeg,['-nostdin','-loglevel','error','-re','-stream_loop','-1','-i',videoPath,'-an','-vf','fps=15,scale=1280:1280:force_original_aspect_ratio=decrease','-f','image2pipe','-vcodec','mjpeg','-q:v','4','pipe:1'],{stdio:['ignore','pipe','pipe'],windowsHide:true});
    let pending=Buffer.alloc(0),decoderError='';
    this.decoder.stderr.on('data',chunk=>{decoderError=(decoderError+chunk).slice(-2000);});
    this.decoder.stdout.on('data',chunk=>{

@@ -37,17 +37,17 @@ const ssh = (opts) => openssh('ssh', opts);
 const scp = (opts) => openssh('scp', opts);
 const MSG_SEM_OPENSSH = 'O Cliente OpenSSH do Windows não está ativo. Ative-o em Configurações > Aplicativos > Recursos opcionais.';
 
-function sshExigido(opts) {
+function exigirOpenssh(nome, opts) {
   const s = sistema(opts);
-  const file = ssh(opts);
+  const file = openssh(nome, opts);
   if (s.win && !s.exists(file)) throw new Error(MSG_SEM_OPENSSH);
   return file;
 }
 
 function execSsh(args, options, callback, opts) {
   let file;
-  try { file = sshExigido(opts); } catch (erro) { process.nextTick(callback, erro, '', erro.message); return null; }
-  return require('child_process').execFile(file, args, { ...options, windowsHide: true }, callback);
+  try { file = exigirOpenssh('ssh', opts); } catch (erro) { process.nextTick(callback, erro, '', erro.message); return; }
+  require('child_process').execFile(file, args, { ...options, windowsHide: true }, callback);
 }
 
 const sshKeygen = (opts) => openssh('ssh-keygen', opts);
@@ -89,4 +89,4 @@ function iosTool(name, opts) {
   return s.p.join(root, 'ios-tools', 'bin', exe(name, opts));
 }
 
-module.exports = { ssh, sshExigido, execSsh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe };
+module.exports = { ssh, exigirOpenssh, execSsh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe };

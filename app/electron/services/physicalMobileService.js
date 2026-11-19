@@ -1598,7 +1598,7 @@ exit 0
         return new Promise((resolve) => {
             const bin = this.pymobiledevice3Path();
             if (!bin) return resolve(false);
-            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000, windowsHide: true }, (err) => resolve(!err));
+            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000 }, (err) => resolve(!err));
         });
     }
 
@@ -1606,7 +1606,7 @@ exit 0
         return new Promise((resolve) => {
             const bin = this.idevicesetlocationPath();
             if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado no Mac.' });
-            execFile(bin, ['--udid', udid, ...args], { timeout, windowsHide: true }, (err, stdout, stderr) => {
+            execFile(bin, ['--udid', udid, ...args], { timeout }, (err, stdout, stderr) => {
                 // idevicesetlocation imprime os erros no STDOUT (não no stderr); junta os dois
                 const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
                 resolve({ ok: !err, out: String(stdout || ''), err: saida || (err && err.message) || '' });

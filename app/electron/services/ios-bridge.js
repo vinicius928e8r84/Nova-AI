@@ -33,7 +33,7 @@ function run(cmd, args, timeoutMs) {
 }
 
 function ssh(command) {
-  try { return run(require('./tool-paths').sshExigido(), SSH_ARGS.concat(command)); }
+  try { return run(require('./tool-paths').exigirOpenssh('ssh'), SSH_ARGS.concat(command)); }
   catch (erro) { return Promise.resolve({ ok: false, stdout: '', stderr: '', error: erro.message }); }
 }
 

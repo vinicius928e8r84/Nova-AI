@@ -42,6 +42,7 @@ async function prepare(id,password,service){
  if(typeof password!=='string'||!password||password.length>1024||/[\r\n\0]/.test(password))throw new Error('Informe uma senha SSH válida.');
  busy=true;let client;
  try{
+ require('../tool-paths').exigirOpenssh('ssh');
  const udid=id.slice(4);if(!/^[a-fA-F0-9-]{20,64}$/.test(udid))throw new Error('Identificador do iPhone inválido.');
  const ids=(await run(require('../ios-tools').tool('idevice_id'),['-l'])).split('\n').filter(Boolean);
  if(ids.length!==1||ids[0]!==udid)throw new Error('Conecte somente o iPhone selecionado por USB.');
