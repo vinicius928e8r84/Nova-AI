@@ -7,7 +7,8 @@
 
 'use strict';
 
-const { spawn } = require('child_process'); const toolPaths = require('./tool-paths');
+const { spawn } = require('child_process');
+const toolPaths = require('./tool-paths');
 const path  = require('path');
 const fs    = require('fs');
 const crypto = require('crypto');
@@ -140,22 +141,7 @@ class GlobalSpoofService {
         this.app        = app;
         this.browserFarmService = browserFarmService;
 
-        const isPackaged = app ? app.isPackaged : false;
-        let ffmpegPath = isPackaged
-            ? path.join(process.resourcesPath, 'bin', toolPaths.exe('ffmpeg'))
-            : path.join(process.cwd(), 'resources', 'bin', toolPaths.exe('ffmpeg'));
-
-        if (!fs.existsSync(ffmpegPath)) {
-            const altPath = isPackaged
-                ? path.join(process.cwd(), 'resources', 'bin', toolPaths.exe('ffmpeg'))
-                : path.join(process.resourcesPath, 'bin', toolPaths.exe('ffmpeg'));
-            if (fs.existsSync(altPath)) {
-                ffmpegPath = altPath;
-            } else {
-                ffmpegPath = 'ffmpeg';
-            }
-        }
-        this.ffmpegPath     = ffmpegPath;
+        this.ffmpegPath     = toolPaths.ffmpeg() || 'ffmpeg';
         this.tempDir        = path.join(os.tmpdir(), 'nova_webcam_hijack');
         this.y4mPath        = path.join(this.tempDir, 'fake_cam.y4m');
         this.profileDir     = path.join(this.tempDir, 'chrome_profile');

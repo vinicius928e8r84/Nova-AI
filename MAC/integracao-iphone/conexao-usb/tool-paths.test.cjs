@@ -75,3 +75,12 @@ test('ícone, yt-dlp e ffmpeg seguem o sistema nos dois lados', () => {
   assert.equal(tp.ffmpeg(dentro), 'C:\\app\\resources\\bin\\ffmpeg.exe');
   assert.equal(tp.ffmpeg({ ...win, exists: () => false }), null);
 });
+
+test('spoof e pré-escuta não montam caminho de ffmpeg nem reabrem arquivo apagado', () => {
+  const lerFonte = (f) => fs.readFileSync(path.join(__dirname, '../../../app/electron', f), 'utf8');
+  const spoof = lerFonte('services/global-spoof-service.js');
+  assert.match(spoof, /^const toolPaths = require\('\.\/tool-paths'\);$/m);
+  assert.match(spoof, /this\.ffmpegPath\s*=\s*toolPaths\.ffmpeg\(\) \|\| 'ffmpeg';/);
+  assert.doesNotMatch(spoof, /altPath/);
+  assert.doesNotMatch(lerFonte('main.js'), /if \(playErr\)/);
+});

@@ -2009,11 +2009,8 @@ function registerHandlers() {
 
           // Play with ffplay (-nodisp = no window, -autoexit = stop when done)
           const playCmd = `ffplay -nodisp -autoexit -loglevel quiet "${tmpAudio}"`;
-          exec(playCmd, (playErr) => {
+          exec(playCmd, () => {
             try { fs.unlinkSync(tmpAudio); } catch(e) {}
-            if (playErr) {
-              shell.openPath(tmpAudio);
-            }
             event.sender.send('preview-voice-status', { state: 'done', message: '✅ Pronto!' });
             resolve({ success: true });
           });
