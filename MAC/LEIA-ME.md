@@ -4,6 +4,7 @@
 
 - **O que mudou:** `startHijack` (`global-spoof-service.js`) no `darwin` agora roda `pkill -f` com `MAC_CAM_SPOOF_KILL_PATTERN` (`paridade-utils.js`) e não tenta mais `wmic`/PowerShell, que falhavam e gravavam "Failed to run Chrome cleanup". O padrão é ancorado no executável `…/Contents/MacOS/(Google Chrome|Chromium)` e exige `--use-file-for-fake-video-capture=` apontando para `…/nova_webcam_hijack/`: o Y4M do CAM spoof fica nessa pasta, enquanto o perfil fica em `farm_profiles`, então `--user-data-dir` nunca casaria. Um Chrome pessoal, um `bash`/`node` com o mesmo texto e a pasta `nova_webcam_hijack_outro` não casam. Windows não mudou.
 - **Arquivos do app instalado a trocar** (guardar o anterior em `reservas/`): `app/electron/services/global-spoof-service.js` e `app/electron/services/paridade-utils.js`, para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/` (`cp`). Depois `node --check` nos dois e reiniciar o Nova. O bundle não muda.
+- **Também:** o resultado do `pkill` passa a ser logado quando falha (status > 1 ou timeout); removidos `this.profileDir` e sua criação (pasta `…/nova_webcam_hijack/chrome_profile` que ninguém usava, nos dois sistemas) e o comentário que falava de `chrome.exe`.
 - **Testado:** `node --test app/test/paridade-b.test.js` (processos falsos no Linux, `pkill` real) e `node --check`. **Sem testar:** Mac real com o CAM spoof aberto e um Chrome órfão de verdade.
 
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026

@@ -110,8 +110,8 @@ test('pkill do CAM spoof no Mac: so mata o Chrome com o Y4M do nova_webcam_hijac
     spawn(outro, ['-e', IDLE, '--', '--user-data-dir=/x/pessoal'], { stdio: 'ignore' }),
     spawn(chrome, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=/x/nova_webcam_hijack_outro/a.y4m`], { stdio: 'ignore' }),
     spawn(chrome, ['-e', IDLE, '--', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
-    spawn('bash', ['-c', 'sleep 60; : $0', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
-    spawn(process.execPath, ['-e', IDLE, '--', `--user-data-dir=${hijack}/chrome_profile`], { stdio: 'ignore' }),
+    spawn('bash', ['-c', 'sleep 60; : $0', `--use-file-for-fake-video-capture=${hijack}/fake_cam.y4m`], { stdio: 'ignore' }),
+    spawn(process.execPath, ['-e', IDLE, '--', `--use-file-for-fake-video-capture=${hijack}/fake_cam.y4m`], { stdio: 'ignore' }),
   ];
   return new Promise(r => setTimeout(r, 400)).then(() => {
     spawnSync('pkill', ['-f', '--', MAC_CAM_SPOOF_KILL_PATTERN]);
