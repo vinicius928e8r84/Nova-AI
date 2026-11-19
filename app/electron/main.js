@@ -10,7 +10,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { exec } = require('child_process');
-const { dialog, shell } = require('electron');
+const { dialog, shell, systemPreferences } = require('electron');
+const cameraAcesso = require('./services/camera-acesso');
 const mime = require('mime-types');
 const si = require('systeminformation');
 const screenshot = require('screenshot-desktop');
@@ -1345,10 +1346,6 @@ function registerHandlers() {
 
             // Canvas Bridge: no filePath needed — canvas chunks arrive via stream-chunk
             case 'hijack': {
-                const p = virtualCamInjector.globalSpoof.disableAllPhysicalCams();
-                if (p && typeof p.catch === 'function') {
-                    p.catch(e => console.warn('[Main] disableAllPhysicalCams:', e.message));
-                }
                 const result = await virtualCamInjector.startHijack(buffer, settings);
                 return result;
             }
@@ -1419,43 +1416,7 @@ function registerHandlers() {
     }
   });
 
-  // Re-enables all physical camera devices that were disabled by Spoof Cam's
-  // disableAllPhysicalCams() at the Windows Device Manager level.
-  // Safe to call even when cameras are already enabled (no-op in that case).
-  ipcMain.handle('enable-physical-cameras', async () => {
-    if (process.platform === 'darwin') return { success: true, output: 'macOS camera devices are managed by System Settings.' };
-    return new Promise((resolve) => {
-      const psCommand = `
-        $cameras = Get-PnpDevice | Where-Object { $_.Class -eq 'Camera' -or $_.Class -eq 'Image' };
-        if ($cameras) {
-          $cameras | ForEach-Object {
-            try { Enable-PnpDevice -InstanceId $_.InstanceId -Confirm:$false -ErrorAction SilentlyContinue } catch {}
-          };
-          Write-Output "OK:$($cameras.Count)"
-        } else { Write-Output "OK:0" }
-      `.trim();
-
-      const ps = spawn('powershell.exe', [
-        '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-        '-Command', psCommand
-      ]);
-
-      let out = '';
-      ps.stdout.on('data', d => { out += d.toString(); });
-      ps.stderr.on('data', d => { console.warn('[CamRestore] PS stderr:', d.toString()); });
-
-      ps.on('close', (code) => {
-        const success = out.trim().startsWith('OK');
-        console.log(`[CamRestore] Physical cameras re-enabled. Output: ${out.trim()} | Exit: ${code}`);
-        resolve({ success, output: out.trim() });
-      });
-
-      ps.on('error', (err) => {
-        console.error('[CamRestore] PowerShell spawn error:', err.message);
-        resolve({ success: false, error: err.message });
-      });
-    });
-  });
+  ipcMain.handle('enable-physical-cameras', () => cameraAcesso.liberar({ systemPreferences, shell, platform: process.platform }));
 
 
 

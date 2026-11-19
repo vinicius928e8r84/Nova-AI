@@ -1753,8 +1753,6 @@ applyStealth(window);
     }
 
     async revertRegistryName() { /* no-op */ }
-    async disableAllPhysicalCams() { /* no-op */ }
-    async enableAllPhysicalCams()  { /* no-op */ }
     async installOBSVirtualCam() {
         return { success: false, message: 'Driver OBS não necessário. Usando modo Y4M do Chrome.' };
     }
