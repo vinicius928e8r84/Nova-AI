@@ -7,7 +7,7 @@
     "app/electron/services/global-spoof-service.js": 1807,
     "app/electron/services/inventory-manager.js": 1815,
     "app/electron/services/live-cam-bridge.js": 1024,
-    "app/electron/services/physicalMobileService.js": 2510,
+    "app/electron/services/physicalMobileService.js": 2502,
     "MAC/controle-celular-plataformas/geo-proxy/aplicado/main.geo.js": 4590,
     "MAC/controle-celular-plataformas/geo-proxy/aplicado/physicalMobileService.geo.js": 2634,
     "MAC/encerramento-nova/main.js": 4512,

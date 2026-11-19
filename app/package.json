@@ -31,6 +31,7 @@
     "@vladmandic/face-api": "^1.7.15",
     "axios": "^1.13.2",
     "better-sqlite3": "^12.9.0",
+    "bplist-parser": "^0.3.2",
     "chrome-remote-interface": "^0.34.0",
     "cloudflared": "^0.7.1",
     "clsx": "^2.1.1",
@@ -52,6 +53,7 @@
     "open": "^11.0.0",
     "pdf-parse": "^2.4.5",
     "playwright": "^1.58.2",
+    "plist": "^3.1.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -74,6 +76,7 @@
     "yt-search": "^2.13.1"
   },
   "devDependencies": {
+    "bplist-creator": "^0.1.1",
     "electron": "34.5.8",
     "electron-builder": "26.18.0"
   },
