@@ -13,6 +13,7 @@ const executavel = path.join(recursos, 'browsers', 'chromium-1248', 'chrome-win6
 fs.mkdirSync(path.dirname(executavel), { recursive: true });
 fs.writeFileSync(executavel, '');
 process.resourcesPath = recursos;
+test.after(() => fs.rmSync(raiz, { recursive: true, force: true }));
 
 const carregarOriginal = Module._load;
 Module._load = function (pedido, ...resto) {
@@ -27,7 +28,7 @@ const GlobalSpoofService = require('../electron/services/global-spoof-service');
 
 const semNavegadorDoSistema = (fn) => {
   const existe = fs.existsSync;
-  fs.existsSync = (p) => (/^[A-Z]:\\/.test(String(p)) ? false : existe(p));
+  fs.existsSync = (p) => (String(p).startsWith(raiz) && existe(p));
   try { return fn(); } finally { fs.existsSync = existe; }
 };
 
@@ -49,4 +50,10 @@ test('global-spoof-service _findChrome acha chromium-1248 empacotado', () => {
   const servico = Object.create(GlobalSpoofService.prototype);
   servico.app = { isPackaged: true };
   assert.strictEqual(semNavegadorDoSistema(() => servico._findChrome('chrome')), executavel);
+});
+
+test('global-spoof-service cai no chromium empacotado quando o navegador pedido não existe', () => {
+  const servico = Object.create(GlobalSpoofService.prototype);
+  servico.app = { isPackaged: true };
+  assert.strictEqual(semNavegadorDoSistema(() => servico._findChrome('brave')), executavel);
 });

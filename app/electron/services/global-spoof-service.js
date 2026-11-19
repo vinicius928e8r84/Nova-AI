@@ -1692,7 +1692,7 @@ applyStealth(window);
         }
 
         for (const p of searchPaths) {
-            if (fs.existsSync(p)) return p;
+            if (p && fs.existsSync(p)) return p;
         }
 
         // Final fallback: if requested browser is not found, check other browsers in order
@@ -1741,7 +1741,7 @@ applyStealth(window);
                 ];
             }
             for (const p of fbPaths) {
-                if (fs.existsSync(p)) return p;
+                if (p && fs.existsSync(p)) return p;
             }
         }
 
