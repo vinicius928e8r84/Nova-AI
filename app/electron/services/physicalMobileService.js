@@ -46,7 +46,7 @@ class PhysicalMobileService {
 
     resolveAdbPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
+            return require('./mac-native').tool('adb') || require('./android-tools-mac').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
         }
 
         if (this._adbPath && fs.existsSync(this._adbPath)) {
@@ -89,7 +89,7 @@ class PhysicalMobileService {
 
     resolveScrcpyPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
+            return require('./mac-native').tool('scrcpy') || require('./android-tools-mac').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
         }
 
         if (this._scrcpyPath && fs.existsSync(this._scrcpyPath)) {
@@ -133,11 +133,7 @@ class PhysicalMobileService {
     }
 
     async ensureTools(force = false) {
-        if (process.platform === "darwin") {
-            const adb = this.adbPath, scrcpy = this.scrcpyPath;
-            const ready = fs.existsSync(adb) && fs.existsSync(scrcpy);
-            return {success:ready, message:ready?'Native macOS tools ready.':'Native adb/scrcpy missing. Install platform-tools and scrcpy for macOS.', adbPath:adb, scrcpyPath:scrcpy};
-        }
+        if (process.platform === "darwin") return require('./android-tools-mac').ensureForService(this, force);
 
         const adbReady = fs.existsSync(this.adbPath);
         const scrcpyReady = fs.existsSync(this.scrcpyPath);
@@ -722,7 +718,7 @@ class PhysicalMobileService {
 
         console.log(`[PhysicalMobile] Spawning Scrcpy v4.1 (Stable): ${this.scrcpyPath} with args:`, args);
         
-        const scrcpyProc = spawn(this.scrcpyPath, args, { windowsHide: false });
+        const scrcpyProc = spawn(this.scrcpyPath, args, process.platform === 'darwin' ? { windowsHide: false, env: { ...process.env, ADB: this.adbPath } } : { windowsHide: false });
         this.runningStreams.set(deviceId, scrcpyProc);
 
         scrcpyProc.stdout?.on('data', (d) => console.log(`[Scrcpy] ${d}`));
