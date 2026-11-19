@@ -145,7 +145,6 @@ function parseWindowsProcessTable(output) {
     const command = row.CommandLine || '';
     entries.set(row.ProcessId, {
       parent: row.ParentProcessId,
-      started: Number(row.Started) || 0,
       identity: row.Started + ' ' + command,
       command,
     });
@@ -195,11 +194,9 @@ function createWindowsProcessCleanup({
     const pending = [ownPid, ...owned.keys()];
     const visited = new Set(pending);
     for (const parent of pending) {
-      const parentStarted = entries.get(parent)?.started ?? 0;
       for (const pid of children.get(parent) ?? []) {
         if (visited.has(pid)) continue;
         const entry = entries.get(pid);
-        if (entry.started && parentStarted && entry.started < parentStarted) continue;
         visited.add(pid);
         pending.push(pid);
         if (!isElectronHelper(entry.command) && !isTableReader(entry.command)) owned.set(pid, entry.identity);
