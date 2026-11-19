@@ -1577,3 +1577,11 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — Paridade M4: o Mac instala o que o agente baixou
+
+- **O que mudou:** no Mac, o passo SysAdmin do enxame deixou de só abrir o arquivo baixado. `.pkg` → `installer -pkg … -target CurrentUserHomeDirectory`; se o pacote exigir mais, cai no diálogo de administrador (`osascript … with administrator privileges`, `-target /`). `.dmg` → `hdiutil attach` + `ditto` do primeiro `.app` para `~/Applications` + `detach` (sempre, mesmo em erro). Outro tipo → `open`, como antes. O Windows não muda. **Muda o que o dono vê no Mac:** passa a instalar em vez de só abrir.
+- **Removido:** o ramo `darwin` do ternário que montava `/usr/bin/open '<arquivo>'` em `agent-swarm-controller.js` (substituído pelo módulo novo).
+- **Arquivos do app instalado no Mac que mudam** (guardar o anterior em `reservas/` antes; depois `node --check` e reiniciar o Nova), a partir de `app/electron/services/` para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`: `agent-swarm-controller.js` (trocado) e `instalador-mac.js` (novo). Reaplicar: `cp` dos dois. Não mexe no bundle da interface.
+- **Testes:** `node --test app/test/instalador-mac.test.js` (comandos simulados).
+- **Sem testar:** `installer`, `hdiutil`, `ditto` e o diálogo de administrador num Mac real com um `.pkg` e um `.dmg` de teste.

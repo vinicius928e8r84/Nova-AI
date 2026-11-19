@@ -24,6 +24,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { shell       } = require('electron');
 const { browserService } = require('./browser-manager');
 const { downloadFile } = require('./paridade-utils');
+const { instalarNoMac } = require('./instalador-mac');
 
 //  Tiny HTTPS GET 
 function httpGet(url, redirects = 0) {
@@ -519,7 +520,19 @@ Generate ONE PowerShell command to accomplish this.
         this._checkCancelled();
         this.setStatus('sysadmin', 'busy');
 
-        const execCmd = process.platform === 'darwin' && downloadedPath && fs.existsSync(downloadedPath) ? '/usr/bin/open ' + "'" + downloadedPath.replace(/'/g, "'\\''") + "'" : (downloadedPath && fs.existsSync(downloadedPath))
+        if (process.platform === 'darwin' && downloadedPath && fs.existsSync(downloadedPath)) {
+            try {
+                this.log('sysadmin', ` Installing: ${path.basename(downloadedPath)}`);
+                const resultado = await instalarNoMac(downloadedPath);
+                this.log('sysadmin', ` Done  ${resultado}`);
+            } catch (e) {
+                this.log('sysadmin', ` Install failed: ${e.message.substring(0, 80)}`);
+            }
+            this.setStatus('sysadmin', 'done');
+            return 'done';
+        }
+
+        const execCmd = (downloadedPath && fs.existsSync(downloadedPath))
             ? `"${downloadedPath}" /S /silent /quiet /norestart`
             : command;
 
