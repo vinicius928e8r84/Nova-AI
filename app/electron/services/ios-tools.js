@@ -10,4 +10,8 @@ function tool(name){
 function tryTool(name){try{return tool(name);}catch{return null;}}
 function has(name){return !!tryTool(name);}
 function available(){return ['iproxy','idevice_id','ideviceinfo'].every(has);}
-module.exports={tool,tryTool,has,available};
+const USBMUXD=/usbmuxd|Unable to retrieve device list/i;
+function dicaUsbmuxd(stderr,platform=process.platform){
+ return platform==='win32'&&USBMUXD.test(String(stderr||''))?'Não consegui falar com o iPhone por USB. Instale o Apple Devices (Microsoft Store) ou o iTunes, conecte o cabo e toque em "Confiar" no aparelho.':null;
+}
+module.exports={tool,tryTool,has,available,dicaUsbmuxd};

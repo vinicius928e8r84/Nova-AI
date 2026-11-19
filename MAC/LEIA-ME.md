@@ -1577,3 +1577,9 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — P1 de paridade: ferramentas do iPhone no Windows
+
+- **O que mudou:** receita nova `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (shell MSYS2 MINGW64: instala `libimobiledevice`, `libusbmuxd` e `ideviceinstaller` com `pacman`, copia `iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller` `.exe` e as DLLs de `/mingw64/bin` para `app/resources/ios-tools/bin/` e grava `manifest.sha256`). `ios-tools.js` ganhou `dicaUsbmuxd()`; `ios-devices.js` mostra o aviso "instale o Apple Devices ou o iTunes" no log quando, no Windows, `idevice_id -l` falha por usbmuxd. `docs/windows.md` §4 e `app/README.md` deixaram de dizer "só Mac".
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/ios-tools.js` e `Contents/Resources/app/electron/services/ios-devices.js` (ou o equivalente dentro do `app.asar`). Guarde os atuais em `MAC/integracao-iphone/reservas/` antes de copiar e valide com `node --check`. No Mac a função nova só responde `null` (só vale com `win32`); nada mais muda.
+- **Sem testar:** a receita num MSYS2 real (nomes dos pacotes `mingw-w64-x86_64-*` conferidos só de memória), Windows com iPhone e Apple Devices reais, o formato exato da mensagem de erro do `idevice_id` sem usbmuxd, Mac real.

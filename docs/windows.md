@@ -53,10 +53,12 @@ Coloque dentro de `app\resources\` (crie a pasta; ela é ignorada pelo git e ent
 | `yt-dlp.exe` | `resources\bin\yt-dlp.exe` | github.com/yt-dlp/yt-dlp/releases |
 | `adb.exe` (+ DLLs) | `resources\bin\` ou `resources\platform-tools\` | developer.android.com/tools/releases/platform-tools |
 | `scrcpy.exe` (+ DLLs, `scrcpy-server`) | `resources\bin\` ou `resources\scrcpy\` | github.com/Genymobile/scrcpy/releases |
+| `iproxy.exe`, `idevice_id.exe`, `ideviceinfo.exe`, `ideviceinstaller.exe` (+ DLLs) | `resources\ios-tools\bin\` | shell MSYS2 MINGW64: `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (copia do pacote oficial `libimobiledevice`) |
 | `cloudflared.exe` | `resources\cloudflared.exe` | github.com/cloudflare/cloudflared/releases |
 | `nova-cam-spoofer.apk` | `resources\nova-cam-spoofer.apk` | copie do app instalado (`...\Nova AI\resources\`) |
 
 Os `.exe` de acesso remoto/Android só são necessários se for usar essas funções.
+Para listar o iPhone por USB o PC também precisa do driver da Apple (Apple Devices, na Microsoft Store, ou o iTunes); ele não vai no instalador.
 Para ter o Chromium embutido: `npm run browsers` (baixa para `app\browsers\`).
 Python do assistente de voz: `pip install -r requirements.txt`.
 
