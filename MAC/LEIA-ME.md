@@ -1577,3 +1577,10 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — M2 de paridade: CPU e "respondendo" reais do Antigravity no Mac
+
+- **O que mudou:** `getProcessStats()` no Mac deixou de devolver `cpu:0` e `responding:true` fixos. `macAntigravityStats()` (em `paridade-utils.js`) acha o PID com `pgrep -x Antigravity`, lê `%cpu` e `rss` com `ps -p <pid> -o %cpu=,rss=` e marca `responding:false` quando o AppleScript do System Events não responde em 3 s. Sem processo, devolve `null` como o Windows.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/antigravity-controller.js` e `Contents/Resources/app/electron/services/paridade-utils.js` (guardar os anteriores em `reservas/` antes; depois `node --check` e reiniciar o Nova). Nenhum arquivo do bundle da interface.
+- **Teste:** `app/test/paridade-b.test.js` (`node --test`), com `pgrep`, `ps` e `osascript` falsos.
+- **Sem testar:** Mac real com Antigravity instalado; o nome do processo `Antigravity` no `pgrep` e o limite de 3 s do AppleScript.

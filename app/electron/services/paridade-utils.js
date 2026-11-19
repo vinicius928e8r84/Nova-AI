@@ -70,4 +70,18 @@ function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } 
 
 const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^/]* (.* )?--user-data-dir=[^=]*/\\.wwebjs_auth/session-nova-desktop-client( |$)';
 
-module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, MAC_BROWSER_KILL_PATTERN };
+async function macAntigravityStats(mac) {
+  const pid = Number((await mac.run('/usr/bin/pgrep', ['-x', 'Antigravity'])).split('\n')[0]);
+  if (!pid) return null;
+  const [cpu, rss] = (await mac.run('/bin/ps', ['-p', String(pid), '-o', '%cpu=,rss='])).trim().split(/\s+/).map(Number);
+  let title = '';
+  let responding = true;
+  try {
+    title = await mac.run('/usr/bin/osascript', ['-e', 'tell application "System Events" to tell process "Antigravity" to return name of front window'], { timeout: 3000 });
+  } catch {
+    responding = false;
+  }
+  return { pid, cpu: Math.round(cpu), memory: Math.round(rss / 1024), responding, title };
+}
+
+module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, macAntigravityStats, MAC_BROWSER_KILL_PATTERN };
