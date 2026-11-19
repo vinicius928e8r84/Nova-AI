@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Orquestrador morto apagado e receita de instalação por sistema (E5) — 19/11/2026
+
+- **O que mudou:** `agent-swarm-controller.js` perdeu `runResearcher`, `runCoder`, `runDownloader` e `runSysAdmin` (258 linhas que nenhum código chamava) e os auxiliares e imports que só eles usavam (`httpGet`, `parseDDGLinks`, `exec`, `fs`, `os`, `http`, `https`, `shell`, `GoogleGenerativeAI`, `downloadFile`): 781 para 472 linhas. O prompt do agente filho ganhou uma frase de instalação por sistema (`instalacaoPorSistema` em `paridade-utils.js`): no Mac, `.dmg` por `hdiutil` + `ditto` e `.pkg` por `installer` via `osascript` com senha do Mac; no Windows, `"ARQ" /S` e `msiexec /i ARQ /qn /norestart`.
+- **Arquivos do app instalado que mudam:** `electron/services/agent-swarm-controller.js`, `electron/services/child-worker-agent.js`, `electron/services/paridade-utils.js`. Guardar os anteriores em `reservas/` e reaplicar com `cp`; reiniciar o Nova.
+- **Limite nos dois sistemas:** `execute_shell` mata o comando em 15 s; instalador longo pode ser cortado.
+- **Sem testar:** instalar um `.dmg`/`.pkg` de verdade no Mac pelo agente; o app instalado não foi atualizado.
+
 ## Limpeza de comentários em main.js e preload.js — 16/11/2026
 
 - **O que mudou:** apagados comentários que só narram o código, banners de seção, código morto comentado (DevTools em dev, adblocker) e resíduos de edição por IA (`// ... existing apis ...`, hedges em `get-ytdl-stats` e `sendReply`). Nenhum comportamento mudou: tokens e AST de `preload.js` idênticos; em `main.js` a única diferença são dois laços de espera ativa cujo corpo `{ /* busy wait */ }` virou `;`.

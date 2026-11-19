@@ -70,4 +70,11 @@ function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } 
 
 const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^/]* (.* )?--user-data-dir=[^=]*/\\.wwebjs_auth/session-nova-desktop-client( |$)';
 
-module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, MAC_BROWSER_KILL_PATTERN };
+function instalacaoPorSistema(platform) {
+  if (platform === 'darwin') {
+    return 'INSTALL (macOS): .dmg = hdiutil attach -nobrowse -readonly -mountpoint TMP "ARQ", then ditto TMP/X.app /Applications/X.app, then hdiutil detach TMP; .pkg = osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' (asks the Mac password once).';
+  }
+  return 'INSTALL (Windows): .exe = "ARQ" /S; .msi = msiexec /i ARQ /qn /norestart (asks UAC when needed).';
+}
+
+module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, MAC_BROWSER_KILL_PATTERN, instalacaoPorSistema };

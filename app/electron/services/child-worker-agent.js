@@ -18,6 +18,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { browserService } = require('./browser-manager');
+const { instalacaoPorSistema } = require('./paridade-utils');
 
 class ChildWorkerAgent {
     constructor(mainWindow, app) {
@@ -370,6 +371,7 @@ AVAILABLE TOOLS:
 1. web_search(query) — Search the web for real, current information (silent)
 2. browse_site(url) — Fetch and read content from a specific URL (silent)
 3. execute_shell(command) — Run commands for ${process.platform === 'darwin' ? 'macOS with POSIX shell; use open, osascript and native macOS paths' : 'Windows with PowerShell/CMD'}
+${instalacaoPorSistema(process.platform)}
 4. browser_navigate(url) — Open the visible browser and go to a URL (e.g. for downloading software, going to specific sites like filehippo)
 5. browser_snapshot(includeScreenshot) — Get the current page structure as text. Returns element references like [12] button. ALWAYS DO THIS FIRST after navigating.
 6. browser_click(selector_or_ref) — Click an element precisely using its ref number (e.g. "[12]") or a CSS selector.

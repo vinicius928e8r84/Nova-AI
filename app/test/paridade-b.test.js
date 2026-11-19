@@ -88,3 +88,13 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
     }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
   })();
 });
+
+test('instalacaoPorSistema: Mac traz hdiutil/ditto/installer e Windows traz /S e msiexec', () => {
+  const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
+  const mac = instalacaoPorSistema('darwin');
+  assert.ok(mac.includes('hdiutil attach') && mac.includes('ditto') && mac.includes('installer -pkg') && mac.includes('administrator privileges'));
+  assert.ok(!mac.includes('msiexec'));
+  const win = instalacaoPorSistema('win32');
+  assert.ok(win.includes('"ARQ" /S') && win.includes('msiexec /i ARQ /qn /norestart'));
+  assert.ok(!win.includes('hdiutil'));
+});
