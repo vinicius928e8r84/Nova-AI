@@ -43,7 +43,6 @@ if (process.env.NOVA_SMOKE_TEST === '1') {
 }
 
 
-// Disable background throttling and timer suspension
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
@@ -54,55 +53,42 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 // Global User-Agent spoofing to prevent Google from detecting Electron
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0';
 
-// Prevent system sleep/suspension
 app.whenReady().then(() => {
   powerSaveBlocker.start('prevent-app-suspension');
 });
 
-// Remote Access Service
 let remoteAccessService = null;
 let wakeWordProcess = null;
-// WhatsApp Service
 const WhatsAppManager = require('./services/whatsapp-manager');
 let whatsappManager = null;
 
-// Telegram Service
 const TelegramManager = require('./services/telegram-manager');
 let telegramManager = null;
 
-// YouTube Downloader Service
 const YtDlpManager = require('./services/ytdlp-manager');
 let ytdlpManager = null;
 
-// Agent Swarm Controller
 const AgentSwarmController = require('./services/agent-swarm-controller');
 let agentSwarmController = null;
 
-// Nova Human Controller
 const NovaHumanController = require('./services/nova-human-controller');
 let novaHumanController = null;
 
-// Antigravity Controller
 const AntigravityController = require('./services/antigravity-controller');
 let antigravityController = null;
 
-// User Profile Context Analyzer
 const { analyzeUserGraph, getUserContext } = require('./services/user-profile-manager');
 
-// Virtual Camera Spoofing Service
 const VirtualCamInjector = require('./services/virtual-cam-injector');
 let virtualCamInjector = null;
 
-// Nova Studio Controller
 const NovaStudioController = require('./services/nova-studio-controller');
 let novaStudioController = null;
 
-// Browser Farm Service
 const BrowserFarmService = require('./services/browserFarmService');
 let browserFarmService = new BrowserFarmService(null);
 browserFarmService.loadProfiles();
 
-// RTMP Server Service
 const RtmpServerService = require('./services/rtmp-server');
 
 
@@ -110,7 +96,6 @@ const RtmpServerService = require('./services/rtmp-server');
 let productionServer = null;
 let productionPort = process.env.NOVA_TEST_PORT || 45678;
 
-// Document Parsers
 const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
 const { autoUpdater } = require('electron-updater');
@@ -134,7 +119,6 @@ if (process.env.NODE_ENV === 'development') {
 let mainWindow;
 let tray = null; // Prevent garbage collection of the system tray icon
 
-// Custom logger to send logs to renderer
 autoUpdater.logger = {
   info(text) {
     console.log(text);
@@ -157,11 +141,9 @@ autoUpdater.logger = {
 };
 
 
-// Initialize Google GenAI SDK
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 let powerSaveId = null;
-// Splash screen removed in favor of React-based loading screen
 
 
 
@@ -173,7 +155,6 @@ const migrateStonicToNova = () => {
     const oldVaultPath = path.join(documentsPath, 'Stonic_Vault');
     const newVaultPath = path.join(documentsPath, 'Nova_Vault');
 
-    // 1. Migrate Documents folder
     if (!fs.existsSync(newDocsPath) && fs.existsSync(oldDocsPath)) {
       console.log('[Migration] Copying Nova Data...');
       fs.mkdirSync(newDocsPath, { recursive: true });
@@ -192,7 +173,6 @@ const migrateStonicToNova = () => {
         fs.renameSync(oldVaultPath, newVaultPath);
     }
 
-    // 2. Migrate UserData (Settings, History, etc.)
     const newUserData = app.getPath('userData');
     const oldUserData = path.join(path.dirname(newUserData), 'Stonic AI');
 
@@ -222,7 +202,7 @@ const migrateStonicToNova = () => {
 
 const ensureNovaDirectories = () => {
   try {
-    migrateStonicToNova(); // Run migration check before ensuring paths
+    migrateStonicToNova();
     const notesPath = path.join(app.getPath('documents'), 'Nova Data');
     if (!fs.existsSync(notesPath)) {
       fs.mkdirSync(notesPath, { recursive: true });
@@ -246,10 +226,8 @@ function openIphoneConsole() {
 }
 
 function createWindow() {
-  // Ensure directories exist before UI loads
   ensureNovaDirectories();
 
-  // ── System Tray Icon (ALWAYS accessible regardless of window state) ──
   const trayIconPath = process.env.NODE_ENV === 'development'
     ? path.join(__dirname, '../public/nova.ico')
     : path.join(process.resourcesPath, 'public', process.platform === 'darwin' ? 'nova-icon.png' : 'nova.ico');
@@ -292,7 +270,7 @@ function createWindow() {
     show: true,
     frame: true,
     skipTaskbar: false,
-    alwaysOnTop: true,   // Force above all windows temporarily
+    alwaysOnTop: true,
     backgroundColor: '#020406',
     webPreferences: {
       nodeIntegration: true,
@@ -326,12 +304,6 @@ function createWindow() {
   // Set app ID for proper Windows taskbar grouping
   app.setAppUserModelId('com.nova.ai');
 
-  // In dev mode open DevTools so window is always findable - Disabled as requested
-  /*
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
-  }
-  */
 
   mainWindow.show();
   mainWindow.focus();
@@ -365,7 +337,6 @@ function createWindow() {
     }
   });
 
-  // --- Brain Link: Global Token Retrieval ---
   app.getGeminiToken = async () => {
     try {
       const p = getSecretKeyPath();
@@ -387,7 +358,6 @@ function createWindow() {
     ytdlpManager.mainWindow = mainWindow;
   }
 
-  // Initialize Virtual Camera Service
   if (!virtualCamInjector) {
     virtualCamInjector = new VirtualCamInjector(mainWindow, app, browserFarmService);
     app.virtualCamInjector = virtualCamInjector;
@@ -401,7 +371,6 @@ function createWindow() {
     agentSwarmController.mainWindow = mainWindow;
   }
 
-  // Initialize Nova Human Controller
   if (!novaHumanController) {
     novaHumanController = new NovaHumanController(mainWindow, app);
     app.novaHumanController = novaHumanController;
@@ -409,7 +378,6 @@ function createWindow() {
     novaHumanController.mainWindow = mainWindow;
   }
 
-  // Initialize Antigravity Controller
   if (!antigravityController) {
     antigravityController = new AntigravityController(mainWindow, app);
     app.antigravityController = antigravityController;
@@ -417,14 +385,12 @@ function createWindow() {
     antigravityController.mainWindow = mainWindow;
   }
 
-  // Initialize Nova Studio Controller
   if (!novaStudioController) {
     novaStudioController = new NovaStudioController(mainWindow, app);
     app.novaStudioController = novaStudioController;
   } else {
     novaStudioController.mainWindow = mainWindow;
   }
-  // Initialize Physical Mobile Service
   const PhysicalMobileService = require('./services/physicalMobileService');
   if (!app.physicalMobileService) {
     app.physicalMobileService = new PhysicalMobileService(mainWindow, app);
@@ -434,7 +400,6 @@ function createWindow() {
 
   app.physicalMobileService.camLiveIphone = app.camLiveService?.iphone;
 
-  // Initialize Universal Bi-Directional Live Camera Bridge
   const LiveCamBridgeService = require('./services/live-cam-bridge');
   if (!app.liveCamBridgeService) {
     app.liveCamBridgeService = new LiveCamBridgeService(mainWindow, app, app.physicalMobileService);
@@ -442,10 +407,8 @@ function createWindow() {
     app.liveCamBridgeService.mainWindow = mainWindow;
   }
 
-  // Update Browser Farm Service mainWindow reference
   browserFarmService.mainWindow = mainWindow;
 
-  // Ensure window stays visible and on top after load
   mainWindow.webContents.once('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.focus();
@@ -454,7 +417,6 @@ function createWindow() {
     }
   });
 
-  // Auto-Connect WhatsApp if enabled
   setTimeout(async () => {
     if (isShuttingDown()) return;
     try {
@@ -476,7 +438,6 @@ function createWindow() {
     }
   }, 5000); // 5-second delay to let app settle
 
-  // Auto-Connect Telegram if session exists
   setTimeout(async () => {
     if (isShuttingDown()) return;
     try {
@@ -499,12 +460,10 @@ function createWindow() {
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
   } else {
-    // PRODUCTION: Serve via local HTTP server (YouTube blocks file:// embeds)
     startProductionServer().then(port => {
       mainWindow.loadURL(`http://localhost:${port}/index.html`);
     }).catch(err => {
       console.error('Failed to start production server:', err);
-      // Fallback to file loading if server fails
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     });
   }
@@ -512,7 +471,6 @@ function createWindow() {
   return mainWindow;
 }
 
-// Production HTTP Server - serves dist folder on localhost
 function startProductionServer() {
   return new Promise((resolve, reject) => {
     const distPath = path.join(__dirname, '../dist');
@@ -551,7 +509,6 @@ function startProductionServer() {
       fs.readFile(filePath, (error, content) => {
         if (error) {
           if (error.code === 'ENOENT') {
-            // SPA fallback - serve index.html for any unknown route
             fs.readFile(path.join(distPath, 'index.html'), (err, indexContent) => {
               if (err) {
                 res.writeHead(500);
@@ -590,7 +547,6 @@ function startProductionServer() {
 
 
 function setupPermissions(session) {
-  // Grant all media permission requests silently (no OS popup dialog)
   session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
     if (process.env.NOVA_SMOKE_TEST === '1') return callback(false);
     const allowedPermissions = ['media', 'camera', 'microphone', 'videoCapture', 'audioCapture', 'desktopCapture'];
@@ -607,7 +563,7 @@ function setupPermissions(session) {
     if (process.env.NOVA_SMOKE_TEST === '1') return false;
     const allowedPermissions = ['media', 'camera', 'microphone', 'videoCapture', 'audioCapture', 'desktopCapture'];
     if (allowedPermissions.includes(permission)) {
-      return true; // Always grant
+      return true;
     }
     return false;
   });
@@ -626,7 +582,6 @@ function setupPermissions(session) {
       { urls: ['*://*.google.com/*', '*://*.youtube.com/*'] },
       (details, callback) => {
         details.requestHeaders['User-Agent'] = USER_AGENT;
-        // Remove electron-specific hints
         delete details.requestHeaders['sec-ch-ua'];
         delete details.requestHeaders['sec-ch-ua-mobile'];
         delete details.requestHeaders['sec-ch-ua-platform'];
@@ -636,7 +591,6 @@ function setupPermissions(session) {
   });
 }
 
-// Utility Paths
 const getMemoryPath = () => path.join(app.getPath('userData'), 'memories.json');
 const getUserProfilePath = () => path.join(app.getPath('userData'), 'user_profile.json');
 const getDashboardSettingsPath = () => path.join(app.getPath('userData'), 'dashboard_settings.json');
@@ -661,13 +615,9 @@ const getWhatsAppSettingsPath = () => path.join(app.getPath('userData'), 'whatsa
 const getGoogleKeyPath = () => path.join(app.getPath('userData'), 'google_key.json');
 const getVisualSettingsPath = () => path.join(app.getPath('userData'), 'visual_settings.json');
 const getElevenLabsSettingsPath = () => path.join(app.getPath('userData'), 'elevenlabs_settings.json');
-// ── WhatsApp Dedicated API Key ─────────────────────────────────────────────
 const getWaApiKeyPath = () => path.join(app.getPath('userData'), 'wa_api_key.json');
 const getBackupConfigPath = () => path.join(process.cwd(), 'config_bak_C.dat');
 
-/**
- * Packs all major JSON settings into a single backup file
- */
 const syncConfigurationBackup = () => {
   try {
     const userData = app.getPath('userData');
@@ -696,9 +646,6 @@ const syncConfigurationBackup = () => {
   }
 };
 
-/**
- * Restores JSON settings from the backup file
- */
 const restoreConfigurationBackup = () => {
   try {
     const backupPath = getBackupConfigPath();
@@ -734,20 +681,16 @@ function novaIosConsolePortOpen(port) {
   });
 }
 
-// --- IPC Handlers Registration ---
 function registerHandlers() {
-  // Synchronous handler for sandboxed preload script to get webview-bridge.js path
   ipcMain.on('get-webview-bridge-path', (event) => {
     event.returnValue = path.join(__dirname, 'webview-bridge.js');
   });
 
-  // Synchronous handler to get the Google stealth preload path
   ipcMain.on('get-stealth-preload-path', (event) => {
     event.returnValue = path.join(__dirname, 'google-stealth-preload.js');
   });
 
 
-  // ── RTMP Broadcast Control IPC ─────────────────────────────
   ipcMain.handle('rtmp:start-broadcast', async () => {
     try {
       await RtmpServerService.startBroadcast();
@@ -774,7 +717,6 @@ function registerHandlers() {
   try { app.camLiveService = require('./services/cam-live-service').register({ ipcMain, getWindow: () => mainWindow, userDataDir: app.getPath('userData'), getMobileService: () => app.physicalMobileService }); } catch (e) { console.error('[CamLive] falhou ao registrar:', e); }
   // CAMLIVE:end
 
-  // ── Physical Mobile Control IPC ─────────────────────────────
   ipcMain.handle('physical-mobile:get-status', async () => {
     return app.physicalMobileService.getStatus();
   });
@@ -890,7 +832,6 @@ function registerHandlers() {
     return app.physicalMobileService.ensureTools(force);
   });
 
-  // ── CAM SPOOF IPC HANDLERS ────────────────────────────────────
   ipcMain.handle('physical-mobile:get-cam-spoof-status', async (event, { id }) => {
     return app.physicalMobileService.getCamSpoofStatus(id);
   });
@@ -904,7 +845,6 @@ function registerHandlers() {
     return app.physicalMobileService.stopCamSpoof(id);
   });
 
-  // ── LIVE STREAM IPC HANDLERS (MJPEG canvas → phone camera) ────
   ipcMain.handle('physical-mobile:start-live-stream', async (event, { id, port }) => {
     return app.physicalMobileService.startLiveStream(id, port || 8899);
   });
@@ -934,7 +874,6 @@ function registerHandlers() {
     });
   });
 
-  // ── UNIVERSAL LIVE CAM BRIDGE IPC HANDLERS ───────────────────
   ipcMain.handle('live-cam-bridge:get-status', async () => {
     return app.liveCamBridgeService.getStatus();
   });
@@ -983,7 +922,6 @@ function registerHandlers() {
     return { canceled: true };
   });
 
-  // ── SPOOFER IPC HANDLERS ──────────────────────────────────────
   // Identidade simulada: registrado depois do createWindow (precisa do physicalMobileService).
   ipcMain.handle('spoofer:get-models', async () => {
     return app.physicalMobileService.getSpooferModels();
@@ -1054,7 +992,6 @@ function registerHandlers() {
     }
   });
 
-  // Custom Models Persistence
   ipcMain.handle('get-custom-models', async () => {
     try {
       const p = getCustomModelsPath();
@@ -1070,14 +1007,10 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // YTDL Stats
   ipcMain.handle('get-ytdl-stats', async () => {
-    // Disabled old stats fetcher if you still want it, keep it, but user didn't mention keeping the old stats logic.
-    // However, I will leave it empty as the new UI doesn't use it, but safe to return 0.
     return { totalDownloads: 0 };
   });
 
-  // Autonomous YTDL
   ipcMain.handle('start-autonomous-download', async (event, { searchQuery, format, type, chatId }) => {
     if (app.ytdlpManager) {
       await app.ytdlpManager.smartDownload(searchQuery, format, type, chatId || 'self');
@@ -1106,7 +1039,6 @@ function registerHandlers() {
     }
   });
 
-  // ── SCREEN RECORDER IPC ───────────────────────────────────────────────
   ipcMain.handle('screen-recorder:get-sources', async () => {
     try {
       const sources = await desktopCapturer.getSources({ types: ['window', 'screen'], fetchWindowIcons: true });
@@ -1125,10 +1057,8 @@ function registerHandlers() {
     const tempWebmPath = path.join(app.getPath('temp'), `nova_temp_rec_${Date.now()}.webm`);
     let finalSavePath = null;
     try {
-      // 1. Write the incoming raw webm buffer to a temporary file
       fs.writeFileSync(tempWebmPath, Buffer.from(buffer));
 
-      // 2. Open Save Dialog
       const defaultExt = extension || 'mp4';
       const { filePath } = await dialog.showSaveDialog(mainWindow, {
         title: 'Salvar Gravação de Tela',
@@ -1140,36 +1070,30 @@ function registerHandlers() {
       });
 
       if (!filePath) {
-        // User cancelled, cleanup temp file
         if (fs.existsSync(tempWebmPath)) fs.unlinkSync(tempWebmPath);
         return { success: false, cancelled: true };
       }
 
       finalSavePath = filePath;
 
-      // 3. Find FFmpeg path
       let ffmpegPath = path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
       if (!fs.existsSync(ffmpegPath)) {
         ffmpegPath = path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
       }
       if (!fs.existsSync(ffmpegPath)) {
-        ffmpegPath = 'ffmpeg'; // fallback to global
+        ffmpegPath = 'ffmpeg';
       }
 
       console.log('[Main] FFmpeg path for remuxing:', ffmpegPath);
 
-      // Determine output extension and ffmpeg arguments
       const lowerPath = filePath.toLowerCase();
       let args = [];
       if (lowerPath.endsWith('.mp4')) {
-        // Remux to MP4
         args = ['-y', '-i', tempWebmPath, '-c', 'copy', '-movflags', '+faststart', filePath];
       } else {
-        // Remux to WebM or copy as is
         args = ['-y', '-i', tempWebmPath, '-c', 'copy', filePath];
       }
 
-      // 4. Run FFmpeg to remux into a perfectly seekable container
       const { execFile } = require('child_process');
       await new Promise((resolve, reject) => {
         execFile(ffmpegPath, args, { windowsHide: true }, (error, stdout, stderr) => {
@@ -1183,7 +1107,6 @@ function registerHandlers() {
         });
       });
 
-      // Cleanup temp file
       if (fs.existsSync(tempWebmPath)) fs.unlinkSync(tempWebmPath);
 
       shell.showItemInFolder(filePath);
@@ -1203,7 +1126,6 @@ function registerHandlers() {
         }
       }
       
-      // Cleanup temp file if it still exists
       if (fs.existsSync(tempWebmPath)) {
         try { fs.unlinkSync(tempWebmPath); } catch (_) {}
       }
@@ -1212,8 +1134,6 @@ function registerHandlers() {
     }
   });
 
-  // ── PRO CORE CLIPBOARD BRIDGE ───────────────────────────────────────────
-  // Sets system clipboard so the webview can paste text via Ctrl+V
   ipcMain.handle('set-clipboard', async (event, text) => {
     try {
       clipboard.writeText(String(text));
@@ -1225,7 +1145,6 @@ function registerHandlers() {
     }
   });
 
-  // NOVA Direct Download IPCs
   ipcMain.handle('direct-nova-download', async (event, { query, attempt = 1 }) => {
     if (app.novaHumanController) {
       return await app.novaHumanController.executeHumanDownload(query, attempt);
@@ -1235,12 +1154,10 @@ function registerHandlers() {
 
   ipcMain.on('retry-human-download', async (event, query) => {
     if (app.novaHumanController) {
-        // Automatically attempt the second result (attempt=2)
         await app.novaHumanController.executeHumanDownload(query, 2);
     }
   });
 
-  // Antigravity Agent Controller IPCs
   ipcMain.handle('antigravity:prepare', async (event, { prompt }) => {
     if (app.antigravityController) {
       return await app.antigravityController.preparePrompt(prompt);
@@ -1294,7 +1211,6 @@ function registerHandlers() {
     return { success: false };
   });
 
-  // --- SELF VOICE CONTROL SYSTEM (PART 12) ---
   ipcMain.on('nova-self', (event, data) => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
 
@@ -1310,7 +1226,6 @@ function registerHandlers() {
         mainWindow.restore(); 
         break;
       
-      // Hardware & UI Relay to Renderer via unified 'ui-command-trigger'
       case 'mic-on':
         mainWindow.webContents.send('ui-command-trigger', { component: 'sensors', type: 'mic', action: 'turn_on' });
         break;
@@ -1371,7 +1286,6 @@ function registerHandlers() {
       case 'history-open':
         mainWindow.webContents.send('nova-action', { component: 'history', action: 'open' });
         break;
-      // ── Nova Internal YouTube Player ─────────────────────────────────────
       case 'youtube-play':
         if (data.videoId) {
           mainWindow.webContents.send('ui-command-trigger', {
@@ -1389,7 +1303,7 @@ function registerHandlers() {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, options || { properties: ['openFile'] });
     if (result.canceled) return null;
-    return result; // return full result object containing filePaths array
+    return result;
   });
 
   ipcMain.handle('open-media-dialog', async () => {
@@ -1416,7 +1330,6 @@ function registerHandlers() {
     return result.filePaths[0];
   });
 
-  // --- GLOBAL OS HIJACK — VIRTUAL CAMERA SPOOFING CONTROLS ---
     ipcMain.handle('virtual-cam:control', async (event, payload) => {
     if (!virtualCamInjector) return { error: 'Virtual Camera Service not initialized' };
 
@@ -1432,7 +1345,6 @@ function registerHandlers() {
 
             // Canvas Bridge: no filePath needed — canvas chunks arrive via stream-chunk
             case 'hijack': {
-                // Disable all physical cams first (Pillar 2)
                 const p = virtualCamInjector.globalSpoof.disableAllPhysicalCams();
                 if (p && typeof p.catch === 'function') {
                     p.catch(e => console.warn('[Main] disableAllPhysicalCams:', e.message));
@@ -1467,7 +1379,6 @@ function registerHandlers() {
     }
   });
 
-  // ── LIVE REGIONAL UPDATE (no Chrome restart needed) ───────────────────────
   ipcMain.handle('virtual-cam:update-regional', async (event, regional) => {
     if (!virtualCamInjector) return { success: false, error: 'Service not initialized' };
     try {
@@ -1486,7 +1397,6 @@ function registerHandlers() {
     }
   });
 
-  // ── LIVE TRANSFORM BROADCAST (zoom/rotate/mirror → browser canvas) ────────
   ipcMain.handle('virtual-cam:update-transform', async (event, { zoom, rotate, mirror }) => {
     if (!virtualCamInjector) return { success: false };
     try {
@@ -1509,7 +1419,6 @@ function registerHandlers() {
     }
   });
 
-  // ── PHYSICAL CAMERA RECOVERY ─────────────────────────────────────────────
   // Re-enables all physical camera devices that were disabled by Spoof Cam's
   // disableAllPhysicalCams() at the Windows Device Manager level.
   // Safe to call even when cameras are already enabled (no-op in that case).
@@ -1559,15 +1468,11 @@ function registerHandlers() {
 
 
 
-  // Forward installation progress events from GlobalSpoofService to renderer
-  // (GlobalSpoofService emits these directly via mainWindow.webContents.send)
 
 
-  // UI Micro-Automation Pipeline (Phase 2: Electron Router)
   ipcMain.handle('execute-ui-command', async (event, payload) => {
     if (!mainWindow || mainWindow.isDestroyed()) return false;
 
-    // Handle Native Window Controls First
     if (payload.component === 'window') {
         switch (payload.action) {
             case 'minimize': mainWindow.minimize(); break;
@@ -1584,7 +1489,6 @@ function registerHandlers() {
         }
     }
 
-    // Broadcast the command back to React for Visual State Execution
     mainWindow.webContents.send('ui-command-trigger', payload);
     return true;
   });
@@ -1615,7 +1519,6 @@ function registerHandlers() {
     return false;
   });
 
-  // ── NOVA-style: Child Agent Model + Nova Voice settings ──
   ipcMain.handle('save-child-agent-model', async (event, model) => {
     try {
       fs.writeFileSync(getChildAgentModelPath(), JSON.stringify({ model, updatedAt: Date.now() }, null, 2));
@@ -1649,7 +1552,6 @@ function registerHandlers() {
     } catch(e) { return 'female'; }
   });
 
-  // ── Child Agent Dedicated API Key ──
   ipcMain.handle('save-child-agent-key', async (event, apiKey) => {
     try {
       fs.writeFileSync(getChildAgentKeyPath(), JSON.stringify({ apiKey, updatedAt: Date.now() }, null, 2));
@@ -1667,7 +1569,6 @@ function registerHandlers() {
     } catch(e) { return ''; }
   });
 
-  // ── YouTube Auto Settings ──
   ipcMain.handle('select-media-file', async (event, type) => {
     let filters = [];
     if (type === 'video') filters = [{ name: 'Videos', extensions: ['mp4', 'mkv', 'mov'] }];
@@ -1758,7 +1659,7 @@ function registerHandlers() {
       
       if (clientSecret !== undefined && clientSecret.trim().length > 0) {
         try {
-            JSON.parse(clientSecret); // Validate JSON
+            JSON.parse(clientSecret);
         } catch(e) {
             return { success: false, error: "Invalid JSON format in client_secret.json. Please check your copy-paste." };
         }
@@ -1830,7 +1731,6 @@ function registerHandlers() {
             created: stats.birthtime.toISOString()
           };
         });
-      // Sort by newest first
       exportsList.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
       return exportsList;
     } catch (e) {
@@ -1886,7 +1786,6 @@ function registerHandlers() {
     }
   });
 
-  // --- KLING AI PICTURE-TO-VIDEO CONVERTER ---
   const KlingVideoService = require('./services/kling-video-service');
   const klingVideoService = new KlingVideoService(app);
 
@@ -1939,7 +1838,6 @@ function registerHandlers() {
         // Write args to a temp JSON file to avoid ALL Windows escaping/quoting issues
         const os = require('os');
         
-        // Get the Gemini API key from Nova settings
         let geminiApiKey = process.env.GEMINI_API_KEY || '';
         try {
           const secretPath = getSecretKeyPath();
@@ -1991,7 +1889,6 @@ function registerHandlers() {
                       event.sender.send('youtube-pipeline-status', parsed);
                   }
               } catch(err) {
-                  // Not JSON, ignore
               }
           }
         });
@@ -2007,7 +1904,6 @@ function registerHandlers() {
         });
         
         pyProcess.on('close', (code) => {
-            // Cleanup temp file
             try { fs.unlinkSync(tmpFile); } catch(e) {}
             if (code === 0) {
                 resolve({ success: true, metadata: extractedMetadata, videoPath: generatedVideoPath });
@@ -2023,7 +1919,6 @@ function registerHandlers() {
     });
   });
 
-  // Voice Preview — full script, word-by-word timing, waveform feedback
   ipcMain.handle('preview-voice', async (event, { aiVoice, aiLanguage, aiSpeed, aiPitch, scriptText }) => {
     return new Promise((resolve) => {
       try {
@@ -2034,7 +1929,6 @@ function registerHandlers() {
         const tmpSubs  = path.join(os.tmpdir(), `nova_prev_${ts}.vtt`);
         const tmpTxt   = path.join(os.tmpdir(), `nova_prev_txt_${ts}.txt`);
 
-        // Voice mapping
         let voice = 'en-US-ChristopherNeural';
         if (aiVoice && aiVoice.includes('Asad'))  voice = 'ur-PK-AsadNeural';
         else if (aiVoice && aiVoice.includes('Uzma'))  voice = 'ur-PK-UzmaNeural';
@@ -2054,7 +1948,6 @@ function registerHandlers() {
         // Write to temp file (BOM for proper Urdu/Hindi on Windows)
         fs.writeFileSync(tmpTxt, '\uFEFF' + textToSpeak, 'utf8');
 
-        // Speed / Pitch args
         const speed = aiSpeed || 50;
         const pitch = aiPitch || 50;
         let rateArg  = '';
@@ -2087,7 +1980,6 @@ function registerHandlers() {
             return;
           }
 
-          // Parse VTT for word timings
           let wordTimings = [];
           try {
             const vttRaw = fs.existsSync(tmpSubs) ? fs.readFileSync(tmpSubs, 'utf8') : '';
@@ -2110,7 +2002,6 @@ function registerHandlers() {
             try { fs.unlinkSync(tmpSubs); } catch(e) {}
           } catch(e) { wordTimings = []; }
 
-          // Send word timings + playing state
           event.sender.send('preview-voice-status', {
             state: 'playing',
             message: '🔊 Reproduzindo...',
@@ -2122,7 +2013,6 @@ function registerHandlers() {
           exec(playCmd, (playErr) => {
             try { fs.unlinkSync(tmpAudio); } catch(e) {}
             if (playErr) {
-              // Fallback: Windows default media player
               if (process.platform === 'darwin') shell.openPath(tmpAudio); else exec(`start "" "${tmpAudio}"`);
             }
             event.sender.send('preview-voice-status', { state: 'done', message: '✅ Pronto!' });
@@ -2137,7 +2027,6 @@ function registerHandlers() {
 
 
 
-  // Manual GUI YTDL
   ipcMain.handle('start-manual-download', async (event, { url, format, type }) => {
     if (app.ytdlpManager) {
       await app.ytdlpManager.manualDownload(url, format, type);
@@ -2164,7 +2053,6 @@ function registerHandlers() {
     }
   });
 
-  // ── Chat Settings (Original stable logic) ──
   ipcMain.handle('load-memories', async () => {
     try {
       const p = getMemoryPath();
@@ -2179,7 +2067,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // User Profile
   ipcMain.handle('load-user-profile', async () => {
     try {
       const p = getUserProfilePath();
@@ -2195,7 +2082,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Dashboard Settings & Fetching
   ipcMain.handle('load-dashboard-settings', async () => {
     try {
       const p = getDashboardSettingsPath();
@@ -2232,7 +2118,6 @@ function registerHandlers() {
     }
   });
 
-  // History
   ipcMain.handle('load-history', async () => {
     try {
       const p = getHistoryPath();
@@ -2256,13 +2141,11 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Multi-Chat Management
   ipcMain.handle('load-chats', async () => {
     try {
       const p = getChatsPath();
       if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
 
-      // Fallback to legacy history if exists
       const h = getHistoryPath();
       if (fs.existsSync(h)) {
         const legacyMessages = JSON.parse(fs.readFileSync(h, 'utf8'));
@@ -2337,7 +2220,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Contacts
   ipcMain.handle('load-contacts', async () => {
     try {
       const p = getContactsPath();
@@ -2353,7 +2235,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Notes
   ipcMain.handle('load-notes', async () => {
     try {
       const p = getNotesPath();
@@ -2369,8 +2250,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // ── Quick Note via WhatsApp Command ("note likho: X") ──────────────────────
-  // Appends a single note entry to notes.json without loading full UI state.
   ipcMain.handle('save-quick-note', async (event, { text, timestamp }) => {
     try {
       const p = getNotesPath();
@@ -2386,7 +2265,7 @@ function registerHandlers() {
         createdAt: new Date().toISOString(),
         source: 'whatsapp'
       };
-      notes.unshift(newNote); // Add to the top
+      notes.unshift(newNote);
       fs.writeFileSync(p, JSON.stringify(notes, null, 2));
       console.log('[Main] Quick note saved via WhatsApp:', text.substring(0, 50));
       return { success: true, note: newNote };
@@ -2396,7 +2275,6 @@ function registerHandlers() {
     }
   });
 
-  // Tasks
   ipcMain.handle('load-tasks', async () => {
     try {
       const p = getTasksPath();
@@ -2412,7 +2290,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // --- LTM (Long-Term Memory) Handlers ---
   ipcMain.handle('ltm:save-insight', async (event, { content, category }) => {
     try {
       const p = getMemoryPath();
@@ -2465,7 +2342,6 @@ function registerHandlers() {
     return notesPath;
   });
 
-  // Alias for AI/Frontend clarity - Returns Nova Data folder path
   ipcMain.handle('get-nova-data-path', async () => {
     const novaDataPath = path.join(app.getPath('documents'), 'Nova Data');
     if (!fs.existsSync(novaDataPath)) {
@@ -2475,11 +2351,9 @@ function registerHandlers() {
   });
 
 
-  // Vault & Folders
   ipcMain.handle('initialize-vault', async () => {
     console.log('IPC: Initializing Vault...');
     try {
-      // 1. Initialize Markdown Notes Folder (ONLY)
       const notesDir = getMarkdownNotesPath();
       if (!fs.existsSync(notesDir)) {
         fs.mkdirSync(notesDir, { recursive: true });
@@ -2489,7 +2363,6 @@ function registerHandlers() {
       return { notesDir };
     } catch (e) {
       console.error('IPC: Vault Initialization Failed:', e);
-      // Fallback: Return at least the notes path
       try { return { notesDir: getMarkdownNotesPath() }; } catch (err) { return null; }
     }
   });
@@ -2530,7 +2403,6 @@ function registerHandlers() {
     };
   });
 
-  // Digital Brain Vault Handlers
   ipcMain.handle('save-vault-md', async (event, { filename, content }) => {
     try {
       const dir = path.join(getVaultPath(), 'Chats');
@@ -2543,7 +2415,6 @@ function registerHandlers() {
     }
   });
 
-  // ── RAG Memory Search for Chat Engine ────────────────────────────────
   // MEMORY GATE: Only search when user explicitly asks about past events/memory.
   // This prevents wasting API tokens on every simple WhatsApp message.
   const MEMORY_TRIGGER_KEYWORDS = [
@@ -2558,14 +2429,12 @@ function registerHandlers() {
 
       const promptLower = String(currentPrompt).toLowerCase();
 
-      // ── HARD GATE: Skip memory search if no explicit memory keyword found ──
       const isMemoryQuery = MEMORY_TRIGGER_KEYWORDS.some(kw => promptLower.includes(kw));
       if (!isMemoryQuery) {
         console.log("🧠 Memory Search SKIPPED (no memory keyword in message)");
         return "";
       }
 
-      // Stop words specific to conversational context (Urdu/Hindi/English)
       const stopWords = new Set(['aur', 'hai', 'ki', 'ka', 'mein', 'ko', 'se', 'tha', 'thi', 'the', 'main', 'mujhe', 'karo', 'koi', 'hi', 'bhi', 'to', 'yeh', 'woh', 'is', 'a', 'an', 'the', 'and', 'or', 'for', 'to', 'in', 'on', 'with', 'by', 'of', 'how', 'what', 'who', 'when', 'where', 'why']);
       
       const keywords = (promptLower.match(/\b\w+\b/g) || []).filter(w => w.length > 2 && !stopWords.has(w));
@@ -2574,7 +2443,6 @@ function registerHandlers() {
       
       if (keywords.length === 0) return "";
 
-      // Path Resolution
       const activityJsonPath = path.join(path.dirname(app.getPath('exe')), 'Nova_Vault', 'MyActivity.json');
       const activityJsonAlt = path.join(__dirname, '..', 'Nova_Vault', 'MyActivity.json');
       const jsonPath = fs.existsSync(activityJsonPath) ? activityJsonPath : fs.existsSync(activityJsonAlt) ? activityJsonAlt : null;
@@ -2584,13 +2452,11 @@ function registerHandlers() {
         return "";
       }
 
-      // 1. Forced File Reading
       const rawJson = fs.readFileSync(jsonPath, 'utf8');
       const activities = JSON.parse(rawJson);
 
       let matchedNodes = [];
 
-      // 2. Robust Keyword Search
       for (const entry of activities) {
           const title = (entry.title || "");
           const htmlContent = (entry.safeHtmlItem || []).map(h => h.html).join(" ");
@@ -2603,7 +2469,6 @@ function registerHandlers() {
           }
 
           if (score > 0) {
-              // Clean HTML to pure text
               const rawText = htmlContent
                 .replace(/<[^>]+>/g, ' ')
                 .replace(/&quot;/g, '"')
@@ -2611,19 +2476,16 @@ function registerHandlers() {
                 .replace(/\s+/g, ' ')
                 .trim();
               
-              // Only take first 400 chars of snippet
               const cleanSnippet = rawText.length > 400 ? rawText.substring(0, 400) + "..." : rawText;
               matchedNodes.push({ title, snippet: cleanSnippet, score });
           }
       }
 
-      // Sort by score and extract Top 2
       matchedNodes.sort((a, b) => b.score - a.score);
       const top2 = matchedNodes.slice(0, 2);
 
       if (top2.length > 0) {
           const matchedContext = top2.map(n => `{Title: ${n.title}, Snippet: ${n.snippet}}`).join(" | ");
-          // 3. Add Console Logs (Critical for Debugging)
           console.log("🧠 Retrieved Memory:", matchedContext);
           return matchedContext;
       }
@@ -2650,10 +2512,8 @@ function registerHandlers() {
         }
       };
 
-      // ── Hub node ─────────────────────────────────────────────────────────
       addNode('nova_core', 'Nova Central Memory', 0, 5);
 
-      // ── Auto-tag categories (detected in title + snippet text) ───────────
       const TAG_RULES = [
         { tag: 'Code',      keywords: ['code', 'function', 'script', 'program', 'implement'] },
         { tag: 'Error',     keywords: ['error', 'bug', 'fix', 'crash', 'fail', 'issue', 'problem'] },
@@ -2669,7 +2529,7 @@ function registerHandlers() {
         { tag: 'WhatsApp',  keywords: ['whatsapp', 'wa', 'message', 'chat', 'send'] },
         { tag: 'System',    keywords: ['volume', 'brightness', 'sleep', 'shutdown', 'battery'] },
         { tag: 'File',      keywords: ['file', 'folder', 'directory', 'path', 'read', 'write'] },
-        { tag: 'General',   keywords: [] }, // fallback catch-all
+        { tag: 'General',   keywords: [] },
       ];
 
       const detectTags = (text) => {
@@ -2680,7 +2540,6 @@ function registerHandlers() {
         return matched.length > 0 ? matched : ['General'];
       };
 
-      // ── Strip HTML tags for clean snippet ────────────────────────────────
       const stripHtml = (html) => {
         return (html || '')
           .replace(/<[^>]+>/g, ' ')
@@ -2693,13 +2552,11 @@ function registerHandlers() {
           .trim();
       };
 
-      // ══════════════════════════════════════════════════════════════════════
       // SOURCE 1: Google Takeout MyActivity.json
       //   Location: Stonic_Vault/MyActivity.json  (project folder)
       //   Structure: Array of { header, title, time, safeHtmlItem: [{html}] }
-      // ══════════════════════════════════════════════════════════════════════
       const activityJsonPath = path.join(
-        path.dirname(app.getPath('exe')),   // works in dev (project root)
+        path.dirname(app.getPath('exe')),
         'Nova_Vault', 'MyActivity.json'
       );
 
@@ -2731,7 +2588,6 @@ function registerHandlers() {
             day: '2-digit', month: 'short', year: 'numeric'
           }) : '';
 
-          // Extract text from safeHtmlItem[].html for snippet + tagging
           const htmlChunks = (entry.safeHtmlItem || [])
             .map(h => stripHtml(h.html))
             .join(' ');
@@ -2739,14 +2595,12 @@ function registerHandlers() {
             ? htmlChunks.substring(0, 200) + '...'
             : (htmlChunks || title);
 
-          // Combine title + content for tag detection
           const tags = detectTags(`${title} ${htmlChunks}`);
 
           const nodeId = `ga_${idx}_${title.substring(0, 20).replace(/[^a-zA-Z0-9]/g, '_')}`;
           addNode(nodeId, title, 1, 1, snippet, tags, date, htmlChunks || title);
           links.push({ source: 'nova_core', target: nodeId });
 
-          // Add tag category nodes (group 3 = purple)
           tags.forEach(tag => {
             const tagId = `tag_${tag}`;
             addNode(tagId, `#${tag}`, 3, 2);
@@ -2760,10 +2614,8 @@ function registerHandlers() {
         console.warn('[scan-vault-graph] MyActivity.json not found at:', activityJsonPath);
       }
 
-      // ══════════════════════════════════════════════════════════════════════
       // SOURCE 2: Nova_Vault Markdown files (Chat notes, secondary source)
       //   Location: Documents/Nova_Vault/ and /Chats/ subfolder
-      // ══════════════════════════════════════════════════════════════════════
       const vaultRoot = getVaultPath();
       const chatsDir  = path.join(vaultRoot, 'Chats');
 
@@ -2784,7 +2636,6 @@ function registerHandlers() {
         let mdTags = [];
         let date = '';
 
-        // Parse YAML frontmatter
         const fmMatch = rawContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
         if (fmMatch) {
           const fm = fmMatch[1];
@@ -2808,13 +2659,11 @@ function registerHandlers() {
           }
         }
 
-        // Wikilinks → amber category nodes
         const wikilinks = [];
         const wikiRe = /\[\[(.*?)\]\]/g;
         let wm;
         while ((wm = wikiRe.exec(rawContent)) !== null) wikilinks.push(wm[1].trim());
 
-        // Snippet from body
         const bodyStart = fmMatch ? rawContent.indexOf('---', 3) + 3 : 0;
         const bodyLines = rawContent.substring(bodyStart).split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
         const snippetRaw = bodyLines.slice(0, 3).join(' ').replace(/\[\[.*?\]\]/g, '').trim();
@@ -2824,7 +2673,7 @@ function registerHandlers() {
 
         const autoTags = mdTags.length > 0 ? mdTags : detectTags(`${title} ${snippet}`);
         const nodeId = `md_${fileName}`;
-        addNode(nodeId, title, 4, 1, snippet, autoTags, date, fullTextRaw);  // group 4 = teal (Markdown)
+        addNode(nodeId, title, 4, 1, snippet, autoTags, date, fullTextRaw);
         links.push({ source: 'nova_core', target: nodeId });
 
         autoTags.forEach(tag => {
@@ -2840,7 +2689,6 @@ function registerHandlers() {
         });
       });
 
-      // ── Recalculate dot sizes based on connection count ───────────────────
       nodes.forEach(n => {
         if (n.id === 'nova_core') {
           n.val = Math.min(12, 3 + links.length * 0.05);
@@ -2860,17 +2708,15 @@ function registerHandlers() {
   });
 
 
-  // System Tools
   ipcMain.handle('trigger-swarm', async (event, { command, apiKey, isDelegated }) => {
     try {
       if (!agentSwarmController) {
         console.warn('[Swarm] Controller not initialized yet.');
         return { handled: false };
       }
-      // Read child agent model, dedicated key & Groq fallback from settings JSON
       let childModel = 'gemini-3.8-flash';
-      let effectiveApiKey = apiKey; // fallback to main key
-      let groqKey = '';             // Groq fallback (separate quota)
+      let effectiveApiKey = apiKey;
+      let groqKey = '';
       try {
         const mp = getChildAgentModelPath();
         if (fs.existsSync(mp)) {
@@ -2893,7 +2739,7 @@ function registerHandlers() {
           groqKey = gd.apiKey || gd.groqKey || gd.key || '';
           if (groqKey) console.log('[Swarm] Groq fallback key loaded.');
         }
-      } catch(e) { /* use defaults */ }
+      } catch(e) { }
       return await agentSwarmController.executeWorkflow(command, effectiveApiKey, isDelegated, childModel, groqKey);
     } catch (e) {
       console.error('[Swarm] Error:', e);
@@ -2955,7 +2801,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // ── WhatsApp Dedicated Gemini Key ─────────────────────────────────────────
   ipcMain.handle('get-wa-api-key', async () => {
     try {
       const p = getWaApiKeyPath();
@@ -2993,15 +2838,14 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Thinking Mode Settings
   ipcMain.handle('get-thinking-enabled', async () => {
     try {
       const p = getThinkingSettingsPath();
       if (fs.existsSync(p)) {
         const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.enabled !== undefined ? data.enabled : true; // Default to true
+        return data.enabled !== undefined ? data.enabled : true;
       }
-      return true; // Default to true if no settings file
+      return true;
     } catch (e) { return true; }
   });
 
@@ -3012,13 +2856,12 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Gemini API Preference (Direct vs OpenRouter)
   ipcMain.handle('get-prefer-direct-gemini', async () => {
     try {
       const p = getGeminiPreferencePath();
       if (fs.existsSync(p)) {
         const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.preferDirect !== undefined ? data.preferDirect : false; // Default to OpenRouter
+        return data.preferDirect !== undefined ? data.preferDirect : false;
       }
       return false;
     } catch (e) { return false; }
@@ -3031,7 +2874,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Google AI Key
   ipcMain.handle('get-google-token', async () => {
     try {
       const p = getGoogleKeyPath();
@@ -3050,12 +2892,11 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // ElevenLabs Settings
   ipcMain.handle('get-elevenlabs-settings', async () => {
     try {
       const p = getElevenLabsSettingsPath();
       if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return { apiKey: '', voiceId: '21m00Tcm4TlvDq8ikWAM' }; // Default voice (Rachel)
+      return { apiKey: '', voiceId: '21m00Tcm4TlvDq8ikWAM' };
     } catch (e) { return { apiKey: '', voiceId: '21m00Tcm4TlvDq8ikWAM' }; }
   });
 
@@ -3066,7 +2907,6 @@ function registerHandlers() {
     } catch (e) { return false; }
   });
 
-  // Visual Feed Control
   ipcMain.handle('get-visual-feed-enabled', async () => {
     try {
       const p = getVisualSettingsPath();
@@ -3100,7 +2940,7 @@ function registerHandlers() {
       const response = await axios.get('https://openrouter.ai/api/v1/models', {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://nova.ai', // Optional but good practice
+          'HTTP-Referer': 'https://nova.ai',
           'X-Title': 'Nova AI'
         }
       });
@@ -3121,35 +2961,27 @@ function registerHandlers() {
       // CRITICAL FIX: If AI literally used "${resolvedNotesPath}" string, strip it out
       if (targetPath && (targetPath.includes('${resolvedNotesPath}') || targetPath.includes('$resolvedNotesPath'))) {
         console.warn(`[FS-OP] WARNING: AI used literal template variable "${targetPath}". Fixing...`);
-        // Remove the literal variable and get just the filename
         resolvedPath = targetPath.replace(/\$\{?resolvedNotesPath\}?[\\\/]?/g, '');
-        // If nothing left after stripping, it was JUST the variable
         if (!resolvedPath || resolvedPath === targetPath) {
           resolvedPath = app.getPath('documents') + path.sep + 'Nova Data';
         } else {
-          // Prepend Nova Data path
           resolvedPath = path.join(app.getPath('documents'), 'Nova Data', resolvedPath);
         }
         console.log(`[FS-OP] Fixed literal variable: ${targetPath} → ${resolvedPath}`);
       }
-      // Check if path is relative (doesn't start with drive letter like C:\)
       else if (targetPath && !path.isAbsolute(targetPath)) {
-        // If path starts with "Documents" or "Nova Data", resolve to user's Documents folder
         if (targetPath.startsWith('Documents\\') || targetPath.startsWith('Documents/')) {
           resolvedPath = path.join(app.getPath('documents'), targetPath.substring('Documents\\'.length));
         } else if (targetPath.startsWith('Nova Data\\') || targetPath.startsWith('Nova Data/')) {
           resolvedPath = path.join(app.getPath('documents'), targetPath);
         } else {
-          // For other relative paths, use Nova Data as base
           resolvedPath = path.join(app.getPath('documents'), 'Nova Data', targetPath);
         }
         console.log(`[FS-OP] Resolved relative path: ${targetPath} → ${resolvedPath}`);
       }
 
-      // Resolve destination path if provided
       let resolvedDest = dest;
       if (dest) {
-        // Handle literal ${resolvedNotesPath} in destination too
         if (dest.includes('${resolvedNotesPath}') || dest.includes('$resolvedNotesPath')) {
           console.warn(`[FS-OP] WARNING: AI used literal template variable in dest "${dest}". Fixing...`);
           resolvedDest = dest.replace(/\$\{?resolvedNotesPath\}?[\\\/]?/g, '');
@@ -3171,7 +3003,6 @@ function registerHandlers() {
         }
       }
 
-      // FINAL NORMALIZATION: Ensure paths are absolute and clean
       if (resolvedPath) resolvedPath = path.resolve(resolvedPath);
       if (resolvedDest) resolvedDest = path.resolve(resolvedDest);
 
@@ -3186,7 +3017,6 @@ function registerHandlers() {
           if (!fs.existsSync(resolvedPath)) fs.mkdirSync(resolvedPath, { recursive: true });
           return true;
         case 'write-file':
-          // Ensure directory exists before writing file
           const dir = path.dirname(resolvedPath);
           if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
           fs.writeFileSync(resolvedPath, content || '');
@@ -3243,7 +3073,7 @@ function registerHandlers() {
         console.log(`[File-Reader] PDF Parsed. Content length: ${data.text?.length || 0}`);
         return { content: data.text };
       }
-      else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || ext === '.docx') { // docx
+      else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || ext === '.docx') {
         console.log(`[File-Reader] Parsing Docx...`);
         const result = await mammoth.extractRawText({ buffer });
         console.log(`[File-Reader] Docx Parsed. Content length: ${result.value?.length || 0}`);
@@ -3255,7 +3085,6 @@ function registerHandlers() {
       }
 
       console.warn(`[File-Reader] Unsupported file type: ${mimeType}`);
-      // Fallback for images or binary: return a note
       return { content: `[Binary/Image File: ${path.basename(filePath)}]. The content of this file is visual or binary.` };
 
     } catch (e) {
@@ -3294,7 +3123,6 @@ function registerHandlers() {
     return results;
   });
 
-  // --- NOVA STUDIO IPC HANDLERS ---
   ipcMain.handle('studio:execute-edit', async (event, data) => {
     if (app.novaStudioController) {
       return await app.novaStudioController.executeEdit(data);
@@ -3302,7 +3130,6 @@ function registerHandlers() {
     return { success: false, error: 'Studio Controller not initialized' };
   });
 
-  // NEW NATIVE BOOT IPCs (Phase 2 & 3 Redesign)
   ipcMain.handle('studio:select-sd-path', async () => {
     const result = dialog.showOpenDialogSync(mainWindow, {
       title: 'Selecionar Pasta do Stable Diffusion',
@@ -3324,8 +3151,6 @@ function registerHandlers() {
 
     try {
         if (sdProcess) {
-            // Attempt to kill previous if exists? Or just return success if already running
-            // For now, let's just spawn a new one if requested
         }
 
         sdProcess = spawn(process.platform === 'darwin' ? '/bin/bash' : 'cmd.exe', process.platform === 'darwin' ? ['webui.sh', '--api'] : ['/c', 'webui-user.bat', '--api', '--xformers'], {
@@ -3335,7 +3160,6 @@ function registerHandlers() {
         });
         sdProcess.unref();
 
-        // Start background polling to check when port 7860 is live
         let checkCounter = 0;
         const checkInterval = setInterval(async () => {
             checkCounter++;
@@ -3346,10 +3170,9 @@ function registerHandlers() {
                     mainWindow.webContents.send('studio:engine-status', { status: 'LIVE' });
                 }
             } catch (e) {
-                // Port not ready yet
             }
 
-            if (checkCounter > 120) { // 2 minutes timeout
+            if (checkCounter > 120) {
                 clearInterval(checkInterval);
                 mainWindow.webContents.send('studio:engine-status', { status: 'TIMEOUT' });
             }
@@ -3377,9 +3200,7 @@ function registerHandlers() {
     }
   });
 
-  // ===== NEW JARVIS-LEVEL HANDLERS =====
 
-  // Clipboard Operations
   ipcMain.handle('clipboard-read', async () => {
     try {
       return {
@@ -3417,7 +3238,6 @@ function registerHandlers() {
         return { success: false, error: 'No screen sources found' };
       }
 
-      // Pick primary monitor source
       const source = sources[0];
       let img = source.thumbnail;
 
@@ -3469,7 +3289,7 @@ function registerHandlers() {
       // Screen-type sources capture the TRUE composited display output.
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
-        thumbnailSize: { width: 320, height: 180 } // Get thumbnails for size-based selection
+        thumbnailSize: { width: 320, height: 180 }
       });
       console.log('[Electron] Screen sources available:', sources.map(s => `${s.id} | ${s.name}`));
       return sources.map(source => ({
@@ -3487,7 +3307,6 @@ function registerHandlers() {
     }
   });
 
-  // System Notifications
   ipcMain.handle('send-notification', async (event, { title, body, icon }) => {
     try {
       const notification = new Notification({
@@ -3500,7 +3319,6 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // HTTP Request (for external APIs)
   ipcMain.handle('http-fetch', async (event, { url, method, headers, body }) => {
     try {
       const response = await axios({
@@ -3525,7 +3343,6 @@ function registerHandlers() {
     }
   });
 
-  // Ultra-Fast Native Realtime System Metrics (0% CPU overhead, pure C++ OS stats)
   let lastCpuStats = os.cpus();
   ipcMain.handle('get-realtime-system-metrics', async () => {
     try {
@@ -3560,7 +3377,6 @@ function registerHandlers() {
     }
   });
 
-  // Detailed System Info
   ipcMain.handle('get-detailed-system-info', async () => {
     try {
       const [cpu, mem, graphics, os, network, battery] = await Promise.all([
@@ -3575,7 +3391,6 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // Window Control
   ipcMain.handle('window-control', async (event, { action }) => {
     try {
       const win = BrowserWindow.getFocusedWindow();
@@ -3591,11 +3406,9 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // Get Running Processes (for task management)
   ipcMain.handle('get-processes', async () => {
     try {
       const processes = await si.processes();
-      // Return top 20 by CPU usage
       const sorted = processes.list
         .sort((a, b) => b.cpu - a.cpu)
         .slice(0, 20)
@@ -3604,7 +3417,6 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // Kill Process
   ipcMain.handle('kill-process', async (event, { pid }) => {
     try {
       process.kill(pid);
@@ -3612,7 +3424,6 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // ===== WHATSAPP INTEGRATION HANDLERS =====
 
   ipcMain.handle('whatsapp-init', async () => {
     try {
@@ -3692,8 +3503,6 @@ function registerHandlers() {
         if (isMimicry) {
             sent = await whatsappManager.sendReplyWithMimicry(chatId, message, !removeSignature);
         } else {
-            // For standard sendReply we don't have a signature param yet, but let's assume it sends standard.
-            // Actually, we can just add a param to sendReply as well if needed.
             sent = await whatsappManager.sendReply(chatId, message, removeSignature);
         }
         if (sent) return { success: true };
@@ -3705,7 +3514,6 @@ function registerHandlers() {
     }
   });
 
-  // ===== TELEGRAM INTEGRATION HANDLERS =====
 
   const getTelegramSettingsPath = () => path.join(app.getPath('userData'), 'telegram_settings.json');
 
@@ -3852,7 +3660,6 @@ function registerHandlers() {
     }
   });
 
-  // Remote access handler returning the status of the service along with token and QR code
   ipcMain.handle('remote-access-status', async () => {
     if (remoteAccessService) {
       const status = remoteAccessService.getStatus();
@@ -3876,7 +3683,6 @@ function registerHandlers() {
     return { isRunning: false };
   });
 
-  // Regenerate token and update status
   ipcMain.handle('remote-access-regenerate', async () => {
     if (remoteAccessService) {
       remoteAccessService.tokens.clear();
@@ -3895,7 +3701,6 @@ function registerHandlers() {
     return { success: false, error: 'Remote Access Service not running' };
   });
 
-  // Restart Cloudflare tunnel
   ipcMain.handle('remote-access-restart-tunnel', async () => {
     if (remoteAccessService) {
       try {
@@ -3903,7 +3708,6 @@ function registerHandlers() {
         remoteAccessService.publicUrl = null;
         await remoteAccessService.startCloudflaredTunnel();
 
-        // Wait up to 10 seconds for the new URL
         let attempts = 0;
         while (!remoteAccessService.publicUrl && attempts < 20) {
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -3929,21 +3733,18 @@ function registerHandlers() {
     return { success: false, error: 'Remote Access Service not running' };
   });
 
-  // Broadcast assistant response to mobile clients
   ipcMain.handle('remote-access-broadcast-response', async (event, { message, timestamp }) => {
     if (remoteAccessService) {
       remoteAccessService.broadcastToMobile('ai-response', { message, timestamp });
     }
   });
 
-  // Broadcast thinking status to mobile clients
   ipcMain.handle('remote-access-broadcast-thinking', async () => {
     if (remoteAccessService) {
       remoteAccessService.broadcastToMobile('ai-thinking');
     }
   });
 
-  // Open a URL in the system default browser
   ipcMain.handle('open-external-url', async (event, url) => {
     try {
       const { shell } = require('electron');
@@ -3956,7 +3757,6 @@ function registerHandlers() {
   });
 
 
-  // ===== WHATSAPP AUTOMATION - ROBOTJS VERSION (Production Ready) =====
   ipcMain.handle('send-whatsapp-keyboard', async (event, args) => {
     try {
       const name = String(args?.name || '');
@@ -3986,27 +3786,23 @@ function registerHandlers() {
         };
       }
 
-      // Helper function to type text character by character
       const typeText = (text, delayMs = 50) => {
         for (let i = 0; i < text.length; i++) {
           robot.typeString(text[i]);
-          robot.keyTap('backspace'); // Clear
-          robot.typeString(text[i]); // Retype for reliability
+          robot.keyTap('backspace');
+          robot.typeString(text[i]);
           if (delayMs > 0) {
-            // Small delay between characters
             const start = Date.now();
-            while (Date.now() - start < delayMs) { /* busy wait */ }
+            while (Date.now() - start < delayMs);
           }
         }
       };
 
-      // Helper to sleep
       const sleep = (ms) => {
         const start = Date.now();
-        while (Date.now() - start < ms) { /* busy wait */ }
+        while (Date.now() - start < ms);
       };
 
-      // Step 1: Open WhatsApp Desktop
       console.log(`[WhatsApp Robot] Step 1: Opening WhatsApp Desktop...`);
       exec(process.platform === 'darwin' ? 'open -a WhatsApp' : 'start whatsapp:', (err) => {
         if (err) console.warn('[WhatsApp Robot] Could not open via protocol, trying direct exe...');
@@ -4016,31 +3812,26 @@ function registerHandlers() {
       sleep(4000);
       console.log(`[WhatsApp Robot] Step 1 Complete`);
 
-      // Step 2: Press Ctrl+N to open new chat dialog
       console.log(`[WhatsApp Robot] Step 2: Pressing Ctrl+N to open new chat...`);
       robot.keyTap('n', process.platform === 'darwin' ? 'command' : 'control');
       sleep(1500);
       console.log(`[WhatsApp Robot] Step 2 Complete`);
 
-      // Step 3: Type contact name
       console.log(`[WhatsApp Robot] Step 3: Typing contact name: ${name}`);
       robot.typeString(name);
       sleep(1500);
       console.log(`[WhatsApp Robot] Step 3 Complete`);
 
-      // Step 4: Press Enter to select contact
       console.log(`[WhatsApp Robot] Step 4: Pressing Enter to select contact...`);
       robot.keyTap('enter');
       sleep(1000);
       console.log(`[WhatsApp Robot] Step 4 Complete`);
 
-      // Step 5: Type the message
       console.log(`[WhatsApp Robot] Step 5: Typing message (${message.length} characters)...`);
       robot.typeString(message);
       sleep(800);
       console.log(`[WhatsApp Robot] Step 5 Complete`);
 
-      // Step 6: Press Enter to send
       console.log(`[WhatsApp Robot] Step 6: Pressing Enter to send message...`);
       robot.keyTap('enter');
       console.log(`[WhatsApp Robot] Step 6 Complete`);
@@ -4064,11 +3855,9 @@ function registerHandlers() {
     }
   });
 
-  // ===== WINDOW CONTROLS =====  // Press specific keys (Enter, Tab, Escape, etc.)
   ipcMain.handle('keyboard-press', async (event, { key }) => {
     if (process.platform === 'darwin') { try { return await macNative.pressKey(key); } catch(e) { return {success:false,error:e.message}; } }
     try {
-      // Map common key names to SendKeys format
       const keyMap = {
         'enter': '{ENTER}',
         'tab': '{TAB}',
@@ -4113,11 +3902,9 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // Type text and optionally press Enter
   ipcMain.handle('keyboard-type', async (event, { text, pressEnter }) => {
     if (process.platform === 'darwin') { try { return await macNative.typeText(text, pressEnter); } catch(e) { return {success:false,error:e.message}; } }
     try {
-      // Escape special SendKeys characters
       const escapedText = text
         .replace(/\+/g, '{+}')
         .replace(/\^/g, '{^}')
@@ -4155,10 +3942,7 @@ function registerHandlers() {
     } catch (e) { return { error: e.message }; }
   });
 
-  // ===== BROWSER AUTOMATION HANDLERS REMOVED (Replaced by registerBrowserHandlers below) =====
-  // Handlers are now registered dynamically by services/browser-manager.js
 
-  // ===== AUTO-UPDATE HANDLERS =====
   ipcMain.handle('check-for-update', async () => {
     if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
     if (!app.isPackaged) {
@@ -4194,12 +3978,10 @@ function registerHandlers() {
     return app.getVersion();
   });
 
-  // Register Browser Automation Handlers
   try {
     const { registerBrowserHandlers, browserService } = require('./services/browser-manager');
     registerBrowserHandlers();
 
-    // Start Stonic CDP Shim for AI Browser tools
     const { startCdpShim } = require('./services/cdp-shim');
     startCdpShim().catch(err => {
       console.error('[Main] Failed to start CDP shim:', err.message);
@@ -4208,16 +3990,12 @@ function registerHandlers() {
     console.error('Failed to register browser handlers:', e);
   }
 
-  // Configuration Sync IPCs
   ipcMain.handle('sync-configuration-backup', async (event, { action }) => {
     if (action === 'export') return syncConfigurationBackup();
     if (action === 'import') return restoreConfigurationBackup();
     return { success: false, error: 'Invalid action' };
   });
 
-  // ═══════════════════════════════════════════════════════════════════════
-  //  GOOGLE ACCOUNT / GEMINI BROWSER ENGINE — IPC HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════
   let geminiBrowserEngine = null;
   try {
     geminiBrowserEngine = require('./services/gemini-browser-engine');
@@ -4225,7 +4003,6 @@ function registerHandlers() {
     console.warn('[Main] GeminiBrowserEngine not available:', e.message);
   }
 
-  /** Returns current login status + available model list */
   ipcMain.handle('gemini-account:status', async () => {
     if (!geminiBrowserEngine) return { isLoggedIn: false, email: null, models: [], selectedModel: null };
     return {
@@ -4235,12 +4012,10 @@ function registerHandlers() {
     };
   });
 
-  /** Opens the Google Login window; resolves when login succeeds or window closes */
   ipcMain.handle('gemini-account:login', async () => {
     if (!geminiBrowserEngine) return { success: false, error: 'Engine not available' };
     try {
       const result = await geminiBrowserEngine.openGoogleLoginWindow(mainWindow);
-      // Notify renderer of updated status
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('gemini-account:status-changed', {
           ...geminiBrowserEngine.getAuthStatus(),
@@ -4254,7 +4029,6 @@ function registerHandlers() {
     }
   });
 
-  /** Clears session cookies — effectively logs out */
   ipcMain.handle('gemini-account:logout', async () => {
     if (!geminiBrowserEngine) return { success: false, error: 'Engine not available' };
     const result = await geminiBrowserEngine.logoutSession();
@@ -4268,14 +4042,12 @@ function registerHandlers() {
     return result;
   });
 
-  /** Set which Gemini model to use for account-mode requests */
   ipcMain.handle('gemini-account:set-model', async (event, model) => {
     if (!geminiBrowserEngine) return false;
     geminiBrowserEngine.setSelectedModel(model);
     return true;
   });
 
-  /** Native Gemini Web API Chat Gateway */
   ipcMain.handle('gemini-account:send-message', async (event, payload) => {
     if (!geminiBrowserEngine) return { success: false, error: 'Engine not available' };
     try {
@@ -4286,10 +4058,7 @@ function registerHandlers() {
     }
   });
 
-  /** Studio execute-edit now receives accountMode + selectedModel from frontend */
-  // (already handled by existing 'studio:execute-edit' → novaStudioController.executeEdit)
 
-  // ── Browser Farm IPC ──────────────────────────────────────
   browserFarmService.registerIPC();
 
 }
@@ -4315,7 +4084,6 @@ function startWakeWordDetector(mainWindow) {
       for (const line of lines) {
         if (!line.trim()) continue;
         const result = JSON.parse(line);
-        // Forward all events (WAKE_WORD, INFO, ERROR) to the UI
         mainWindow.webContents.send('wake-word-detected', result);
       }
     } catch (e) {
@@ -4335,13 +4103,11 @@ function startWakeWordDetector(mainWindow) {
 
 function stopWindowServices() {
   const pending = [];
-  // Cleanup production server
   if (productionServer) {
     productionServer.close();
     productionServer = null;
   }
 
-  // Cleanup remote access service
   if (remoteAccessService) {
     pending.push(remoteAccessService.stop());
     remoteAccessService = null;
@@ -4400,14 +4166,12 @@ if (process.env.NOVA_TEST_INSTANCE === '1') {
   } catch (err) { console.error('[TestInstance]', err.message); }
 }
 
-// SINGLE INSTANCE LOCK
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
-    // Someone tried to run a second instance, we should focus our window.
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
@@ -4418,14 +4182,12 @@ if (!gotTheLock) {
     const { session } = require('electron');
     setupPermissions(session);
 
-    // Initialize RTMP Server
     try {
       if (process.env.NOVA_SMOKE_TEST !== '1') RtmpServerService.startRtmpServer();
     } catch (err) {
       console.error('[RTMP] Failed to start node-media-server:', err);
     }
 
-    // iPhone Console (USB bridge) — macOS port
     try {
       require('./services/ios-bridge').start();
     } catch (err) {
@@ -4433,26 +4195,6 @@ if (!gotTheLock) {
     }
 
     // Initialize Web Adblocker with local cache (Technique 2) - Disabled due to compatibility issues with Electron 34 causing Network Service crashes
-    /*
-    try {
-      const { ElectronBlocker } = require('@cliqz/adblocker-electron');
-      const { promises: fsPromises } = require('fs');
-      const adblockerCachePath = path.join(app.getPath('userData'), 'adblocker.bin');
-
-      ElectronBlocker.fromPrebuiltAdsAndTracking(require('electron').net.fetch, {
-        path: adblockerCachePath,
-        read: fsPromises.readFile,
-        write: fsPromises.writeFile,
-      }).then((blocker) => {
-        blocker.enableBlockingInSession(session.defaultSession);
-        console.log('[AdBlocker] Enabled on defaultSession with local disk cache.');
-      }).catch(err => {
-        console.error('[AdBlocker] Failed to initialize fromPrebuilt:', err);
-      });
-    } catch (err) {
-      console.error('[AdBlocker] Failed to setup adblocker:', err);
-    }
-    */
 
     // ===== CRITICAL: Configure CSP to allow YouTube embeds in production =====
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -4481,7 +4223,6 @@ if (!gotTheLock) {
       callback({ responseHeaders });
     });
 
-    // Initialize Nova Inventory Manager
     try {
       const { inventoryManager } = require('./services/inventory-manager');
       inventoryManager.init(() => whatsappManager);
@@ -4489,7 +4230,6 @@ if (!gotTheLock) {
       console.error('[Inventory] Failed to initialize inventoryManager:', err);
     }
 
-    // Initialize Remote Access Service
     try {
       const RemoteAccessService = require('./services/remote-access');
       remoteAccessService = new RemoteAccessService(app);
@@ -4515,7 +4255,6 @@ if (!gotTheLock) {
     // app.physicalMobileService — registrado antes, o módulo lança 'service obrigatório'.
     try { require('./services/identidade-ipc').register(app, ipcMain); } catch (e) { console.error('[identidade] IPC nao registrado:', e && e.message); }
 
-    // ===== AUTO-UPDATE EVENTS =====
     autoUpdater.on('checking-for-update', () => {
       console.log('🔍 [NOVA UPDATE] Checking for updates...');
     });
@@ -4560,7 +4299,6 @@ if (!gotTheLock) {
       console.error('❌ [NOVA UPDATE ERROR]:', err.message);
       console.error('Full error details:', err);
 
-      // Send detailed error to UI
       if (createdWindow) {
         createdWindow.webContents.send('update-error', {
           message: err.message,
@@ -4580,7 +4318,6 @@ if (!gotTheLock) {
       console.log('✓ [Dev Mode] Auto-Updater strictly bypassed to prevent Code 2 errors.');
     }
 
-    // Connect wake word detector to main window
     if (createdWindow) startWakeWordDetector(createdWindow);
 
     app.on('activate', () => {
