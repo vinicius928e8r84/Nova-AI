@@ -40,3 +40,19 @@ test('PATH: Mac igual ao de antes, Windows prefixa resources\\bin com ponto e vi
   assert.strictEqual(pathComBin('win32', 'C:\\Windows', '/App/res'), `${path.join('/App/res', 'bin')};C:\\Windows`);
   assert.strictEqual(pathComBin('linux', '/usr/bin', '/App/res'), '/usr/bin');
 });
+
+const fs = require('fs');
+const fonte = arquivo => fs.readFileSync(path.join(__dirname, '..', arquivo), 'utf8');
+
+test('os tres processos Python rodam com windowsHide', () => {
+  const main = fonte('electron/main.js');
+  assert.match(main, /spawn\(pythonRuntime\.python\(\), \[scriptPath\], \{ windowsHide: true \}\)/);
+  assert.match(main, /exec\(cmd, \{ cwd: ytDir, windowsHide: true \}\)/);
+  assert.match(fonte('electron/services/agent-swarm-controller.js'), /pythonArgs, \{ cwd: path\.join\(__dirname, '\.\.', '\.\.'\), windowsHide: true \}/);
+});
+
+test('README descreve o Python do Windows como embutido ou PATH', () => {
+  const linha = fonte('README.md').split('\n').find(l => l.startsWith('| Python e pacotes'));
+  assert.match(linha, /resources\\python\\python\.exe/);
+  assert.doesNotMatch(linha, /Windows: `python` no PATH \|/);
+});

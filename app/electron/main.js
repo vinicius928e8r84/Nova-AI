@@ -1853,7 +1853,7 @@ function registerHandlers() {
         
         // Simple quoted command — no array-to-shell conversion issues
         const cmd = `"${pythonRuntime.python()}" "${scriptPath}" --args-file "${tmpFile}"`;
-        const pyProcess = exec(cmd, { cwd: ytDir });
+        const pyProcess = exec(cmd, { cwd: ytDir, windowsHide: true });
         
         let extractedMetadata = null;
         let generatedVideoPath = null;
@@ -4072,7 +4072,7 @@ function startWakeWordDetector(mainWindow) {
     : path.join(process.resourcesPath, 'wake_word_bg.py');
 
   console.log(`Starting Wake Word Detector (Python) from: ${scriptPath}`);
-  wakeWordProcess = spawn(pythonRuntime.python(), [scriptPath]);
+  wakeWordProcess = spawn(pythonRuntime.python(), [scriptPath], { windowsHide: true });
   wakeWordProcess.on('error', error => { console.error('[WakeWord]',error.message); wakeWordProcess = null; });
 
   wakeWordProcess.stdout.on('data', (data) => {
