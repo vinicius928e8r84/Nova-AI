@@ -4139,18 +4139,18 @@ const shutdownExtras = () => extraShutdownTasks({
 });
 
 let isShuttingDown = () => false;
-if (process.platform === 'darwin') {
-  const { createProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
+if (process.platform === 'darwin' || process.platform === 'win32') {
+  const { createProcessCleanup, createWindowsProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
   const helpersPath = path.join(process.resourcesPath, '..', 'Frameworks') + path.sep;
-  const processCleanup = createProcessCleanup(helpersPath);
+  const processCleanup = process.platform === 'win32' ? createWindowsProcessCleanup() : createProcessCleanup(helpersPath);
   isShuttingDown = registerShutdown(app, async () => {
     await runShutdownTasks([stopWindowServices, ...shutdownExtras()]);
   }, processCleanup);
-  process.on('SIGTERM', () => app.quit());
-  process.on('SIGINT', () => app.quit());
-}
-
-if (process.platform !== 'darwin') {
+  if (process.platform === 'darwin') {
+    process.on('SIGTERM', () => app.quit());
+    process.on('SIGINT', () => app.quit());
+  }
+} else {
   guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
 }
 

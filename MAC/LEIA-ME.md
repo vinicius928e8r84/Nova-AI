@@ -1577,3 +1577,13 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## Varredura de processos órfãos ao sair, no Windows (P7 da paridade) — 19/11/2026
+
+No Windows, ao sair, o Nova agora faz o que o Mac já fazia: `createWindowsProcessCleanup` (em `app/electron/services/nova-shutdown.js`) lê a tabela de processos por `Get-CimInstance Win32_Process` (`ProcessId`, `ParentProcessId`, `CommandLine` e a hora de criação), guarda os descendentes do Nova enquanto ele roda, e depois de parar os serviços encerra cada árvore com `taskkill /T /F /PID` (até 3 rodadas, conferindo o que sobrou). Os helpers do próprio Electron (`--type=`) e o PowerShell da varredura ficam de fora; a hora de criação evita matar um processo novo que reaproveitou um PID. No `main.js` o Windows passa a usar `registerShutdown` com essa limpeza, no lugar de `guardBeforeQuit`; Linux segue com `guardBeforeQuit`. Mac não muda.
+
+Arquivos: `app/electron/main.js`, `app/electron/services/nova-shutdown.js`, `app/electron/services/test/nova-shutdown-windows.test.js` (novo; `node --test app/electron/services/test/nova-shutdown-windows.test.js`).
+
+Arquivos do app instalado no Mac que mudam: `Resources/app/electron/main.js` e `Resources/app/electron/services/nova-shutdown.js`. Guardar os anteriores em `reservas/`, copiar os dois, `node --check` em cada, reiniciar o Nova. No Mac o comportamento é o mesmo (o ramo novo só roda em `win32`); copiar é opcional e só mantém o app igual ao repositório.
+
+**Sem testar:** Windows real (PowerShell, `taskkill`, Gerenciador de Tarefas depois de fechar com um `ffmpeg`/Chrome iniciado pelo Nova), Mac e iPhone. Testado no Linux só com tabela simulada.

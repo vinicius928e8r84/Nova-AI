@@ -2,6 +2,7 @@
 
 const { randomUUID } = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 
 function processTable() {
@@ -119,6 +120,121 @@ function createProcessCleanup(electronHelpersPath) {
   };
 }
 
+const WINDOWS_TABLE_SCRIPT = [
+  '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+  "$tabela = @(Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ ProcessId = $_.ProcessId; ParentProcessId = $_.ParentProcessId; CommandLine = $_.CommandLine; Started = $(if ($_.CreationDate) { $_.CreationDate.ToFileTimeUtc() } else { 0 }) } })",
+  'ConvertTo-Json -InputObject $tabela -Compress',
+].join('; ');
+
+function windowsProcessTable() {
+  const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', WINDOWS_TABLE_SCRIPT], {
+    encoding: 'utf8',
+    timeout: 8000,
+    windowsHide: true,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  return parseWindowsProcessTable(output);
+}
+
+function parseWindowsProcessTable(output) {
+  const parsed = JSON.parse(output);
+  const rows = Array.isArray(parsed) ? parsed : [parsed];
+  const entries = new Map();
+  for (const row of rows) {
+    if (!row || !Number.isInteger(row.ProcessId) || row.ProcessId === 0) continue;
+    const command = row.CommandLine || '';
+    entries.set(row.ProcessId, {
+      parent: row.ParentProcessId,
+      started: Number(row.Started) || 0,
+      identity: row.Started + ' ' + command,
+      command,
+    });
+  }
+  return entries;
+}
+
+function windowsKillTree(pid) {
+  try {
+    execFileSync('taskkill', ['/T', '/F', '/PID', String(pid)], { timeout: 5000, windowsHide: true, stdio: 'ignore' });
+  } catch (error) {
+    if (error.status !== 128) console.error('[Shutdown] taskkill', pid, error.status ?? error.code);
+  }
+}
+
+function createWindowsProcessCleanup({
+  readTable = windowsProcessTable,
+  killTree = windowsKillTree,
+  ownPid = process.pid,
+  execPath = process.execPath,
+} = {}) {
+  const owned = new Map();
+  let lastEntries = new Map();
+  const executable = path.win32.basename(execPath).toLowerCase();
+
+  function isElectronHelper(command) {
+    return command.includes(' --type=') && command.toLowerCase().includes(executable);
+  }
+
+  function isTableReader(command) {
+    return command.includes('Get-CimInstance Win32_Process');
+  }
+
+  function collect() {
+    const entries = readTable();
+    lastEntries = entries;
+    const children = new Map();
+    for (const [pid, entry] of entries) {
+      if (!children.has(entry.parent)) children.set(entry.parent, []);
+      children.get(entry.parent).push(pid);
+    }
+
+    for (const [pid, identity] of owned) {
+      if (entries.get(pid)?.identity !== identity) owned.delete(pid);
+    }
+
+    const pending = [ownPid, ...owned.keys()];
+    const visited = new Set(pending);
+    for (const parent of pending) {
+      const parentStarted = entries.get(parent)?.started ?? 0;
+      for (const pid of children.get(parent) ?? []) {
+        if (visited.has(pid)) continue;
+        const entry = entries.get(pid);
+        if (entry.started && parentStarted && entry.started < parentStarted) continue;
+        visited.add(pid);
+        pending.push(pid);
+        if (!isElectronHelper(entry.command) && !isTableReader(entry.command)) owned.set(pid, entry.identity);
+      }
+    }
+  }
+
+  function rootsOwned() {
+    return [...owned.keys()].filter(pid => {
+      const seen = new Set([pid]);
+      let current = lastEntries.get(pid)?.parent;
+      while (current !== undefined && !seen.has(current)) {
+        if (owned.has(current)) return false;
+        seen.add(current);
+        current = lastEntries.get(current)?.parent;
+      }
+      return true;
+    });
+  }
+
+  return {
+    collect,
+    async terminate() {
+      for (let round = 0; round < 3; round++) {
+        collect();
+        if (owned.size === 0) return;
+        for (const pid of rootsOwned()) killTree(pid);
+        await delay(100);
+      }
+      collect();
+      if (owned.size) console.error('[Shutdown] Processes still present:', [...owned.keys()]);
+    },
+  };
+}
+
 function registerShutdown(app, stopServices, processCleanup) {
   let state = 'running';
   app.on('before-quit', event => {
@@ -166,4 +282,4 @@ function registerShutdown(app, stopServices, processCleanup) {
   return () => state !== 'running';
 }
 
-module.exports = { createProcessCleanup, registerShutdown };
+module.exports = { createProcessCleanup, createWindowsProcessCleanup, parseWindowsProcessTable, registerShutdown };
