@@ -398,6 +398,16 @@ test('--atualizar-linha-de-base baixa a entrada que melhorou, tira a que zerou e
   assert.match(subir.saida, /app\/a\.js: 3 ponto\(s\), mais que os 1 da linha de base de saude-do-codigo[^]*nada foi atualizado/);
 });
 
+test('--atualizar-linha-de-base da saúde só mexe no que a mudança toca: a folga dos outros arquivos fica', () => {
+  const repo = criar({ ...BASE, 'app/c.js': DOIS_PONTOS }, {}, { ...FOLGA, 'app/c.js': 3 });
+  repo.escrever({ 'app/a.js': UM_PONTO });
+  const r = repo.rodar('--atualizar-linha-de-base', '--regra', 'saude-do-codigo');
+  const depois = saude(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 0, r.saida);
+  assert.deepEqual(depois, { 'app/a.js': 1, 'app/b.py': 1, 'app/c.js': 3 });
+});
+
 test('--atualizar-linha-de-base do limite de linhas mantém a chave saude-do-codigo', () => {
   const repo = criar({ ...BASE, 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 }, FOLGA);
   repo.escrever({ 'app/grande.js': linhas(1100) });

@@ -182,11 +182,16 @@ function calcularLinhaDeBase(ctx) {
   return Object.fromEntries(Object.entries(pontosDoRepositorio(ctx, caminhos)).filter(([, pontos]) => pontos > 0));
 }
 
+function caminhosTocados(mudancas) {
+  return new Set(mudancas.itens.flatMap(item => [item.caminho, item.antigo]).filter(Boolean));
+}
+
 function atualizarLinhaDeBase(ctx, atual) {
   const novoNome = new Map([...renomeados(ctx.mudancas)].map(([novo, antigo]) => [antigo, novo]));
-  const destinos = Object.keys(atual).map(caminho => [caminho, novoNome.get(caminho) || caminho]);
+  const tocados = caminhosTocados(ctx.mudancas);
+  const destinos = Object.keys(atual).filter(caminho => tocados.has(caminho)).map(caminho => [caminho, novoNome.get(caminho) || caminho]);
   const pontos = pontosDoRepositorio(ctx, destinos.map(([, destino]) => destino));
-  const nova = {};
+  const nova = Object.fromEntries(Object.entries(atual).filter(([caminho]) => !tocados.has(caminho)));
   const erros = [];
   for (const [caminho, destino] of destinos) {
     if (!(destino in pontos)) continue;
