@@ -78,10 +78,15 @@ function lerChecksPeloGh(repo) {
     .split('\n').filter(Boolean).map(linha => JSON.parse(linha));
 }
 
+function problemaDoAmbiente(env) {
+  if (!/^[1-9][0-9]*$/.test(env.PR_NUMERO || '')) return `PR_NUMERO inválido: ${env.PR_NUMERO}`;
+  if (!/^[0-9a-f]{40}$/.test(env.PR_HEAD || '')) return `PR_HEAD não é um SHA inteiro: ${env.PR_HEAD}`;
+  return env.GITHUB_REPOSITORY ? null : 'falta GITHUB_REPOSITORY';
+}
+
 function prDoAmbiente(env) {
-  if (!/^[1-9][0-9]*$/.test(env.PR_NUMERO || '')) throw new Error(`PR_NUMERO inválido: ${env.PR_NUMERO}`);
-  if (!/^[0-9a-f]{40}$/.test(env.PR_HEAD || '')) throw new Error(`PR_HEAD não é um SHA inteiro: ${env.PR_HEAD}`);
-  if (!env.GITHUB_REPOSITORY) throw new Error('falta GITHUB_REPOSITORY');
+  const problema = problemaDoAmbiente(env);
+  if (problema) throw new Error(problema);
   return { numero: Number(env.PR_NUMERO), titulo: env.PR_TITULO || '', rotulos: JSON.parse(env.PR_ROTULOS || '[]'), head: env.PR_HEAD };
 }
 
