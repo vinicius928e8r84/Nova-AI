@@ -1,5 +1,11 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
+
+- **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
+- **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo), `scripts/ci/codescene-na-refatoracao.js`, `scripts/regras/test/codescene.test.js`.
+- **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`) e o passo rodando no Actions.
+
 ## LEIA-ME sem seções duplicadas (AC6 passo 1) — 19/11/2026
 
 - **O que mudou:** removidas 98 seções que eram cópias exatas de outra já presente (resíduo de merges que colaram os mesmos blocos de novo; inclui 5 títulos `#` repetidos). Das 140 seções, ficaram 42, cada uma com texto igual ao anterior. Só mudou este arquivo (de 1.579 para cerca de 450 linhas); nenhum código.
