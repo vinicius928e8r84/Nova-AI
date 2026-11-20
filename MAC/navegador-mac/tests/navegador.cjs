@@ -41,11 +41,11 @@ test('navegador embutido em resources/browsers/<nome>/<App>.app', () => {
   try { assert.strictEqual(modulo.browser('brave'), esperado); } finally { restaurar(); }
 });
 
-test('navegador em userData/browsers', () => {
+test('userData/browsers nao vale para fazenda nem CAM spoof, como no Windows', () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
   const esperado = criarExecutavel(base, 'ud', 'browsers', 'firefox', 'Firefox.app', 'Contents', 'MacOS', 'firefox');
   const { modulo, restaurar } = carregar({ resources: path.join(base, 'res'), userData: path.join(base, 'ud'), home: path.join(base, 'home') });
-  try { assert.strictEqual(modulo.browser('firefox'), esperado); } finally { restaurar(); }
+  try { assert.strictEqual(modulo.browser('firefox'), null); assert.ok(fs.existsSync(esperado)); } finally { restaurar(); }
 });
 
 test('edge embutido e sem nada devolve null', () => {
@@ -58,7 +58,7 @@ test('edge embutido e sem nada devolve null', () => {
   } finally { restaurar(); }
 });
 
-test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH vence, depois Chrome, depois Edge', () => {
+test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH vence, depois Chromium de userData/browsers, depois Edge embutido', () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
   const edge = criarExecutavel(base, 'res', 'browsers', 'edge', 'Microsoft Edge.app', 'Contents', 'MacOS', 'Microsoft Edge');
   const { restaurar } = carregar({ resources: path.join(base, 'res'), userData: path.join(base, 'ud'), home: path.join(base, 'home') });
@@ -74,8 +74,11 @@ test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH vence, depois Chrome, depois Ed
     let WhatsAppManager;
     try { WhatsAppManager = require(path.join(servicos, 'whatsapp-manager.js')); } finally { Module._load = carregarOriginal; }
     const gerente = Object.create(WhatsAppManager.prototype);
+    gerente.app = { getPath: () => path.join(base, 'ud') };
     delete process.env.PUPPETEER_EXECUTABLE_PATH;
     assert.strictEqual(gerente.resolveBrowserExecutable(), edge);
+    const chromium = criarExecutavel(base, 'ud', 'browsers', 'chromium-1208', 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium');
+    assert.strictEqual(gerente.resolveBrowserExecutable(), chromium);
     const proprio = criarExecutavel(base, 'meu', 'chrome');
     process.env.PUPPETEER_EXECUTABLE_PATH = proprio;
     assert.strictEqual(gerente.resolveBrowserExecutable(), proprio);

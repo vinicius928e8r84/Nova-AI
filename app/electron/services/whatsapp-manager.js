@@ -209,6 +209,7 @@ class WhatsAppManager {
             const macNative = require('./mac-native');
             const fromEnv = process.env.PUPPETEER_EXECUTABLE_PATH;
             return (fromEnv && fs.existsSync(fromEnv) ? fromEnv : null)
+                || require('./platform-utils').findBundledChromiumExecutable([path.join(this.app.getPath('userData'), 'browsers')])
                 || macNative.browser('chrome')
                 || macNative.browser('edge');
         }
