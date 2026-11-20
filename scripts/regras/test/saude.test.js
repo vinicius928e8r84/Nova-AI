@@ -8,7 +8,7 @@ const path = require('path');
 const { criar, linhas, LINHA_DE_BASE } = require('./auxiliar');
 const regra = require('../regra-saude');
 const { medirJs } = require('../analisador/medir-js');
-const { rodarOPython } = require('../analisador/medir');
+const { FerramentaAusente, rodarOPython } = require('../analisador/medir');
 const { pontuar } = require('../analisador/pontos');
 
 const RAIZ = path.resolve(__dirname, '..', '..', '..');
@@ -351,15 +351,21 @@ test('a primeira linha de base: a base sem a chave não tem com o que comparar',
   assert.match(r.saida, /main ainda não tem a linha de base de saude-do-codigo/);
 });
 
-function rodarSemPython(exige) {
+const SEM_ACORN = "const M = require('module'); const resolver = M._resolveFilename; M._resolveFilename = function (nome, ...resto) { if (nome === 'acorn') throw new Error('Cannot find module'); return resolver.call(this, nome, ...resto); };\n";
+
+function rodarSemFerramenta(exige, ferramenta) {
   const repo = repositorio();
-  repo.escrever({ 'app/b.py': PY_COM_SEIS });
-  const resultado = spawnSync(process.execPath, [VERIFICAR, '--raiz', repo.raiz, '--base', 'main', '--regra', 'saude-do-codigo'], {
-    encoding: 'utf8', env: { ...process.env, PYTHON: path.join(repo.raiz, 'sem-python'), REGRAS_EXIGE_FERRAMENTAS: exige },
-  });
+  repo.escrever({ 'app/b.py': PY_COM_SEIS, 'app/b.js': `${DOIS_PONTOS}const z = 1;\n`, 'sem-acorn.js': SEM_ACORN });
+  const env = { ...process.env, REGRAS_EXIGE_FERRAMENTAS: exige };
+  const argumentos = [VERIFICAR, '--raiz', repo.raiz, '--base', 'main', '--regra', 'saude-do-codigo'];
+  if (ferramenta === 'python') env.PYTHON = path.join(repo.raiz, 'sem-python');
+  else argumentos.unshift('--require', path.join(repo.raiz, 'sem-acorn.js'));
+  const resultado = spawnSync(process.execPath, argumentos, { encoding: 'utf8', env });
   repo.limpar();
   return { codigo: resultado.status, saida: `${resultado.stdout}${resultado.stderr}` };
 }
+
+const rodarSemPython = exige => rodarSemFerramenta(exige, 'python');
 
 test('sem Python: no CI (REGRAS_EXIGE_FERRAMENTAS) falha e diz o que fazer; fora dele, avisa e pula', () => {
   const noCi = rodarSemPython('1');
@@ -368,6 +374,29 @@ test('sem Python: no CI (REGRAS_EXIGE_FERRAMENTAS) falha e diz o que fazer; fora
   const local = rodarSemPython('');
   assert.equal(local.codigo, 0, local.saida);
   assert.match(local.saida, /aviso: .*regra saude-do-codigo pulada/);
+});
+
+test('sem acorn: no CI falha e diz o que instalar; fora dele, avisa e pula', () => {
+  const noCi = rodarSemFerramenta('1', 'acorn');
+  assert.equal(noCi.codigo, 1, noCi.saida);
+  assert.match(noCi.saida, /npm ci --prefix scripts\/regras\/analisador/);
+  const local = rodarSemFerramenta('', 'acorn');
+  assert.equal(local.codigo, 0, local.saida);
+  assert.match(local.saida, /aviso: .*regra saude-do-codigo pulada/);
+});
+
+test('o Python lê o stdin em UTF-8 mesmo quando o sistema usa outra página de código (Windows até o Python 3.14)', () => {
+  const medidor = path.join(__dirname, '..', 'analisador', 'medir_py.py');
+  const comoNoWindows = `import io, sys, runpy; sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='cp1252'); runpy.run_path(${JSON.stringify(medidor)}, run_name='__main__')`;
+  const resultado = spawnSync(process.env.PYTHON || 'python3', ['-I', '-c', comoNoWindows], {
+    input: JSON.stringify({ 'a.py': "x = 'Á'\n" }), encoding: 'utf8',
+  });
+  assert.equal(resultado.status, 0, resultado.stderr);
+  assert.ok(JSON.parse(resultado.stdout)['a.py'].unidades);
+});
+
+test('Python que sai com erro sem traceback (alias da Store, stub do xcode-select) vira ferramenta ausente', () => {
+  assert.throws(() => rodarOPython({ 'a.py': 'x = 1\n' }, { PYTHON: process.execPath }), FerramentaAusente);
 });
 
 test('--criar-linha-de-base --regra saude-do-codigo cria só a chave que falta e não toca a do limite de linhas', () => {

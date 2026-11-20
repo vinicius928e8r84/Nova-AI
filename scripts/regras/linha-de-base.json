@@ -14,7 +14,7 @@
     "prototype-cam-live/index.html": 1670
   },
   "saude-do-codigo": {
-    "app/electron/main.js": 4196,
+    "app/electron/main.js": 4197,
     "app/electron/nova-grab-extension/content.js": 166,
     "app/electron/pwa/app.js": 8,
     "app/electron/services/agent-swarm-controller.js": 140,
@@ -52,7 +52,7 @@
     "app/electron/services/telegram-manager.js": 130,
     "app/electron/services/tool-paths.js": 7,
     "app/electron/services/user-profile-manager.js": 39,
-    "app/electron/services/whatsapp-manager.js": 307,
+    "app/electron/services/whatsapp-manager.js": 311,
     "app/electron/services/ytdlp-manager.js": 234,
     "app/electron/webview-bridge.js": 14,
     "app/public/audio-processor-worklet.js": 1,

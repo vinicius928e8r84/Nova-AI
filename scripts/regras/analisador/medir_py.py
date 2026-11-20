@@ -146,7 +146,7 @@ def medir(fonte):
 
 
 def principal():
-    fontes = json.load(sys.stdin)
+    fontes = json.loads(sys.stdin.buffer.read().decode('utf-8'))
     json.dump({arquivo: medir(fonte) for arquivo, fonte in fontes.items()}, sys.stdout)
 
 
