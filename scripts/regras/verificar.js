@@ -24,7 +24,7 @@ const REGRAS = [
 const COM_LINHA_DE_BASE = REGRAS.filter(regra => regra.linhaDeBase);
 
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
-                                     [--criar-linha-de-base | --atualizar-linha-de-base] [--regra <id>]
+                                     [--criar-linha-de-base | --atualizar-linha-de-base]
 
 Confere o que a mudança (merge-base com a base até a árvore de trabalho) acrescenta ou toca; linha que a mudança não toca nunca falha.
 
