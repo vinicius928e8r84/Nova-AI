@@ -3,7 +3,7 @@
 Port local do Nova AI (Electron, Windows de origem) para macOS Apple Silicon, com as
 integrações de iPhone por USB, CAM LIVE, CAM HIJACK e tradução da interface.
 
-- Estado do projeto e histórico das alterações: [`MAC/LEIA-ME.md`](MAC/LEIA-ME.md)
+- Estado do projeto e histórico das alterações até 20/11/2026: [`MAC/LEIA-ME.md`](MAC/LEIA-ME.md). As alterações seguintes ficam no corpo de cada PR.
 - Integração iPhone (ponte nativa, SSH, câmera): [`MAC/integracao-iphone/README.md`](MAC/integracao-iphone/README.md)
 - CAM LIVE (transmissão direta para o iPhone): [`MAC/integracao-camlive/`](MAC/integracao-camlive/)
 - Guia do usuário: `GUIA/`
