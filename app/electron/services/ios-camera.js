@@ -45,7 +45,7 @@ class IosCamera {
  async install() {
   const state=await this.status();
   if(state.ready) return {platform:'ios',success:true,message:`Bridge do jailbreak pronto (${state.bridgeVersion}).`};
-  return {platform:'ios',success:false,error:state.error||'Atualize o bridge por USB em PHONE CONTROL (Conectar) ou pelo instalar-iphone.command.'};
+  return {platform:'ios',success:false,error:state.error||'Atualize o bridge por USB em PHONE CONTROL (Conectar).'};
  }
  async writeControl(config) {
   // Atomic replacement of this bridge's own configuration. Never deletes media or tweaks.
@@ -126,7 +126,7 @@ class IosCamera {
     ? `http://127.0.0.1${this.framePath}`
     : `http://127.0.0.1:${this.transport.port}${this.framePath}`;
    const ffmpeg=require('./tool-paths').ffmpeg();
-   if(!ffmpeg) throw new Error('FFmpeg não encontrado no Mac.');
+   if(!ffmpeg) throw new Error('FFmpeg não encontrado neste computador.');
    this.decoder=spawn(ffmpeg,['-nostdin','-loglevel','error','-re','-stream_loop','-1','-i',videoPath,'-an','-vf','fps=15,scale=1280:1280:force_original_aspect_ratio=decrease','-f','image2pipe','-vcodec','mjpeg','-q:v','4','pipe:1'],{stdio:['ignore','pipe','pipe']});
    let pending=Buffer.alloc(0),decoderError='';
    this.decoder.stderr.on('data',chunk=>{decoderError=(decoderError+chunk).slice(-2000);});
