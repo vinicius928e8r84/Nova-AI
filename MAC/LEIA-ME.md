@@ -1585,6 +1585,12 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
 
+## 2026-11-19 — P8 de paridade: Python embutido e PATH iguais nos dois sistemas
+
+- **O que mudou:** `mac-native.python()` virou `app/electron/services/python-runtime.js` (`python()` e `pathComBin()`). Mac: mesma ordem de antes (`python-runtime-portable/run-python`, `python-env/bin/python3`, `python3`). Windows: `resources\python\python.exe`, senão `python` do PATH. O PATH do processo ganha `resources\bin` também no Windows. Os três processos Python (wake word, YouTube Auto, enxame de agentes) passam `windowsHide: true` (sem efeito no Mac). `app/README.md` descreve o Python do Windows. O YouTube Auto no `main.js` passou a usar o Python resolvido em vez de `python` solto (no Mac `python` nem existia). `edgeTtsBinary` usa o Python resolvido nos dois. Removido: `python()` de `mac-native.js` e `pathForBin()` do `main.js`.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/main.js`, `electron/services/python-runtime.js` (novo), `electron/services/mac-native.js`, `electron/services/paridade-utils.js`, `electron/services/agent-swarm-controller.js`. Guardar os anteriores em `reservas/`, copiar com `cp` do repositório, `node --check` e reiniciar o Nova. Sem mudança no bundle da interface.
+- **Sem testar:** Mac e Windows reais; wake word com microfone e TTS com o Python embutido; a receita do `resources\python` em `docs/windows.md` não foi executada.
+
 ## 2026-11-19 — P4 de paridade: mensagens de celular sem "Mac"
 
 - **O que mudou:** só o texto. "no Mac"/"neste Mac"/"e o Mac" viraram "neste computador" nas mensagens do iPhone e do Android (câmera, GPS, Conectar, IP da rede); a dica do `instalar-iphone.command` saiu do erro do bridge. Nada removido além dessa citação; nenhuma lógica mudou.
