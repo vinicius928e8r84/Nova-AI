@@ -484,6 +484,14 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
 
+## 2026-11-19 — ISS14: aviso quando o WhatsApp falha 8 vezes ao iniciar
+
+- **O que mudou:** ao atingir o limite de 8 tentativas (`reconnect-limit-reached`), o app abre um aviso com a permissão a conferir (Mac: Gerenciamento de apps e Microfone; Windows: firewall, antivírus e pasta de dados; outros: aviso genérico) e o texto vai também no campo `hint` do evento de status. Mesma detecção nos dois sistemas; só o texto muda.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/whatsapp-manager.js` e `whatsapp-aviso.js` (novo). Guarde o `whatsapp-manager.js` anterior em `reservas/` e reaplique com `cp`.
+- **Correções da revisão:** o aviso não abre mais duas vezes quando a última tentativa termina por tempo esgotado (`init-timeout`), porque a rejeição atrasada do `initialize()` de uma tentativa já abandonada pelo timeout agora é ignorada (`this.client !== cliente`) e a trava frágil por `statusReason` saiu (teste `rejeicao-tardia` em `whatsapp-limite.test.js`); falha ao exibir o aviso (síncrona ou Promise rejeitada) agora é registrada no log com `[WhatsApp]`; o número de tentativas do texto vem de `maxReconnectAttempts`. Reinício manual continua avisando de novo.
+- **Teste:** `node --test app/electron/services/test/whatsapp-aviso.test.js app/electron/services/test/whatsapp-limite.test.js` (o segundo carrega o `whatsapp-manager.js` real com `whatsapp-web.js` e `electron` falsos).
+- **Sem testar:** Mac e Windows reais; o aviso nunca foi exibido num app em execução, e a causa real da falha no Mac (permissão Gerenciamento de apps) segue sem prova.
+
 ## 2026-11-19 — M2 de paridade: "respondendo" real do Antigravity no Mac
 
 - **O que mudou:** `getProcessStats()` no Mac deixou de devolver `responding:true` fixo. `macAntigravityStats()` (em `paridade-utils.js`) acha o PID com `pgrep -x Antigravity`, lê a memória com `ps -p <pid> -o rss=` e marca `responding:false` só quando o AppleScript do System Events estoura 3 s (processo morto por tempo). Outro erro do AppleScript (app aberto sem janela, falta de permissão de Automação) conta como respondendo, com título vazio. `cpu` continua `0` nos dois sistemas, como o PowerShell do Windows (`CPU:0`); ninguém lê esse valor. Sem processo, devolve `null` como o Windows.
