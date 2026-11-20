@@ -65,7 +65,7 @@ function carregarGerente(plataforma, base) {
   delete require.cache[require.resolve(path.join(servicos, 'platform-utils.js'))];
   delete require.cache[require.resolve(path.join(servicos, 'whatsapp-manager.js'))];
   Module._load = function (pedido, ...resto) {
-    if (!pedido.startsWith('.') && !pedido.startsWith('/') && !Module.builtinModules.includes(pedido) && pedido !== 'electron') return new Proxy(function () {}, { get: () => function () {} });
+    if (!pedido.startsWith('.') && !path.isAbsolute(pedido) && !Module.builtinModules.includes(pedido) && pedido !== 'electron') return new Proxy(function () {}, { get: () => function () {} });
     return original.call(this, pedido, ...resto);
   };
   try {
