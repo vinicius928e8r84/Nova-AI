@@ -36,8 +36,9 @@ function situacaoDoCheck(checkRuns) {
   const servidor = ultimas.some(check => check.name === CHECK_DO_SERVIDOR);
   const reprovada = ultimas.find(check => check.status === 'completed' && check.conclusion !== 'success');
   if (reprovada) return { estado: 'reprovou', conclusao: reprovada.conclusion, nome: reprovada.name };
-  if (ultimas.some(check => check.status !== 'completed')) return { estado: 'rodando' };
-  return servidor ? { estado: 'passou' } : { estado: 'ausente' };
+  const pendente = ultimas.find(check => check.status !== 'completed');
+  if (pendente) return { estado: 'rodando', nome: pendente.name };
+  return servidor ? { estado: 'passou' } : { estado: 'ausente', nome: CHECK_DO_SERVIDOR };
 }
 
 const SEM_RESPOSTA = { ausente: 'ainda não reportou', rodando: 'ainda não terminou' };
@@ -54,7 +55,7 @@ function veredito(situacao, pr) {
 function semResposta(situacao, pr, prazoS) {
   return {
     ok: false,
-    mensagem: `✗ o check "${CHECK_DO_SERVIDOR}" do head ${pr.head.slice(0, 7)} da PR #${pr.numero} ${SEM_RESPOSTA[situacao.estado]} em ${prazoS} s. `
+    mensagem: `✗ o check "${situacao.nome}" do head ${pr.head.slice(0, 7)} da PR #${pr.numero} ${SEM_RESPOSTA[situacao.estado]} em ${prazoS} s. `
       + 'Quando o CodeScene reportar, rode este job de novo (ou edite o corpo da PR).',
   };
 }

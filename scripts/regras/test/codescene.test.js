@@ -36,6 +36,17 @@ test('situação: o check da nuvem conta quando existe e não trava quando não 
   assert.equal(situacaoDoCheck([nuvem(1, 'completed', 'success')]).estado, 'ausente');
 });
 
+test('situação: a ordem real da API (mais novo primeiro) e o app contam', () => {
+  assert.equal(situacaoDoCheck([servidor(2, 'completed', 'success'), servidor(1, 'completed', 'failure')]).estado, 'passou');
+  assert.equal(situacaoDoCheck([servidor(2, 'completed', 'failure'), servidor(1, 'completed', 'success')]).estado, 'reprovou');
+  const mesmoNomeOutroApp = { id: 3, name: 'CodeScene PR Review', status: 'completed', conclusion: 'failure', app: 'outro-app' };
+  assert.equal(situacaoDoCheck([servidor(1, 'completed', 'success'), nuvem(4, 'completed', 'success'), mesmoNomeOutroApp]).estado, 'reprovou');
+  const porApp = { id: 2, name: 'Code Health', status: 'completed', conclusion: 'failure', app: 'codescene-cloud' };
+  assert.equal(situacaoDoCheck([servidor(1, 'completed', 'success'), porApp]).estado, 'reprovou');
+  const outroApp = { id: 2, name: 'Code Health', status: 'completed', conclusion: 'failure', app: 'outro' };
+  assert.equal(situacaoDoCheck([servidor(1, 'completed', 'success'), outroApp]).estado, 'passou');
+});
+
 function portasCom(respostas) {
   const estado = { agora: 0, lidas: 0 };
   return {
@@ -66,4 +77,11 @@ test('espera: passa quando o check chega, reprova no prazo e isenta PR antiga', 
   ({ portas, estado } = portasCom([[servidor(1, 'completed', 'failure')]]));
   assert.equal((await conferir(pr(10), portas, 600)).ok, true);
   assert.equal(estado.lidas, 0);
+});
+
+test('espera: o check da nuvem pendurado é o que a mensagem nomeia', async () => {
+  const { portas } = portasCom([[servidor(1, 'completed', 'success'), nuvem(2, 'in_progress')]]);
+  const r = await conferir(pr(40), portas, 600);
+  assert.equal(r.ok, false);
+  assert.match(r.mensagem, /"CodeScene PR Review".*ainda não terminou em 600 s/);
 });

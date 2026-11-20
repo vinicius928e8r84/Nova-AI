@@ -3,8 +3,8 @@
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
-- **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo), `scripts/ci/codescene-na-refatoracao.js`, `scripts/regras/test/codescene.test.js`.
-- **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`) e o passo rodando no Actions.
+- **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo, gatilhos `labeled`/`unlabeled`), `scripts/ci/codescene-na-refatoracao.js` (a mensagem de falta de resposta nomeia o check pendente), `scripts/regras/caminhos-sensiveis.json` (`scripts/ci/**` passa a ser ALTA, para um PR comum não desligar o gate), `scripts/regras/test/codescene.test.js`, `registro.test.js`, `endurecimento.test.js`.
+- **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`).
 
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
