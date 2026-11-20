@@ -74,3 +74,33 @@ jobs:
         run: node "$REGRAS_DIR/auditoria.js" --raiz "$GITHUB_WORKSPACE" --base "origin/$BASE"
         env:
           BASE: ${{ github.event.pull_request.base.ref }}
+
+  testes:
+    name: Testes do app
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Instalar as dependências de app/ (sem scripts de instalação)
+        working-directory: app
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Testes de app/
+        run: node --test "app/test/**/*.test.js" "app/tests/**/*.test.js" "app/electron/services/test*/**/*.test.js"
+      - name: Testes de MAC/ que rodam sem Mac
+        run: >-
+          node --test
+          MAC/controle-celular-plataformas/geo-proxy/teste-geo.cjs
+          MAC/integracao-camlive/test/iphone-lifecycle.cjs
+          MAC/integracao-camlive/test/iphone-protocol.cjs
+          MAC/integracao-iphone/conexao-usb/locale-helper.test.cjs
+          MAC/integracao-iphone/conexao-usb/setup.test.cjs
+          MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs
+          MAC/integracao-iphone/tests/ferramenta-ausente.cjs
+          MAC/integracao-modelo-app/novamodel.test.cjs
+          MAC/integracao-modelo/test/teste-novamodel.cjs
+          MAC/integracao-sequestro-cam/controles-independentes.test.cjs
