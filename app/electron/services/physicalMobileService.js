@@ -547,7 +547,7 @@ class PhysicalMobileService {
             const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
             const ip = match ? match[1] : await run(['-s', deviceId, 'shell', 'getprop', 'dhcp.wlan0.ipaddress']);
             if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip) || ip.split('.').some(n => Number(n) > 255)) {
-                return { success: false, error: 'Não foi possível detectar o IP. Conecte o Android e o Mac à mesma rede Wi-Fi.' };
+                return { success: false, error: 'Não foi possível detectar o IP. Conecte o Android e este computador à mesma rede Wi-Fi.' };
             }
             await run(['-s', deviceId, 'tcpip', '5555']);
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1605,7 +1605,7 @@ exit 0
     runIdevicesetlocation(udid, args, timeout = 30000) {
         return new Promise((resolve) => {
             const bin = this.idevicesetlocationPath();
-            if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado no Mac.' });
+            if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado neste computador.' });
             execFile(bin, ['--udid', udid, ...args], { timeout }, (err, stdout, stderr) => {
                 // idevicesetlocation imprime os erros no STDOUT (não no stderr); junta os dois
                 const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
