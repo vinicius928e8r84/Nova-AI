@@ -58,23 +58,31 @@ test('edge embutido e sem nada devolve null', () => {
   } finally { restaurar(); }
 });
 
+function carregarGerente(plataforma, base) {
+  const original = Module._load;
+  const descritor = Object.getOwnPropertyDescriptor(process, 'platform');
+  Object.defineProperty(process, 'platform', { value: plataforma });
+  delete require.cache[require.resolve(path.join(servicos, 'platform-utils.js'))];
+  delete require.cache[require.resolve(path.join(servicos, 'whatsapp-manager.js'))];
+  Module._load = function (pedido, ...resto) {
+    if (!pedido.startsWith('.') && !pedido.startsWith('/') && !Module.builtinModules.includes(pedido) && pedido !== 'electron') return new Proxy(function () {}, { get: () => function () {} });
+    return original.call(this, pedido, ...resto);
+  };
+  try {
+    const WhatsAppManager = require(path.join(servicos, 'whatsapp-manager.js'));
+    const gerente = Object.create(WhatsAppManager.prototype);
+    gerente.app = { getPath: () => path.join(base, 'ud') };
+    return { gerente, restaurar() { Object.defineProperty(process, 'platform', descritor); } };
+  } finally { Module._load = original; }
+}
+
 test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH vence, depois Chromium de userData/browsers, depois Edge embutido', () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
   const edge = criarExecutavel(base, 'res', 'browsers', 'edge', 'Microsoft Edge.app', 'Contents', 'MacOS', 'Microsoft Edge');
   const { restaurar } = carregar({ resources: path.join(base, 'res'), userData: path.join(base, 'ud'), home: path.join(base, 'home') });
-  const plataforma = Object.getOwnPropertyDescriptor(process, 'platform');
   const envOriginal = process.env.PUPPETEER_EXECUTABLE_PATH;
+  const { gerente, restaurar: restaurarPlataforma } = carregarGerente('darwin', base);
   try {
-    Object.defineProperty(process, 'platform', { value: 'darwin' });
-    const carregarOriginal = Module._load;
-    Module._load = function (pedido, ...resto) {
-      if (!pedido.startsWith('.') && !pedido.startsWith('/') && !Module.builtinModules.includes(pedido) && pedido !== 'electron') return new Proxy(function () {}, { get: () => function () {} });
-      return carregarOriginal.call(this, pedido, ...resto);
-    };
-    let WhatsAppManager;
-    try { WhatsAppManager = require(path.join(servicos, 'whatsapp-manager.js')); } finally { Module._load = carregarOriginal; }
-    const gerente = Object.create(WhatsAppManager.prototype);
-    gerente.app = { getPath: () => path.join(base, 'ud') };
     delete process.env.PUPPETEER_EXECUTABLE_PATH;
     assert.strictEqual(gerente.resolveBrowserExecutable(), edge);
     const chromium = criarExecutavel(base, 'ud', 'browsers', 'chromium-1208', 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium');
@@ -83,8 +91,22 @@ test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH vence, depois Chromium de userD
     process.env.PUPPETEER_EXECUTABLE_PATH = proprio;
     assert.strictEqual(gerente.resolveBrowserExecutable(), proprio);
   } finally {
-    Object.defineProperty(process, 'platform', plataforma);
+    restaurarPlataforma();
     if (envOriginal === undefined) delete process.env.PUPPETEER_EXECUTABLE_PATH; else process.env.PUPPETEER_EXECUTABLE_PATH = envOriginal;
     restaurar();
+  }
+});
+
+test('whatsapp no Windows: Chromium de userData/browsers vale, como no Mac', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
+  const chromium = criarExecutavel(base, 'ud', 'browsers', 'chromium-1208', 'chrome-win64', 'chrome.exe');
+  const envOriginal = process.env.PUPPETEER_EXECUTABLE_PATH;
+  const { gerente, restaurar } = carregarGerente('win32', base);
+  try {
+    delete process.env.PUPPETEER_EXECUTABLE_PATH;
+    assert.strictEqual(gerente.resolveBrowserExecutable(), chromium);
+  } finally {
+    restaurar();
+    if (envOriginal === undefined) delete process.env.PUPPETEER_EXECUTABLE_PATH; else process.env.PUPPETEER_EXECUTABLE_PATH = envOriginal;
   }
 });
