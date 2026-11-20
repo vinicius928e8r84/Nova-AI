@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## CAM LIVE: testes contra `app/` e gêmeos apagados (Onda 1, PR 1d) — 20/11/2026
+
+- **O que mudou:** os 7 testes de `MAC/integracao-camlive/test/` passam a carregar `app/electron/services/cam-live-service.js`, `app/electron/services/cam-live-iphone.js` e servir `app/dist/cam-live.js` e `app/dist/cam-live-audio.js`. Apagados os 4 gêmeos (`cam-live.js`, `cam-live-audio.js`, `cam-live-service.js`, `cam-live-iphone.js`), o atalho `iphone-ssh.js` e o instalador `instalar-camlive.command`, aposentado: o `main.js` e o `index.html` de `app/` já registram o CAM LIVE, e o `--remover` dele devolvia ao app instalado o `main.js` de 04/11 guardado em `reservas/`. `reservas/` fica. `MAC/traducao-interface/preparar.py` e `prototype-cam-live/` (`gerar-site.py`, `index.template.html`) passam a ler `app/dist/`; o `index.html` gerado sai idêntico. `linha-de-base.json` perde a entrada do `cam-live.js` apagado.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Nada em `app/` muda. Nada a reaplicar.
+- **Testado:** `iphone-lifecycle.cjs` (7), `iphone-protocol.cjs` (5), `rtmp-e2e.js` e `rtmp-audio-e2e.js` (saída igual à da base), `iphone-media.cjs` (3, com o ffmpeg do sistema no lugar do de `/Applications`), `harness.js` e `harness-usb.js` (servem os arquivos de `app/dist/` e respondem ao IPC), no Linux.
+- **Sem testar:** empacotamento (`electron-builder --mac dir`) e Mac e Windows reais; os harness não foram abertos num navegador com câmera. Os comentários de `prototype-cam-live/index*.html` e a docstring de `gerar-site.py` ainda citam `MAC/integracao-camlive/`.
+
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
 - **O que mudou:** apagadas cópias sem consumidor: os dois `*.antes-proxy-20261104-193310` (−6.881 linhas), `MAC/controle-celular-plataformas/geo-proxy/aplicado/*`, `MAC/encerramento-nova/{main.js,original/}` (inclui o executável Mach-O e `CodeResources`), `MAC/integracao-kling/main.js`, `MAC/integracao-modelo-app/main.modelo.js`, `MAC/integracao-iphone/physicalMobileService.patched.js` e `MAC/integracao-sequestro-cam/physicalMobileService.patched.js`. O git guarda a história. Fora do escopo: `reservas/`, `backup-*`, mp4, `backup-antes-traducao/`.
