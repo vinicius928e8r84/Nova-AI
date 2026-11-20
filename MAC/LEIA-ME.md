@@ -1592,6 +1592,13 @@ Gerado e mantido localmente. Não é distribuição oficial do fornecedor.
 - **Teste:** `app/test/paridade-b.test.js` (`node --test`), com `pgrep`, `ps` e `osascript` falsos.
 - **Sem testar:** Mac real com Antigravity instalado; o nome do processo `Antigravity` no `pgrep` (se não bater, trocar por `pgrep -f '/Antigravity\.app/Contents/MacOS/'`) e o limite de 3 s do AppleScript; Windows real.
 
+## 2026-11-19 — P4 de paridade: mensagens de celular sem "Mac"
+
+- **O que mudou:** só o texto. "no Mac"/"neste Mac"/"e o Mac" viraram "neste computador" nas mensagens do iPhone e do Android (câmera, GPS, Conectar, IP da rede); a dica do `instalar-iphone.command` saiu do erro do bridge. Nada removido além dessa citação; nenhuma lógica mudou.
+- **Arquivos do app instalado que mudam** (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guardar o anterior em `reservas/` antes): `ios-camera.js`, `physicalMobileService.js`, `iphone-setup/inapp.js`, `iphone-setup/setup.js`. Reaplicar com `cp` desses quatro; depois `node --check` e reiniciar o Nova. O bundle da interface não muda.
+- **Teste:** `node --test app/electron/services/testes/textos-celular.test.js`.
+- **Sem testar:** Mac e Windows reais; ver as mensagens na tela.
+
 ## 2026-11-19 — P10: `cloudflared` no Windows também em `resources\bin\` e no PATH
 
 - **O que mudou:** `remote-access.js` procura o `cloudflared` com `tool-paths.tool()` nos dois sistemas (antes: Mac por `mac-native.tool`, Windows só `resources\cloudflared.exe`). `resources\cloudflared.exe` segue como último recurso no Windows. Nada foi removido além do ramo `darwin` do ternário (1 linha trocada por 2).

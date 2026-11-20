@@ -104,7 +104,7 @@ const SETUP_MARKUP = `
       <label class="nvios-label" for="nvios-pass">Senha SSH do usuário mobile</label>
       <input class="nvios-input" id="nvios-pass" type="password" autocomplete="off" spellcheck="false"
         placeholder="Senha definida no ambiente do jailbreak">
-      <p class="nvios-hint">É a senha do terminal, diferente do código da tela. Ela não fica salva no Mac: é usada só neste Conectar, para instalar a chave de acesso e a ponte de câmera. Depois disso o Nova entra no iPhone pela chave, sem pedir senha de novo.</p>
+      <p class="nvios-hint">É a senha do terminal, diferente do código da tela. Ela não fica salva neste computador: é usada só neste Conectar, para instalar a chave de acesso e a ponte de câmera. Depois disso o Nova entra no iPhone pela chave, sem pedir senha de novo.</p>
       <p class="nvios-error" role="alert" hidden></p>
       <button class="nvios-primary nvios-submit" type="submit">Conectar e preparar</button>
     </form>
@@ -223,7 +223,7 @@ function open(payload, invoke) {
   function explicarFalha(text) {
     const t = String(text || '');
     if (/dpkg:|Segmentation fault|signal \(?11\)?|was killed by signal/i.test(t)) {
-      return 'O iPhone travou ao instalar um pacote — não é a sua senha. Nada foi alterado no Mac. '
+      return 'O iPhone travou ao instalar um pacote — não é a sua senha. Nada foi alterado neste computador. '
         + 'Não toque em "Tentar novamente": o aparelho precisa ser recuperado (modo seguro) e o pacote '
         + 'removido antes de tentar de novo. O detalhe técnico ficou registrado.';
     }
