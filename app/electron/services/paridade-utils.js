@@ -11,9 +11,8 @@ function hasUpdateConfig(resourcesPath = process.resourcesPath) {
   }
 }
 
-function edgeTtsBinary(platform, macPython) {
-  if (platform === 'darwin') return `"${macPython()}" -m edge_tts`;
-  if (platform === 'win32') return 'python -m edge_tts';
+function edgeTtsBinary(platform, python) {
+  if (platform === 'darwin' || platform === 'win32') return `"${python()}" -m edge_tts`;
   return 'edge-tts';
 }
 
@@ -70,6 +69,20 @@ function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } 
 
 const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium|Microsoft Edge)[^/]* (.* )?--user-data-dir=[^=]*/\\.wwebjs_auth/session-nova-desktop-client( |$)';
 
+async function macAntigravityStats(mac) {
+  const pid = Number((await mac.run('/usr/bin/pgrep', ['-x', 'Antigravity'])).split('\n')[0]);
+  if (!pid) return null;
+  const rss = Number((await mac.run('/bin/ps', ['-p', String(pid), '-o', 'rss='])).trim());
+  let title = '';
+  let responding = true;
+  try {
+    title = await mac.run('/usr/bin/osascript', ['-e', 'tell application "System Events" to tell process "Antigravity" to return name of front window'], { timeout: 3000 });
+  } catch (e) {
+    responding = !e.killed;
+  }
+  return { pid, cpu: 0, memory: Math.round(rss / 1024), responding, title };
+}
+
 const MAC_CAM_SPOOF_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^/]* (.* )?--use-file-for-fake-video-capture=[^=]*/nova_webcam_hijack/';
 
-module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, MAC_BROWSER_KILL_PATTERN, MAC_CAM_SPOOF_KILL_PATTERN };
+module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, macAntigravityStats, MAC_BROWSER_KILL_PATTERN, MAC_CAM_SPOOF_KILL_PATTERN };

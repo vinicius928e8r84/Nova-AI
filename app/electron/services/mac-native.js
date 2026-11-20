@@ -50,10 +50,4 @@ async function typeText(text,pressEnter=false) {
  finally {await new Promise(r=>setTimeout(r,150));clipboard.writeText(old);}
  return {success:true,typed:text,enterPressed:!!pressEnter};
 }
-function python() {
- const roots=[process.resourcesPath,path.join(__dirname,'../../resources')].filter(Boolean);
- for(const root of roots){const p=path.join(root,'python-runtime-portable/run-python');if(fs.existsSync(p))return p;}
- for(const root of roots){const p=path.join(root,'python-env/bin/python3');if(fs.existsSync(p))return p;}
- return tool('python3')||'/usr/bin/python3';
-}
-module.exports={run,tool,browser,apple,quote,pressKey,typeText,python};
+module.exports={run,tool,browser,apple,quote,pressKey,typeText};

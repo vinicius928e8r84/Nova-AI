@@ -36,22 +36,21 @@ e envia o `productType` no apply (ex.: iPhone 13 = `iPhone14,5`).
 |---|---|
 | `MAC/integracao-iphone/ios-modelo.js` (novo) | módulo puro: comandos + parse de status (testável) |
 | `MAC/integracao-iphone/iosModels.json` (novo) | banco de modelos iOS |
-| `MAC/integracao-iphone/physicalMobileService.patched.js` | + `getIosModels`/`applyIOSModel`/`clearIOSModel`/`getIOSModel` |
-| `MAC/integracao-modelo-app/main.modelo.js` | `main.js` com os 4 IPCs (cópia aplicável, base no main mais completo) |
+| `app/electron/services/physicalMobileService.js` | `getIosModels`/`applyIOSModel`/`clearIOSModel`/`getIOSModel` |
 | `MAC/integracao-iphone/conexao-usb/setup.js` | + instalação do `novamodel.deb` (guardado por existência) |
 | `MAC/integracao-modelo-app/novamodel.test.cjs` | teste com mock de SSH |
 
 ## Aplicar no app instalado (quando o .deb existir)
 
 1. Copiar `ios-modelo.js` e `iosModels.json` para `Contents/Resources/app/electron/services/`.
-2. Aplicar os 4 IPCs em `Contents/Resources/app/electron/main.js` (trecho em `main.modelo.js`).
+2. Os 4 IPCs já estão em `app/electron/main.js`.
 3. Aplicar o bloco do `novamodel.deb` em `Contents/Resources/app/electron/services/iphone-setup/setup.js`.
 4. Colocar o `novamodel.deb` (do Jailbreak Specialist) em `services/iphone-setup/` ao lado do `camera.deb`.
 5. `node --check` nos arquivos tocados e reiniciar o Nova.
 
 ## Testado
 
-- `node --check` em `ios-modelo.js`, `physicalMobileService.patched.js`, `setup.js`, `main.modelo.js`.
+- `node --check` em `ios-modelo.js`, `app/electron/services/physicalMobileService.js`, `setup.js`.
 - `node MAC/integracao-modelo-app/novamodel.test.cjs`: 30 verificações (comandos, parse,
   validação do banco, métodos do serviço com `iosSsh` mockado, falha de SSH).
 
