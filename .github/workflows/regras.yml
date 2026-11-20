@@ -40,11 +40,23 @@ jobs:
         run: |
           npm install --no-save --no-audit --no-fund --ignore-scripts --prefix "$RUNNER_TEMP/eslint" eslint@9.39.4
           echo "ESLINT_BIN=$RUNNER_TEMP/eslint/node_modules/eslint/bin/eslint.js" >> "$GITHUB_ENV"
+      - name: Instalar o analisador da saúde do código
+        run: |
+          if [ -f "$REGRAS_DIR/analisador/package-lock.json" ]; then
+            npm ci --no-audit --no-fund --ignore-scripts --prefix "$REGRAS_DIR/analisador"
+          else
+            echo "as regras da base ainda não têm o analisador de saude-do-codigo"
+          fi
       - name: Regras de revisão
         run: node "$REGRAS_DIR/verificar.js" --raiz "$GITHUB_WORKSPACE"
         env:
           REGRAS_BASE: origin/${{ github.event.pull_request.base.ref }}
           REGRAS_EXIGE_FERRAMENTAS: "1"
+      - name: Instalar o analisador para os testes das regras
+        run: |
+          if [ -f scripts/regras/analisador/package-lock.json ]; then
+            npm ci --no-audit --no-fund --ignore-scripts --prefix scripts/regras/analisador
+          fi
       - name: Testes das regras
         run: node --test "scripts/regras/test/*.test.js"
 

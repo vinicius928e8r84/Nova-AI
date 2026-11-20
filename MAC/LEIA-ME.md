@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Catraca de saúde do código (Onda 0.2 do plano nota 10) — 20/11/2026
+
+- **O que mudou:** nova regra `saude-do-codigo` em `scripts/regras/` (`regra-saude.js`, analisador em `scripts/regras/analisador/` com acorn 8.19.0 para JS e `ast` do Python), portada da https://github.com/vinicius928e8r84/PerpetualMiner/pull/641. Cada arquivo `.js`/`.mjs`/`.cjs`/`.py` que a PR toca é medido inteiro e não pode ter mais pontos que a sua entrada na chave `saude-do-codigo` de `scripts/regras/linha-de-base.json`; arquivo novo nasce em 0. O job "Regras de revisão" instala o analisador (`npm ci --prefix …/analisador`). Vale a partir da PR seguinte à que a cria, porque o job roda as regras da base. `--criar-linha-de-base` e `--atualizar-linha-de-base` aceitam `--regra`.
+- **Arquivos:** `scripts/regras/regra-saude.js`, `scripts/regras/linha-de-base.js`, `scripts/regras/analisador/*`, `scripts/regras/verificar.js`, `scripts/regras/regra-linhas.js`, `scripts/regras/linha-de-base.json`, `scripts/regras/test/saude.test.js`, `scripts/regras/test/auxiliar.js`, `.github/workflows/regras.yml`, `CONTRIBUTING.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Só regras e CI.
+- **Testado:** `node --test "scripts/regras/test/*.test.js"` e `node scripts/regras/verificar.js --base origin/main` no Linux.
+- **Sem testar:** a calibração contra o painel do CodeScene nos 16 arquivos com nota (o painel roda na máquina do dono); a regra foi conferida contra os checks do CodeScene publicados nas PRs do GitHub.
+
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
 - **O que mudou:** apagadas cópias sem consumidor: os dois `*.antes-proxy-20261104-193310` (−6.881 linhas), `MAC/controle-celular-plataformas/geo-proxy/aplicado/*`, `MAC/encerramento-nova/{main.js,original/}` (inclui o executável Mach-O e `CodeResources`), `MAC/integracao-kling/main.js`, `MAC/integracao-modelo-app/main.modelo.js`, `MAC/integracao-iphone/physicalMobileService.patched.js` e `MAC/integracao-sequestro-cam/physicalMobileService.patched.js`. O git guarda a história. Fora do escopo: `reservas/`, `backup-*`, mp4, `backup-antes-traducao/`.
