@@ -20,9 +20,8 @@ O que o time mediu e este trabalho usa:
 | `novalanguage/main.m` | binário pequeno (Objective-C/Foundation): lê/grava o idioma pelo CFPreferences com leitura de confirmação, `scan` dos apps com idioma próprio, limpeza desses overrides guardando o valor anterior e `AppleLocale` derivado do idioma |
 | `novalanguage/{Makefile,control,layout}` | pacote `com.aquiles.novalanguage` 0.1, arm64/rootless, instala em `/var/jb/usr/bin/novalanguage`, `postinst` deixa 755 (sem SUID) |
 | `nova-locale.sh` (v3) | helper do aparelho com `language get/set/revert` e `respring` (as duas cópias do repo: `conexao-usb/` e `geo-proxy/helper/`) |
-| `idioma-ipc.js` | módulo do app com os handlers `spoofer:*language` (lógica pura, testável) |
-| `aplicar-ipc-idioma.py` | aplicador idempotente: copia o módulo para `electron/services/` e insere **uma linha** no `main.js`; dry-run por padrão |
-| `teste/` | 4 blocos de teste que rodam no Mac, sem aparelho |
+| `app/electron/services/idioma-ipc.js` | módulo do app com os handlers `spoofer:*language` (lógica pura, testável) |
+| `teste/` | 3 blocos de teste que rodam no Mac, sem aparelho |
 
 Pacote construído (não instalado): `novalanguage/packages/com.aquiles.novalanguage_0.1-1+debug_iphoneos-arm64.deb` (9.672 B, binário `Mach-O arm64`).
 
@@ -95,7 +94,7 @@ Códigos de saída: `0` ok · `2` uso/argumento · `3` `novalanguage` não insta
 
 ## IPC no app (contrato para o Frontend)
 
-Registrados por `idioma-ipc.js` (após rodar `aplicar-ipc-idioma.py --aplicar` e reabrir o Nova):
+Registrados por `app/electron/services/idioma-ipc.js`, que o `main.js` do app já carrega:
 
 - `spoofer:get-language({ domain })` → `{ success, domain, language, nome, locale, override, disco, discoCombina, avisos[] }`
 - `spoofer:apply-language({ tag, domain, respring, locale, confirmGlobal })` → `{ success, aplicado, confirmed, respring, avisos[], error }`
@@ -111,7 +110,7 @@ Os avisos sempre incluem: global muda `Accept-Language` dos sites; respring derr
 1. **Idioma no aparelho** — `nova-locale language revert` devolve o valor que existia antes do primeiro `set` daquele domínio (backup em `/var/mobile/Library/Preferences/com.aquiles.novalocale.idioma.<domínio>.orig`, criado por cópia, nunca apagado).
    - Se o backup não existir (nada foi aplicado por este helper), o comando falha com mensagem clara em vez de chutar um valor.
    - Atenção: hoje o aparelho já está `pt-BR`; o "original" que o helper guardar na primeira vez será `pt-BR`. Para forçar inglês: `language set en-US --locale en_US`.
-2. **IPC no app** — restaurar o backup criado pelo aplicador: `main.js.bak-idioma-ipc-<data>` (e apagar `electron/services/idioma-ipc.js`).
+2. **IPC no app** — o módulo vem de `app/electron/services/idioma-ipc.js`; para voltar, restaure o arquivo anterior guardado em `reservas/` (`AGENTS.md` seção 5).
 3. **Helper** — o `nova-locale.sh` v2 aplicado hoje tem backup `nova-locale.sh.bak-locale-v2-20261107-154333` no `iphone-setup` do app.
 
 ## Para levar ao aparelho (só com OK do usuário)
@@ -134,4 +133,4 @@ Os avisos sempre incluem: global muda `Accept-Language` dos sites; respring derr
 MAC/integracao-iphone/idioma-iphone/teste/rodar.sh
 ```
 
-Blocos: `novalanguage` (compila o `main.m` e faz ida-e-volta num domínio descartável), helper v3 (14 casos com binário e `killall` falsos), IPC (createHandlers com `exec` falso: validação, confirmação obrigatória no global, avisos, sem `sudo`) e o aplicador (dry-run, idempotência, `node --check`, e prova de que o `main.js` do app **não** muda).
+Blocos: `novalanguage` (compila o `main.m` e faz ida-e-volta num domínio descartável), helper v3 (14 casos com binário e `killall` falsos) e IPC (createHandlers com `exec` falso sobre `app/electron/services/idioma-ipc.js`: validação, confirmação obrigatória no global, avisos, sem `sudo`).

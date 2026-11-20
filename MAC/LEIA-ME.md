@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Gêmeos do iPhone apagados (Onda 1, PR 1f) — 20/11/2026
+
+- **O que mudou:** apagadas as cópias congeladas de `MAC/integracao-iphone/` que têm par em `app/electron/services/`: `conexao-usb/setup.js`, `conexao-usb/inapp.js`, `ios-camera.js`, `ios-modelo.js`, `iphone-ssh.js`, `ios-tools.js` e `idioma-iphone/idioma-ipc.js`. Apagados também os dois aplicadores que copiavam ou transplantavam essas cópias para o app instalado: `conexao-usb/aplicar-locale-v2.cjs` e `idioma-iphone/aplicar-ipc-idioma.py` (o `app/` já tem o handshake do nova-locale e o registro do idioma; rodar o segundo hoje gravaria o `idioma-ipc.js` antigo por cima do app). O bloco 4 de `idioma-iphone/teste/rodar.sh`, que testava esse aplicador, saiu junto.
+- **Testes:** `setup.test.cjs`, `locale-helper.test.cjs`, `tests/relay.cjs`, `idioma-iphone/teste/teste-ipc.js` e `MAC/integracao-modelo-app/novamodel.test.cjs` passam a carregar os arquivos de `app/`. `tests/relay.cjs` já falhava antes (porta 18999 fixa e `/frame.jpg`, trocados por porta efêmera e `/s/<token>/frame.jpg` em 04/11) e falha igual contra `app/`. READMEs da área apontam para `app/`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Para atualizar o app, copie de `app/electron/services/` (`AGENTS.md` seção 5).
+- **Sem testar:** Mac e Windows reais; empacotamento com `electron-builder` (só a lista de `app/package.json`). Os atalhos `iphone-ssh.js` de `integracao-camlive/`, `integracao-sequestro-cam/` e `encerramento-nova/` reexportam o arquivo apagado e saem nas PRs 1d, 1e e 1g.
+
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
 - **O que mudou:** apagadas cópias sem consumidor: os dois `*.antes-proxy-20261104-193310` (−6.881 linhas), `MAC/controle-celular-plataformas/geo-proxy/aplicado/*`, `MAC/encerramento-nova/{main.js,original/}` (inclui o executável Mach-O e `CodeResources`), `MAC/integracao-kling/main.js`, `MAC/integracao-modelo-app/main.modelo.js`, `MAC/integracao-iphone/physicalMobileService.patched.js` e `MAC/integracao-sequestro-cam/physicalMobileService.patched.js`. O git guarda a história. Fora do escopo: `reservas/`, `backup-*`, mp4, `backup-antes-traducao/`.
