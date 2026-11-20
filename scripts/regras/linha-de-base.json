@@ -1,6 +1,6 @@
 {
   "arquivos": {
-    "app/electron/main.js": 4337,
+    "app/electron/main.js": 4335,
     "app/electron/pwa/admin.html": 1523,
     "app/electron/services/browser-manager.js": 2744,
     "app/electron/services/browserFarmService.js": 2138,
