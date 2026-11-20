@@ -11,12 +11,21 @@ let carregamentoAtual = null;
 const carregarOriginal = Module._load;
 Module._load = function (pedido, pai, ...resto) {
   const atual = carregamentoAtual;
-  if (atual && pai && pai.filename === atual.caminho) {
+  if (atual && pai?.filename === atual.caminho) {
     if (Object.prototype.hasOwnProperty.call(atual.modulos, pedido)) return atual.modulos[pedido];
     if (!Module.isBuiltin(pedido)) return atual.dubleDoModulo(pedido);
   }
   return carregarOriginal.call(this, pedido, pai, ...resto);
 };
+
+function chaveDoProprioObjeto(alvo, chave) {
+  return typeof chave === 'symbol' || chave === 'then' || chave in alvo;
+}
+
+const raizesCriadas = [];
+process.once('exit', () => {
+  for (const raiz of raizesCriadas) fs.rmSync(raiz, { recursive: true, force: true });
+});
 
 function criarDuble(nome, registro) {
   const valores = new Map();
@@ -37,7 +46,7 @@ function criarDuble(nome, registro) {
 function comResto(objeto, nome, registro) {
   return new Proxy(objeto, {
     get(alvo, chave, receptor) {
-      if (chave in alvo || typeof chave === 'symbol' || chave === 'then') return Reflect.get(alvo, chave, receptor);
+      if (chaveDoProprioObjeto(alvo, chave)) return Reflect.get(alvo, chave, receptor);
       alvo[chave] = criarDuble(`${nome}.${chave}`, registro);
       return alvo[chave];
     },
@@ -64,7 +73,7 @@ function criarJanela(registro, arranque) {
   janela.webContents = comResto({ send: (canal, dados) => janela.enviados.push([canal, dados]) }, 'webContents', registro);
   return new Proxy(janela, {
     get(alvo, chave, receptor) {
-      if (chave in alvo || typeof chave === 'symbol' || chave === 'then') return Reflect.get(alvo, chave, receptor);
+      if (chaveDoProprioObjeto(alvo, chave)) return Reflect.get(alvo, chave, receptor);
       return (...args) => { alvo.chamadas.push([chave, ...args]); };
     },
   });
@@ -140,15 +149,30 @@ function silenciado(funcao) {
   }
 }
 
+function guardarEstadoDoProcesso() {
+  const ouvintesDeSinal = { SIGTERM: process.listeners('SIGTERM'), SIGINT: process.listeners('SIGINT') };
+  const resourcesPathAntes = process.resourcesPath;
+  const pathAntes = process.env.PATH;
+  return () => {
+    if (resourcesPathAntes === undefined) delete process.resourcesPath;
+    else process.resourcesPath = resourcesPathAntes;
+    process.env.PATH = pathAntes;
+    for (const sinal of Object.keys(ouvintesDeSinal)) {
+      for (const ouvinte of process.listeners(sinal)) {
+        if (!ouvintesDeSinal[sinal].includes(ouvinte)) process.removeListener(sinal, ouvinte);
+      }
+    }
+  };
+}
+
 function carregarMain({ electron: sobreporElectron = {}, modulos = {} } = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-main-'));
+  raizesCriadas.push(raiz);
   const registro = [];
   const arranque = { interromper: true, erros: [] };
   const falso = criarElectron(raiz, registro, arranque, sobreporElectron);
   const dubles = new Map();
-  const ouvintesDeSinal = { SIGTERM: process.listeners('SIGTERM'), SIGINT: process.listeners('SIGINT') };
-  const resourcesPathAntes = process.resourcesPath;
-  const pathAntes = process.env.PATH;
+  const restaurarProcesso = guardarEstadoDoProcesso();
   carregamentoAtual = {
     caminho: CAMINHO_DO_MAIN,
     modulos: {
@@ -168,14 +192,7 @@ function carregarMain({ electron: sobreporElectron = {}, modulos = {} } = {}) {
     delete require.cache[CAMINHO_DO_MAIN];
     silenciado(() => require(CAMINHO_DO_MAIN));
   } finally {
-    if (resourcesPathAntes === undefined) delete process.resourcesPath;
-    else process.resourcesPath = resourcesPathAntes;
-    process.env.PATH = pathAntes;
-    for (const sinal of Object.keys(ouvintesDeSinal)) {
-      for (const ouvinte of process.listeners(sinal)) {
-        if (!ouvintesDeSinal[sinal].includes(ouvinte)) process.removeListener(sinal, ouvinte);
-      }
-    }
+    restaurarProcesso();
     arranque.interromper = false;
   }
   if (arranque.erros.length) throw arranque.erros[0];

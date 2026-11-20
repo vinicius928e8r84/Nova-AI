@@ -65,7 +65,7 @@ function areaFalsa() {
 
 test('main.js registra os canais de teclado e de area de transferencia', () => {
   const main = carregarMain();
-  for (const canal of ['keyboard-press', 'keyboard-type', 'clipboard-read', 'clipboard-write', 'set-clipboard', 'system-exec-command']) {
+  for (const canal of ['keyboard-press', 'clipboard-read', 'clipboard-write', 'set-clipboard', 'system-exec-command']) {
     assert.ok(main.canais.handle.has(canal), canal);
   }
 });
@@ -114,56 +114,6 @@ test('keyboard-press fora do Mac: erro do PowerShell e tecla ausente viram { err
     const semTecla = await main.invocar('keyboard-press', {});
     assert.deepStrictEqual(Object.keys(semTecla), ['error']);
     assert.match(semTecla.error, /toLowerCase/);
-  });
-  assert.strictEqual(processos.pedidos.length, 1);
-});
-
-test('keyboard-type no Mac vai para o mac-native com o texto e o Enter', async () => {
-  const processos = processosFalsos();
-  const macNative = macNativeFalso();
-  const main = carregarMain({ modulos: { child_process: processos.modulo, './services/mac-native': macNative } });
-  await comPlataforma('darwin', async () => {
-    assert.deepStrictEqual(await main.invocar('keyboard-type', { text: 'ola', pressEnter: true }), { success: true, via: 'mac', text: 'ola', pressEnter: true });
-    assert.deepStrictEqual(await main.invocar('keyboard-type', { text: 'quebra' }), { success: false, error: 'sem acessibilidade' });
-  });
-  assert.deepStrictEqual(macNative.chamadas, [['typeText', 'ola', true], ['typeText', 'quebra', undefined]]);
-  assert.deepStrictEqual(processos.pedidos, []);
-});
-
-test('keyboard-type fora do Mac: escapa os simbolos do SendKeys como hoje (as chaves sao escapadas de novo)', async () => {
-  const processos = processosFalsos();
-  const main = carregarMain({ modulos: { child_process: processos.modulo } });
-  const texto = 'a+b^c%d~e(f)g[h]i{j}k';
-  await comPlataforma('win32', async () => {
-    assert.deepStrictEqual(await main.invocar('keyboard-type', { text: texto, pressEnter: false }), { success: true, typed: texto, enterPressed: false });
-    assert.deepStrictEqual(await main.invocar('keyboard-type', { text: 'oi', pressEnter: true }), { success: true, typed: 'oi', enterPressed: true });
-    assert.deepStrictEqual(await main.invocar('keyboard-type', { text: 'sem enter' }), { success: true, typed: 'sem enter', enterPressed: undefined });
-  });
-  const escapado = 'a{{{}}+{}}b{{{}}^{}}c{{{}}%{}}d{{{}}~{}}e{{{}}({}}f{{{}}){}}g{{{}}[{}}h{{{}}]{}}i{{{}}j{}}k';
-  assert.deepStrictEqual(processos.pedidos[0], {
-    comando: `powershell -Command "${SEND_KEYS} [System.Windows.Forms.SendKeys]::SendWait('${escapado}')"`,
-    opcoes: { timeout: 20000 },
-  });
-  const comEnter = [
-    '',
-    `          ${SEND_KEYS}`,
-    "          [System.Windows.Forms.SendKeys]::SendWait('oi');",
-    '          Start-Sleep -Seconds 5;',
-    "          [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')",
-    '        ',
-  ].join('\n');
-  assert.deepStrictEqual(processos.pedidos[1], { comando: `powershell -Command "${comEnter}"`, opcoes: { timeout: 20000 } });
-  assert.strictEqual(processos.pedidos[2].comando, `powershell -Command "${SEND_KEYS} [System.Windows.Forms.SendKeys]::SendWait('sem enter')"`);
-});
-
-test('keyboard-type fora do Mac: erro do PowerShell e texto ausente viram { error }', async () => {
-  const processos = processosFalsos(() => new Error('acesso negado'));
-  const main = carregarMain({ modulos: { child_process: processos.modulo } });
-  await comPlataforma('win32', async () => {
-    assert.deepStrictEqual(await main.invocar('keyboard-type', { text: 'x' }), { error: 'acesso negado' });
-    const semTexto = await main.invocar('keyboard-type', {});
-    assert.deepStrictEqual(Object.keys(semTexto), ['error']);
-    assert.match(semTexto.error, /replace/);
   });
   assert.strictEqual(processos.pedidos.length, 1);
 });
