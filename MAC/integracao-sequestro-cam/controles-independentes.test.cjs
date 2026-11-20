@@ -6,8 +6,8 @@ const { PassThrough } = require('node:stream');
 const test = require('node:test');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const { CamLiveIphone } = require('./cam-live-iphone.patched');
-const IosCamera = require('./ios-camera.patched');
+const { CamLiveIphone } = require('../../app/electron/services/cam-live-iphone');
+const IosCamera = require('../../app/electron/services/ios-camera');
 
 const ready = {
   version: '0.1-39', hooksReady: true, photoPrepareHookReady: true,
