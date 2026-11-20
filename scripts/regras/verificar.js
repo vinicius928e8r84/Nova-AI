@@ -7,7 +7,7 @@ const { ErroDeUso, lerArquivo, lerMudancas, resolverBase, tentar } = require('./
 const { classificar, resumo } = require('./risco');
 const { extensaoDe } = require('./globs');
 const caminhosSensiveis = require('./caminhos-sensiveis.json');
-const { ARQUIVO_DA_LINHA_DE_BASE, gravarChave, lerDoDisco } = require('./linha-de-base');
+const { atualizarLinhasDeBase, criarLinhasDeBase, regrasDaLinhaDeBase } = require('./linha-de-base');
 const linhas = require('./regra-linhas');
 
 const REGRAS = [
@@ -20,8 +20,6 @@ const REGRAS = [
   require('./regra-eslint'),
   require('./regra-saude'),
 ];
-
-const COM_LINHA_DE_BASE = REGRAS.filter(regra => regra.linhaDeBase);
 
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
                                      [--criar-linha-de-base | --atualizar-linha-de-base]
@@ -95,45 +93,6 @@ function formatar(regra, achados) {
   return [`✗ ${regra.id} — ${regra.titulo}`, ...corpo, `  Conserto: ${regra.conserto}`].join('\n');
 }
 
-function regrasDaLinhaDeBase(opcoes) {
-  const semLinhaDeBase = opcoes.regras.filter(id => !COM_LINHA_DE_BASE.some(regra => regra.id === id));
-  if (semLinhaDeBase.length) {
-    throw new ErroDeUso(`${semLinhaDeBase.join(', ')} não tem linha de base; as que têm: ${COM_LINHA_DE_BASE.map(regra => regra.id).join(', ')}`);
-  }
-  return COM_LINHA_DE_BASE.filter(regra => !opcoes.regras.length || opcoes.regras.includes(regra.id));
-}
-
-function criarLinhasDeBase(ctx, regras) {
-  const atual = lerDoDisco(ctx.raiz) || {};
-  const faltam = regras.filter(regra => !(regra.linhaDeBase.chave in atual));
-  if (!faltam.length) {
-    throw new ErroDeUso(`${ARQUIVO_DA_LINHA_DE_BASE} já tem a linha de base de ${regras.map(regra => regra.id).join(', ')}; ela só encolhe (--atualizar-linha-de-base)`);
-  }
-  for (const regra of faltam) {
-    const porArquivo = regra.linhaDeBase.calcular(ctx);
-    gravarChave(ctx.raiz, regra.linhaDeBase.chave, porArquivo);
-    console.log(`linha de base de ${regra.id} criada com ${Object.keys(porArquivo).length} arquivo(s)`);
-  }
-  return 0;
-}
-
-function atualizarLinhasDeBase(ctx, regras) {
-  const atual = lerDoDisco(ctx.raiz);
-  if (!atual) throw new ErroDeUso(`${ARQUIVO_DA_LINHA_DE_BASE} não existe; crie-a com --criar-linha-de-base`);
-  const resultados = regras.filter(regra => regra.linhaDeBase.ler(atual))
-    .map(regra => ({ regra, ...regra.linhaDeBase.atualizar(ctx, regra.linhaDeBase.ler(atual)) }));
-  const erros = resultados.flatMap(resultado => resultado.erros);
-  if (erros.length) {
-    console.log(`${erros.map(e => `✗ ${e}`).join('\n')}\nnada foi atualizado: a linha de base só encolhe`);
-    return 1;
-  }
-  for (const { regra, nova } of resultados) {
-    gravarChave(ctx.raiz, regra.linhaDeBase.chave, nova);
-    console.log(`linha de base de ${regra.id} atualizada: ${Object.keys(nova).length} arquivo(s)`);
-  }
-  return 0;
-}
-
 function main(argv, env = process.env) {
   const opcoes = lerArgumentos(argv);
   if (opcoes.ajuda) {
@@ -154,8 +113,8 @@ function main(argv, env = process.env) {
   const avisos = [];
   const ctx = contexto(raiz, base, env, avisos);
 
-  if (opcoes.criar) return criarLinhasDeBase(ctx, regrasDaLinhaDeBase(opcoes));
-  if (opcoes.atualizar) return atualizarLinhasDeBase(ctx, regrasDaLinhaDeBase(opcoes));
+  if (opcoes.criar) return criarLinhasDeBase(ctx, regrasDaLinhaDeBase(REGRAS, opcoes.regras));
+  if (opcoes.atualizar) return atualizarLinhasDeBase(ctx, regrasDaLinhaDeBase(REGRAS, opcoes.regras));
 
   const escolhidas = REGRAS.filter(regra => !opcoes.regras.length || opcoes.regras.includes(regra.id));
   const falhas = [];
