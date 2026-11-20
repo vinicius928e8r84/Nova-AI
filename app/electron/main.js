@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, powerSaveBlocker, nativeImage, desktopCapturer, Tray, Menu } = require('electron');
 const { spawn } = require('child_process');
 const macNative = require('./services/mac-native');
+const toolPaths = require('./services/tool-paths');
+const novaIconFile = toolPaths.iconFile();
 const pythonRuntime = require('./services/python-runtime');
 process.env.PATH = pythonRuntime.pathComBin(process.platform, process.env.PATH || '', process.resourcesPath || __dirname);
 
@@ -228,7 +230,7 @@ function createWindow() {
 
   const trayIconPath = process.env.NODE_ENV === 'development'
     ? path.join(__dirname, '../public/nova.ico')
-    : path.join(process.resourcesPath, 'public', process.platform === 'darwin' ? 'nova-icon.png' : 'nova.ico');
+    : path.join(process.resourcesPath, 'public', novaIconFile);
 
   if (fs.existsSync(trayIconPath)) {
     try {
@@ -283,7 +285,7 @@ function createWindow() {
     icon: nativeImage.createFromPath(
       process.env.NODE_ENV === 'development'
         ? path.join(__dirname, '../public/nova.ico')
-        : path.join(process.resourcesPath, 'public', process.platform === 'darwin' ? 'nova-icon.png' : 'nova.ico')
+        : path.join(process.resourcesPath, 'public', novaIconFile)
     )
   });
 
@@ -1074,11 +1076,8 @@ function registerHandlers() {
 
       finalSavePath = filePath;
 
-      let ffmpegPath = path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
-      if (!fs.existsSync(ffmpegPath)) {
-        ffmpegPath = path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
-      }
-      if (!fs.existsSync(ffmpegPath)) {
+      let ffmpegPath = toolPaths.ffmpeg();
+      if (!ffmpegPath) {
         ffmpegPath = 'ffmpeg';
       }
 
@@ -2008,11 +2007,8 @@ function registerHandlers() {
 
           // Play with ffplay (-nodisp = no window, -autoexit = stop when done)
           const playCmd = `ffplay -nodisp -autoexit -loglevel quiet "${tmpAudio}"`;
-          exec(playCmd, (playErr) => {
+          exec(playCmd, () => {
             try { fs.unlinkSync(tmpAudio); } catch(e) {}
-            if (playErr) {
-              if (process.platform === 'darwin') shell.openPath(tmpAudio); else exec(`start "" "${tmpAudio}"`);
-            }
             event.sender.send('preview-voice-status', { state: 'done', message: '✅ Pronto!' });
             resolve({ success: true });
           });
