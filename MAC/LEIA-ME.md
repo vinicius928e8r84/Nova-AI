@@ -486,6 +486,13 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Teste:** `node --test app/electron/services/test/whatsapp-aviso.test.js app/electron/services/test/whatsapp-limite.test.js` (o segundo carrega o `whatsapp-manager.js` real com `whatsapp-web.js` e `electron` falsos).
 - **Sem testar:** Mac e Windows reais; o aviso nunca foi exibido num app em execução, e a causa real da falha no Mac (permissão Gerenciamento de apps) segue sem prova.
 
+## 2026-11-19 — M2 de paridade: "respondendo" real do Antigravity no Mac
+
+- **O que mudou:** `getProcessStats()` no Mac deixou de devolver `responding:true` fixo. `macAntigravityStats()` (em `paridade-utils.js`) acha o PID com `pgrep -x Antigravity`, lê a memória com `ps -p <pid> -o rss=` e marca `responding:false` só quando o AppleScript do System Events estoura 3 s (processo morto por tempo). Outro erro do AppleScript (app aberto sem janela, falta de permissão de Automação) conta como respondendo, com título vazio. `cpu` continua `0` nos dois sistemas, como o PowerShell do Windows (`CPU:0`); ninguém lê esse valor. Sem processo, devolve `null` como o Windows.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/services/antigravity-controller.js` e `Contents/Resources/app/electron/services/paridade-utils.js` (guardar os anteriores em `reservas/` antes; depois `node --check` e reiniciar o Nova). Nenhum arquivo do bundle da interface.
+- **Teste:** `app/test/paridade-b.test.js` (`node --test`), com `pgrep`, `ps` e `osascript` falsos.
+- **Sem testar:** Mac real com Antigravity instalado; o nome do processo `Antigravity` no `pgrep` (se não bater, trocar por `pgrep -f '/Antigravity\.app/Contents/MacOS/'`) e o limite de 3 s do AppleScript; Windows real.
+
 ## 2026-11-19 — P8 de paridade: Python embutido e PATH iguais nos dois sistemas
 
 - **O que mudou:** `mac-native.python()` virou `app/electron/services/python-runtime.js` (`python()` e `pathComBin()`). Mac: mesma ordem de antes (`python-runtime-portable/run-python`, `python-env/bin/python3`, `python3`). Windows: `resources\python\python.exe`, senão `python` do PATH. O PATH do processo ganha `resources\bin` também no Windows. Os três processos Python (wake word, YouTube Auto, enxame de agentes) passam `windowsHide: true` (sem efeito no Mac). `app/README.md` descreve o Python do Windows. O YouTube Auto no `main.js` passou a usar o Python resolvido em vez de `python` solto (no Mac `python` nem existia). `edgeTtsBinary` usa o Python resolvido nos dois. Removido: `python()` de `mac-native.js` e `pathForBin()` do `main.js`.
