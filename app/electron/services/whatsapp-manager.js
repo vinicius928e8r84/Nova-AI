@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { MAC_BROWSER_KILL_PATTERN } = require('./paridade-utils');
+const { avisarFalhaRepetida } = require('./whatsapp-aviso');
 const { spawnSync } = require('child_process');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -184,7 +185,12 @@ class WhatsAppManager {
 
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error('[WhatsApp] Reconnect limit reached. Waiting for manual restart.');
-            this.setStatus('disconnected', { reason: 'reconnect-limit-reached' });
+            const aviso = avisarFalhaRepetida({
+                platform: process.platform,
+                tentativas: this.maxReconnectAttempts,
+                mostrar: texto => require('electron').dialog.showMessageBox(this.mainWindow, { type: 'warning', title: 'WhatsApp', message: texto })
+            });
+            this.setStatus('disconnected', { reason: 'reconnect-limit-reached', hint: aviso });
             return;
         }
 
@@ -353,9 +359,11 @@ class WhatsAppManager {
 
         this.registerClientEvents(this.client);
 
+        const cliente = this.client;
         try {
-            await this.client.initialize();
+            await cliente.initialize();
         } catch (error) {
+            if (this.client !== cliente) return;
             const errorMessage = String(error?.message || error || '');
             console.error('[WhatsApp] Initialize error:', errorMessage);
             this.clearInitTimeout();
