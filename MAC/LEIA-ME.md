@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Plataforma: C1 passos 1 e 2 — 19/11/2026
+
+- **O que mudou:** `yt-dlp`/`ffmpeg` (e `.exe`) deixam de ser decididos por `process.platform` em `ytdlp-manager.js` (10 ramos), `global-spoof-service.js` (o cálculo à mão do caminho do ffmpeg virou `tool-paths.ffmpeg()`) e `kling-video-service.js` (lista com os dois nomes); passam a usar `tool-paths.exe()`. Em `main.js`, o remux usa `tool-paths.ffmpeg()`, o ícone é escolhido uma vez (`tool-paths.iconFile()`, antes duplicado) e o fallback da pré-escuta de voz (`exec('start ...')`/`shell.openPath`) foi apagado: ele abria o arquivo depois de já apagá-lo e nunca tocava nada, nos dois sistemas. Mac e Windows mantêm o mesmo resultado; no Linux deixa de procurar `.exe`.
+- **Arquivos do app instalado no Mac que mudam:** `main.js`, `services/tool-paths.js`, `services/ytdlp-manager.js`, `services/global-spoof-service.js`, `services/kling-video-service.js`. Guardar os anteriores em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
+- **Testes:** `node --test MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs` simula `darwin` e `win32` (ícone, yt-dlp, ffmpeg) e confere no fonte que spoof e pré-escuta não voltaram ao caminho à mão.
+- **Sem testar:** exportação com remux, download com yt-dlp e câmera virtual em Mac e Windows reais; fica para a prova real.
+
 ## Limpeza do Chrome órfão do CAM spoof no Mac (M1 da paridade) — 19/11/2026
 
 - **O que mudou:** `startHijack` (`global-spoof-service.js`) no `darwin` agora roda `pkill -f` com `MAC_CAM_SPOOF_KILL_PATTERN` (`paridade-utils.js`) e não tenta mais `wmic`/PowerShell, que falhavam e gravavam "Failed to run Chrome cleanup". O padrão é ancorado no executável `…/Contents/MacOS/(Google Chrome|Chromium)` e exige `--use-file-for-fake-video-capture=` apontando para `…/nova_webcam_hijack/`: o Y4M do CAM spoof fica nessa pasta, enquanto o perfil fica em `farm_profiles`, então `--user-data-dir` nunca casaria. Um Chrome pessoal, um `bash`/`node` com o mesmo texto e a pasta `nova_webcam_hijack_outro` não casam. Windows não mudou.
