@@ -11,9 +11,8 @@ function hasUpdateConfig(resourcesPath = process.resourcesPath) {
   }
 }
 
-function edgeTtsBinary(platform, macPython) {
-  if (platform === 'darwin') return `"${macPython()}" -m edge_tts`;
-  if (platform === 'win32') return 'python -m edge_tts';
+function edgeTtsBinary(platform, python) {
+  if (platform === 'darwin' || platform === 'win32') return `"${python()}" -m edge_tts`;
   return 'edge-tts';
 }
 
