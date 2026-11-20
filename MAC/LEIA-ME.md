@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
+
+- **O que mudou:** apagadas cópias sem consumidor: os dois `*.antes-proxy-20261104-193310` (−6.881 linhas), `MAC/controle-celular-plataformas/geo-proxy/aplicado/*`, `MAC/encerramento-nova/{main.js,original/}` (inclui o executável Mach-O e `CodeResources`), `MAC/integracao-kling/main.js`, `MAC/integracao-modelo-app/main.modelo.js`, `MAC/integracao-iphone/physicalMobileService.patched.js` e `MAC/integracao-sequestro-cam/physicalMobileService.patched.js`. O git guarda a história. Fora do escopo: `reservas/`, `backup-*`, mp4, `backup-antes-traducao/`.
+- **Teste:** `MAC/integracao-modelo-app/novamodel.test.cjs` passou a exigir `app/electron/services/physicalMobileService.js` (mesmas 30 verificações). `linha-de-base.json` perdeu 8 entradas. READMEs de `MAC/` ajustados para apontar para `app/`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Nada em `app/` com efeito em execução foi alterado, só dois arquivos mortos apagados. Nada a reaplicar.
+- **Sem testar:** build/empacotamento do instalador (a exclusão `!**/*.antes-proxy-*` de `app/package.json` ficou, inofensiva); Mac e Windows reais. `geo-proxy/README.md` deixou de citar `aplicado/`. A exclusão `!**/*.antes-proxy-*` fica para um PR seguinte (`package.json` é ALTA).
+
 ## LEIA-ME sem seções duplicadas (AC6 passo 1) — 19/11/2026
 
 - **O que mudou:** removidas 98 seções que eram cópias exatas de outra já presente (resíduo de merges que colaram os mesmos blocos de novo; inclui 5 títulos `#` repetidos). Das 140 seções, ficaram 42, cada uma com texto igual ao anterior. Só mudou este arquivo (de 1.579 para cerca de 450 linhas); nenhum código.

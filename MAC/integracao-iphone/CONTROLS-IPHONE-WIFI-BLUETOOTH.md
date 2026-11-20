@@ -31,7 +31,7 @@ igual ao Android.
 | `Nova BT On` | Definir Bluetooth → Ativado |
 | `Nova BT Off` | Definir Bluetooth → Desativado |
 
-Código do patch (já no app instalado e em `MAC/integracao-iphone/physicalMobileService.patched.js`):
+Código do patch (já no app instalado e em `app/electron/services/physicalMobileService.js`):
 
 ```js
 async iosToggleSetting(deviceId, setting, enable) {
