@@ -15,7 +15,9 @@ function carregarManager(modo, dialogos) {
       return new Promise((_, rejeita) => { this.rejeita = rejeita; });
     }
     async destroy() {
-      if (this.rejeita) this.rejeita(new Error('Target closed'));
+      if (!this.rejeita) return;
+      if (modo === 'rejeicao-tardia') setTimeout(this.rejeita, 5, new Error('Target closed'));
+      else this.rejeita(new Error('Target closed'));
     }
   }
   const falsos = {
@@ -61,4 +63,8 @@ test('limite por tempo esgotado abre um unico aviso', async () => {
 
 test('limite por erro de inicio abre um unico aviso', async () => {
   assert.strictEqual((await rodarNoLimite('erro')).length, 1);
+});
+
+test('limite por tempo esgotado com rejeicao tardia do initialize abre um unico aviso', async () => {
+  assert.strictEqual((await rodarNoLimite('rejeicao-tardia')).length, 1);
 });

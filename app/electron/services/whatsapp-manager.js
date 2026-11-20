@@ -184,7 +184,6 @@ class WhatsAppManager {
         if (this.reconnectTimer) return;
 
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            if (this.statusReason === 'reconnect-limit-reached') return;
             console.error('[WhatsApp] Reconnect limit reached. Waiting for manual restart.');
             const aviso = avisarFalhaRepetida({
                 platform: process.platform,
@@ -360,9 +359,11 @@ class WhatsAppManager {
 
         this.registerClientEvents(this.client);
 
+        const cliente = this.client;
         try {
-            await this.client.initialize();
+            await cliente.initialize();
         } catch (error) {
+            if (this.client !== cliente) return;
             const errorMessage = String(error?.message || error || '');
             console.error('[WhatsApp] Initialize error:', errorMessage);
             this.clearInitTimeout();
