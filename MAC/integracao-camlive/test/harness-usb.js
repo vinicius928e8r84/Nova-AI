@@ -2,7 +2,7 @@
 // uso: node harness.js   -> http://localhost:8765   (RTMP de destino: ffmpeg -listen na 19351)
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
-const { register } = require('../../../app/electron/services/cam-live-service.js');
+require('../../../app/electron/services/cam-live-service.js');
 
 const PORT = parseInt(process.env.PORT || '8766', 10), RTMP_PORT = parseInt(process.env.RTMP_PORT || '19351', 10);
 const sse = new Set();
