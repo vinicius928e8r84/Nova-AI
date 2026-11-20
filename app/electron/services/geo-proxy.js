@@ -1,7 +1,7 @@
 'use strict';
 /**
  * geo-proxy.js — resolve a localização (lat/lon/cidade/fuso) do IP de saída
- * de um proxy (socks ou http), e também geolocaliza um IP já conhecido.
+ * de um proxy SOCKS5, e também geolocaliza um IP já conhecido.
  *
  * Módulo puro (sem Electron) para poder ser testado direto com node:
  *   node teste-geo.cjs "socks5://host:porta:usuario:senha"

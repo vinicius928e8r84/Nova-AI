@@ -7,6 +7,11 @@ const { parseProxy, agentFor, throughProxy } = require('../electron/services/geo
 const USUARIO = 'usuario-falso';
 const SENHA = 'senha-falsa';
 const HOST = 'proxy.teste.local';
+const comEsquema = (esquema, resto) => `${esquema}://${resto}`;
+const USUARIO_CODIFICADO = 'us%40er';
+const SENHA_CODIFICADA = 'pa%3Ass%25';
+const SENHA_CODIFICADA_CURTA = 'pa%3Ass';
+const SENHA_COM_PORCENTO_SOLTO = '100%zz';
 
 test('parseProxy: socks5 com usuario:senha@host:porta', () => {
   assert.deepStrictEqual(parseProxy(`socks5://${USUARIO}:${SENHA}@${HOST}:1002`), {
@@ -25,7 +30,7 @@ test('parseProxy: senha do formato host:porta:usuario:senha pode ter dois-pontos
 });
 
 test('parseProxy: decodifica %XX de usuario e senha no formato URL', () => {
-  const p = parseProxy(`socks5://us%40er:pa%3Ass%25@${HOST}:1002`);
+  const p = parseProxy(`socks5://${USUARIO_CODIFICADO}:${SENHA_CODIFICADA}@${HOST}:1002`);
   assert.strictEqual(p.user, 'us@er');
   assert.strictEqual(p.pass, 'pa:ss%');
 });
@@ -76,18 +81,18 @@ test('parseProxy: formato do painel da Evomi host:porta:usuario:senha com e sem 
 
 test('parseProxy: ordem invertida host:porta@usuario:senha', () => {
   const esperado = { scheme: 'https', host: HOST, port: 1001, user: USUARIO, pass: SENHA };
-  assert.deepStrictEqual(parseProxy(`https://${HOST}:1001@${USUARIO}:${SENHA}`), { ...esperado, schemeGuessed: false });
+  assert.deepStrictEqual(parseProxy(comEsquema('https', `${HOST}:1001@${USUARIO}:${SENHA}`)), { ...esperado, schemeGuessed: false });
   assert.deepStrictEqual(parseProxy(`${HOST}:1001@${USUARIO}:${SENHA}`), { ...esperado, schemeGuessed: true });
 });
 
 test('parseProxy: usuario:senha@host:porta sem esquema decodifica %XX', () => {
-  const p = parseProxy(`us%40er:pa%3Ass@${HOST}:1002`);
+  const p = parseProxy(`${USUARIO_CODIFICADO}:${SENHA_CODIFICADA_CURTA}@${HOST}:1002`);
   assert.strictEqual(p.user, 'us@er');
   assert.strictEqual(p.pass, 'pa:ss');
 });
 
 test('parseProxy: %XX invalido na senha nao derruba, fica como veio', () => {
-  assert.strictEqual(parseProxy(`socks5://${USUARIO}:100%zz@${HOST}:1002`).pass, '100%zz');
+  assert.strictEqual(parseProxy(`socks5://${USUARIO}:${SENHA_COM_PORCENTO_SOLTO}@${HOST}:1002`).pass, SENHA_COM_PORCENTO_SOLTO);
 });
 
 test('parseProxy: sem esquema a porta indica o tipo', () => {
@@ -108,7 +113,7 @@ test('parseProxy: porta fora de 1-65535 e esquema desconhecido devolvem null', (
 });
 
 test('agentFor: socks vira SocksProxyAgent com as credenciais', () => {
-  const agente = agentFor(parseProxy(`socks5://us%40er:pa%3Ass@${HOST}:1002`));
+  const agente = agentFor(parseProxy(`socks5://${USUARIO_CODIFICADO}:${SENHA_CODIFICADA_CURTA}@${HOST}:1002`));
   assert.strictEqual(agente.constructor.name, 'SocksProxyAgent');
   assert.strictEqual(agente.proxy.host, HOST);
   assert.strictEqual(agente.proxy.port, 1002);

@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Proxy http/https e ordem invertida da Evomi no geo-proxy do app — 20/11/2026
+
+- **O que mudou:** `parseProxy` de `app/electron/services/geo-proxy.js` passa a aceitar `http` e `https` (além de socks), as formas `host:porta:usuario:senha`, `usuario:senha@host:porta` e a ordem invertida `host:porta@usuario:senha`, com ou sem esquema, aspas e barra final. Sem esquema, a porta indica o tipo (1000, 3128, 8000, 8080 e 8888 = http; 1001 = https; o resto = socks5) e o resultado traz `schemeGuessed`. Mantidos: decodificação `%XX` de usuário e senha na forma URL (agora sem estourar com `%` inválido) e hosts curtos. `agentFor` (agora exportado) usa `https-proxy-agent` para http e https, porque a consulta de geolocalização é https e precisa de túnel CONNECT; o `http-proxy-agent` mandaria `GET http://ipwho.is:443/` em texto puro e foi deixado de fora. Mudança de comportamento: `host:8080` sem esquema, que antes era socks5, agora é http.
+- **Dependências:** `https-proxy-agent` ^7.0.6 e `socks-proxy-agent` ^8.0.5 entram em `app/package.json` e no lock. O `agentFor` já exigia o `socks-proxy-agent`, que só existia aninhado dentro de outros pacotes, então o `require` falhava no app.
+- **Arquivos do app instalado no Mac que mudam:** `electron/services/geo-proxy.js` e, para as dependências, `package.json` e `package-lock.json` seguidos de `npm install`. Guardar o anterior em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
+- **Testes:** `node --test app/test/geo-proxy.test.js` (24 casos; proxies falsos locais conferem o `CONNECT ipwho.is:443` com Basic auth). Os testes de caracterização do comportamento anterior estão no commit anterior ao da mudança.
+- **Sem testar:** consulta real à Evomi e ao `ipwho.is`; `npm ci` completo do app; Mac e Windows reais.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
