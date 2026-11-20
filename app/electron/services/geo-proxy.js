@@ -1,7 +1,7 @@
 'use strict';
 /**
  * geo-proxy.js — resolve a localização (lat/lon/cidade/fuso) do IP de saída
- * de um proxy SOCKS5, e também geolocaliza um IP já conhecido.
+ * de um proxy (socks ou http), e também geolocaliza um IP já conhecido.
  *
  * Módulo puro (sem Electron) para poder ser testado direto com node:
  *   node teste-geo.cjs "socks5://host:porta:usuario:senha"
@@ -11,53 +11,81 @@ const https = require('https');
 const GEO_BASE = 'https://ipwho.is';
 const UA = 'nova-geo/1.0';
 
-/**
- * Aceita os dois formatos usados no Nova e o formato URL padrão:
- *   socks5://host:porta:usuario:senha   (formato do painel do iPhone)
- *   socks5://usuario:senha@host:porta   (formato URL)
- *   host:porta
- */
+const ESQUEMAS = ['socks5', 'socks5h', 'socks4', 'socks4a', 'http', 'https'];
+const PORTAS_HTTP = [1000, 3128, 8000, 8080, 8888];
+const PORTA_HTTPS = 1001;
+
+const HOST = '([^:/@\\s]+)';
+const PORTA = '(\\d{1,5})';
+const USUARIO = '([^:@\\s]+)';
+const FORMATOS = [
+  { re: new RegExp(`^${USUARIO}:(.*)@${HOST}:${PORTA}$`), ordem: ['user', 'pass', 'host', 'port'], decodifica: true },
+  { re: new RegExp(`^${HOST}:${PORTA}:${USUARIO}:(.+)$`), ordem: ['host', 'port', 'user', 'pass'] },
+  { re: new RegExp(`^${HOST}:${PORTA}@${USUARIO}:(.+)$`), ordem: ['host', 'port', 'user', 'pass'] },
+  { re: new RegExp(`^${HOST}:${PORTA}$`), ordem: ['host', 'port'] }
+];
+
+function esquemaPelaPorta(port) {
+  if (PORTAS_HTTP.includes(port)) return 'http';
+  if (port === PORTA_HTTPS) return 'https';
+  return 'socks5';
+}
+
+function decodificarSeguro(texto) {
+  try {
+    return decodeURIComponent(texto);
+  } catch {
+    return texto;
+  }
+}
+
 function parseProxy(raw) {
-  const s = String(raw || '').trim();
+  let s = String(raw || '').trim();
+  if (s.length >= 2 && /^["'`]/.test(s) && /["'`]$/.test(s)) s = s.slice(1, -1).trim();
+  s = s.replace(/\/+$/, '');
   if (!s) return null;
 
-  let m = s.match(/^(socks5h?|socks4):\/\/([^:@/\s]+):([^@/\s]+)@([^:/\s]+):(\d+)$/i);
-  if (m) {
+  let scheme = null;
+  const comEsquema = s.match(/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/);
+  if (comEsquema) {
+    scheme = comEsquema[1].toLowerCase();
+    if (!ESQUEMAS.includes(scheme)) return null;
+    s = comEsquema[2];
+  }
+
+  for (const formato of FORMATOS) {
+    const m = s.match(formato.re);
+    if (!m) continue;
+    const campos = {};
+    formato.ordem.forEach((nome, i) => { campos[nome] = m[i + 1]; });
+    const port = Number(campos.port);
+    if (!(port > 0 && port <= 65535)) return null;
+    const user = campos.user && formato.decodifica ? decodificarSeguro(campos.user) : campos.user;
+    const pass = campos.pass && formato.decodifica ? decodificarSeguro(campos.pass) : campos.pass;
     return {
-      scheme: m[1].toLowerCase(),
-      host: m[4],
-      port: Number(m[5]),
-      user: decodeURIComponent(m[2]),
-      pass: decodeURIComponent(m[3])
+      scheme: scheme || esquemaPelaPorta(port),
+      host: campos.host,
+      port,
+      user: user || null,
+      pass: pass || null,
+      schemeGuessed: !scheme
     };
   }
-
-  m = s.match(/^(socks5h?|socks4):\/\/([^:/\s]+):(\d+)(?::([^:\s]+):(.+))?$/i);
-  if (m) {
-    return {
-      scheme: m[1].toLowerCase(),
-      host: m[2],
-      port: Number(m[3]),
-      user: m[4] || null,
-      pass: m[5] || null
-    };
-  }
-
-  m = s.match(/^([^:/\s]+):(\d+)$/);
-  if (m) {
-    return { scheme: 'socks5', host: m[1], port: Number(m[2]), user: null, pass: null };
-  }
-
   return null;
 }
 
 function agentFor(parsed) {
-  const { SocksProxyAgent } = require('socks-proxy-agent');
   const auth = parsed.user
     ? `${encodeURIComponent(parsed.user)}:${encodeURIComponent(parsed.pass || '')}@`
     : '';
+  const destino = `${auth}${parsed.host}:${parsed.port}`;
+  if (parsed.scheme === 'http' || parsed.scheme === 'https') {
+    const { HttpsProxyAgent } = require('https-proxy-agent');
+    return new HttpsProxyAgent(`${parsed.scheme}://${destino}`);
+  }
+  const { SocksProxyAgent } = require('socks-proxy-agent');
   const scheme = parsed.scheme.startsWith('socks4') ? 'socks4' : 'socks5';
-  return new SocksProxyAgent(`${scheme}://${auth}${parsed.host}:${parsed.port}`);
+  return new SocksProxyAgent(`${scheme}://${destino}`);
 }
 
 function getJson(url, agent, timeoutMs = 15000) {
@@ -99,7 +127,7 @@ function normalize(data) {
 /** Consulta a geo *através* do proxy (devolve o IP de saída e a geo dele). */
 async function throughProxy(proxy) {
   const parsed = parseProxy(proxy);
-  if (!parsed) throw new Error('Proxy inválido: use socks5://host:porta:usuario:senha');
+  if (!parsed) throw new Error('Proxy inválido: não achei host e porta na string');
   const data = await getJson(`${GEO_BASE}/`, agentFor(parsed));
   return normalize(data);
 }
@@ -114,4 +142,4 @@ async function byIp(ip) {
   return normalize(data);
 }
 
-module.exports = { parseProxy, throughProxy, byIp, normalize };
+module.exports = { parseProxy, agentFor, throughProxy, byIp, normalize };

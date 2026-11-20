@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const net = require('net');
-const { parseProxy, throughProxy } = require('../electron/services/geo-proxy');
+const { parseProxy, agentFor, throughProxy } = require('../electron/services/geo-proxy');
 
 const USUARIO = 'usuario-falso';
 const SENHA = 'senha-falsa';
@@ -10,13 +10,13 @@ const HOST = 'proxy.teste.local';
 
 test('parseProxy: socks5 com usuario:senha@host:porta', () => {
   assert.deepStrictEqual(parseProxy(`socks5://${USUARIO}:${SENHA}@${HOST}:1002`), {
-    scheme: 'socks5', host: HOST, port: 1002, user: USUARIO, pass: SENHA
+    scheme: 'socks5', host: HOST, port: 1002, user: USUARIO, pass: SENHA, schemeGuessed: false
   });
 });
 
 test('parseProxy: socks5 no formato host:porta:usuario:senha', () => {
   assert.deepStrictEqual(parseProxy(`socks5://${HOST}:1002:${USUARIO}:${SENHA}`), {
-    scheme: 'socks5', host: HOST, port: 1002, user: USUARIO, pass: SENHA
+    scheme: 'socks5', host: HOST, port: 1002, user: USUARIO, pass: SENHA, schemeGuessed: false
   });
 });
 
@@ -37,7 +37,7 @@ test('parseProxy: socks5h e socks4 mantem o esquema em minusculas', () => {
 
 test('parseProxy: host:porta sem esquema vira socks5 sem credencial', () => {
   assert.deepStrictEqual(parseProxy(`${HOST}:1080`), {
-    scheme: 'socks5', host: HOST, port: 1080, user: null, pass: null
+    scheme: 'socks5', host: HOST, port: 1080, user: null, pass: null, schemeGuessed: true
   });
 });
 
@@ -61,19 +61,111 @@ test('parseProxy: lixo sem porta devolve null', () => {
   assert.strictEqual(parseProxy(`socks5://${HOST}`), null);
 });
 
-test('parseProxy: esquema http e https ainda nao e reconhecido', () => {
-  assert.strictEqual(parseProxy(`http://${HOST}:8080`), null);
-  assert.strictEqual(parseProxy(`https://${HOST}:8080`), null);
+test('parseProxy: http e https com usuario:senha@host:porta', () => {
+  assert.deepStrictEqual(parseProxy(`http://${USUARIO}:${SENHA}@${HOST}:1000`), {
+    scheme: 'http', host: HOST, port: 1000, user: USUARIO, pass: SENHA, schemeGuessed: false
+  });
+  assert.strictEqual(parseProxy(`https://${USUARIO}:${SENHA}@${HOST}:1001`).scheme, 'https');
 });
 
-test('parseProxy: ordem invertida host:porta@usuario:senha ainda nao e reconhecida', () => {
-  assert.strictEqual(parseProxy(`socks5://${HOST}:1002@${USUARIO}:${SENHA}`), null);
+test('parseProxy: formato do painel da Evomi host:porta:usuario:senha com e sem esquema', () => {
+  const esperado = { scheme: 'http', host: HOST, port: 1000, user: USUARIO, pass: SENHA };
+  assert.deepStrictEqual(parseProxy(`http://${HOST}:1000:${USUARIO}:${SENHA}`), { ...esperado, schemeGuessed: false });
+  assert.deepStrictEqual(parseProxy(`${HOST}:1000:${USUARIO}:${SENHA}`), { ...esperado, schemeGuessed: true });
+});
+
+test('parseProxy: ordem invertida host:porta@usuario:senha', () => {
+  const esperado = { scheme: 'https', host: HOST, port: 1001, user: USUARIO, pass: SENHA };
+  assert.deepStrictEqual(parseProxy(`https://${HOST}:1001@${USUARIO}:${SENHA}`), { ...esperado, schemeGuessed: false });
+  assert.deepStrictEqual(parseProxy(`${HOST}:1001@${USUARIO}:${SENHA}`), { ...esperado, schemeGuessed: true });
+});
+
+test('parseProxy: usuario:senha@host:porta sem esquema decodifica %XX', () => {
+  const p = parseProxy(`us%40er:pa%3Ass@${HOST}:1002`);
+  assert.strictEqual(p.user, 'us@er');
+  assert.strictEqual(p.pass, 'pa:ss');
+});
+
+test('parseProxy: %XX invalido na senha nao derruba, fica como veio', () => {
+  assert.strictEqual(parseProxy(`socks5://${USUARIO}:100%zz@${HOST}:1002`).pass, '100%zz');
+});
+
+test('parseProxy: sem esquema a porta indica o tipo', () => {
+  for (const porta of [1000, 3128, 8000, 8080, 8888]) assert.strictEqual(parseProxy(`${HOST}:${porta}`).scheme, 'http');
+  assert.strictEqual(parseProxy(`${HOST}:1001`).scheme, 'https');
+  assert.strictEqual(parseProxy(`${HOST}:1002`).scheme, 'socks5');
+});
+
+test('parseProxy: aspas e barra final da colagem sao removidas', () => {
+  assert.strictEqual(parseProxy(`"http://${HOST}:8080/"`).host, HOST);
+  assert.strictEqual(parseProxy(`'${HOST}:8080'`).port, 8080);
+});
+
+test('parseProxy: porta fora de 1-65535 e esquema desconhecido devolvem null', () => {
+  assert.strictEqual(parseProxy(`${HOST}:0`), null);
+  assert.strictEqual(parseProxy(`${HOST}:65536`), null);
+  assert.strictEqual(parseProxy(`ftp://${HOST}:21`), null);
+});
+
+test('agentFor: socks vira SocksProxyAgent com as credenciais', () => {
+  const agente = agentFor(parseProxy(`socks5://us%40er:pa%3Ass@${HOST}:1002`));
+  assert.strictEqual(agente.constructor.name, 'SocksProxyAgent');
+  assert.strictEqual(agente.proxy.host, HOST);
+  assert.strictEqual(agente.proxy.port, 1002);
+  assert.strictEqual(agente.proxy.userId, 'us@er');
+  assert.strictEqual(agente.proxy.password, 'pa:ss');
+});
+
+test('agentFor: http e https usam o agente de tunel CONNECT com o esquema do proxy', () => {
+  const http = agentFor(parseProxy(`http://${USUARIO}:${SENHA}@${HOST}:1000`));
+  const https = agentFor(parseProxy(`https://${USUARIO}:${SENHA}@${HOST}:1001`));
+  assert.strictEqual(http.constructor.name, 'HttpsProxyAgent');
+  assert.strictEqual(http.proxy.protocol, 'http:');
+  assert.strictEqual(https.proxy.protocol, 'https:');
+  assert.strictEqual(http.proxy.hostname, HOST);
+  assert.strictEqual(http.proxy.port, '1000');
+});
+
+function proxyHttpFalso() {
+  const recebidos = [];
+  const servidor = net.createServer((socket) => {
+    socket.once('data', (pedaco) => {
+      const texto = pedaco.toString('latin1');
+      if (texto.includes('\r\n\r\n')) recebidos.push(texto.split('\r\n'));
+      socket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+    });
+    socket.on('error', () => {});
+  });
+  return new Promise((ok) => servidor.listen(0, '127.0.0.1', () => ok({ servidor, recebidos, porta: servidor.address().port })));
+}
+
+test('throughProxy: proxy http abre tunel CONNECT para a consulta https com Basic auth', async () => {
+  const { servidor, recebidos, porta } = await proxyHttpFalso();
+  try {
+    await assert.rejects(throughProxy(`http://127.0.0.1:${porta}:${USUARIO}:${SENHA}`));
+  } finally {
+    servidor.close();
+  }
+  assert.strictEqual(recebidos.length, 1);
+  assert.strictEqual(recebidos[0][0], 'CONNECT ipwho.is:443 HTTP/1.1');
+  const basic = Buffer.from(`${USUARIO}:${SENHA}`).toString('base64');
+  assert.ok(recebidos[0].includes(`Proxy-Authorization: Basic ${basic}`));
+});
+
+test('throughProxy: ordem invertida com esquema https fala TLS com o proxy, nao CONNECT em texto puro', async () => {
+  const { servidor, recebidos, porta } = await proxyHttpFalso();
+  try {
+    await assert.rejects(throughProxy(`https://127.0.0.1:${porta}@${USUARIO}:${SENHA}`));
+  } finally {
+    servidor.close();
+  }
+  assert.strictEqual(recebidos.length, 0);
 });
 
 test('throughProxy: proxy ilegivel rejeita com a mensagem de formato', async () => {
   await assert.rejects(
     throughProxy('isso nao e proxy'),
-    { message: 'Proxy inválido: use socks5://host:porta:usuario:senha' }
+    { message: 'Proxy inválido: não achei host e porta na string' }
   );
 });
 
