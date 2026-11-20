@@ -6,6 +6,13 @@
 - **Arquivos do app instalado no Mac que mudam:** nenhum.
 - **Sem testar:** nada além da checagem de que todo trecho original continua presente.
 
+## Plataforma: C1 passos 1 e 2 — 19/11/2026
+
+- **O que mudou:** `yt-dlp`/`ffmpeg` (e `.exe`) deixam de ser decididos por `process.platform` em `ytdlp-manager.js` (10 ramos), `global-spoof-service.js` (o cálculo à mão do caminho do ffmpeg virou `tool-paths.ffmpeg()`) e `kling-video-service.js` (lista com os dois nomes); passam a usar `tool-paths.exe()`. Em `main.js`, o remux usa `tool-paths.ffmpeg()`, o ícone é escolhido uma vez (`tool-paths.iconFile()`, antes duplicado) e o fallback da pré-escuta de voz (`exec('start ...')`/`shell.openPath`) foi apagado: ele abria o arquivo depois de já apagá-lo e nunca tocava nada, nos dois sistemas. Mac e Windows mantêm o mesmo resultado; no Linux deixa de procurar `.exe`.
+- **Arquivos do app instalado no Mac que mudam:** `main.js`, `services/tool-paths.js`, `services/ytdlp-manager.js`, `services/global-spoof-service.js`, `services/kling-video-service.js`. Guardar os anteriores em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
+- **Testes:** `node --test MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs` simula `darwin` e `win32` (ícone, yt-dlp, ffmpeg) e confere no fonte que spoof e pré-escuta não voltaram ao caminho à mão.
+- **Sem testar:** exportação com remux, download com yt-dlp e câmera virtual em Mac e Windows reais; fica para a prova real.
+
 ## Limpeza do Chrome órfão do CAM spoof no Mac (M1 da paridade) — 19/11/2026
 
 - **O que mudou:** `startHijack` (`global-spoof-service.js`) no `darwin` agora roda `pkill -f` com `MAC_CAM_SPOOF_KILL_PATTERN` (`paridade-utils.js`) e não tenta mais `wmic`/PowerShell, que falhavam e gravavam "Failed to run Chrome cleanup". O padrão é ancorado no executável `…/Contents/MacOS/(Google Chrome|Chromium)` e exige `--use-file-for-fake-video-capture=` apontando para `…/nova_webcam_hijack/`: o Y4M do CAM spoof fica nessa pasta, enquanto o perfil fica em `farm_profiles`, então `--user-data-dir` nunca casaria. Um Chrome pessoal, um `bash`/`node` com o mesmo texto e a pasta `nova_webcam_hijack_outro` não casam. Windows não mudou.
@@ -463,6 +470,19 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — P8 de paridade: Python embutido e PATH iguais nos dois sistemas
+
+- **O que mudou:** `mac-native.python()` virou `app/electron/services/python-runtime.js` (`python()` e `pathComBin()`). Mac: mesma ordem de antes (`python-runtime-portable/run-python`, `python-env/bin/python3`, `python3`). Windows: `resources\python\python.exe`, senão `python` do PATH. O PATH do processo ganha `resources\bin` também no Windows. Os três processos Python (wake word, YouTube Auto, enxame de agentes) passam `windowsHide: true` (sem efeito no Mac). `app/README.md` descreve o Python do Windows. O YouTube Auto no `main.js` passou a usar o Python resolvido em vez de `python` solto (no Mac `python` nem existia). `edgeTtsBinary` usa o Python resolvido nos dois. Removido: `python()` de `mac-native.js` e `pathForBin()` do `main.js`.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/main.js`, `electron/services/python-runtime.js` (novo), `electron/services/mac-native.js`, `electron/services/paridade-utils.js`, `electron/services/agent-swarm-controller.js`. Guardar os anteriores em `reservas/`, copiar com `cp` do repositório, `node --check` e reiniciar o Nova. Sem mudança no bundle da interface.
+- **Sem testar:** Mac e Windows reais; wake word com microfone e TTS com o Python embutido; a receita do `resources\python` em `docs/windows.md` não foi executada.
+
+## 2026-11-19 — P4 de paridade: mensagens de celular sem "Mac"
+
+- **O que mudou:** só o texto. "no Mac"/"neste Mac"/"e o Mac" viraram "neste computador" nas mensagens do iPhone e do Android (câmera, GPS, Conectar, IP da rede); a dica do `instalar-iphone.command` saiu do erro do bridge. Nada removido além dessa citação; nenhuma lógica mudou.
+- **Arquivos do app instalado que mudam** (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guardar o anterior em `reservas/` antes): `ios-camera.js`, `physicalMobileService.js`, `iphone-setup/inapp.js`, `iphone-setup/setup.js`. Reaplicar com `cp` desses quatro; depois `node --check` e reiniciar o Nova. O bundle da interface não muda.
+- **Teste:** `node --test app/electron/services/testes/textos-celular.test.js`.
+- **Sem testar:** Mac e Windows reais; ver as mensagens na tela.
 
 ## 2026-11-19 — P10: `cloudflared` no Windows também em `resources\bin\` e no PATH
 
