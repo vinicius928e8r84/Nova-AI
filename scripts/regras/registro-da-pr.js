@@ -128,7 +128,7 @@ function faltaDaRevisao(registros, head, autorDaPr) {
   const doHead = doHeadDe(todos, head);
   if (!doHead.length) {
     return todos.length ? faltaDoHead(todos[todos.length - 1], head, 'o registro de revisão mais recente')
-      : 'nenhum comentário ou revisão da PR é o registro de revisão independente (linhas "Veredito: CLEAN", "Head: <SHA>", "Autor:" e "Revisor:")';
+      : 'nenhum comentário ou revisão da PR é o registro de revisão independente (linhas "Veredito: CLEAN", "Head: <SHA>", "Autor:", "Revisor:" e "Risco:")';
   }
   const citaOHead = textos => hexasDe(valoresDe(textos, 'Head')).includes(head);
   const reprovado = todos.filter(citaOHead).map(textos => valoresDe(textos, 'Veredito')).flat().find(veredito => veredito !== VEREDITO_LIMPO);
