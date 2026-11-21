@@ -7,7 +7,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const toolPathsReais = require('../tool-paths');
+
 const carregadorOriginal = Module._load;
+const TMP = fs.realpathSync(os.tmpdir());
+const pastasTemporarias = [];
+const NOME_DO_CLOUDFLARED = toolPathsReais.exe('cloudflared');
+const MODO_DO_BINARIO = process.platform === 'win32' ? { antes: 0o444, depois: 0o666 } : { antes: 0o644, depois: 0o755 };
 const PORTA = 3456;
 const CORS_PREFLIGHT = {
     'Access-Control-Allow-Origin': '*',
@@ -17,6 +23,12 @@ const CORS_PREFLIGHT = {
 const CABECALHO_JSON = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 const cena = {};
+
+function pastaTemporaria(prefixo) {
+    const pasta = fs.mkdtempSync(path.join(TMP, prefixo));
+    pastasTemporarias.push(pasta);
+    return pasta;
+}
 
 function novaCena() {
     Object.assign(cena, {
@@ -29,9 +41,9 @@ function novaCena() {
         errosDeEscuta: [],
         errosDeInstalacao: null,
         erroDeSpawn: null,
-        binDev: path.join(os.tmpdir(), 'nao-existe-cloudflared'),
+        binDev: path.join(TMP, 'nao-existe-cloudflared'),
         ferramenta: null,
-        dirEletron: fs.mkdtempSync(path.join(os.tmpdir(), 'remote-eletron-')),
+        dirEletron: pastaTemporaria('remote-eletron-'),
         interfaces: {
             lo: [{ family: 'IPv4', internal: true, address: '127.0.0.1' }],
             en0: [{ family: 'IPv6', internal: false, address: 'fe80::1' }, { family: 'IPv4', internal: false, address: '192.168.0.7' }]
@@ -101,7 +113,7 @@ const falsos = {
     },
     './tool-paths': {
         tool: (nome) => { cena.ferramentas.push(nome); return cena.ferramenta; },
-        exe: (nome) => `${nome}.exe`
+        exe: toolPathsReais.exe
     },
     electron: { app: { getPath: () => cena.dirEletron } },
     os: { ...os, networkInterfaces: () => cena.interfaces }
@@ -136,10 +148,13 @@ test.afterEach(() => {
     process.resourcesPath = resourcesOriginal;
 });
 
-test.after(() => { Module._load = carregadorOriginal; });
+test.after(() => {
+    Module._load = carregadorOriginal;
+    for (const pasta of pastasTemporarias) fs.rmSync(pasta, { recursive: true, force: true, maxRetries: 3 });
+});
 
 function novoServico() {
-    const dados = fs.mkdtempSync(path.join(os.tmpdir(), 'remote-dados-'));
+    const dados = pastaTemporaria('remote-dados-');
     const servico = new RemoteAccessService({ getPath: () => dados });
     servico.desktop = [];
     servico.setDesktopCallback((evento, info) => servico.desktop.push([evento, info]));
@@ -391,7 +406,7 @@ test('a raiz serve o index.html do PWA', async () => {
     servidor.atender(requisicao('/', 'GET'), res);
     await new Promise((r) => { const olhar = () => (res.fins.length ? r() : setTimeout(olhar, 5)); olhar(); });
     assert.deepStrictEqual(res.cabecalhos, [[200, { 'Content-Type': 'text/html' }]]);
-    assert.deepStrictEqual(res.fins[0][0], fs.readFileSync(path.join(__dirname, '../../pwa/index.html')));
+    assert.deepStrictEqual(res.fins[0][0], fs.readFileSync(path.join(__dirname, '..', '..', 'pwa', 'index.html')));
 });
 
 function socketFalso(id) {
@@ -509,9 +524,9 @@ function servicoDeTunel() {
 }
 
 function binarioTemporario() {
-    const bin = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'remote-bin-')), 'cloudflared');
+    const bin = path.join(pastaTemporaria('remote-bin-'), NOME_DO_CLOUDFLARED);
     fs.writeFileSync(bin, '');
-    fs.chmodSync(bin, 0o644);
+    fs.chmodSync(bin, MODO_DO_BINARIO.antes);
     return bin;
 }
 
@@ -534,7 +549,7 @@ test('túnel em desenvolvimento com binário presente dá permissão e dispara o
     assert.deepStrictEqual(args, ARGUMENTOS_DO_TUNEL);
     assert.deepStrictEqual(opcoes, OPCOES_DO_TUNEL);
     assert.strictEqual(servico.cloudflaredProcess, processo);
-    assert.strictEqual(fs.statSync(cena.binDev).mode & 0o777, 0o755);
+    assert.strictEqual(fs.statSync(cena.binDev).mode & 0o777, MODO_DO_BINARIO.depois);
     assert.deepStrictEqual(cena.ferramentas, []);
     assert.deepStrictEqual(cena.logs, [
         ['log', '[RemoteAccess] Starting Cloudflare Tunnel...'],
@@ -616,15 +631,17 @@ test('cloudflared que fecha com erro antes da URL cai no reserva; fechar sempre 
 test('sem permissão para chmod o túnel segue e só registra', async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
     process.env.NODE_ENV = 'development';
-    cena.binDev = '/';
+    cena.binDev = binarioTemporario();
+    const negado = Object.assign(new Error(`EPERM: operation not permitted, chmod '${cena.binDev}'`), { code: 'EPERM' });
+    const chmod = t.mock.method(fs, 'chmodSync', () => { throw negado; });
     const servico = servicoDeTunel();
     await servico.startCloudflaredTunnel();
+    assert.deepStrictEqual(chmod.mock.calls.map((c) => c.arguments), [[cena.binDev, 0o755]]);
     assert.strictEqual(cena.spawns.length, 1);
-    assert.deepStrictEqual(cena.logs.slice(2, 4).map((l) => l.slice(0, 2)), [
-        ['log', '[RemoteAccess] ✅ Binary found at:'],
-        ['log', '[RemoteAccess] Could not set permissions (Windows - not needed):']
+    assert.deepStrictEqual(cena.logs.slice(2, 4), [
+        ['log', '[RemoteAccess] ✅ Binary found at:', cena.binDev],
+        ['log', '[RemoteAccess] Could not set permissions (Windows - not needed):', negado.message]
     ]);
-    assert.match(cena.logs[3][2], /^EPERM/);
 });
 
 test('túnel em desenvolvimento sem binário tenta instalar e dispara mesmo assim', async (t) => {
@@ -658,8 +675,8 @@ test('túnel em produção usa o cloudflared achado pelo tool-paths', async (t) 
 
 test('túnel em produção sem binário em resources cai no reserva sem disparar', async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
-    process.resourcesPath = path.join(os.tmpdir(), 'nao-existe-resources');
-    const esperado = path.join(process.resourcesPath, 'cloudflared.exe');
+    process.resourcesPath = path.join(TMP, 'nao-existe-resources');
+    const esperado = path.join(process.resourcesPath, NOME_DO_CLOUDFLARED);
     const servico = servicoDeTunel();
     await servico.startCloudflaredTunnel();
     assert.strictEqual(cena.spawns.length, 0);
