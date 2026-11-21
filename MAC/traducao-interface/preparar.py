@@ -146,7 +146,7 @@ for antes, depois in CONTEXTO.items():
     s = s.replace(antes, depois)
 assert {'Phone Control', 'AI Upload', 'Controls', 'Browser Farm'} <= revisados.keys()
 (AQUI / ORIGEM.name).write_text(s)
-shutil.copyfile(AQUI.parent / "integracao-camlive" / "cam-live.js", AQUI / "cam-live.js")
+shutil.copyfile(AQUI.parent.parent / "app" / "dist" / "cam-live.js", AQUI / "cam-live.js")
 linhas = ''.join(f'<tr><td>{html.escape(a)}</td><td>{html.escape(b)}</td></tr>\n' for a, b in sorted(revisados.items()))
 (AQUI / 'revisao.html').write_text('''<!doctype html><html lang="pt-BR"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

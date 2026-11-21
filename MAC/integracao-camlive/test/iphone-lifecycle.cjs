@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),{EventEmitter}=require('node:events'),{PassThrough}=require('node:stream');
-const {CamLiveIphone}=require('../cam-live-iphone');
+const {CamLiveIphone}=require('../../../app/electron/services/cam-live-iphone');
 const tinyJpeg=require('node:fs').readFileSync(require('node:path').join(__dirname,'fixtures/tiny.jpg'));
 const ready={version:'0.1-39',hooksReady:true,faulted:false,enabled:false,photoPrepareHookReady:true,photoStillHookReady:true,photoPortRemapHookReady:true};
 function adts(data){const n=data.length+7;return Buffer.concat([Buffer.from([255,241,80,64|(n>>11),(n>>3)&255,((n&7)<<5)|31,252]),data]);}
