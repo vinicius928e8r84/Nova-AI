@@ -95,7 +95,7 @@ foi comparado, arquivo por arquivo, com `app/` (fora `node_modules`):
        Cloudflare fica desligado, a menos que `NOVA_REMOTE_TUNNEL=1`. Acesso remoto/pelo celular na rede local
        **não funciona** com esses padrões.
      - `electron/main.js`: blocos novos do iPhone/CAM LIVE e as variáveis `NOVA_SMOKE_TEST`/`NOVA_TEST_PORT`/
-       `NOVA_TEST_INSTANCE` (inofensivas). A atualização automática só é desligada no Mac.
+       `NOVA_TEST_INSTANCE` (inofensivas).
   5. `package.json`: scripts, `electron-builder` e `build` (este trabalho); `@novnc/novnc` só existe na versão do repositório.
 - Fora do `app.asar`, o Windows ainda traz `resources\bin\vcam.dll` (câmera virtual), `scrcpy\`, `platform-tools\`, `browsers\`
   (Chromium 1208, `vivaldi`, `aloha`), `.env.example`, `app-update.yml` (feed de atualização do fornecedor) e `stt_test.py`.

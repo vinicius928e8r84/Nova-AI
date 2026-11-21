@@ -534,6 +534,14 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
 
+## 2026-11-19 — E1a: atualizador igual no Windows e no Mac
+
+- **O que mudou:** `main.js` não desliga mais o atualizador no Mac. Saíram as duas guardas `process.platform === 'darwin'` dos IPCs de atualização, o `process.platform !== 'darwin' &&` da checagem na abertura e 4 linhas mortas no topo (flags de assinatura e `console.log`). A decisão passa só por `hasUpdateConfig()`: sem `publish`, nada muda em nenhum dos dois. `docs/windows.md` corrigido.
+- **Arquivos:** `app/electron/main.js`, `docs/windows.md`. Saldo de `main.js`: −7 linhas. Teste novo em `app/test/paridade-b.test.js` trava o ramo por sistema nos IPCs de atualização.
+- **Arquivos do app instalado que mudam no Mac:** `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/main.js` (o app não usa `app.asar`: `asar: false`). Guarde o anterior em `reservas/`; reaplique com `cp app/electron/main.js "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/main.js"`, `node --check` e reinicie o Nova.
+- **Testado:** `app/test/paridade-b.test.js` no Mac real e no Windows real; um `Nova AI.app` empacotado no Mac real sem `Contents/Resources/app-update.yml`, que abre normalmente e sem erro de atualizador no log.
+- **Sem testar:** o caminho com feed, no Mac e no Windows (`check-for-update`, `download-update` e `install-update` com um `app-update.yml` de verdade); se `/Applications/Nova AI Mac.app/Contents/Resources/app-update.yml` existe no app instalado.
+
 ## 2026-11-19 — M3 de paridade: navegador no Mac procura nos mesmos lugares do Windows
 
 - **O que mudou:** `mac-native.browser(tipo)` também procura o `.app` embutido em `<resources>/browsers/<tipo>/<Nome>.app` e na pasta `browsers` do projeto (Brave, Vivaldi, Firefox, Edge e Chrome), como o Windows. O WhatsApp no Mac respeita `PUPPETEER_EXECUTABLE_PATH` (se o arquivo existir), depois o Chromium de `<userData>/browsers` (como o Windows), depois Chrome e por fim o Edge. A limpeza do navegador órfão do perfil do WhatsApp (`MAC_BROWSER_KILL_PATTERN`) agora também mata o Microsoft Edge da sessão, como o Windows já faz com `msedge.exe`. `userData/browsers` vale só para o Chromium do WhatsApp, nos dois sistemas; a fazenda, o CAM spoof e o navegador do app não o usam em nenhum. Removido: a pasta `userData/browsers` da busca geral de navegadores do Mac (a rodada anterior do próprio PR a tinha posto).

@@ -1,6 +1,6 @@
 {
   "arquivos": {
-    "app/electron/main.js": 4290,
+    "app/electron/main.js": 4283,
     "app/electron/pwa/admin.html": 1523,
     "app/electron/services/browser-manager.js": 2744,
     "app/electron/services/browserFarmService.js": 2133,
@@ -16,7 +16,7 @@
     "app/dist/audio-processor-worklet.js": 1,
     "app/dist/cam-live-audio.js": 39,
     "app/dist/cam-live.js": 356,
-    "app/electron/main.js": 4153,
+    "app/electron/main.js": 4146,
     "app/electron/nova-grab-extension/content.js": 166,
     "app/electron/pwa/app.js": 8,
     "app/electron/services/agent-swarm-controller.js": 140,
