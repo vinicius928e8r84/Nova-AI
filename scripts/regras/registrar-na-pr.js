@@ -33,6 +33,7 @@ O token vem de $GITHUB_TOKEN, de $GH_TOKEN ou de \`gh auth token\`. Sai com 0 qu
 class ErroDeUso extends Error {}
 
 const SHA_INTEIRO = /^[0-9a-f]{40}$/;
+const COBERTURAS = ['total', 'parcial'];
 const CERCA = /^ {0,3}(`{3,}|~{3,})/;
 const nomeDoTitulo = texto => texto.replace(/[*_`]/g, '').trim().toLowerCase();
 
@@ -57,12 +58,21 @@ function lerArgumentos(argv) {
   return normalizar(opcoes);
 }
 
-function normalizar(opcoes) {
-  const risco = opcoes.risco === undefined ? undefined : atencaoValida(opcoes.risco.trim());
-  if (opcoes.risco !== undefined && !risco) throw new ErroDeUso(`--risco é ${ATENCOES.join(', ').toLowerCase()}`);
-  if (opcoes.cobertura !== undefined && !['total', 'parcial'].includes(opcoes.cobertura)) throw new ErroDeUso('--cobertura é total ou parcial');
-  return { ...opcoes, risco, head: opcoes.head && opcoes.head.trim().toLowerCase() };
+function riscoInformado(valor) {
+  if (valor === undefined) return undefined;
+  const risco = atencaoValida(valor.trim());
+  if (!risco) throw new ErroDeUso(`--risco é ${ATENCOES.join(', ').toLowerCase()}`);
+  return risco;
 }
+
+function coberturaInformada(valor) {
+  if (valor !== undefined && !COBERTURAS.includes(valor)) throw new ErroDeUso(`--cobertura é ${COBERTURAS.join(' ou ')}`);
+  return valor;
+}
+
+const normalizar = opcoes => ({
+  ...opcoes, risco: riscoInformado(opcoes.risco), cobertura: coberturaInformada(opcoes.cobertura), head: opcoes.head && opcoes.head.trim().toLowerCase(),
+});
 
 const registroDaRevisao = ({ veredito, head, autor, revisor, risco }, nota) => [
   'Registro de revisão independente', '', `Veredito: ${veredito}`, `Head: ${head}`, `Autor: ${autor}`, `Revisor: ${revisor}`, `Risco: ${risco}`,

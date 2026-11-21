@@ -155,19 +155,20 @@ function atencaoDaPr(textos, { rotulos, registros, head, arquivos }) {
   const doRevisor = riscoDoRevisor(registros, head) || doCorpo;
   const risco = classificar(arquivos);
   const rotulado = rotulos.some(rotulo => igual(String(rotulo), ROTULO_DE_RISCO_ALTO));
-  const atencao = doRevisor && maiorAtencao(...[doCorpo, doRevisor].filter(Boolean));
-  return { doCorpo, doRevisor, falta, risco, atencao, alta: atencao === 'ALTA' || rotulado || risco.alta };
+  const atencao = maiorAtencao(doCorpo || doRevisor, doRevisor);
+  const subiuPeloRevisor = doRevisor === 'ALTA' && doCorpo !== 'ALTA';
+  return { doCorpo, falta, risco, atencao, subiuPeloRevisor, alta: atencao === 'ALTA' || rotulado || risco.alta };
 }
 
 function faltaDoCaminhoSensivel({ risco, doCorpo }) {
-  if (!risco.alta || !doCorpo || doCorpo === 'ALTA') return null;
+  if (!risco.alta || !ATENCOES.slice(0, -1).includes(doCorpo)) return null;
   return `a PR mexe em caminho sensível, e isso conta como ALTA, mas o corpo diz ${doCorpo}: ${resumo(risco.motivos, 5).join('; ')}`;
 }
 
-function faltaDaProvaDaPr(linhas, head, { alta, doCorpo, doRevisor }) {
+function faltaDaProvaDaPr(linhas, head, { alta, doCorpo, subiuPeloRevisor }) {
   const falta = alta && faltaDaProva(linhas, head);
-  if (!falta || doRevisor !== 'ALTA' || doCorpo === 'ALTA') return falta;
-  return falta.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`);
+  if (!subiuPeloRevisor) return falta;
+  return falta && falta.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`);
 }
 
 function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
