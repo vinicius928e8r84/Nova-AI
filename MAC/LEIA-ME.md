@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Registro da PR: risco do revisor e prova parcial — 21/11/2026
+
+- **O que mudou:** o registro de revisão ganha a linha `Risco: BAIXA|MÉDIA|ALTA` (o `registrar-na-pr.js revisao` pede `--risco`), e o check `Registro da PR` usa a maior atenção entre o corpo e os registros do head: ALTA exige `PROVADO 100% REAL`. Uma revisão sem `Risco:` deixa de valer. A seção "Prova real" que diz `NÃO COBERTO`/`NAO COBERTO`/`BLOQUEADA` não vale como prova; o `registrar-na-pr.js prova` pede `--cobertura total|parcial`, e `parcial` escreve `BLOQUEADA-iPhone` no lugar da frase. Origem: a PM 692 foi mesclada como MÉDIA porque o corpo dizia MÉDIA e a revisão dizia ALTA.
+- **Arquivos:** `scripts/regras/registro-da-pr.js`, `scripts/regras/registrar-na-pr.js`, `scripts/regras/test/registro.test.js`, `correcoes.test.js` e `endurecimento.test.js` (registros com `Risco:`), `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum.
+- **Sem testar:** o check rodando no GitHub com as regras novas (só valem a partir da PR seguinte à mescla, porque o workflow usa as regras da base).
+
 ## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
 
 - **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.

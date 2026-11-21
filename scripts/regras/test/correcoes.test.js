@@ -205,7 +205,7 @@ test('workflows: sem pull_request_target, ações presas por SHA e regras lidas 
 const HEAD = 'a'.repeat(40);
 const ANTIGA = 'b'.repeat(40);
 const DESCRICAO = 'Corrige o botão do iPhone que mostrava Parar transmissão em vez de Abrir controle depois do patch do bundle.';
-const registro = (veredito, autor = 'agente-a', revisor = 'agente-b', head = HEAD) => `Veredito: ${veredito}\nHead: ${head}\nAutor: ${autor}\nRevisor: ${revisor}\n`;
+const registro = (veredito, autor = 'agente-a', revisor = 'agente-b', head = HEAD) => `Veredito: ${veredito}\nHead: ${head}\nAutor: ${autor}\nRevisor: ${revisor}\nRisco: BAIXA\n`;
 const baseDoRegistro = { head: HEAD, arquivos: [{ caminho: 'README.md', adicionadas: [] }], corpo: `${DESCRICAO}\n\nAtenção: BAIXA\n` };
 
 test('registro: NOT CLEAN no head é definitivo, venha antes ou depois de um CLEAN', () => {
