@@ -586,3 +586,9 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
   - O bundle da interface não muda (ignora a resposta do IPC). Reiniciar o Nova.
 - **Teste:** `node --test app/electron/services/test/camera-acesso.test.js` (estados × Mac/Windows, com mocks).
 - **Sem testar:** Mac e Windows reais. Prova pendente: no Mac, negar a câmera ao Nova em Ajustes, abrir a câmera no Nova e ver os Ajustes abrirem; no Windows, desligar "apps da área de trabalho" e repetir.
+
+## 2026-11-19 — P1 de paridade: ferramentas do iPhone no Windows
+
+- **O que mudou:** receita nova `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (shell MSYS2 UCRT64: instala `libimobiledevice`, `libusbmuxd` e `ideviceinstaller` com `pacman`, limpa `app/resources/ios-tools/bin/`, copia `iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller` `.exe` e as DLLs de `/ucrt64/bin` e grava `manifest.sha256`; falha de `ldd`, `cp` ou DLL `not found` aborta). `docs/windows.md` §4 e `app/README.md` deixaram de dizer "só Mac" e avisam que o driver USB da Apple (Apple Devices ou iTunes) precisa estar instalado no PC. Nenhum código do app mudou.
+- **Arquivos do app instalado no Mac que mudam:** nenhum.
+- **Sem testar:** a receita num MSYS2 real, Windows com iPhone e Apple Devices reais, Mac real.
