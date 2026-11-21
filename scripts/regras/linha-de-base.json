@@ -24,7 +24,6 @@
     "app/electron/services/browser-manager.js": 371,
     "app/electron/services/browserFarmService.js": 1040,
     "app/electron/services/cam-live-iphone.js": 81,
-    "app/electron/services/cam-live-service.js": 82,
     "app/electron/services/camera-acesso.js": 1,
     "app/electron/services/cdp-shim.js": 7,
     "app/electron/services/child-worker-agent.js": 148,

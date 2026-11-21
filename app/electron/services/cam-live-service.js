@@ -25,6 +25,16 @@ const nowMs = () => Number(process.hrtime.bigint() / 1000000n);
 const nowNs = () => process.hrtime.bigint();
 
 // ───────────────────────── AMF0 ─────────────────────────
+const ESCRITA_AMF = [
+  [v => v === null, w => w.u8(0x05)],
+  [v => v === undefined, w => w.u8(0x06)],
+  [v => typeof v === 'number', (w, v) => w._numero(v)],
+  [v => typeof v === 'boolean', (w, v) => w.u8(0x01).u8(v ? 1 : 0)],
+  [v => typeof v === 'string', (w, v) => w.u8(0x02).str16(v)],
+  [v => Boolean(v.__ecma), (w, v) => w.u8(0x08).u32(Object.keys(v.props).length)._props(v.props)],
+  [() => true, (w, v) => w.u8(0x03)._props(v)],
+];
+
 class ByteWriter {
   constructor() { this.parts = []; }
   u8(v) { this.parts.push(Buffer.from([v & 0xff])); return this; }
@@ -35,37 +45,48 @@ class ByteWriter {
   bytes(buf) { this.parts.push(Buffer.from(buf.buffer ? Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength) : buf)); return this; }
   str16(s) { const d = Buffer.from(s, 'utf8'); this.u16(d.length); this.parts.push(d); return this; }
   amf(v) {
-    if (v === null) return this.u8(0x05);
-    if (v === undefined) return this.u8(0x06);
-    if (typeof v === 'number') { this.u8(0x00); const b = Buffer.alloc(8); b.writeDoubleBE(v); this.parts.push(b); return this; }
-    if (typeof v === 'boolean') return this.u8(0x01).u8(v ? 1 : 0);
-    if (typeof v === 'string') return this.u8(0x02).str16(v);
-    if (v && v.__ecma) { this.u8(0x08).u32(Object.keys(v.props).length); return this._props(v.props); }
-    this.u8(0x03); return this._props(v);
+    const [, escrever] = ESCRITA_AMF.find(([casa]) => casa(v));
+    return escrever(this, v);
   }
+  _numero(v) { this.u8(0x00); const b = Buffer.alloc(8); b.writeDoubleBE(v); this.parts.push(b); return this; }
   _props(o) { for (const k of Object.keys(o)) { this.str16(k); this.amf(o[k]); } return this.u16(0).u8(0x09); }
   get data() { return Buffer.concat(this.parts); }
 }
 const ecma = (props) => ({ __ecma: true, props });
+
+const LEITURA_AMF = new Map([
+  [0x00, r => r._numero()],
+  [0x01, r => r.b[r.p++] !== 0],
+  [0x02, r => r._texto(r._u16())],
+  [0x03, r => r._props()],
+  [0x05, () => null],
+  [0x06, () => undefined],
+  [0x08, r => r._ecma()],
+  [0x0a, r => r._lista()],
+  [0x0c, r => r._texto(r._u32())],
+]);
 
 class AMFReader {
   constructor(buf) { this.b = buf; this.p = 0; }
   get left() { return this.b.length - this.p; }
   value() {
     if (this.left < 1) return undefined;
-    const m = this.b[this.p++];
-    switch (m) {
-      case 0x00: { if (this.left < 8) return undefined; const v = this.b.readDoubleBE(this.p); this.p += 8; return v; }
-      case 0x01: return this.b[this.p++] !== 0;
-      case 0x02: { const n = this.b.readUInt16BE(this.p); this.p += 2; const s = this.b.toString('utf8', this.p, this.p + n); this.p += n; return s; }
-      case 0x03: return this._props();
-      case 0x05: return null;
-      case 0x06: return undefined;
-      case 0x08: this.p += 4; return this._props();
-      case 0x0a: { const n = this.b.readUInt32BE(this.p); this.p += 4; const a = []; for (let i = 0; i < n; i++) a.push(this.value()); return a; }
-      case 0x0c: { const n = this.b.readUInt32BE(this.p); this.p += 4; const s = this.b.toString('utf8', this.p, this.p + n); this.p += n; return s; }
-      default: return undefined;
-    }
+    const ler = LEITURA_AMF.get(this.b[this.p++]);
+    return ler ? ler(this) : undefined;
+  }
+  _numero() {
+    if (this.left < 8) return undefined;
+    const v = this.b.readDoubleBE(this.p); this.p += 8; return v;
+  }
+  _u16() { const n = this.b.readUInt16BE(this.p); this.p += 2; return n; }
+  _u32() { const n = this.b.readUInt32BE(this.p); this.p += 4; return n; }
+  _texto(n) { const s = this.b.toString('utf8', this.p, this.p + n); this.p += n; return s; }
+  _ecma() { this.p += 4; return this._props(); }
+  _lista() {
+    const n = this._u32();
+    const a = [];
+    for (let i = 0; i < n; i++) a.push(this.value());
+    return a;
   }
   _props() {
     const o = {};
@@ -99,6 +120,103 @@ function parseTarget(url, key) {
   return { host: m[2], port, app, key, tcUrl: `${scheme}://${m[2]}:${port}/${app}` };
 }
 
+const TAMANHO_DO_HANDSHAKE = 1 + 1536 + 1536;
+const CONFIRMAR_A_CADA = 2500000;
+const CANAL_DE_COMANDO = { csid: 3, streamId: 0 };
+const RESPOSTAS_DE_COMANDO = new Set(['_result', '_error']);
+
+const mensagemDeControle = type => ({ type, csid: 2, streamId: 0, ts: 0 });
+const podeEscrever = sock => Boolean(sock) && !sock.destroyed && sock.writable;
+const ultimoValor = vals => vals[vals.length - 1];
+const codigoDaResposta = res => res && ultimoValor(res) && ultimoValor(res).code;
+const codigoDoStatus = vals => (ultimoValor(vals) || {}).code;
+const ehRespostaDeComando = vals => RESPOSTAS_DE_COMANDO.has(vals[0]) && typeof vals[1] === 'number';
+const estadoNovoDoCanal = () => ({ ts: 0, len: 0, type: 0, sid: 0, delta: 0, ext: false, parts: [], got: 0 });
+
+function valoresDoComando(payload) {
+  const r = new AMFReader(payload); const vals = [];
+  while (r.left > 0 && vals.length <= 12) vals.push(r.value());
+  return vals;
+}
+
+function aplicarTimestamp(st, fmt, ts) {
+  if (fmt === 0) { st.ts = ts; st.delta = 0; } else { st.delta = ts; st.ts = (st.ts + ts) >>> 0; }
+}
+
+const CSID_ESTENDIDO = new Map([
+  [0, { bytes: 1, ler: (b, p) => b[p] + 64 }],
+  [1, { bytes: 2, ler: (b, p) => b[p] + b[p + 1] * 256 + 64 }],
+]);
+
+class LeituraDoPedaco {
+  constructor(b) { this.b = b; this.p = 0; }
+  tem(n) { return this.b.length >= this.p + n; }
+  u24() { const b = this.b, p = this.p; this.p += 3; return (b[p] << 16) | (b[p + 1] << 8) | b[p + 2]; }
+
+  cabecalhoBasico() {
+    if (!this.tem(1)) return null;
+    const b0 = this.b[this.p++];
+    const csid = this._csid(b0 & 0x3f);
+    return csid === null ? null : { fmt: b0 >> 6, csid };
+  }
+
+  _csid(base) {
+    const estendido = CSID_ESTENDIDO.get(base);
+    if (!estendido) return base;
+    if (!this.tem(estendido.bytes)) return null;
+    const csid = estendido.ler(this.b, this.p); this.p += estendido.bytes;
+    return csid;
+  }
+
+  cabecalhoDaMensagem(fmt, st) {
+    return fmt <= 2 ? this._cabecalhoCompleto(fmt, st) : this._continuacao(st);
+  }
+
+  _continuacao(st) {
+    if (!st.ext) return true;
+    if (!this.tem(4)) return false;
+    this.p += 4;
+    return true;
+  }
+
+  _cabecalhoCompleto(fmt, st) {
+    if (!this.tem(3)) return false;
+    let ts = this.u24();
+    if (fmt <= 1 && !this._tamanhoETipo(st)) return false;
+    if (fmt === 0 && !this._idDoStream(st)) return false;
+    st.ext = ts === 0xffffff;
+    if (st.ext) {
+      if (!this.tem(4)) return false;
+      ts = this.b.readUInt32BE(this.p); this.p += 4;
+    }
+    aplicarTimestamp(st, fmt, ts);
+    return true;
+  }
+
+  _tamanhoETipo(st) {
+    if (!this.tem(4)) return false;
+    st.len = this.u24(); st.type = this.b[this.p++];
+    return true;
+  }
+
+  _idDoStream(st) {
+    if (!this.tem(4)) return false;
+    st.sid = this.b.readUInt32LE(this.p); this.p += 4;
+    return true;
+  }
+}
+
+class DesfechoDaConexao {
+  constructor(resolve, reject, prazo) { this.resolve = resolve; this.reject = reject; this.prazo = prazo; this.decidido = false; }
+  _decidir() {
+    if (this.decidido) return false;
+    this.decidido = true; clearTimeout(this.prazo);
+    return true;
+  }
+  falhar(e) { if (this._decidir()) this.reject(e); }
+  concluir() { if (this._decidir()) this.resolve(); }
+}
+
 class RtmpClient {
   constructor(log) {
     this.log = log || (() => {});
@@ -115,31 +233,43 @@ class RtmpClient {
       const sock = net.connect({ host: t.host, port: t.port });
       this.sock = sock; sock.setNoDelay(true);
       const to = setTimeout(() => { this.lastErrno = 'ETIMEDOUT'; sock.destroy(new Error('connect timeout (30s)')); }, 30000);
-      let settled = false;
-      const fail = (e) => { if (!settled) { settled = true; clearTimeout(to); reject(e); } };
-      sock.on('error', (e) => { this.lastErrno = e.code || String(e.message); fail(e); this._closed(); });
-      sock.on('close', () => { fail(new Error('conexão fechada')); this._closed(); });
-      sock.on('data', (d) => { this.rb = this.rb.length ? Buffer.concat([this.rb, d]) : d; try { this._pump(); } catch (e) { this.log(`[rtmp] parser: ${e.message}`); } });
+      const desfecho = new DesfechoDaConexao(resolve, reject, to);
+      this._ouvirSocket(sock, desfecho);
       sock.once('connect', async () => {
         try {
-          await this._handshake();
-          await this._write(new ByteWriter().u32(this.outChunk).data, 1, 2, 0, 0);          // set chunk size
-          const res = await this._command('connect', [{
-            app: t.app, type: 'nonprivate', flashVer: 'FMLE/3.0 (compatible; FMSc/1.0)', swfUrl: t.tcUrl, tcUrl: t.tcUrl }], true);
-          const code = res && res[res.length - 1] && res[res.length - 1].code;
-          if (code && code !== 'NetConnection.Connect.Success') throw new Error(`connect recusado: ${code}`);
-          await this._command('releaseStream', [null, t.key], false);
-          await this._command('FCPublish', [null, t.key], false);
-          const cs = await this._command('createStream', [null], true);
-          const sid = cs[cs.length - 1];
-          if (typeof sid !== 'number') throw new Error('createStream sem id');
-          this.streamId = sid;
-          await this._command('publish', [null, t.key, 'live'], false, 4, this.streamId);
+          await this._publicar(t);
           this.connectTimeMs = nowMs() - t0;
-          if (!settled) { settled = true; clearTimeout(to); resolve(); }
-        } catch (e) { fail(e); this.close(); }
+          desfecho.concluir();
+        } catch (e) { desfecho.falhar(e); this.close(); }
       });
     });
+  }
+
+  _ouvirSocket(sock, desfecho) {
+    sock.on('error', (e) => { this.lastErrno = e.code || String(e.message); desfecho.falhar(e); this._closed(); });
+    sock.on('close', () => { desfecho.falhar(new Error('conexão fechada')); this._closed(); });
+    sock.on('data', (d) => this._receber(d));
+  }
+
+  _receber(d) {
+    this.rb = this.rb.length ? Buffer.concat([this.rb, d]) : d;
+    try { this._pump(); } catch (e) { this.log(`[rtmp] parser: ${e.message}`); }
+  }
+
+  async _publicar(t) {
+    await this._handshake();
+    await this._write(new ByteWriter().u32(this.outChunk).data, mensagemDeControle(1));
+    const res = await this._command('connect', [{
+      app: t.app, type: 'nonprivate', flashVer: 'FMLE/3.0 (compatible; FMSc/1.0)', swfUrl: t.tcUrl, tcUrl: t.tcUrl }], true);
+    const code = codigoDaResposta(res);
+    if (code && code !== 'NetConnection.Connect.Success') throw new Error(`connect recusado: ${code}`);
+    await this._command('releaseStream', [null, t.key], false);
+    await this._command('FCPublish', [null, t.key], false);
+    const cs = await this._command('createStream', [null], true);
+    const sid = cs[cs.length - 1];
+    if (typeof sid !== 'number') throw new Error('createStream sem id');
+    this.streamId = sid;
+    await this._command('publish', [null, t.key, 'live'], false, { csid: 4, streamId: this.streamId });
   }
 
   _closed() { if (this.closed) return; this.closed = true; for (const [, p] of this.pending) { clearTimeout(p.t); p.reject(new Error('conexão fechada')); } this.pending.clear(); if (this.onClose) this.onClose(); }
@@ -148,9 +278,9 @@ class RtmpClient {
     if (!this.sock) return;
     const s = this.sock;
     try {
-      if (this.streamId && !s.destroyed && s.writable) {
-        s.write(this._msg(new ByteWriter().amf('FCUnpublish').amf(++this.txid).amf(null).data, 20, 4, this.streamId, 0));
-        s.write(this._msg(new ByteWriter().amf('deleteStream').amf(++this.txid).amf(null).amf(this.streamId).data, 20, 3, 0, 0));
+      if (this.streamId && podeEscrever(s)) {
+        s.write(this._msg(new ByteWriter().amf('FCUnpublish').amf(++this.txid).amf(null).data, { type: 20, csid: 4, streamId: this.streamId, ts: 0 }));
+        s.write(this._msg(new ByteWriter().amf('deleteStream').amf(++this.txid).amf(null).amf(this.streamId).data, { type: 20, ...CANAL_DE_COMANDO, ts: 0 }));
       }
     } catch (_) {}
     this.streamId = 0;
@@ -168,7 +298,7 @@ class RtmpClient {
   }
 
   // ---- escrita ----
-  _msg(payload, type, csid, streamId, ts) {
+  _msg(payload, { type, csid, streamId, ts }) {
     const w = new ByteWriter();
     const ext = ts >= 0xffffff;
     w.u8(csid & 0x3f).u24(ext ? 0xffffff : ts).u24(payload.length).u8(type).u32le(streamId);
@@ -182,11 +312,11 @@ class RtmpClient {
     }
     return w.data;
   }
-  _write(payload, type, csid, streamId, ts) { return this.send(this._msg(payload, type, csid, streamId, ts)); }
+  _write(payload, cabecalho) { return this.send(this._msg(payload, cabecalho)); }
   /** Escrita serializada; resolve quando o kernel aceitou os bytes (é a medida de send_beg/send_end do DBR). */
   send(buf) {
     return new Promise((resolve, reject) => {
-      if (!this.sock || this.sock.destroyed || !this.sock.writable) { this.lastErrno = this.lastErrno || 'EPIPE'; return reject(new Error('socket fechado')); }
+      if (!podeEscrever(this.sock)) { this.lastErrno = this.lastErrno || 'EPIPE'; return reject(new Error('socket fechado')); }
       this.sock.write(buf, (err) => {
         if (err) { this.lastErrno = err.code || String(err.message); return reject(err); }
         if (this.throttleKbps > 0) setTimeout(resolve, buf.length * 8 / this.throttleKbps);   // só teste: emula link lento
@@ -194,92 +324,138 @@ class RtmpClient {
       });
     });
   }
-  _command(name, args, wait, csid = 3, streamId = 0) {
+  _command(name, args, wait, canal = CANAL_DE_COMANDO) {
     const id = ++this.txid;
     const w = new ByteWriter().amf(name).amf(id);
     for (const a of args) w.amf(a);
-    const p = wait ? new Promise((resolve, reject) => {
+    const p = wait ? this._esperarResposta(id, name) : null;
+    return this._write(w.data, { type: 20, ...canal, ts: 0 }).then(() => p || []);
+  }
+  _esperarResposta(id, name) {
+    return new Promise((resolve, reject) => {
       const t = setTimeout(() => { this.pending.delete(id); reject(new Error(`sem resposta para ${name}`)); }, 10000);
       this.pending.set(id, { resolve, reject, t });
-    }) : null;
-    return this._write(w.data, 20, csid, streamId, 0).then(() => p || []);
+    });
   }
-  sendMetadata(width, height, fps, kbps, audio) {
+  sendMetadata(transmissao) {
+    const { width, height, fps, bitrate: kbps } = transmissao;
+    const audio = transmissao.audio || 0;
     const props = { duration: 0, fileSize: 0, width, height, videocodecid: 7, videodatarate: kbps, framerate: fps, encoder: 'CAM LIVE (reconstrução do MiniOBS)' };
     if (audio) Object.assign(props, { audiocodecid: 10, audiosamplerate: 48000, audiosamplesize: 16, audiochannels: 2, stereo: true, audiodatarate: audio });
     const w = new ByteWriter().amf('@setDataFrame').amf('onMetaData').amf(ecma(props));
-    return this._write(w.data, 18, 4, this.streamId, 0);
+    return this._write(w.data, { type: 18, csid: 4, streamId: this.streamId, ts: 0 });
   }
-  sendVideo(body, tsMs) { return this._write(body, 9, 6, this.streamId, tsMs >>> 0); }
-  sendAudio(body, tsMs) { return this._write(body, 8, 5, this.streamId, tsMs >>> 0); }
+  sendVideo(body, tsMs) { return this._write(body, { type: 9, csid: 6, streamId: this.streamId, ts: tsMs >>> 0 }); }
+  sendAudio(body, tsMs) { return this._write(body, { type: 8, csid: 5, streamId: this.streamId, ts: tsMs >>> 0 }); }
 
   // ---- leitura ----
   _pump() {
-    if (this.phase === 'hs') {
-      if (this.rb.length < 1 + 1536 + 1536) return;
-      if (this.rb[0] !== 0x03) { const r = this.hsWait; this.hsWait = null; this.phase = 'dead'; return r.reject(new Error(`versão de handshake inesperada ${this.rb[0]}`)); }
-      const s1 = this.rb.subarray(1, 1537);
-      this.sock.write(Buffer.from(s1));                       // C2 = eco de S1
-      this.rb = this.rb.subarray(1 + 1536 + 1536);
-      this.phase = 'chunks';
-      const r = this.hsWait; this.hsWait = null; r.resolve();
-    }
+    if (this.phase === 'hs') this._concluirHandshake();
     if (this.phase !== 'chunks') return;
-    for (;;) if (!this._parseChunk()) break;
+    while (this._parseChunk());
+  }
+
+  _tomarEsperaDoHandshake() { const r = this.hsWait; this.hsWait = null; return r; }
+
+  _concluirHandshake() {
+    if (this.rb.length < TAMANHO_DO_HANDSHAKE) return;
+    if (this.rb[0] !== 0x03) {
+      const r = this._tomarEsperaDoHandshake(); this.phase = 'dead';
+      r.reject(new Error(`versão de handshake inesperada ${this.rb[0]}`));
+      return;
+    }
+    const s1 = this.rb.subarray(1, 1537);
+    this.sock.write(Buffer.from(s1));
+    this.rb = this.rb.subarray(TAMANHO_DO_HANDSHAKE);
+    this.phase = 'chunks';
+    this._tomarEsperaDoHandshake().resolve();
   }
 
   _parseChunk() {
-    const b = this.rb; let p = 0;
-    if (b.length < 1) return false;
-    const b0 = b[p++]; const fmt = b0 >> 6; let csid = b0 & 0x3f;
-    if (csid === 0) { if (b.length < p + 1) return false; csid = b[p++] + 64; }
-    else if (csid === 1) { if (b.length < p + 2) return false; csid = b[p] + b[p + 1] * 256 + 64; p += 2; }
-    const st = this.inState.get(csid) || { ts: 0, len: 0, type: 0, sid: 0, delta: 0, ext: false, parts: [], got: 0 };
-    let ts = 0;
-    if (fmt <= 2) {
-      if (b.length < p + 3) return false;
-      ts = (b[p] << 16) | (b[p + 1] << 8) | b[p + 2]; p += 3;
-      if (fmt <= 1) { if (b.length < p + 4) return false; st.len = (b[p] << 16) | (b[p + 1] << 8) | b[p + 2]; st.type = b[p + 3]; p += 4; }
-      if (fmt === 0) { if (b.length < p + 4) return false; st.sid = b.readUInt32LE(p); p += 4; }
-      st.ext = ts === 0xffffff;
-      if (st.ext) { if (b.length < p + 4) return false; ts = b.readUInt32BE(p); p += 4; }
-      if (fmt === 0) { st.ts = ts; st.delta = 0; } else { st.delta = ts; st.ts = (st.ts + ts) >>> 0; }
-    } else if (st.ext) { if (b.length < p + 4) return false; p += 4; }
+    const leitura = new LeituraDoPedaco(this.rb);
+    const basico = leitura.cabecalhoBasico();
+    if (!basico) return false;
+    const st = this.inState.get(basico.csid) || estadoNovoDoCanal();
+    if (!leitura.cabecalhoDaMensagem(basico.fmt, st)) return false;
     const need = Math.min(this.inChunk, st.len - st.got);
-    if (b.length < p + need) return false;
-    if (need > 0) { st.parts.push(Buffer.from(b.subarray(p, p + need))); st.got += need; }
-    p += need; this.bytesIn += need;
-    this.inState.set(csid, st);
-    this.rb = b.subarray(p);
-    if (st.got >= st.len) { const payload = Buffer.concat(st.parts); st.parts = []; st.got = 0; this._message(st.type, payload); }
-    if (this.bytesIn - this.lastAck >= 2500000) { this.lastAck = this.bytesIn; this._write(new ByteWriter().u32(this.bytesIn >>> 0).data, 3, 2, 0, 0).catch(() => {}); }
+    if (!leitura.tem(need)) return false;
+    this._guardarPedaco(basico.csid, st, leitura, need);
+    if (st.got >= st.len) this._entregarMensagem(st);
+    this._confirmarSePreciso();
     return true;
   }
 
+  _guardarPedaco(csid, st, leitura, need) {
+    const { b, p } = leitura;
+    if (need > 0) { st.parts.push(Buffer.from(b.subarray(p, p + need))); st.got += need; }
+    this.bytesIn += need;
+    this.inState.set(csid, st);
+    this.rb = b.subarray(p + need);
+  }
+
+  _entregarMensagem(st) {
+    const payload = Buffer.concat(st.parts); st.parts = []; st.got = 0;
+    this._message(st.type, payload);
+  }
+
+  _confirmarSePreciso() {
+    if (this.bytesIn - this.lastAck < CONFIRMAR_A_CADA) return;
+    this.lastAck = this.bytesIn;
+    this._write(new ByteWriter().u32(this.bytesIn >>> 0).data, mensagemDeControle(3)).catch(() => {});
+  }
+
   _message(type, payload) {
-    switch (type) {
-      case 1: if (payload.length >= 4) this.inChunk = payload.readUInt32BE(0); break;
-      case 4: if (payload.length >= 6 && payload.readUInt16BE(0) === 6) this._write(new ByteWriter().u16(7).u32(payload.readUInt32BE(2)).data, 4, 2, 0, 0).catch(() => {}); break;
-      case 6: if (payload.length >= 4) this._write(new ByteWriter().u32(payload.readUInt32BE(0)).data, 5, 2, 0, 0).catch(() => {}); break;
-      case 20: {
-        const r = new AMFReader(payload); const vals = [];
-        while (r.left > 0) { vals.push(r.value()); if (vals.length > 12) break; }
-        const name = vals[0];
-        if ((name === '_result' || name === '_error') && typeof vals[1] === 'number') {
-          const pend = this.pending.get(vals[1]);
-          if (pend) { clearTimeout(pend.t); this.pending.delete(vals[1]); name === '_error' ? pend.reject(new Error(`_error ${(vals[vals.length - 1] || {}).code || ''}`)) : pend.resolve(vals.slice(1)); }
-        } else if (name === 'onStatus') {
-          this.log(`[rtmp] onStatus ${(vals[vals.length - 1] || {}).code || '?'}`);
-        }
-        break;
-      }
-      default: break;
-    }
+    const tratar = MENSAGENS_DO_SERVIDOR.get(type);
+    if (tratar) tratar(this, payload);
+  }
+
+  _tamanhoDoPedaco(payload) {
+    if (payload.length >= 4) this.inChunk = payload.readUInt32BE(0);
+  }
+
+  _controleDoUsuario(payload) {
+    if (payload.length >= 6 && payload.readUInt16BE(0) === 6) this._write(new ByteWriter().u16(7).u32(payload.readUInt32BE(2)).data, mensagemDeControle(4)).catch(() => {});
+  }
+
+  _janelaDeConfirmacao(payload) {
+    if (payload.length >= 4) this._write(new ByteWriter().u32(payload.readUInt32BE(0)).data, mensagemDeControle(5)).catch(() => {});
+  }
+
+  _comandoDoServidor(payload) {
+    const vals = valoresDoComando(payload);
+    if (ehRespostaDeComando(vals)) this._responderPendente(vals);
+    else if (vals[0] === 'onStatus') this.log(`[rtmp] onStatus ${codigoDoStatus(vals) || '?'}`);
+  }
+
+  _responderPendente(vals) {
+    const pend = this.pending.get(vals[1]);
+    if (!pend) return;
+    clearTimeout(pend.t); this.pending.delete(vals[1]);
+    if (vals[0] === '_error') pend.reject(new Error(`_error ${codigoDoStatus(vals) || ''}`));
+    else pend.resolve(vals.slice(1));
   }
 }
 
+const MENSAGENS_DO_SERVIDOR = new Map([
+  [1, (cliente, payload) => cliente._tamanhoDoPedaco(payload)],
+  [4, (cliente, payload) => cliente._controleDoUsuario(payload)],
+  [6, (cliente, payload) => cliente._janelaDeConfirmacao(payload)],
+  [20, (cliente, payload) => cliente._comandoDoServidor(payload)],
+]);
+
 // ───────────────────────── Saída RTMP (rtmp_output do obs-outputs) ─────────────────────────
 const MIN_PACKETS = 5, DBR_TRIGGER_US = 200000, DBR_INC_TIMER_MS = 4000, DBR_MIN_BR = 50, DBR_MIN_EST_MS = 1000, DBR_MAX_EST_MS = 2000;
+const TEXTOS_DE_ERRO = new Map([
+  [null, ''], [undefined, ''], ['', ''],
+  ['ENOTFOUND', 'HostNotFound'], ['EHOSTUNREACH', 'HostNotFound'],
+  ['ECONNRESET', 'ConnectionReset'],
+  ['ETIMEDOUT', 'ConnectionTimedOut'],
+  ['ECONNABORTED', 'ConnectionAborted'],
+  ['EADDRNOTAVAIL', 'AddressNotAvailable'],
+  ['ENETUNREACH', 'NoRoute'],
+  ['EACCES', 'PermissionDenied'],
+  ['ECONNREFUSED', 'Conexão recusada (o servidor está ligado?)'],
+]);
 
 class RtmpOutput {
   /** s: {url,key,dropMs,pframeDropMs,dyn,bitrate,width,height,fps,maxShutdownSec} */
@@ -336,32 +512,57 @@ class RtmpOutput {
   encodedPacket(p) {
     if (this.disconnected || !this.active) return;
     if (!p) { this.encodeError = true; this._wake(); return; }
-    if (p.audio) { if (!this.gotFirst) return; this.packets.push(p); this._wake(); return; }   // áudio nunca é descartado (prioridade máxima)
-    if (this.needKey) { if (!p.key) { this.hooks.requestKeyframe && this.hooks.requestKeyframe(); return; } this.needKey = false; }
-    if (!this.gotFirst) { this.startDtsMs = Math.floor(p.dtsUs / 1000); this.gotFirst = true; }
-    this._check(false); this._check(true);
+    if (p.audio) return this._enfileirarAudio(p);
+    if (this._esperandoQuadroChave(p)) return;
+    this._marcarInicio(p);
+    this._conferirFila(); this._conferirPframes();
     if (p.dropPriority < this.minPriority) { this.dropped++; return; }
     this.minPriority = 0; this.lastDtsUs = p.dtsUs; this.packets.push(p); this._wake();
   }
 
-  /** check_to_drop_frames (FUN_3ca34) */
-  _check(pframes) {
-    const priority = pframes ? 3 : 2, threshold = pframes ? this.pDropUs : this.dropUs;
-    if (!pframes) this._dbrTryIncrease();
-    if (this.packets.length < MIN_PACKETS) { if (!pframes) this.congestion = 0; return; }
+  _enfileirarAudio(p) {
+    if (!this.gotFirst) return;
+    this.packets.push(p); this._wake();
+  }
+
+  _esperandoQuadroChave(p) {
+    if (!this.needKey) return false;
+    if (!p.key) { this.hooks.requestKeyframe && this.hooks.requestKeyframe(); return true; }
+    this.needKey = false;
+    return false;
+  }
+
+  _marcarInicio(p) {
+    if (this.gotFirst) return;
+    this.startDtsMs = Math.floor(p.dtsUs / 1000); this.gotFirst = true;
+  }
+
+  _duracaoDaFila() {
     const first = this.packets.find(x => !x.audio && !x.key);
-    if (!first) return;
-    const dur = this.lastDtsUs - first.dtsUs;
-    if (!pframes) this.congestion = dur / threshold;
-    const d = this.dbr;
-    if (d.on) {
-      if (pframes) return;
-      let changed = false;
-      if (dur >= DBR_TRIGGER_US) changed = this._dbrLowered();
-      if (changed) { this.log(`[rtmp stream] buffer_duration_msec: ${Math.floor(dur / 1000)}`); this._dbrSet(); }
-      return;
-    }
-    if (dur > threshold) { this.log(`[rtmp stream] buffer_duration_usec: ${dur}`); this._drop(priority, pframes); }
+    return first ? this.lastDtsUs - first.dtsUs : null;
+  }
+
+  _conferirFila() {
+    this._dbrTryIncrease();
+    if (this.packets.length < MIN_PACKETS) { this.congestion = 0; return; }
+    const dur = this._duracaoDaFila();
+    if (dur === null) return;
+    this.congestion = dur / this.dropUs;
+    if (this.dbr.on) this._dbrConferir(dur);
+    else if (dur > this.dropUs) { this.log(`[rtmp stream] buffer_duration_usec: ${dur}`); this._drop(2, false); }
+  }
+
+  _conferirPframes() {
+    if (this.packets.length < MIN_PACKETS) return;
+    const dur = this._duracaoDaFila();
+    if (dur === null || this.dbr.on) return;
+    if (dur > this.pDropUs) { this.log(`[rtmp stream] buffer_duration_usec: ${dur}`); this._drop(3, true); }
+  }
+
+  _dbrConferir(dur) {
+    if (dur < DBR_TRIGGER_US) return;
+    if (!this._dbrLowered()) return;
+    this.log(`[rtmp stream] buffer_duration_msec: ${Math.floor(dur / 1000)}`); this._dbrSet();
   }
   _drop(priority, pframes) {
     const kept = this.packets.filter(p => p.dropPriority >= priority);
@@ -384,7 +585,8 @@ class RtmpOutput {
   }
   _dbrTryIncrease() {
     const d = this.dbr;
-    if (!d.on || !d.incTimeout || nowMs() < d.incTimeout) return;
+    if (!d.on || !d.incTimeout) return;
+    if (nowMs() < d.incTimeout) return;
     d.incTimeout = 0; d.prev = d.cur; d.cur += d.inc;
     if (d.cur < d.orig) { d.incTimeout = nowMs() + DBR_INC_TIMER_MS; this.log(`[rtmp stream: 'CAM LIVE'] bitrate increased to: ${d.cur}, waiting`); }
     else { d.cur = d.orig; this.log(`[rtmp stream: 'CAM LIVE'] bitrate increased to: ${d.cur}, done`); }
@@ -400,30 +602,39 @@ class RtmpOutput {
 
   // ---- thread de envio (FUN_3b5dc) ----
   async _sendLoop() {
-    let reason = 'success', detail = '';
-    try {
-      outer: for (;;) {
-        if (this.disconnected || this.encodeError) break;
-        if (!this.packets.length) { if (this.stopEvent) break; await this._waitPacket(); continue; }
-        if (this.stopEvent) break outer;       // parada imediata: o resto da fila é liberado
-        const p = this.packets.shift();
-        if (!this.sentHeaders) { await this._sendHeaders(); this.sentHeaders = true; }
-        if (p.audio) await this._sendAudio(p); else await this._sendPacket(p);
-      }
-    } catch (e) { this.disconnected = true; detail = e.message; }
-    if (this.disconnected) { this.log(`[rtmp stream: 'CAM LIVE'] Disconnected from ${this.s.url}`); reason = 'disconnected'; }
-    else if (this.encodeError) { this.log("[rtmp stream: 'CAM LIVE'] Encoder error, disconnecting"); await this._footer(); reason = 'encodeError'; }
-    else { this.log("[rtmp stream: 'CAM LIVE'] User stopped the stream"); await this._footer(); }
+    let detail = '';
+    try { await this._enviarFila(); } catch (e) { this.disconnected = true; detail = e.message; }
+    const reason = await this._motivoDoFim();
     const err = this._errText(this.client.lastErrno); if (err) this.log(`[rtmp stream: 'CAM LIVE'] last error: ${err}`);
     this.client.close();
-    if (this.dbr.on && this.dbr.cur !== this.dbr.orig) { this.dbr.cur = this.dbr.orig; this._dbrSet(); }
+    this._restaurarBitrate();
     if (this.packets.length) this.log(`[rtmp stream: 'CAM LIVE'] Freeing ${this.packets.length} remaining packets`);
     this.packets = []; this.active = false; this.stopEvent = false; this.encodeError = false;
     this.hooks.onStopped(reason, detail || err || '');
   }
+  _envioAcabou() { return Boolean(this.disconnected || this.encodeError || this.stopEvent); }
+  async _enviarFila() {
+    while (!this._envioAcabou()) {
+      if (this.packets.length) await this._enviarPacote(this.packets.shift());
+      else await this._waitPacket();
+    }
+  }
+  async _enviarPacote(p) {
+    if (!this.sentHeaders) { await this._sendHeaders(); this.sentHeaders = true; }
+    if (p.audio) await this._sendAudio(p); else await this._sendPacket(p);
+  }
+  async _motivoDoFim() {
+    if (this.disconnected) { this.log(`[rtmp stream: 'CAM LIVE'] Disconnected from ${this.s.url}`); return 'disconnected'; }
+    if (this.encodeError) { this.log("[rtmp stream: 'CAM LIVE'] Encoder error, disconnecting"); await this._footer(); return 'encodeError'; }
+    this.log("[rtmp stream: 'CAM LIVE'] User stopped the stream"); await this._footer();
+    return 'success';
+  }
+  _restaurarBitrate() {
+    if (this.dbr.on && this.dbr.cur !== this.dbr.orig) { this.dbr.cur = this.dbr.orig; this._dbrSet(); }
+  }
   async _sendHeaders() {
     if (!this.avcC) throw new Error('Codec not initialized for track 0 while sending header');
-    await this.client.sendMetadata(this.s.width, this.s.height, this.s.fps, this.s.bitrate, this.s.audio || 0);
+    await this.client.sendMetadata(this.s);
     const h = FLV.sequenceHeader(this.avcC); await this.client.sendVideo(h, 0); this.totalBytes += h.length;
   }
   async _sendAudio(p) {
@@ -442,23 +653,16 @@ class RtmpOutput {
     if (this.dbr.on) this._dbrAdd({ beg, end: nowMs(), size: body.length });
   }
   async _footer() { try { await this.client.sendVideo(FLV.endOfSequence(), Math.max(0, Math.floor(this.lastDtsUs / 1000) - this.startDtsMs)); } catch (_) {} }
-  _errText(code) {
-    switch (code) {
-      case null: case undefined: case '': return '';
-      case 'ENOTFOUND': case 'EHOSTUNREACH': return 'HostNotFound';
-      case 'ECONNRESET': return 'ConnectionReset';
-      case 'ETIMEDOUT': return 'ConnectionTimedOut';
-      case 'ECONNABORTED': return 'ConnectionAborted';
-      case 'EADDRNOTAVAIL': return 'AddressNotAvailable';
-      case 'ENETUNREACH': return 'NoRoute';
-      case 'EACCES': return 'PermissionDenied';
-      case 'ECONNREFUSED': return 'Conexão recusada (o servidor está ligado?)';
-      default: return String(code);
-    }
-  }
+  _errText(code) { return TEXTOS_DE_ERRO.has(code) ? TEXTOS_DE_ERRO.get(code) : String(code); }
 }
 
 // ───────────────────────── Orquestração (o papel do Engine) ─────────────────────────
+const MOTIVOS_DE_RECONEXAO = new Set(['disconnected', 'connectFailed']);
+const ERROS_DO_FIM = new Map([
+  ['encodeError', () => 'Erro no encoder, transmissão interrompida.'],
+  ['badPath', detail => detail || 'Endereço do servidor inválido.'],
+]);
+
 class CamLiveService {
   constructor({ send, studioFile, logFile }) {
     this.sendToRenderer = send; this.studioFile = studioFile; this.logFile = logFile;
@@ -494,18 +698,24 @@ class CamLiveService {
   }
   _stopped(reason, detail) {
     if (this.userStop) return;
+    if (MOTIVOS_DE_RECONEXAO.has(reason)) return this._reconectar(detail);
+    const erroDoFim = ERROS_DO_FIM.get(reason);
+    if (erroDoFim) this.error = erroDoFim(detail);
+    this._finish();
+  }
+  _reconectar(detail) {
     const c = this.cfg;
-    if (reason === 'disconnected' || reason === 'connectFailed') {
-      if (this.retries >= c.maxRetries) { this.error = `Desistiu depois de ${this.retries} tentativas de reconexão.${detail ? ' (' + detail + ')' : ''}`; return this._finish(); }
-      this.retries++;
-      this.status = `Reconectando em ${c.retryDelaySec}s (tentativa ${this.retries}/${c.maxRetries})`;
-      this.error = detail || ''; this._emitStatus();
-      this.log(`Output 'CAM LIVE': Reconnecting in ${c.retryDelaySec} seconds (attempt ${this.retries}/${c.maxRetries})`);
-      const o = this.output;
-      setTimeout(() => { if (this.output === o && !this.userStop) { this._newOutput(); this.output.start(); } }, c.retryDelaySec * 1000);
-    } else if (reason === 'encodeError') { this.error = 'Erro no encoder, transmissão interrompida.'; this._finish(); }
-    else if (reason === 'badPath') { this.error = detail || 'Endereço do servidor inválido.'; this._finish(); }
-    else this._finish();
+    if (this.retries >= c.maxRetries) { this.error = `Desistiu depois de ${this.retries} tentativas de reconexão.${detail ? ' (' + detail + ')' : ''}`; return this._finish(); }
+    this.retries++;
+    this.status = `Reconectando em ${c.retryDelaySec}s (tentativa ${this.retries}/${c.maxRetries})`;
+    this.error = detail || ''; this._emitStatus();
+    this.log(`Output 'CAM LIVE': Reconnecting in ${c.retryDelaySec} seconds (attempt ${this.retries}/${c.maxRetries})`);
+    const o = this.output;
+    setTimeout(() => this._reconectarSeAindaFor(o), c.retryDelaySec * 1000);
+  }
+  _reconectarSeAindaFor(o) {
+    if (this.output !== o || this.userStop) return;
+    this._newOutput(); this.output.start();
   }
   _finish() {
     clearInterval(this.statsTimer); this.statsTimer = null; this.output = null; this.status = 'Pronto';
@@ -536,17 +746,25 @@ class CamLiveService {
 }
 
 /** Registra os canais IPC. `getWindow()` devolve a BrowserWindow principal. */
+function enviarParaJanela(getWindow) {
+  return (ch, payload) => { const w = getWindow && getWindow(); if (w && !w.isDestroyed()) w.webContents.send(ch, payload); };
+}
+
+function entregarIphoneAoCelular(getMobileService, iphone) {
+  try { const ms = getMobileService && getMobileService(); if (ms) ms.camLiveIphone = iphone; } catch (_) {}
+}
+
 function register({ ipcMain, getWindow, userDataDir, getMobileService }) {
   const dir = path.join(userDataDir, 'CamLive');
   const svc = new CamLiveService({
-    send: (ch, payload) => { const w = getWindow && getWindow(); if (w && !w.isDestroyed()) w.webContents.send(ch, payload); },
+    send: enviarParaJanela(getWindow),
     studioFile: path.join(dir, 'studio.json'), logFile: path.join(dir, 'camlive.log'),
   });
   try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
   // Destino padrão: iPhone por USB (JPEG + PCM → ponte), sem RTMP/MediaMTX.
   const { CamLiveIphone } = require('./cam-live-iphone');
-  const iphone = new CamLiveIphone({ getMobileService, send: (ch, payload) => { const w = getWindow && getWindow(); if (w && !w.isDestroyed()) w.webContents.send(ch, payload); } });
-  try { const ms = getMobileService && getMobileService(); if (ms) ms.camLiveIphone = iphone; } catch (_) {}
+  const iphone = new CamLiveIphone({ getMobileService, send: enviarParaJanela(getWindow) });
+  entregarIphoneAoCelular(getMobileService, iphone);
 ipcMain.handle('camlive:start', (_e, cfg) => (cfg && cfg.target === 'iphone' ? iphone.start(cfg) : svc.start(cfg)));
   ipcMain.handle('camlive:stop', async () => { await iphone.stop(); return svc.stop(); });
   ipcMain.handle('camlive:frame', (_e, data) => iphone.frame(data));
