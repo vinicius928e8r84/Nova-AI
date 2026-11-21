@@ -44,6 +44,18 @@
 - **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo, gatilhos `labeled`/`unlabeled`), `scripts/ci/codescene-na-refatoracao.js` (a mensagem de falta de resposta nomeia o check pendente), `scripts/regras/caminhos-sensiveis.json` (`scripts/ci/**` passa a ser ALTA, para um PR comum não desligar o gate), `scripts/regras/test/codescene.test.js`, `registro.test.js`, `endurecimento.test.js`.
 - **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`).
 
+## Chromium de qualquer revisão no Windows (P6 da paridade) — 19/11/2026
+
+`browserFarmService.js` (`getChromeExecutablePath`) e `global-spoof-service.js` (`_findChrome`, os dois pontos que listavam `chromium-1208`) passam a usar `findBundledChromiumExecutable` de `platform-utils.js`, como `browser-manager.js` e `whatsapp-manager.js` já faziam. Uma pasta `browsers\chromium-<qualquer revisão>\chrome-win64\chrome.exe` agora é achada; a ordem de busca (Chrome do sistema antes do empacotado) não mudou.
+
+`findBundledChromiumExecutable` passa a ordenar as pastas `chromium-<n>` pela revisão **numérica**, da maior para a menor (`chromium-1300` antes de `chromium-999`); antes era `.sort().reverse()`, ordem de texto, que punha `999` na frente. Pastas cujo sufixo não é um número inteiro (`chromium-tip`, `chromium-1208.bak`) vão para o fim. O helper também é usado no Mac (`mac-native.browser('chrome')`) e por `browser-manager.js` e `whatsapp-manager.js`, então a ordem nova vale nesses caminhos também. Com uma só revisão empacotada (hoje `chromium-1208`) a saída é idêntica; muda só quando há várias pastas `chromium-*`, e aí ganha a revisão maior.
+
+Os laços que procuravam o primeiro caminho existente nessas duas funções viram `primeiroCaminhoExistente` (novo em `platform-utils.js`), que descarta o `null` do helper antes de consultar o disco: `fs.existsSync(null)` emite `DEP0187` no Node 24, e a guarda dentro de `_findChrome` piorava a complexidade dele no CodeScene.
+
+Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js`, `app/electron/services/global-spoof-service.js` e `app/electron/services/platform-utils.js` (no Mac o comportamento é idêntico com uma só revisão `chromium-*` empacotada, mas os três arquivos mudam e precisam ir juntos; guardar os anteriores em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). Depois: `node --check` nos três e reiniciar o Nova.
+
+**Testado:** `node --test app/test/chromium-revisao-windows.test.js`, 6 testes (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; o `existsSync` falso recusa caminho que não é texto; `chromium-1300` vence `chromium-999`; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac com várias pastas `chromium-*`.
+
 ## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
 
 - **O que mudou:** o ssh da câmera do iPhone (`ios-camera.js` e `cam-live-iphone.js`) usava `StrictHostKeyChecking=yes`; passou a `accept-new`, igual aos outros 5 pontos (mesmo `BatchMode=yes` e `ConnectTimeout`). `accept-new` grava a chave quando o `known_hosts` do app ainda não tem o aparelho, como os outros 5 pontos. Chave trocada (reset do jailbreak) continua recusada até o Conectar gravar a nova, igual a antes. Nenhuma linha nova de código além do teste.
