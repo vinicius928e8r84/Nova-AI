@@ -42,7 +42,6 @@
     "app/electron/services/iphone-ssh.js": 7,
     "app/electron/services/kling-video-service.js": 172,
     "app/electron/services/live-cam-bridge.js": 348,
-    "app/electron/services/mac-native.js": 5,
     "app/electron/services/nova-human-controller.js": 40,
     "app/electron/services/nova-shutdown.js": 33,
     "app/electron/services/nova-studio-controller.js": 93,
