@@ -694,7 +694,7 @@ function registerHandlers() {
 
   ipcMain.handle('rtmp:start-broadcast', async () => {
     try {
-      await RtmpServerService.startBroadcast();
+      await RtmpServerService.startBroadcast(app.physicalMobileService?.adbPath);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
