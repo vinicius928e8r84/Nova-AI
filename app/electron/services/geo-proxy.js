@@ -14,6 +14,11 @@ const UA = 'nova-geo/1.0';
 const ESQUEMAS = ['socks5', 'socks5h', 'socks4', 'socks4a', 'http', 'https'];
 const PORTAS_HTTP = [1000, 3128, 8000, 8080, 8888];
 const PORTA_HTTPS = 1001;
+const MAIOR_PORTA = 65535;
+
+const ENTRE_ASPAS = /^["'`][\s\S]*["'`]$/;
+const BARRAS_FINAIS = /\/+$/;
+const ESQUEMA_URL = /^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/;
 
 const HOST = '([^:/@\\s]+)';
 const PORTA = '(\\d{1,5})';
@@ -39,39 +44,59 @@ function decodificarSeguro(texto) {
   }
 }
 
-function parseProxy(raw) {
-  let s = String(raw || '').trim();
-  if (s.length >= 2 && /^["'`]/.test(s) && /["'`]$/.test(s)) s = s.slice(1, -1).trim();
-  s = s.replace(/\/+$/, '');
-  if (!s) return null;
+function limparColagem(raw) {
+  const texto = String(raw || '').trim();
+  const semAspas = ENTRE_ASPAS.test(texto) ? texto.slice(1, -1).trim() : texto;
+  return semAspas.replace(BARRAS_FINAIS, '');
+}
 
-  let scheme = null;
-  const comEsquema = s.match(/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/);
-  if (comEsquema) {
-    scheme = comEsquema[1].toLowerCase();
-    if (!ESQUEMAS.includes(scheme)) return null;
-    s = comEsquema[2];
-  }
+function separarEsquema(texto) {
+  const comEsquema = texto.match(ESQUEMA_URL);
+  if (!comEsquema) return { scheme: null, endereco: texto };
+  return { scheme: comEsquema[1].toLowerCase(), endereco: comEsquema[2] };
+}
 
+function esquemaRecusado(scheme) {
+  return scheme !== null && !ESQUEMAS.includes(scheme);
+}
+
+function portaValida(port) {
+  return port > 0 && port <= MAIOR_PORTA;
+}
+
+function casarFormato(endereco) {
   for (const formato of FORMATOS) {
-    const m = s.match(formato.re);
-    if (!m) continue;
-    const campos = {};
-    formato.ordem.forEach((nome, i) => { campos[nome] = m[i + 1]; });
-    const port = Number(campos.port);
-    if (!(port > 0 && port <= 65535)) return null;
-    const user = campos.user && formato.decodifica ? decodificarSeguro(campos.user) : campos.user;
-    const pass = campos.pass && formato.decodifica ? decodificarSeguro(campos.pass) : campos.pass;
-    return {
-      scheme: scheme || esquemaPelaPorta(port),
-      host: campos.host,
-      port,
-      user: user || null,
-      pass: pass || null,
-      schemeGuessed: !scheme
-    };
+    const m = endereco.match(formato.re);
+    if (m) return { formato, campos: Object.fromEntries(formato.ordem.map((nome, i) => [nome, m[i + 1]])) };
   }
   return null;
+}
+
+function credencial(valor, decodifica) {
+  if (!valor) return null;
+  return decodifica ? decodificarSeguro(valor) : valor;
+}
+
+function montarProxy(scheme, { formato, campos }) {
+  const port = Number(campos.port);
+  if (!portaValida(port)) return null;
+  return {
+    scheme: scheme || esquemaPelaPorta(port),
+    host: campos.host,
+    port,
+    user: credencial(campos.user, formato.decodifica),
+    pass: credencial(campos.pass, formato.decodifica),
+    schemeGuessed: !scheme
+  };
+}
+
+function parseProxy(raw) {
+  const colado = limparColagem(raw);
+  if (!colado) return null;
+  const { scheme, endereco } = separarEsquema(colado);
+  if (esquemaRecusado(scheme)) return null;
+  const casado = casarFormato(endereco);
+  return casado ? montarProxy(scheme, casado) : null;
 }
 
 function agentFor(parsed) {

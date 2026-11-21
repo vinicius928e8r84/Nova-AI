@@ -104,6 +104,7 @@ test('parseProxy: sem esquema a porta indica o tipo', () => {
 test('parseProxy: aspas e barra final da colagem sao removidas', () => {
   assert.strictEqual(parseProxy(`"http://${HOST}:8080/"`).host, HOST);
   assert.strictEqual(parseProxy(`'${HOST}:8080'`).port, 8080);
+  assert.strictEqual(parseProxy(`" ${HOST}:8080 "`).host, HOST);
 });
 
 test('parseProxy: porta fora de 1-65535 e esquema desconhecido devolvem null', () => {
