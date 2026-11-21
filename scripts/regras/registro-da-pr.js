@@ -150,25 +150,36 @@ function faltaDaProva(linhas, head) {
     : `atenção ALTA: a seção "${SECAO_DA_PROVA}" não explica o que foi provado no app (escreva ao menos ${MINIMO_DA_PROVA} caracteres sobre o que rodou e o que apareceu)`;
 }
 
-function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
-  const linhas = linhasQueValem(corpo);
-  const textos = linhas.map(linha => linha.texto);
-  const { atencao: doCorpo, falta: semAtencao } = atencaoDe(textos);
-  const doRevisor = riscoDoRevisor(registros, head);
-  const atencao = doCorpo && maiorAtencao(doCorpo, doRevisor || doCorpo);
+function atencaoDaPr(textos, { rotulos, registros, head, arquivos }) {
+  const { atencao: doCorpo, falta } = atencaoDe(textos);
+  const doRevisor = riscoDoRevisor(registros, head) || doCorpo;
   const risco = classificar(arquivos);
   const rotulado = rotulos.some(rotulo => igual(String(rotulo), ROTULO_DE_RISCO_ALTO));
-  const alta = atencao === 'ALTA' || doRevisor === 'ALTA' || rotulado || risco.alta;
-  const subiuPeloRevisor = doRevisor === 'ALTA' && doCorpo !== 'ALTA';
-  const semProva = alta && faltaDaProva(linhas, head);
-  const subestimada = risco.alta && doCorpo && doCorpo !== 'ALTA'
-    && `a PR mexe em caminho sensível, e isso conta como ALTA, mas o corpo diz ${doCorpo}: ${resumo(risco.motivos, 5).join('; ')}`;
+  const atencao = doRevisor && maiorAtencao(...[doCorpo, doRevisor].filter(Boolean));
+  return { doCorpo, doRevisor, falta, risco, atencao, alta: atencao === 'ALTA' || rotulado || risco.alta };
+}
+
+function faltaDoCaminhoSensivel({ risco, doCorpo }) {
+  if (!risco.alta || !doCorpo || doCorpo === 'ALTA') return null;
+  return `a PR mexe em caminho sensível, e isso conta como ALTA, mas o corpo diz ${doCorpo}: ${resumo(risco.motivos, 5).join('; ')}`;
+}
+
+function faltaDaProvaDaPr(linhas, head, { alta, doCorpo, doRevisor }) {
+  const falta = alta && faltaDaProva(linhas, head);
+  if (!falta || doRevisor !== 'ALTA' || doCorpo === 'ALTA') return falta;
+  return falta.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`);
+}
+
+function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
+  const linhas = linhasQueValem(corpo);
+  const quadro = atencaoDaPr(linhas.map(linha => linha.texto), { rotulos, registros, head, arquivos });
+  const { atencao, alta } = quadro;
   const faltas = [
     faltaDaDescricao(linhas),
-    semAtencao,
-    subestimada,
+    quadro.falta,
+    faltaDoCaminhoSensivel(quadro),
     faltaDaRevisao(registros, head, autor),
-    semProva && subiuPeloRevisor ? semProva.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`) : semProva,
+    faltaDaProvaDaPr(linhas, head, quadro),
   ].filter(Boolean);
   if (!faltas.length) return { ok: true, mensagem: `registro da PR ok no head ${head}: atenção ${atencao}, revisão ${VEREDITO_LIMPO}${alta ? `, ${FRASE}` : ''}` };
   return {

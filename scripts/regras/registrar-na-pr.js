@@ -54,13 +54,14 @@ function lerArgumentos(argv) {
   const pedidas = { conferir: [], revisao: ['head', 'autor', 'revisor', 'risco'], prova: ['head', 'cobertura', 'nota'] }[comando];
   const faltam = pedidas.filter(nome => !String(opcoes[nome] || '').trim());
   if (faltam.length) throw new ErroDeUso(`${comando} pede ${faltam.map(nome => `--${nome}`).join(', ')}`);
-  if (opcoes.risco !== undefined) {
-    opcoes.risco = atencaoValida(opcoes.risco.trim());
-    if (!opcoes.risco) throw new ErroDeUso(`--risco é ${ATENCOES.join(', ').toLowerCase()}`);
-  }
+  return normalizar(opcoes);
+}
+
+function normalizar(opcoes) {
+  const risco = opcoes.risco === undefined ? undefined : atencaoValida(opcoes.risco.trim());
+  if (opcoes.risco !== undefined && !risco) throw new ErroDeUso(`--risco é ${ATENCOES.join(', ').toLowerCase()}`);
   if (opcoes.cobertura !== undefined && !['total', 'parcial'].includes(opcoes.cobertura)) throw new ErroDeUso('--cobertura é total ou parcial');
-  if (opcoes.head) opcoes.head = opcoes.head.trim().toLowerCase();
-  return opcoes;
+  return { ...opcoes, risco, head: opcoes.head && opcoes.head.trim().toLowerCase() };
 }
 
 const registroDaRevisao = ({ veredito, head, autor, revisor, risco }, nota) => [
@@ -113,6 +114,11 @@ function planejar(opcoes, pr, nota) {
     if (falta) return { recusa: `o check não aceitaria este registro: ${falta}` };
     return { comentario, depois: conferir({ ...pr, registros, head }) };
   }
+  return planejarProva(opcoes, pr, nota);
+}
+
+function planejarProva(opcoes, pr, nota) {
+  const { head } = pr;
   const parcial = opcoes.cobertura === 'parcial';
   const marca = !parcial && marcaDeProvaParcial(nota);
   if (marca) return { recusa: `a nota diz ${marca}, e isso é cobertura parcial: prove o que falta ou rode com --cobertura parcial (escreve ${BLOQUEADA}, sem ${FRASE})` };
