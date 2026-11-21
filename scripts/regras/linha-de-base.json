@@ -30,7 +30,7 @@
     "app/electron/services/cdp-shim.js": 7,
     "app/electron/services/child-worker-agent.js": 148,
     "app/electron/services/gemini-browser-engine.js": 117,
-    "app/electron/services/geo-proxy.js": 7,
+    "app/electron/services/geo-proxy.js": 6,
     "app/electron/services/global-spoof-service.js": 1584,
     "app/electron/services/idioma-ipc.js": 62,
     "app/electron/services/inventory-manager.js": 1720,
