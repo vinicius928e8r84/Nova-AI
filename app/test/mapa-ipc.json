@@ -4,11 +4,10 @@
     "app/electron/services/browser-manager.js": 46,
     "app/electron/services/browserFarmService.js": 10,
     "app/electron/services/cam-live-service.js": 11,
-    "app/electron/services/identidade-ipc.js": 11,
     "app/electron/services/idioma-ipc.js": 6,
     "app/electron/services/inventory-manager.js": 33,
     "app/electron/services/physicalMobileService.js": 1,
-    "total": 355
+    "total": 344
   },
   "registrados": {
     "app/electron/main.js": [
@@ -322,19 +321,6 @@
       "on camlive:avcc",
       "on camlive:log",
       "on camlive:packet"
-    ],
-    "app/electron/services/identidade-ipc.js": [
-      "handle spoofer:aplicar-modelo-registrado",
-      "handle spoofer:coords-da-proxy",
-      "handle spoofer:idioma-da-proxy",
-      "handle spoofer:listar-modelos-registrados",
-      "handle spoofer:registrar-modelo",
-      "handle spoofer:remover-modelo-registrado",
-      "handle spoofer:restaurar-celular",
-      "handle spoofer:revert-all",
-      "handle spoofer:salvar-tudo",
-      "handle spoofer:sugerir-nome-modelo",
-      "handle spoofer:validar-coordenadas"
     ],
     "app/electron/services/idioma-ipc.js": [
       "handle spoofer:apply-language",
@@ -724,21 +710,10 @@
     "search-vault-memory",
     "select-directory",
     "smart-ytdl-check-confirm",
-    "spoofer:aplicar-modelo-registrado",
-    "spoofer:coords-da-proxy",
     "spoofer:generate-random",
-    "spoofer:idioma-da-proxy",
     "spoofer:list-language-apps",
-    "spoofer:listar-modelos-registrados",
-    "spoofer:registrar-modelo",
-    "spoofer:remover-modelo-registrado",
     "spoofer:respring-iphone",
-    "spoofer:restaurar-celular",
-    "spoofer:revert-all",
-    "spoofer:salvar-tudo",
     "spoofer:set-language",
-    "spoofer:sugerir-nome-modelo",
-    "spoofer:validar-coordenadas",
     "start-autonomous-download",
     "studio:boot-engine",
     "studio:execute-edit",
