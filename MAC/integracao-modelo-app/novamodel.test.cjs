@@ -24,7 +24,7 @@ Module._load = function (request, parent, isMain) {
 process.env.NOVA_SMOKE_TEST = '1';
 
 const iosModelo = require('../integracao-iphone/ios-modelo');
-const PhysicalMobileService = require('../integracao-iphone/physicalMobileService.patched');
+const PhysicalMobileService = require('../../app/electron/services/physicalMobileService');
 
 let passed = 0;
 function ok(cond, label) {
