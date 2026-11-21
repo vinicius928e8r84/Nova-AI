@@ -105,6 +105,12 @@
     "progresso {\"step\":\"complete\",\"percent\":100,\"message\":\"Geração de vídeo concluída!\"}",
     "resultado {\"success\":true,\"videoPath\":\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\",\"fileName\":\"kling_video_1700000000000.mp4\",\"sizeBytes\":0,\"duration\":5,\"engine\":\"Nova Motion Engine\",\"aspectRatio\":\"16:9\"}"
   ],
+  "local: métodos da classe que o teste do motor local chama": [
+    "ffmpeg /recursos/bin/ffmpeg",
+    "_resolveFfmpegPath /recursos/bin/ffmpeg",
+    "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
+    "_getExportDir <raiz>/app/youtube_auto/exports"
+  ],
   "pasta: a do app travada usa youtube_auto do cwd": [
     "ffmpeg ffmpeg",
     "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",

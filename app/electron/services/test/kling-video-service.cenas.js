@@ -97,6 +97,12 @@ const cenasDoMotorLocal = {
     palco.ffmpeg = { bytes: null };
     await pedirComFoto(palco, {});
   },
+  'local: métodos da classe que o teste do motor local chama': async palco => {
+    comFfmpegEmRecursos(palco);
+    const servico = palco.servico();
+    palco.anotar(`_resolveFfmpegPath ${servico._resolveFfmpegPath()}`);
+    palco.anotar(`_getExportDir ${servico._getExportDir()}`);
+  },
 };
 
 const cenasDaPastaEDaFoto = {

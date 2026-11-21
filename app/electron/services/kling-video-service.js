@@ -301,7 +301,11 @@ function deveSeguir(resposta) {
 class KlingVideoService {
     constructor(app) {
         this.app = app;
-        this.ffmpegPath = localizarFfmpeg();
+        this.ffmpegPath = this._resolveFfmpegPath();
+    }
+
+    _resolveFfmpegPath() {
+        return localizarFfmpeg();
     }
 
     _getExportDir() {
