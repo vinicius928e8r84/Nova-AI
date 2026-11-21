@@ -4,7 +4,7 @@
   "extensoesDeComentario": ["js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "html", "css", "sh", "bash", "zsh", "command", "c", "cc", "cpp", "h", "hpp", "m", "mm", "x", "swift", "java", "kt", "yml", "yaml", "toml", "rb", "plist", "xml", "go", "rs", "cmd", "bat"],
   "nomesDeComentario": ["Makefile", "GNUmakefile", "Dockerfile"],
   "ignorarCodigo": [
-    {"glob": "app/dist/", "motivo": "bundle e recursos gerados da interface"},
+    {"glob": "app/dist/assets/", "motivo": "bundle minificado da interface e bibliotecas de terceiros (face-api, MediaPipe); app/dist/cam-live*.js é código escrito à mão e é cobrado"},
     {"glob": "MAC/**/dist/", "motivo": "bundle gerado da interface e seus patches"},
     {"glob": "MAC/**/reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
     {"glob": "backup-antes-traducao/", "motivo": "cópia de segurança anterior à tradução"},

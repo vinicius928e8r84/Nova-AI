@@ -19,6 +19,11 @@ const SCREENSHOT_TRIGGERS = [
     'screen short', 'tasveer bhejo', 'pc screen dikhao', 'photo bhejo'
 ];
 
+function navegadorDoAmbienteSeExistir() {
+    const doAmbiente = process.env.PUPPETEER_EXECUTABLE_PATH;
+    return doAmbiente && fs.existsSync(doAmbiente) ? doAmbiente : null;
+}
+
 class WhatsAppManager {
     constructor(mainWindow, app) {
         this.mainWindow = mainWindow;
@@ -210,9 +215,21 @@ class WhatsAppManager {
         }, delayMs);
     }
 
+    resolverNavegadorNoMac() {
+        const macNative = require('./mac-native');
+        return navegadorDoAmbienteSeExistir()
+            || this.chromiumBaixadoNoUserData()
+            || macNative.browser('chrome')
+            || macNative.browser('edge');
+    }
+
+    chromiumBaixadoNoUserData() {
+        return require('./platform-utils').findBundledChromiumExecutable([path.join(this.app.getPath('userData'), 'browsers')]);
+    }
+
     resolveBrowserExecutable() {
         if (process.platform === "darwin") {
-            return require('./mac-native').browser('chrome');
+            return this.resolverNavegadorNoMac();
         }
 
         const candidates = [];
