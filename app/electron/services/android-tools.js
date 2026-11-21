@@ -4,38 +4,80 @@ const path = require('path');
 const crypto = require('crypto');
 const { execFile } = require('child_process');
 
-const ADB_ZIP_URLS = {
-    darwin: 'https://dl.google.com/android/repository/platform-tools-latest-darwin.zip',
-    win32: 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip'
-};
-const MANIFEST_HOST_OS = { darwin: 'macosx', win32: 'windows' };
-const WINDOWS_SCRCPY = { name: 'scrcpy-win64-v5.0.1', sha256: 'b12a2c4ee8be317422451fc7dcf8ee20a71b5ea7ef9ad73ddd825a25316227a5' };
 const EXPAND_ARCHIVE_SCRIPT = 'Expand-Archive -LiteralPath $env:NOVA_ARCHIVE -DestinationPath $env:NOVA_DESTINO -Force';
 const ADB_MANIFEST_URL = 'https://dl.google.com/android/repository/repository2-3.xml';
 const SCRCPY_VERSION = 'v5.0.1';
-const SCRCPY_RELEASE = {
-    arm64: { name: 'scrcpy-macos-aarch64-v5.0.1', sha256: '33611e51977a8289e2e124b220f727895181ef2eb9060e0987a4dc2db9cf0d6b' },
-    x64: { name: 'scrcpy-macos-x86_64-v5.0.1', sha256: '31a5467a9e907f162b093267cbbab1276b15c6e709c2ea8159566a8d165beb50' }
-};
+const SCRCPY_DOWNLOAD_BASE = `https://github.com/Genymobile/scrcpy/releases/download/${SCRCPY_VERSION}/`;
 const ALLOWED_HOSTS = ['dl.google.com', 'github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'];
 
-function scrcpyRelease(arch, platform = 'darwin') {
-    if (platform === 'win32') {
-        if (arch !== 'x64') throw new Error('Arquitetura sem build oficial do scrcpy para Windows: ' + arch);
-        return { ...WINDOWS_SCRCPY, kind: 'zip', url: `https://github.com/Genymobile/scrcpy/releases/download/${SCRCPY_VERSION}/${WINDOWS_SCRCPY.name}.zip` };
-    }
-    if (platform !== 'darwin') throw new Error('Download automático do scrcpy não existe para esta plataforma: ' + platform);
-    const rel = SCRCPY_RELEASE[arch];
-    if (!rel) throw new Error('Arquitetura sem build oficial do scrcpy para macOS: ' + arch);
-    return {
-        ...rel,
-        kind: 'tgz',
-        url: `https://github.com/Genymobile/scrcpy/releases/download/${SCRCPY_VERSION}/${rel.name}.tar.gz`
-    };
+function extrairComPowerShell(runner, extracao) {
+    return runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', EXPAND_ARCHIVE_SCRIPT],
+        { env: { ...process.env, NOVA_ARCHIVE: extracao.arquivo, NOVA_DESTINO: extracao.destino } });
 }
 
-function toolFileName(name, platform) {
-    return platform === 'win32' ? name + '.exe' : name;
+function extrairComUtilitariosDoMac(runner, extracao) {
+    if (extracao.tipo === 'zip') return runner('/usr/bin/ditto', ['-x', '-k', extracao.arquivo, extracao.destino]);
+    return runner('/usr/bin/tar', ['-xzf', extracao.arquivo, '-C', extracao.destino]);
+}
+
+const PERFIL_UNIX = {
+    sufixoExecutavel: '',
+    marcaExecutavel: true,
+    extrair: extrairComUtilitariosDoMac,
+    mensagemPronto: 'Ferramentas prontas.',
+    dicaDeInstalacaoManual: ''
+};
+
+const PERFIS_POR_PLATAFORMA = {
+    darwin: {
+        ...PERFIL_UNIX,
+        adbZipUrl: 'https://dl.google.com/android/repository/platform-tools-latest-darwin.zip',
+        hostOsNoManifesto: 'macosx',
+        scrcpy: {
+            sistema: 'macOS',
+            tipo: 'tgz',
+            extensao: '.tar.gz',
+            builds: {
+                arm64: { name: 'scrcpy-macos-aarch64-v5.0.1', sha256: '33611e51977a8289e2e124b220f727895181ef2eb9060e0987a4dc2db9cf0d6b' },
+                x64: { name: 'scrcpy-macos-x86_64-v5.0.1', sha256: '31a5467a9e907f162b093267cbbab1276b15c6e709c2ea8159566a8d165beb50' }
+            }
+        },
+        mensagemPronto: 'Native macOS tools ready.',
+        dicaDeInstalacaoManual: ' Alternativa: brew install android-platform-tools scrcpy'
+    },
+    win32: {
+        sufixoExecutavel: '.exe',
+        marcaExecutavel: false,
+        extrair: extrairComPowerShell,
+        adbZipUrl: 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip',
+        hostOsNoManifesto: 'windows',
+        scrcpy: {
+            sistema: 'Windows',
+            tipo: 'zip',
+            extensao: '.zip',
+            builds: {
+                x64: { name: 'scrcpy-win64-v5.0.1', sha256: 'b12a2c4ee8be317422451fc7dcf8ee20a71b5ea7ef9ad73ddd825a25316227a5' }
+            }
+        },
+        mensagemPronto: 'Ferramentas prontas.',
+        dicaDeInstalacaoManual: ''
+    }
+};
+
+function perfilDaPlataforma(platform) {
+    return Object.hasOwn(PERFIS_POR_PLATAFORMA, platform) ? PERFIS_POR_PLATAFORMA[platform] : PERFIL_UNIX;
+}
+
+function buildDoScrcpy(scrcpy, arch) {
+    if (!Object.hasOwn(scrcpy.builds, arch)) throw new Error(`Arquitetura sem build oficial do scrcpy para ${scrcpy.sistema}: ` + arch);
+    return scrcpy.builds[arch];
+}
+
+function scrcpyRelease(arch, platform = 'darwin') {
+    const { scrcpy } = perfilDaPlataforma(platform);
+    if (!scrcpy) throw new Error('Download automático do scrcpy não existe para esta plataforma: ' + platform);
+    const build = buildDoScrcpy(scrcpy, arch);
+    return { ...build, kind: scrcpy.tipo, url: SCRCPY_DOWNLOAD_BASE + build.name + scrcpy.extensao };
 }
 
 function hashHex(buffer, algorithm) {
@@ -85,13 +127,9 @@ function run(file, args, options = {}) {
     });
 }
 
-async function extractInto(archivePath, kind, destDir, runner = run, platform = 'darwin') {
-    fs.mkdirSync(destDir, { recursive: true });
-    if (platform === 'win32') {
-        await runner('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', EXPAND_ARCHIVE_SCRIPT],
-            { env: { ...process.env, NOVA_ARCHIVE: archivePath, NOVA_DESTINO: destDir } });
-    } else if (kind === 'zip') await runner('/usr/bin/ditto', ['-x', '-k', archivePath, destDir]);
-    else await runner('/usr/bin/tar', ['-xzf', archivePath, '-C', destDir]);
+async function extractInto(ambiente, extracao) {
+    fs.mkdirSync(extracao.destino, { recursive: true });
+    await ambiente.perfil.extrair(ambiente.runner, extracao);
 }
 
 function replaceDir(from, to) {
@@ -124,60 +162,96 @@ function markExecutable(dir, names) {
     }
 }
 
-async function installAdb(baseDir, deps = {}) {
+function ambienteDeInstalacao(deps) {
     const http = deps.http || require('axios');
     const runner = deps.runner || run;
-    const platform = deps.platform || process.platform;
-    if (!ADB_ZIP_URLS[platform]) throw new Error('Download automático do ADB não existe para esta plataforma: ' + platform);
-    const adbExe = toolFileName('adb', platform);
-    const zip = await fetchBuffer(http, ADB_ZIP_URLS[platform]);
-    const manifest = (await fetchBuffer(http, ADB_MANIFEST_URL, 60000)).toString('utf8');
-    const official = parsePlatformToolsSha1(manifest, MANIFEST_HOST_OS[platform]);
-    if (!official.length) throw new Error('Não foi possível obter o hash oficial do ADB no manifesto do Google; instalação cancelada.');
-    const got = hashHex(zip, 'sha1');
-    if (!official.includes(got)) throw new Error('Hash do ADB não confere com o manifesto oficial do Google; arquivo descartado.');
-    const work = fs.mkdtempSync(path.join(baseDir, 'adb-tmp-'));
+    const plataforma = deps.platform || process.platform;
+    return { http, runner, plataforma, perfil: perfilDaPlataforma(plataforma) };
+}
+
+function pacoteDoAdb(perfil) {
+    const adbExe = 'adb' + perfil.sufixoExecutavel;
+    return {
+        ferramenta: 'adb',
+        nomeDoArquivo: 'platform-tools.zip',
+        tipo: 'zip',
+        pastaExtraida: 'platform-tools',
+        pastaFinal: 'platform-tools',
+        obrigatorios: [adbExe],
+        principal: adbExe,
+        executaveis: ['adb', 'fastboot'],
+        erroIncompleto: 'O pacote do ADB baixado não contém o executável adb.'
+    };
+}
+
+function nomeDoArquivoDoScrcpy(tipo) {
+    return tipo === 'zip' ? 'scrcpy.zip' : 'scrcpy.tar.gz';
+}
+
+function pacoteDoScrcpy(perfil, rel) {
+    const scrcpyExe = 'scrcpy' + perfil.sufixoExecutavel;
+    return {
+        ferramenta: 'scrcpy',
+        nomeDoArquivo: nomeDoArquivoDoScrcpy(rel.kind),
+        tipo: rel.kind,
+        pastaExtraida: rel.name,
+        pastaFinal: 'scrcpy',
+        obrigatorios: [scrcpyExe, 'scrcpy-server'],
+        principal: scrcpyExe,
+        executaveis: ['scrcpy', 'adb'],
+        erroIncompleto: 'O pacote do scrcpy baixado não contém scrcpy e scrcpy-server.'
+    };
+}
+
+function pacoteCompleto(pasta, obrigatorios) {
+    return obrigatorios.every(nome => fs.existsSync(path.join(pasta, nome)));
+}
+
+async function instalarPacote(baseDir, ambiente, pacote, conteudo) {
+    const work = fs.mkdtempSync(path.join(baseDir, pacote.ferramenta + '-tmp-'));
     try {
-        const zipPath = path.join(work, 'platform-tools.zip');
-        fs.writeFileSync(zipPath, zip);
-        const out = path.join(work, 'out');
-        await extractInto(zipPath, 'zip', out, runner, platform);
-        const src = path.join(out, 'platform-tools');
-        if (!fs.existsSync(path.join(src, adbExe))) throw new Error('O pacote do ADB baixado não contém o executável adb.');
-        if (platform !== 'win32') markExecutable(src, ['adb', 'fastboot']);
-        const dest = path.join(baseDir, 'platform-tools');
+        const arquivo = path.join(work, pacote.nomeDoArquivo);
+        fs.writeFileSync(arquivo, conteudo);
+        const destinoDaExtracao = path.join(work, 'out');
+        await extractInto(ambiente, { arquivo, tipo: pacote.tipo, destino: destinoDaExtracao });
+        const src = path.join(destinoDaExtracao, pacote.pastaExtraida);
+        if (!pacoteCompleto(src, pacote.obrigatorios)) throw new Error(pacote.erroIncompleto);
+        if (ambiente.perfil.marcaExecutavel) markExecutable(src, pacote.executaveis);
+        const dest = path.join(baseDir, pacote.pastaFinal);
         replaceDir(src, dest);
-        return path.join(dest, adbExe);
+        return path.join(dest, pacote.principal);
     } finally {
         fs.rmSync(work, { recursive: true, force: true });
     }
 }
 
+async function hashesOficiaisDoAdb(http, hostOs) {
+    const manifest = (await fetchBuffer(http, ADB_MANIFEST_URL, 60000)).toString('utf8');
+    const oficiais = parsePlatformToolsSha1(manifest, hostOs);
+    if (!oficiais.length) throw new Error('Não foi possível obter o hash oficial do ADB no manifesto do Google; instalação cancelada.');
+    return oficiais;
+}
+
+async function baixarAdbConferido(ambiente) {
+    const zip = await fetchBuffer(ambiente.http, ambiente.perfil.adbZipUrl);
+    const oficiais = await hashesOficiaisDoAdb(ambiente.http, ambiente.perfil.hostOsNoManifesto);
+    if (!oficiais.includes(hashHex(zip, 'sha1'))) throw new Error('Hash do ADB não confere com o manifesto oficial do Google; arquivo descartado.');
+    return zip;
+}
+
+async function installAdb(baseDir, deps = {}) {
+    const ambiente = ambienteDeInstalacao(deps);
+    if (!ambiente.perfil.adbZipUrl) throw new Error('Download automático do ADB não existe para esta plataforma: ' + ambiente.plataforma);
+    const zip = await baixarAdbConferido(ambiente);
+    return instalarPacote(baseDir, ambiente, pacoteDoAdb(ambiente.perfil), zip);
+}
+
 async function installScrcpy(baseDir, deps = {}) {
-    const http = deps.http || require('axios');
-    const runner = deps.runner || run;
-    const platform = deps.platform || process.platform;
-    const rel = deps.release || scrcpyRelease(deps.arch || process.arch, platform);
-    const tgz = await fetchBuffer(http, rel.url);
-    if (hashHex(tgz, 'sha256') !== rel.sha256) throw new Error('Hash do scrcpy não confere com o valor oficial da release; arquivo descartado.');
-    const work = fs.mkdtempSync(path.join(baseDir, 'scrcpy-tmp-'));
-    try {
-        const tgzPath = path.join(work, rel.kind === 'zip' ? 'scrcpy.zip' : 'scrcpy.tar.gz');
-        fs.writeFileSync(tgzPath, tgz);
-        const out = path.join(work, 'out');
-        await extractInto(tgzPath, rel.kind, out, runner, platform);
-        const src = path.join(out, rel.name);
-        const scrcpyExe = toolFileName('scrcpy', platform);
-        if (!fs.existsSync(path.join(src, scrcpyExe)) || !fs.existsSync(path.join(src, 'scrcpy-server'))) {
-            throw new Error('O pacote do scrcpy baixado não contém scrcpy e scrcpy-server.');
-        }
-        if (platform !== 'win32') markExecutable(src, ['scrcpy', 'adb']);
-        const dest = path.join(baseDir, 'scrcpy');
-        replaceDir(src, dest);
-        return path.join(dest, scrcpyExe);
-    } finally {
-        fs.rmSync(work, { recursive: true, force: true });
-    }
+    const ambiente = ambienteDeInstalacao(deps);
+    const rel = deps.release || scrcpyRelease(deps.arch || process.arch, ambiente.plataforma);
+    const pacote = await fetchBuffer(ambiente.http, rel.url);
+    if (hashHex(pacote, 'sha256') !== rel.sha256) throw new Error('Hash do scrcpy não confere com o valor oficial da release; arquivo descartado.');
+    return instalarPacote(baseDir, ambiente, pacoteDoScrcpy(ambiente.perfil, rel), pacote);
 }
 
 function localToolPath(baseDir, name) {
@@ -199,31 +273,65 @@ async function ensureAndroidTools({ baseDir, adbReady, scrcpyReady, force, progr
     return errors;
 }
 
-async function ensureForService(service, force, platform = process.platform, extraDeps = {}) {
-    const mac = platform === 'darwin';
-    const readyMessage = mac ? 'Native macOS tools ready.' : 'Ferramentas prontas.';
-    const adbOk = fs.existsSync(service.adbPath), scrcpyOk = fs.existsSync(service.scrcpyPath);
-    if (adbOk && scrcpyOk && !force) {
-        return { success: true, message: readyMessage, adbPath: service.adbPath, scrcpyPath: service.scrcpyPath };
+function caminhosDasFerramentas(service) {
+    return { adbPath: service.adbPath, scrcpyPath: service.scrcpyPath };
+}
+
+function ferramentasInstaladas(caminhos) {
+    return fs.existsSync(caminhos.adbPath) && fs.existsSync(caminhos.scrcpyPath);
+}
+
+function situacaoDasFerramentas(caminhos) {
+    return { adbPronto: fs.existsSync(caminhos.adbPath), scrcpyPronto: fs.existsSync(caminhos.scrcpyPath) };
+}
+
+function nadaAInstalar(situacao, force) {
+    return situacao.adbPronto && situacao.scrcpyPronto && !force;
+}
+
+function respostaPronta(perfil, caminhos) {
+    return { success: true, message: perfil.mensagemPronto, ...caminhos };
+}
+
+function mensagemDeFalha(perfil, errors) {
+    const motivo = errors.join(' | ') || 'Arquivos não encontrados após a instalação.';
+    return 'Não foi possível instalar adb/scrcpy automaticamente. ' + motivo + perfil.dicaDeInstalacaoManual;
+}
+
+function informarProgresso(service, progresso) {
+    service.sendToFrontend('physical-mobile:setup-progress', progresso);
+}
+
+function progressoDoServico(service) {
+    return (progresso) => informarProgresso(service, progresso);
+}
+
+function concluirProvisionamento(service, perfil, errors) {
+    const caminhos = caminhosDasFerramentas(service);
+    if (errors.length || !ferramentasInstaladas(caminhos)) {
+        const message = mensagemDeFalha(perfil, errors);
+        console.error('[PhysicalMobile] ensureTools:', message);
+        informarProgresso(service, { stage: 'error', message });
+        return { success: false, error: message, ...caminhos };
     }
+    informarProgresso(service, { stage: 'done', message: 'Motores prontos!' });
+    return respostaPronta(perfil, caminhos);
+}
+
+async function ensureForService(service, force, platform = process.platform, extraDeps = {}) {
+    const perfil = perfilDaPlataforma(platform);
+    const antes = caminhosDasFerramentas(service);
+    const situacao = situacaoDasFerramentas(antes);
+    if (nadaAInstalar(situacao, force)) return respostaPronta(perfil, antes);
     if (service.isProvisioning) return { success: true, message: 'Configuração em andamento...' };
     service.isProvisioning = true;
-    const report = (p) => service.sendToFrontend('physical-mobile:setup-progress', p);
-    report({ stage: 'starting', message: 'Configurando Motor de Controle Móvel...' });
+    const progress = progressoDoServico(service);
+    progress({ stage: 'starting', message: 'Configurando Motor de Controle Móvel...' });
     try {
         const errors = await ensureAndroidTools({
-            baseDir: service.baseDir, adbReady: adbOk, scrcpyReady: scrcpyOk, force, progress: report, deps: { ...extraDeps, platform }
+            baseDir: service.baseDir, adbReady: situacao.adbPronto, scrcpyReady: situacao.scrcpyPronto, force, progress, deps: { ...extraDeps, platform }
         });
-        const adb = service.adbPath, scrcpy = service.scrcpyPath;
-        const ready = fs.existsSync(adb) && fs.existsSync(scrcpy);
-        if (errors.length || !ready) {
-            const message = 'Não foi possível instalar adb/scrcpy automaticamente. ' + (errors.join(' | ') || 'Arquivos não encontrados após a instalação.') + (mac ? ' Alternativa: brew install android-platform-tools scrcpy' : '');
-            console.error('[PhysicalMobile] ensureTools:', message);
-            report({ stage: 'error', message });
-            return { success: false, error: message, adbPath: adb, scrcpyPath: scrcpy };
-        }
-        report({ stage: 'done', message: 'Motores prontos!' });
-        return { success: true, message: readyMessage, adbPath: adb, scrcpyPath: scrcpy };
+        return concluirProvisionamento(service, perfil, errors);
     } finally {
         service.isProvisioning = false;
     }

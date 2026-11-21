@@ -11,6 +11,18 @@ const sha = (b, a) => crypto.createHash(a).update(b).digest('hex');
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'nova-adb-test-'));
 const xmlFor = (hash) => `<remotePackage path="platform-tools"><archives><archive><complete><checksum type="sha1">${hash}</checksum><url>x-darwin.zip</url></complete><host-os>macosx</host-os></archive><archive><complete><checksum type="sha1">${'a'.repeat(40)}</checksum></complete><host-os>windows</host-os></archive></archives></remotePackage>`;
 
+function servicoFalso(base, sufixoExecutavel) {
+    const eventos = [];
+    return {
+        baseDir: base,
+        adbPath: path.join(base, 'adb' + sufixoExecutavel),
+        scrcpyPath: path.join(base, 'scrcpy' + sufixoExecutavel),
+        isProvisioning: false,
+        eventos,
+        sendToFrontend: (...envio) => eventos.push(envio[1])
+    };
+}
+
 function fakeRunner(layout) {
     return async (file, args) => {
         const dest = args[args.length - 1];
@@ -134,12 +146,13 @@ test('fetchBuffer revalida cada redirect via beforeRedirect', async () => {
 
 test('ensureForService devolve pronto sem baixar e falha com mensagem clara', async () => {
     const base = tmp();
-    const eventos = [];
-    const svc = { baseDir: base, adbPath: path.join(base, 'adb'), scrcpyPath: path.join(base, 'scrcpy'), isProvisioning: false, sendToFrontend: (e, p) => eventos.push(p) };
+    const svc = servicoFalso(base, '');
+    const { eventos } = svc;
     fs.writeFileSync(svc.adbPath, 'x');
     fs.writeFileSync(svc.scrcpyPath, 'x');
     const ok = await m.ensureForService(svc, false, 'darwin');
     assert.strictEqual(ok.success, true);
+    assert.strictEqual(ok.message, 'Native macOS tools ready.');
     assert.strictEqual(eventos.length, 0);
     const emAndamento = { ...svc, isProvisioning: true };
     const busy = await m.ensureForService(emAndamento, true, 'darwin');
@@ -212,9 +225,11 @@ test('installScrcpy no Windows com pacote bom troca a pasta e devolve scrcpy.exe
     const zip = Buffer.from('zipscrcpy');
     const release = { ...m.scrcpyRelease('x64', 'win32'), sha256: sha(zip, 'sha256') };
     const http = async () => ({ data: zip });
-    const runner = winRunner([`${release.name}/scrcpy.exe`, `${release.name}/scrcpy-server`, `${release.name}/adb.exe`]);
+    const chamadas = [];
+    const runner = winRunner([`${release.name}/scrcpy.exe`, `${release.name}/scrcpy-server`, `${release.name}/adb.exe`], chamadas);
     const p = await m.installScrcpy(base, { http, platform: 'win32', release, runner });
     assert.strictEqual(p, path.join(base, 'scrcpy', 'scrcpy.exe'));
+    assert.ok(chamadas[0].opts.env.NOVA_ARCHIVE.endsWith('scrcpy.zip'));
     assert.ok(fs.existsSync(path.join(base, 'scrcpy', 'scrcpy-server')));
     assert.deepStrictEqual(fs.readdirSync(base), ['scrcpy']);
 });
@@ -228,8 +243,8 @@ test('installScrcpy no Windows sem scrcpy.exe no pacote falha', async () => {
 
 test('ensureForService no Windows falha com mensagem clara e sem dica do brew', async () => {
     const base = tmp();
-    const eventos = [];
-    const svc = { baseDir: base, adbPath: path.join(base, 'adb.exe'), scrcpyPath: path.join(base, 'scrcpy.exe'), isProvisioning: false, sendToFrontend: (e, p) => eventos.push(p) };
+    const svc = servicoFalso(base, '.exe');
+    const { eventos } = svc;
     const http = async () => { throw new Error('offline'); };
     const falha = await m.ensureForService(svc, false, 'win32', { http });
     assert.strictEqual(falha.success, false);
@@ -245,4 +260,15 @@ test('plataforma sem build oficial não baixa o scrcpy do macOS', async () => {
     const http = async () => { baixou = true; return { data: Buffer.from('x') }; };
     await assert.rejects(m.installScrcpy(base, { http, platform: 'linux', arch: 'x64' }), /plataforma/);
     assert.strictEqual(baixou, false);
+});
+
+test('ensureForService no Windows com as ferramentas no lugar responde pronto sem baixar', async () => {
+    const base = tmp();
+    const svc = servicoFalso(base, '.exe');
+    const { eventos } = svc;
+    fs.writeFileSync(svc.adbPath, 'x');
+    fs.writeFileSync(svc.scrcpyPath, 'x');
+    const pronto = await m.ensureForService(svc, false, 'win32');
+    assert.deepStrictEqual(pronto, { success: true, message: 'Ferramentas prontas.', adbPath: svc.adbPath, scrcpyPath: svc.scrcpyPath });
+    assert.strictEqual(eventos.length, 0);
 });
