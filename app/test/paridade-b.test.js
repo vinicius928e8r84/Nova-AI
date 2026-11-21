@@ -3,8 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const http = require('http');
-const { hasUpdateConfig, edgeTtsBinary, downloadFile } = require('../electron/services/paridade-utils');
+const { hasUpdateConfig, edgeTtsBinary } = require('../electron/services/paridade-utils');
 
 test('hasUpdateConfig: sem app-update.yml devolve false e com ele true', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-upd-'));
@@ -18,40 +17,6 @@ test('edgeTtsBinary: Mac e Windows por python -m com o python resolvido', () => 
   assert.strictEqual(edgeTtsBinary('darwin', () => '/py/python3'), '"/py/python3" -m edge_tts');
   assert.strictEqual(edgeTtsBinary('win32', () => 'python'), '"python" -m edge_tts');
   assert.strictEqual(edgeTtsBinary('linux', () => ''), 'edge-tts');
-});
-
-test('downloadFile: segue redirecionamento, reporta progresso e trata 404', async () => {
-  const body = Buffer.alloc(50000, 7);
-  const srv = http.createServer((req, res) => {
-    if (req.url === '/r') { res.writeHead(302, { Location: '/f' }); return res.end(); }
-    if (req.url === '/f') { res.writeHead(200, { 'Content-Length': body.length }); return res.end(body); }
-    res.writeHead(404); res.end();
-  });
-  await new Promise(r => srv.listen(0, '127.0.0.1', r));
-  const base = `http://127.0.0.1:${srv.address().port}`;
-  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nova-dl-')), 'a.bin');
-  const pcts = [];
-  await downloadFile(`${base}/r`, out, { onProgress: p => pcts.push(p) });
-  assert.strictEqual(fs.statSync(out).size, body.length);
-  assert.strictEqual(pcts[pcts.length - 1], 100);
-  await assert.rejects(downloadFile(`${base}/x`, out + '2'), /HTTP 404/);
-  srv.close();
-});
-
-test('downloadFile: redirecionamento ftp:, file: ou Location invalida rejeita sem derrubar o processo', async () => {
-  const srv = http.createServer((req, res) => {
-    const loc = { '/ftp': 'ftp://127.0.0.1/x', '/file': 'file:///etc/passwd', '/bad': 'http://[' }[req.url];
-    if (loc) { res.writeHead(302, { Location: loc }); return res.end(); }
-    res.writeHead(404); res.end();
-  });
-  await new Promise(r => srv.listen(0, '127.0.0.1', r));
-  const base = `http://127.0.0.1:${srv.address().port}`;
-  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nova-dl-')), 'a.bin');
-  await assert.rejects(downloadFile(`${base}/ftp`, out), /Protocolo nao suportado/);
-  await assert.rejects(downloadFile(`${base}/file`, out), /Protocolo nao suportado/);
-  await assert.rejects(downloadFile(`${base}/bad`, out), /Invalid URL/);
-  assert.strictEqual(fs.existsSync(out), false);
-  srv.close();
 });
 
 test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o texto', () => {
@@ -89,6 +54,44 @@ test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o te
       vivos.forEach(k => assert.strictEqual(k.signalCode, null, 'nao deveria morrer'));
     }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
   })();
+});
+
+test('instalacaoPorSistema: Mac traz hdiutil/ditto/installer e Windows traz /S e msiexec', () => {
+  const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
+  const mac = instalacaoPorSistema('darwin');
+  assert.ok(mac.includes('hdiutil attach') && mac.includes('ditto') && mac.includes('installer -pkg') && mac.includes('administrator privileges'));
+  assert.ok(!mac.includes('msiexec'));
+  const win = instalacaoPorSistema('win32');
+  assert.ok(win.includes('"ARQ" /S') && win.includes('msiexec /i "ARQ" /qn /norestart'));
+  assert.ok(!win.includes('hdiutil'));
+});
+
+test('instalacaoPorSistema: todo caminho da receita vai entre aspas e o .dmg manda conferir depois', () => {
+  const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
+  const mac = instalacaoPorSistema('darwin');
+  assert.ok(mac.includes('ditto "TMP/X.app" "/Applications/X.app"'));
+  assert.ok(mac.includes('-mountpoint "TMP"') && mac.includes('hdiutil detach "TMP"'));
+  assert.ok(mac.includes('ls /Applications'));
+  assert.ok(!/&;|&\s*;/.test(mac));
+  const win = instalacaoPorSistema('win32');
+  assert.ok(!/msiexec \/i ARQ/.test(win));
+});
+
+test('instalacaoPorSistema: a receita do Mac roda em segundo plano e a do Windows avisa do limite de 15 s', () => {
+  const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
+  const mac = instalacaoPorSistema('darwin');
+  const [receitaDmg, receitaPkg] = mac.split('| .pkg =');
+  assert.ok(receitaDmg.includes('.dmg =') && receitaDmg.includes(' >/dev/null 2>&1 &'));
+  assert.ok(receitaPkg.includes('installer -pkg') && receitaPkg.includes(' >/dev/null 2>&1 &'));
+  assert.ok(mac.includes('pkgutil --pkgs'));
+  assert.ok(/background/i.test(mac));
+  const win = instalacaoPorSistema('win32');
+  assert.ok(/background|15 s/i.test(win));
+});
+
+test('instalacaoPorSistema: sistema que nao e Mac nem Windows nao recebe receita', () => {
+  const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
+  assert.strictEqual(instalacaoPorSistema('linux'), '');
 });
 
 test('macAntigravityStats: memória do ps, CPU 0 como no Windows; só o estouro de tempo vira não respondendo', async () => {

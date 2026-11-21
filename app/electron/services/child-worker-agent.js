@@ -18,6 +18,45 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { browserService } = require('./browser-manager');
+const { instalacaoPorSistema } = require('./paridade-utils');
+
+const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+function etiquetaDaChave(apiKey) {
+    return apiKey ? `[${apiKey.substring(0, 5)}... (len: ${apiKey.length})]` : '[EMPTY]';
+}
+
+function modelosSemRepetir(childModel) {
+    return [...new Set([childModel, 'gemini-3.8-flash', 'gemini-4-argon'])].map(model => ({ model, api: 'v1beta' }));
+}
+
+function shellDoSistema(plataforma) {
+    return plataforma === 'darwin' ? 'macOS with POSIX shell; use open, osascript and native macOS paths' : 'Windows with PowerShell/CMD';
+}
+
+function lerPassoReAct(texto) {
+    const thoughtMatch = texto.match(/Thought\s*:?\s*(.*)/i);
+    const actionMatch = texto.match(/Action\s*:?\s*(\w+)\s*\(([\s\S]*?)\)/i);
+    return {
+        thought: thoughtMatch ? thoughtMatch[1].trim() : 'Analyzing...',
+        action: actionMatch ? actionMatch[1].trim() : null,
+        args: actionMatch ? actionMatch[2].trim() : null,
+    };
+}
+
+function ehRespostaFinal(action) {
+    return action?.toUpperCase() === 'FINAL_ANSWER';
+}
+
+function promptDoPasso(systemPrompt, task, history) {
+    const historico = history.map(h => `${h.type}: ${h.content}`).join('\n');
+    return `${systemPrompt}\n\n===TASK===\n${task}\n\n===HISTORY===\n${historico}\n\nThought:`;
+}
+
+function respostaPelasObservacoes(history) {
+    const observations = history.filter(h => h.type === 'Observation').map(h => h.content).join('\n\n');
+    return observations || 'Task completed. See terminal for full details.';
+}
 
 class ChildWorkerAgent {
     constructor(mainWindow, app) {
@@ -324,39 +363,69 @@ class ChildWorkerAgent {
     async executeTask(task, apiKey, childModel = 'gemini-3.8-flash', groqKey = '') {
         if (this.isWorking) return { error: 'Agent already busy. Wait or cancel first.' };
 
-        this.isWorking = true;
-        this.isCancelled = false;
-
-        const keyTag = apiKey ? `[${apiKey.substring(0, 5)}... (len: ${apiKey.length})]` : '[EMPTY]';
-        this.log('ceo', `System Check: ${keyTag}`);
-        this.log('ceo', `Child Model: ${childModel}`);
-        this.log('ceo', `Starting task: "${task}"`);
-
-        // Build model list: v1 STABLE first (all key types), then v1beta aliases
-        // childModel from Settings goes first (user preference)
-        const allModels = [
-            { model: childModel,      api: 'v1beta' }, // user's pick
-            { model: 'gemini-3.8-flash', api: 'v1beta' },
-            { model: 'gemini-4-argon',   api: 'v1beta' },
-        ];
-        // Deduplicate (keep first occurrence)
-        const seen = new Set();
-        this.GEMINI_CANDIDATES = allModels.filter(c => {
-            if (seen.has(c.model)) return false;
-            seen.add(c.model);
-            return true;
-        });
-
-        const history = [];
-        let currentStep = 0;
-        let finalAnswer = null;
+        this._comecarTarefa(task, apiKey, childModel);
 
         try {
             this.setStatus('researcher', 'busy');
             this.log('ceo', `Neural Engine: Node.js HTTPS (v1 + v1beta) | Models: ${this.GEMINI_CANDIDATES.length} Gemini + Groq`);
 
-            // ── STONIC-aligned system prompt ──────────────────────────────────
-            const systemPrompt = `You are NOVA's Sub-Agent — a focused, independent research and execution unit.
+            const finalAnswer = await this._rodarPassos(task, apiKey, groqKey);
+
+            this.log('ceo', 'Task complete. Sending result to Nova.');
+            this.setStatus('researcher', 'done');
+            return { success: true, finalAnswer };
+
+        } catch (err) {
+            this.log('ceo', `CRITICAL ERROR: ${err.message}`);
+            this.setStatus('researcher', 'idle');
+            return { success: false, error: err.message };
+        } finally {
+            this.isWorking = false;
+        }
+    }
+
+    _comecarTarefa(task, apiKey, childModel) {
+        this.isWorking = true;
+        this.isCancelled = false;
+        this.log('ceo', `System Check: ${etiquetaDaChave(apiKey)}`);
+        this.log('ceo', `Child Model: ${childModel}`);
+        this.log('ceo', `Starting task: "${task}"`);
+        this.GEMINI_CANDIDATES = modelosSemRepetir(childModel);
+    }
+
+    async _rodarPassos(task, apiKey, groqKey) {
+        const systemPrompt = this._promptDoSistema(process.platform);
+        const stepDelay = this._last429 ? this.STEP_DELAY_MS : 2000;
+        const history = [];
+        for (let passo = 0; passo < this.MAX_STEPS && !this.isCancelled; passo++) {
+            if (passo > 0) await esperar(stepDelay);
+            this.log('ceo', `Reasoning Step ${passo + 1}/${this.MAX_STEPS}...`);
+            const final = await this._darPasso(apiKey, groqKey, promptDoPasso(systemPrompt, task, history), history);
+            if (final) return final.resposta || respostaPelasObservacoes(history);
+        }
+        return respostaPelasObservacoes(history);
+    }
+
+    async _darPasso(apiKey, groqKey, prompt, history) {
+        const passo = lerPassoReAct(await this.callAI(apiKey, groqKey, prompt));
+        history.push({ type: 'Thought', content: passo.thought });
+        this.log('researcher', passo.thought);
+        if (ehRespostaFinal(passo.action)) return { resposta: passo.args };
+        history.push({ type: 'Observation', content: await this._observarAcao(passo) });
+        return null;
+    }
+
+    async _observarAcao({ action, args }) {
+        if (!action) return 'No action detected. Please specify an Action.';
+        this.log('ceo', `Executing: ${action}(${String(args).substring(0, 60)})`);
+        this.updateUISubAgent(action);
+        const observation = await this.dispatchTool(action, args);
+        this.log('researcher', `Result: ${String(observation).substring(0, 120)}...`);
+        return observation;
+    }
+
+    _promptDoSistema(plataforma) {
+        return `You are NOVA's Sub-Agent — a focused, independent research and execution unit.
 
 IDENTITY: You are fast, precise, and practical. Complete tasks in minimum steps.
 
@@ -369,7 +438,8 @@ RULES:
 AVAILABLE TOOLS:
 1. web_search(query) — Search the web for real, current information (silent)
 2. browse_site(url) — Fetch and read content from a specific URL (silent)
-3. execute_shell(command) — Run commands for ${process.platform === 'darwin' ? 'macOS with POSIX shell; use open, osascript and native macOS paths' : 'Windows with PowerShell/CMD'}
+3. execute_shell(command) — Run commands for ${shellDoSistema(plataforma)}
+${instalacaoPorSistema(plataforma)}
 4. browser_navigate(url) — Open the visible browser and go to a URL (e.g. for downloading software, going to specific sites like filehippo)
 5. browser_snapshot(includeScreenshot) — Get the current page structure as text. Returns element references like [12] button. ALWAYS DO THIS FIRST after navigating.
 6. browser_click(selector_or_ref) — Click an element precisely using its ref number (e.g. "[12]") or a CSS selector.
@@ -386,74 +456,6 @@ Action: tool_name(arguments)
 When you have enough information to answer:
 Thought: I have gathered enough information to provide a complete answer.
 Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sources and relevant information.)`;
-
-            // Reduce delay since we use Groq (no rate limit) when Gemini is unavailable
-            const stepDelay = this._last429 ? this.STEP_DELAY_MS : 2000; // 2s if Groq, 6s if Gemini quota
-
-            while (currentStep < this.MAX_STEPS && !this.isCancelled) {
-                // Inter-step throttle
-                if (currentStep > 0) {
-                    await new Promise(r => setTimeout(r, stepDelay));
-                }
-
-                this.log('ceo', `Reasoning Step ${currentStep + 1}/${this.MAX_STEPS}...`);
-
-                const fullPrompt = `${systemPrompt}\n\n===TASK===\n${task}\n\n===HISTORY===\n${
-                    history.map(h => `${h.type}: ${h.content}`).join('\n')
-                }\n\nThought:`;
-
-                const responseText = await this.callAI(apiKey, groqKey, fullPrompt);
-
-                // Hardened ReAct parsing
-                const thoughtMatch = responseText.match(/Thought\s*:?\s*(.*)/i);
-                const actionMatch  = responseText.match(/Action\s*:?\s*(\w+)\s*\(([\s\S]*?)\)/i);
-
-                const thought = thoughtMatch ? thoughtMatch[1].trim() : 'Analyzing...';
-                const action  = actionMatch  ? actionMatch[1].trim() : null;
-                const args    = actionMatch  ? actionMatch[2].trim() : null;
-
-                history.push({ type: 'Thought', content: thought });
-                this.log('researcher', thought);
-
-                if (action?.toUpperCase() === 'FINAL_ANSWER') {
-                    finalAnswer = args;
-                    break;
-                }
-
-                if (!action) {
-                    history.push({ type: 'Observation', content: 'No action detected. Please specify an Action.' });
-                    currentStep++;
-                    continue;
-                }
-
-                this.log('ceo', `Executing: ${action}(${String(args).substring(0, 60)})`);
-                this.updateUISubAgent(action);
-
-                const observation = await this.dispatchTool(action, args);
-                history.push({ type: 'Observation', content: observation });
-                this.log('researcher', `Result: ${String(observation).substring(0, 120)}...`);
-
-                currentStep++;
-            }
-
-            this.log('ceo', 'Task complete. Sending result to Nova.');
-            this.setStatus('researcher', 'done');
-
-            // Build finalAnswer from history if explicit FINAL_ANSWER was not given
-            if (!finalAnswer) {
-                const observations = history.filter(h => h.type === 'Observation').map(h => h.content).join('\n\n');
-                finalAnswer = observations || 'Task completed. See terminal for full details.';
-            }
-
-            return { success: true, finalAnswer };
-
-        } catch (err) {
-            this.log('ceo', `CRITICAL ERROR: ${err.message}`);
-            this.setStatus('researcher', 'idle');
-            return { success: false, error: err.message };
-        } finally {
-            this.isWorking = false;
-        }
     }
 
     // ─── Tool Dispatcher ─────────────────────────────────────────────────────
