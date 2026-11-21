@@ -19,7 +19,7 @@ test('edgeTtsBinary: Mac e Windows por python -m com o python resolvido', () => 
   assert.strictEqual(edgeTtsBinary('linux', () => ''), 'edge-tts');
 });
 
-test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto', () => {
+test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o texto', () => {
   const { spawn, spawnSync } = require('child_process');
   const { MAC_BROWSER_KILL_PATTERN } = require('../electron/services/paridade-utils');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-pk-'));
@@ -33,10 +33,12 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
   const sess = '--user-data-dir=/Users/u/Library/Application Support/Nova AI/.wwebjs_auth/session-nova-desktop-client';
   const chromium = mk('Chromium.app/Contents/MacOS/Chromium');
   const chrome = mk('Google Chrome.app/Contents/MacOS/Google Chrome');
+  const edge = mk('Microsoft Edge.app/Contents/MacOS/Microsoft Edge');
   const outro = mk('Outro/Chromium.app/Contents/MacOS/Chromium');
   const kids = [
     spawn(chromium, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
     spawn(chrome, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
+    spawn(edge, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
   ];
   const vivos = [
     spawn(outro, ['-e', IDLE, '--', '--user-data-dir=/x/pessoal'], { stdio: 'ignore' }),
