@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Registro da PR: risco do revisor e prova parcial — 21/11/2026
+
+- **O que mudou:** o registro de revisão ganha a linha `Risco: BAIXA|MÉDIA|ALTA` (o `registrar-na-pr.js revisao` pede `--risco`), e o check `Registro da PR` usa a maior atenção entre o corpo e os registros do head: ALTA exige `PROVADO 100% REAL`. Uma revisão sem `Risco:` deixa de valer. A seção "Prova real" que diz `NÃO COBERTO` ou `BLOQUEADA` não vale como prova, e isso pega o feminino, o plural e o hífen (`NÃO COBERTA`, `não cobertos`, `NÃO-COBERTO`, `bloqueado`, `BLOQUEADAS`), com ou sem acento, em qualquer caixa, e também em bloco de código ou citação dentro da seção; o `registrar-na-pr.js prova` pede `--cobertura total|parcial`, e `parcial` escreve `BLOQUEADA-iPhone` no lugar da frase. Origem: a PM 692 foi mesclada como MÉDIA porque o corpo dizia MÉDIA e a revisão dizia ALTA.
+- **Arquivos:** `scripts/regras/registro-da-pr.js`, `scripts/regras/registrar-na-pr.js`, `scripts/regras/test/registro.test.js`, `correcoes.test.js` e `endurecimento.test.js` (registros com `Risco:`), `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum.
+- **Sem testar:** o check rodando no GitHub com as regras novas (só valem a partir da PR seguinte à mescla, porque o workflow usa as regras da base).
+
 ## telegram-manager.js refatorado sem mudar o comportamento (Onda 4) — 21/11/2026
 
 - **O que mudou:** `registerTelegramEvents` (136 linhas, complexidade 33) virou um tratador por tipo de mensagem (privada, grupo), uma tabela de comandos do chat próprio (`COMANDOS_DO_CHEFE`) e uma ação por comando. `getClientOptions` passou a ler o perfil do aparelho de uma tabela (`PERFIS_DE_APARELHO`) e a montar o proxy em funções puras (MTProto e SOCKS). O fim de login repetido 4 vezes (nome do dono, sessão gravada, eventos) virou `concluirLogin`; o login por QR ganhou um método por etapa. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que no Node e no Electron escreve no mesmo stdout. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o do bloqueio de tela já existia e só foi movido).
