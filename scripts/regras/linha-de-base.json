@@ -45,7 +45,6 @@
     "app/electron/services/mac-native.js": 5,
     "app/electron/services/nova-human-controller.js": 40,
     "app/electron/services/nova-shutdown.js": 33,
-    "app/electron/services/nova-studio-controller.js": 93,
     "app/electron/services/paridade-utils.js": 10,
     "app/electron/services/physicalMobileService.js": 644,
     "app/electron/services/platform-utils.js": 2,
