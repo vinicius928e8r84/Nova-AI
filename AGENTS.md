@@ -84,5 +84,3 @@ O código fonte fica neste repositório; o app instalado em
 
 - Código novo em **pt-BR**; nomes de API/hardware como estão. **Nenhum comentário novo**: o nome carrega a ideia, a decisão vai no corpo da PR (regras automáticas em `CONTRIBUTING.md`).
 - Não traduza nada que seja valor de spoofing (nomes de GPU, modelos de celular).
-- Toda alteração de comportamento precisa de registro em `MAC/LEIA-ME.md`
-  (data, o que mudou, arquivos, o que ficou sem testar).

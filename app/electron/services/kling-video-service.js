@@ -11,6 +11,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const { execFile } = require('child_process');
+const toolPaths = require('./tool-paths');
 
 class KlingVideoService {
     constructor(app) {
@@ -19,8 +20,7 @@ class KlingVideoService {
     }
 
     _resolveFfmpegPath() {
-        // Procura o FFmpeg incluído no app em qualquer plataforma (macOS usa "ffmpeg", Windows "ffmpeg.exe")
-        const names = ['ffmpeg', 'ffmpeg.exe'];
+        const names = [toolPaths.exe('ffmpeg')];
         const roots = [];
         if (process.resourcesPath) roots.push(path.join(process.resourcesPath, 'bin'));
         roots.push(path.join(process.cwd(), 'resources', 'bin'));
