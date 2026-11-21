@@ -238,11 +238,7 @@ class AntigravityController {
     async getProcessStats() {
         if (process.platform === "darwin") {
             try {
-                const mac=require('./mac-native');
-                const output=await mac.apple('tell application "System Events" to tell process "Antigravity" to return (unix id as text) & "||" & (name of front window)');
-                const [pid,title]=output.split('||');
-                const rss=await mac.run('/bin/ps',['-p',pid,'-o','rss=']);
-                return {pid:Number(pid),cpu:0,memory:Math.round(Number(rss)/1024),responding:true,title};
+                return await require('./paridade-utils').macAntigravityStats(require('./mac-native'));
             } catch {return null;}
         }
         return new Promise((resolve) => {
