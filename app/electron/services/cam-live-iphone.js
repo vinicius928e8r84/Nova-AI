@@ -243,7 +243,7 @@ class CamLiveIphone {
     }
   }
   _sshArgs(forward) {
-    return ['-p', '2222', ...iphoneSsh.sshOptions(), '-v', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-N', '-R', forward, 'mobile@127.0.0.1'];
+    return ['-p', '2222', ...iphoneSsh.sshOptions(), '-v', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new', '-o', 'ConnectTimeout=5', '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=5', '-o', 'ServerAliveCountMax=2', '-N', '-R', forward, 'mobile@127.0.0.1'];
   }
   _openForward(args) {
     return new Promise((resolve, reject) => {
