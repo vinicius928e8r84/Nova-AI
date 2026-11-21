@@ -27,7 +27,6 @@
     "app/electron/services/cam-live-iphone.js": 81,
     "app/electron/services/cam-live-service.js": 82,
     "app/electron/services/camera-acesso.js": 1,
-    "app/electron/services/cdp-shim.js": 7,
     "app/electron/services/child-worker-agent.js": 148,
     "app/electron/services/gemini-browser-engine.js": 117,
     "app/electron/services/geo-proxy.js": 7,

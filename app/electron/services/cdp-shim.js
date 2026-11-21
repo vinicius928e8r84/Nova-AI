@@ -150,6 +150,16 @@ function sendJson(res, payload) {
     res.end(body);
 }
 
+function caminhoDoPedido(url) {
+    try {
+        return new URL(url, 'http://127.0.0.1').pathname;
+    } catch {
+        return null;
+    }
+}
+
+const ehPedidoDeDescoberta = (req, pathname) => req.method === 'GET' && ALLOWED_PATHS.has(pathname);
+
 // ─── Discovery (never launches) ─────────────────────────────────────────
 //
 // Answers with the lazy endpoint whether or not Chromium is up, so a client
@@ -160,14 +170,10 @@ async function handleRequest(req, res) {
         return sendJsonError(res, 403, 'Forbidden');
     }
 
-    let pathname;
-    try {
-        pathname = new URL(req.url, 'http://127.0.0.1').pathname;
-    } catch {
-        return sendJsonError(res, 400, 'Bad request');
-    }
+    const pathname = caminhoDoPedido(req.url);
+    if (pathname === null) return sendJsonError(res, 400, 'Bad request');
 
-    if (req.method !== 'GET' || !ALLOWED_PATHS.has(pathname)) {
+    if (!ehPedidoDeDescoberta(req, pathname)) {
         return sendJsonError(res, 404, 'Not found');
     }
 
@@ -182,7 +188,10 @@ async function handleRequest(req, res) {
         }
         return sendJson(res, []);   // /json and /json/list: no targets yet
     }
+    return repassarDoChromium(res, pathname);
+}
 
+async function repassarDoChromium(res, pathname) {
     const { getCdpPort } = require('./browser-manager');
     const cdpPort = getCdpPort();
 
@@ -210,70 +219,74 @@ async function handleRequest(req, res) {
 // tool is about to drive a browser. Launch Chromium, then hand the socket
 // straight through to it: after the handshake the shim is a byte pipe, it
 // neither parses nor rewrites CDP traffic.
-async function handleUpgrade(req, clientSocket, head) {
-    const fail = (line, reason) => {
-        console.warn('[CDP Shim] Rejected websocket upgrade:', reason);
-        // Same file browser-manager writes its launch diagnostics to — one
-        // place to look on a machine where the console is invisible.
-        try { require('./browser-manager').appendBrowserLog(`shim reject (${line}): ${reason}`); } catch { /* ignore */ }
-        try {
-            // Carry the reason in the body: CDP clients only surface the status
-            // line ("503 Service Unavailable"), but anyone probing with curl —
-            // or a client that reads the response — gets the actual cause
-            // (e.g. the full Playwright launch error) instead of a bare code.
-            const body = `CDP shim: ${reason}\n`;
-            clientSocket.write(
-                `HTTP/1.1 ${line}\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`
-            );
-        } catch { /* socket gone */ }
-        clientSocket.destroy();
-    };
+function recusarUpgrade(clientSocket, { line, reason }) {
+    console.warn('[CDP Shim] Rejected websocket upgrade:', reason);
+    try { require('./browser-manager').appendBrowserLog(`shim reject (${line}): ${reason}`); } catch {}
+    try {
+        const body = `CDP shim: ${reason}\n`;
+        clientSocket.write(
+            `HTTP/1.1 ${line}\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`
+        );
+    } catch {}
+    clientSocket.destroy();
+}
 
-    if (!hostIsLoopback(req.headers.host)) return fail('403 Forbidden', 'non-loopback Host');
+function motivoDaRecusa(req, pathname) {
+    if (!hostIsLoopback(req.headers.host)) return { line: '403 Forbidden', reason: 'non-loopback Host' };
 
     // Real CDP clients (Playwright, agent-browser, chrome-remote-interface) do
     // not send Origin; browsers always do. Refusing it keeps a malicious page
     // from driving the user's logged-in browser through this port.
-    if (req.headers.origin) return fail('403 Forbidden', `Origin header present (${req.headers.origin})`);
+    if (req.headers.origin) return { line: '403 Forbidden', reason: `Origin header present (${req.headers.origin})` };
+    if (pathname === null) return { line: '400 Bad Request', reason: 'unparseable request URL' };
+    if (!pathname.startsWith('/devtools/')) return { line: '404 Not Found', reason: `path ${pathname}` };
+    return null;
+}
 
-    let pathname;
-    try {
-        pathname = new URL(req.url, 'http://127.0.0.1').pathname;
-    } catch {
-        return fail('400 Bad Request', 'unparseable request URL');
+async function alvoComNavegadorAberto(browserManager, req, pathname) {
+    await withTimeout(ensureBrowserLaunched(), LAUNCH_TIMEOUT_MS, 'Chromium did not come up in time');
+    const cdpPort = browserManager.getCdpPort();
+    const targetPath = pathname.startsWith('/devtools/browser/')
+        ? await chromiumBrowserWsPath(cdpPort)
+        : req.url;
+    return { cdpPort, targetPath };
+}
+
+function handshakeParaChromium(headers, { cdpPort, targetPath }) {
+    const lines = [`GET ${targetPath} HTTP/1.1`];
+    for (const [name, value] of Object.entries(headers)) {
+        if (name.toLowerCase() === 'host') continue;
+        for (const v of Array.isArray(value) ? value : [value]) lines.push(`${name}: ${v}`);
     }
-    if (!pathname.startsWith('/devtools/')) return fail('404 Not Found', `path ${pathname}`);
+    lines.push(`Host: 127.0.0.1:${cdpPort}`);
+    return lines.join('\r\n') + '\r\n\r\n';
+}
 
-    const { getCdpPort, appendBrowserLog } = require('./browser-manager');
+async function handleUpgrade(req, clientSocket, head) {
+    const pathname = caminhoDoPedido(req.url);
+    const recusa = motivoDaRecusa(req, pathname);
+    if (recusa) return recusarUpgrade(clientSocket, recusa);
+
+    const browserManager = require('./browser-manager');
     const connectStarted = Date.now();
-    let cdpPort;
-    let targetPath;
+    let alvo;
     try {
-        await withTimeout(ensureBrowserLaunched(), LAUNCH_TIMEOUT_MS, 'Chromium did not come up in time');
-        cdpPort = getCdpPort();
-        // Our advertised path is a placeholder — swap in the GUID of the
-        // Chromium that is running *now*. Page-level paths pass through as-is.
-        targetPath = pathname.startsWith('/devtools/browser/')
-            ? await chromiumBrowserWsPath(cdpPort)
-            : req.url;
+        alvo = await alvoComNavegadorAberto(browserManager, req, pathname);
     } catch (err) {
         console.error('[CDP Shim] Browser unavailable for CDP connect:', err.message);
-        return fail('503 Service Unavailable', `browser unavailable: ${err.message}`);
+        return recusarUpgrade(clientSocket, { line: '503 Service Unavailable', reason: `browser unavailable: ${err.message}` });
     }
-    try { appendBrowserLog(`shim connect OK in ${Date.now() - connectStarted}ms (port ${cdpPort})`); } catch { /* ignore */ }
+    try { browserManager.appendBrowserLog(`shim connect OK in ${Date.now() - connectStarted}ms (port ${alvo.cdpPort})`); } catch {}
+    emendarNoChromium(req, clientSocket, head, alvo);
+}
 
+function emendarNoChromium(req, clientSocket, head, { cdpPort, targetPath }) {
     const upstream = net.connect(cdpPort, '127.0.0.1', () => {
         // Replay the client's handshake verbatim against the real endpoint —
         // only the path and Host change. Chromium computes the accept key from
         // the client's own Sec-WebSocket-Key, so the handshake it sends back is
         // the one the client is waiting for.
-        const lines = [`GET ${targetPath} HTTP/1.1`];
-        for (const [name, value] of Object.entries(req.headers)) {
-            if (name.toLowerCase() === 'host') continue;
-            for (const v of Array.isArray(value) ? value : [value]) lines.push(`${name}: ${v}`);
-        }
-        lines.push(`Host: 127.0.0.1:${cdpPort}`);
-        upstream.write(lines.join('\r\n') + '\r\n\r\n');
+        upstream.write(handshakeParaChromium(req.headers, { cdpPort, targetPath }));
         if (head && head.length) upstream.write(head);
 
         clientSocket.setNoDelay(true);
