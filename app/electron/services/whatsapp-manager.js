@@ -5,19 +5,48 @@ const fs = require('fs');
 const os = require('os');
 const { MAC_BROWSER_KILL_PATTERN } = require('./paridade-utils');
 const { avisarFalhaRepetida } = require('./whatsapp-aviso');
+const { tratarMensagemRecebida } = require('./whatsapp-mensagens');
 const { spawnSync } = require('child_process');
 const axios = require('axios');
 const FormData = require('form-data');
 const screenshot = require('screenshot-desktop');
 
 const BOT_SIGNATURE = '[NOVA_AI_BOT]';
-
-// ── Remote Screenshot: keywords that trigger instant screen capture ──────────
-const SCREENSHOT_TRIGGERS = [
-    'screenshot', 'take ss', 'screen dikhao', 'capture screen',
-    'ss lo', 'screen lo', 'screen capture', 'pc screen', 'screen bhejo',
-    'screen short', 'tasveer bhejo', 'pc screen dikhao', 'photo bhejo'
+const ESQUECER_ENVIADA_EM_MS = 120000;
+const TRAVAS_DO_PERFIL = ['already running for', 'SingletonLock', 'userDataDir'];
+const NAVEGADORES_DO_WINDOWS = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
 ];
+const ARGUMENTOS_DO_CHROMIUM = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu'
+];
+
+const comAssinatura = texto => `${texto}\n\n_${BOT_SIGNATURE}_`;
+const ehTravaDoPerfil = mensagem => TRAVAS_DO_PERFIL.some(trava => mensagem.includes(trava));
+const destinoValido = (chat, texto) => Boolean(chat) && chat !== 'self' && Boolean(texto);
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+const textoDaTranscricao = response => String(response?.data?.text || '').trim() || null;
+const detalheDoErro = error => error?.response?.data || error.message || error;
+const ehPastaDoChromium = entry => entry.isDirectory() && entry.name.startsWith('chromium-');
+
+function formularioDoAudio(base64Data) {
+    const form = new FormData();
+    form.append('file', Buffer.from(base64Data, 'base64'), {
+        filename: 'audio.ogg',
+        contentType: 'audio/ogg'
+    });
+    form.append('model', 'whisper-large-v3');
+    form.append('response_format', 'json');
+    return form;
+}
 
 function navegadorDoAmbienteSeExistir() {
     const doAmbiente = process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -171,17 +200,21 @@ class WhatsAppManager {
 
     startInitTimeout() {
         this.clearInitTimeout();
-        this.initTimeout = setTimeout(async () => {
+        this.initTimeout = setTimeout(() => {
             console.error('[WhatsApp] Initialization timeout. Rebuilding client.');
-            this.isInitializing = false;
-            this.isReady = false;
-            this.qrCode = null;
-            this.lastQr = null;
-            this.setStatus('disconnected', { reason: 'init-timeout' });
-
-            await this.destroyClient({ preserveSession: true });
-            this.scheduleReconnect('init-timeout');
+            return this._derrubarSessao('disconnected', 'init-timeout', 'init-timeout');
         }, this.maxInitTimeMs);
+    }
+
+    async _derrubarSessao(status, reason, motivoDaReconexao) {
+        this.isInitializing = false;
+        this.isReady = false;
+        this.qrCode = null;
+        this.lastQr = null;
+        this.setStatus(status, { reason });
+
+        await this.destroyClient({ preserveSession: true });
+        this.scheduleReconnect(motivoDaReconexao);
     }
 
     scheduleReconnect(reason = 'unknown') {
@@ -232,50 +265,47 @@ class WhatsAppManager {
             return this.resolverNavegadorNoMac();
         }
 
-        const candidates = [];
-
-        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-            candidates.push(process.env.PUPPETEER_EXECUTABLE_PATH);
-        }
-
-        const browserRoots = [
-            process.resourcesPath ? path.join(process.resourcesPath, 'browsers') : null,
-            path.join(process.cwd(), 'browsers'),
-            path.join(this.app.getPath('userData'), 'browsers')
-        ].filter(Boolean);
-
-        for (const root of browserRoots) {
-            if (!fs.existsSync(root)) continue;
-
-            candidates.push(path.join(root, 'chromium-1208', 'chrome-win64', 'chrome.exe'));
-
-            try {
-                const chromiumDirs = fs.readdirSync(root, { withFileTypes: true })
-                    .filter(entry => entry.isDirectory() && entry.name.startsWith('chromium-'))
-                    .map(entry => entry.name)
-                    .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
-
-                for (const dirName of chromiumDirs) {
-                    candidates.push(path.join(root, dirName, 'chrome-win64', 'chrome.exe'));
-                }
-            } catch (error) {
-                console.warn('[WhatsApp] Failed scanning browser directory:', root, error.message);
-            }
-        }
-
-        candidates.push('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
-        candidates.push('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe');
-        candidates.push('C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe');
-
-        for (const candidate of candidates) {
-            if (candidate && fs.existsSync(candidate)) {
-                console.log('[WhatsApp] Browser executable:', candidate);
-                return candidate;
-            }
+        const escolhido = this._candidatosNoWindows().find(candidate => candidate && fs.existsSync(candidate));
+        if (escolhido) {
+            console.info('[WhatsApp] Browser executable:', escolhido);
+            return escolhido;
         }
 
         console.warn('[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used.');
         return null;
+    }
+
+    _candidatosNoWindows() {
+        const candidates = [];
+        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+            candidates.push(process.env.PUPPETEER_EXECUTABLE_PATH);
+        }
+        for (const root of this._raizesDeNavegadores()) candidates.push(...this._chromiumsNaRaiz(root));
+        candidates.push(...NAVEGADORES_DO_WINDOWS);
+        return candidates;
+    }
+
+    _raizesDeNavegadores() {
+        return [
+            process.resourcesPath ? path.join(process.resourcesPath, 'browsers') : null,
+            path.join(process.cwd(), 'browsers'),
+            path.join(this.app.getPath('userData'), 'browsers')
+        ].filter(Boolean);
+    }
+
+    _chromiumsNaRaiz(root) {
+        if (!fs.existsSync(root)) return [];
+        const achados = [path.join(root, 'chromium-1208', 'chrome-win64', 'chrome.exe')];
+        try {
+            const chromiumDirs = fs.readdirSync(root, { withFileTypes: true })
+                .filter(ehPastaDoChromium)
+                .map(entry => entry.name)
+                .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+            for (const dirName of chromiumDirs) achados.push(path.join(root, dirName, 'chrome-win64', 'chrome.exe'));
+        } catch (error) {
+            console.warn('[WhatsApp] Failed scanning browser directory:', root, error.message);
+        }
+        return achados;
     }
 
     async destroyClient({ preserveSession = true } = {}) {
@@ -289,13 +319,7 @@ class WhatsAppManager {
             client.removeAllListeners();
         } catch (_error) { }
 
-        try {
-            if (!preserveSession && typeof client.logout === 'function') {
-                await client.logout();
-            }
-        } catch (error) {
-            console.warn('[WhatsApp] Logout during destroy failed:', error.message || error);
-        }
+        if (!preserveSession) await this._sairDaConta(client);
 
         try {
             await client.destroy();
@@ -306,28 +330,27 @@ class WhatsAppManager {
         }
     }
 
-    async initialize(options = {}) {
-        const { isReconnect = false } = options;
+    async _sairDaConta(client) {
+        if (typeof client.logout !== 'function') return;
+        try {
+            await client.logout();
+        } catch (error) {
+            console.warn('[WhatsApp] Logout during destroy failed:', error.message || error);
+        }
+    }
 
+    _inicializacaoDispensada() {
         if (this.isInitializing) {
-            console.log('[WhatsApp] Initialize skipped (already initializing).');
-            return;
+            console.info('[WhatsApp] Initialize skipped (already initializing).');
+            return true;
         }
+        if (!(this.client && this.isReady)) return false;
+        console.info('[WhatsApp] Initialize skipped (already connected).');
+        this.setStatus('connected');
+        return true;
+    }
 
-        if (this.client && this.isReady) {
-            console.log('[WhatsApp] Initialize skipped (already connected).');
-            this.setStatus('connected');
-            return;
-        }
-
-        this.manualLogout = false;
-        this.ensureRuntimeDirectories();
-        this.clearReconnectTimer();
-
-        if (this.client && !this.isReady) {
-            await this.destroyClient({ preserveSession: true });
-        }
-
+    _prepararNovaSessao(isReconnect) {
         this.isInitializing = true;
         this.isReady = false;
         this.qrCode = '';
@@ -337,28 +360,15 @@ class WhatsAppManager {
         this.setStatus(isReconnect ? 'reconnecting' : 'initializing', {
             attempt: this.reconnectAttempts || 0
         });
+    }
 
-        this.startInitTimeout();
-
+    _opcoesDoCliente() {
         const executablePath = this.resolveBrowserExecutable();
-        const puppeteerOptions = {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu'
-            ]
-        };
-
+        const puppeteerOptions = { headless: true, args: [...ARGUMENTOS_DO_CHROMIUM] };
         if (executablePath) {
             puppeteerOptions.executablePath = executablePath;
         }
-
-        this.client = new Client({
+        return {
             authStrategy: new LocalAuth({
                 clientId: 'nova-desktop-client',
                 dataPath: this.sessionPath
@@ -372,432 +382,195 @@ class WhatsAppManager {
                 path: this.webCachePath
             },
             puppeteer: puppeteerOptions
-        });
+        };
+    }
 
+    async initialize(options = {}) {
+        const { isReconnect = false } = options;
+        if (this._inicializacaoDispensada()) return;
+
+        this.manualLogout = false;
+        this.ensureRuntimeDirectories();
+        this.clearReconnectTimer();
+
+        if (this.client && !this.isReady) {
+            await this.destroyClient({ preserveSession: true });
+        }
+
+        this._prepararNovaSessao(isReconnect);
+        this.startInitTimeout();
+        this.client = new Client(this._opcoesDoCliente());
         this.registerClientEvents(this.client);
 
         const cliente = this.client;
         try {
             await cliente.initialize();
         } catch (error) {
-            if (this.client !== cliente) return;
-            const errorMessage = String(error?.message || error || '');
-            console.error('[WhatsApp] Initialize error:', errorMessage);
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.isReady = false;
-
-            const isProfileLockError =
-                errorMessage.includes('already running for') ||
-                errorMessage.includes('SingletonLock') ||
-                errorMessage.includes('userDataDir');
-
-            if (isProfileLockError) {
-                this.setStatus('reconnecting', { reason: 'profile-lock' });
-                await this.recoverFromProfileLock(errorMessage);
-                this.scheduleReconnect('profile-lock');
-                return;
-            }
-
-            this.setStatus('disconnected', { reason: errorMessage || 'init-error' });
-
-            await this.destroyClient({ preserveSession: true });
-            this.scheduleReconnect('init-error');
+            await this._falhaAoIniciar(cliente, error);
         }
     }
 
+    async _falhaAoIniciar(cliente, error) {
+        if (this.client !== cliente) return;
+        const errorMessage = String(error?.message || error || '');
+        console.error('[WhatsApp] Initialize error:', errorMessage);
+        this.clearInitTimeout();
+        this.isInitializing = false;
+        this.isReady = false;
+
+        if (ehTravaDoPerfil(errorMessage)) {
+            this.setStatus('reconnecting', { reason: 'profile-lock' });
+            await this.recoverFromProfileLock(errorMessage);
+            this.scheduleReconnect('profile-lock');
+            return;
+        }
+
+        this.setStatus('disconnected', { reason: errorMessage || 'init-error' });
+
+        await this.destroyClient({ preserveSession: true });
+        this.scheduleReconnect('init-error');
+    }
+
     registerClientEvents(client) {
-        client.on('qr', async (qr) => {
-            if (this.lastQr === qr) return;
-            this.lastQr = qr;
-            this.isInitializing = false;
-            this.clearInitTimeout();
-            this.setStatus('scan_qr');
-
-            try {
-                const url = await qrcode.toDataURL(qr);
-                this.qrCode = url;
-                this.sendToFrontend('qr-code', { url });
-            } catch (error) {
-                console.error('[WhatsApp] QR encode error:', error.message || error);
-            }
-        });
-
+        client.on('qr', qr => this._aoReceberQr(qr));
         client.on('loading_screen', (percent, message) => {
             this.sendToFrontend('loading', { percent, message });
         });
-
-        client.on('authenticated', () => {
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.setStatus('authenticated');
-            console.log('[WhatsApp] Authenticated');
-        });
-
-        client.on('ready', () => {
-            this.clearInitTimeout();
-            this.status = 'connected';
-            this.isReady = true;
-            this.qrCode = '';
-            
-            // Pillar 1: Identity Recognition
-            this.bossName = this.client?.info?.pushname || 'Boss';
-            console.log(`[WhatsApp] 🤖 Authenticated as: ${this.bossName}`);
-            
-            this.sendToFrontend('whatsapp-event', { event: 'ready', data: { status: 'connected', bossName: this.bossName } });
-            this.reconnectAttempts = 0;
-            this.setStatus('connected');
-            console.log('[WhatsApp] Client ready');
-        });
-
+        client.on('authenticated', () => this._aoAutenticar());
+        client.on('ready', () => this._aoFicarPronto());
         client.on('remote_session_saved', () => {
-            console.log('[WhatsApp] Remote session saved');
+            console.info('[WhatsApp] Remote session saved');
         });
+        client.on('auth_failure', msg => this._aoFalharAutenticacao(msg));
+        client.on('disconnected', reason => this._aoDesconectar(reason));
+        client.on('message', msg => this.handleIncomingMessage(msg));
+        client.on('message_create', msg => this._aoCriarMensagem(msg));
+    }
 
-        client.on('auth_failure', async (msg) => {
-            console.error('[WhatsApp] Auth failure:', msg);
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.isReady = false;
-            this.qrCode = null;
-            this.lastQr = null;
-            this.setStatus('auth_failure', { reason: msg });
+    async _aoReceberQr(qr) {
+        if (this.lastQr === qr) return;
+        this.lastQr = qr;
+        this.isInitializing = false;
+        this.clearInitTimeout();
+        this.setStatus('scan_qr');
 
-            await this.destroyClient({ preserveSession: true });
-            this.scheduleReconnect('auth_failure');
-        });
+        try {
+            const url = await qrcode.toDataURL(qr);
+            this.qrCode = url;
+            this.sendToFrontend('qr-code', { url });
+        } catch (error) {
+            console.error('[WhatsApp] QR encode error:', error.message || error);
+        }
+    }
 
-        client.on('disconnected', async (reason) => {
-            console.warn('[WhatsApp] Disconnected:', reason);
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.isReady = false;
-            this.qrCode = null;
-            this.lastQr = null;
-            this.setStatus('disconnected', { reason });
+    _aoAutenticar() {
+        this.clearInitTimeout();
+        this.isInitializing = false;
+        this.setStatus('authenticated');
+        console.info('[WhatsApp] Authenticated');
+    }
 
-            await this.destroyClient({ preserveSession: true });
-            this.scheduleReconnect(reason || 'disconnected');
-        });
+    _aoFicarPronto() {
+        this.clearInitTimeout();
+        this.status = 'connected';
+        this.isReady = true;
+        this.qrCode = '';
+        this.bossName = this.client?.info?.pushname || 'Boss';
+        console.info(`[WhatsApp] 🤖 Authenticated as: ${this.bossName}`);
 
-        // 1. Handle incoming messages from others
-        client.on('message', async (msg) => {
+        this.sendToFrontend('whatsapp-event', { event: 'ready', data: { status: 'connected', bossName: this.bossName } });
+        this.reconnectAttempts = 0;
+        this.setStatus('connected');
+        console.info('[WhatsApp] Client ready');
+    }
+
+    _aoFalharAutenticacao(msg) {
+        console.error('[WhatsApp] Auth failure:', msg);
+        this.clearInitTimeout();
+        return this._derrubarSessao('auth_failure', msg, 'auth_failure');
+    }
+
+    _aoDesconectar(reason) {
+        console.warn('[WhatsApp] Disconnected:', reason);
+        this.clearInitTimeout();
+        return this._derrubarSessao('disconnected', reason, reason || 'disconnected');
+    }
+
+    async _aoCriarMensagem(msg) {
+        if (msg.fromMe) {
             await this.handleIncomingMessage(msg);
-        });
-
-        // 2. Handle messages created by the user (useful for self-chat sync)
-        client.on('message_create', async (msg) => {
-            if (msg.fromMe) {
-                await this.handleIncomingMessage(msg);
-            }
-        });
+        }
     }
 
     async handleIncomingMessage(msg) {
         if (!msg) return;
-
-        // ── Handle Voice Messages (PTT / Audio) ────────────────────────
-        if (msg.hasMedia && (msg.type === 'ptt' || msg.type === 'audio')) {
-            console.log('[WhatsApp] Voice message detected. Downloading media...');
-            try {
-                const media = await msg.downloadMedia();
-                if (media && media.data) {
-                    console.log('[WhatsApp] Voice buffer downloaded. Sending to Whisper...');
-                    const transcript = await this.transcribeAudio(media.data);
-                    if (transcript) {
-                        console.log(`[WhatsApp] Voice message transcribed: "${transcript}"`);
-                        msg.body = transcript;
-                    } else {
-                        console.warn('[WhatsApp] Transcription failed or empty.');
-                    }
-                }
-            } catch (err) {
-                console.error('[WhatsApp] Voice processing error:', err.message);
-            }
-        }
-
-        const body   = String(msg.body || '').trim();
-        const myId   = this.client?.info?.wid?._serialized || '';
-        const fromId = msg?.from || '';
-        const toId   = msg?.to || '';
-
-        // ── ROOT_MASTER Detection (Pillar 4) ─────────────────────────────
-        const isGroup = fromId.includes('@g.us') || toId.includes('@g.us');
-
-        // isSelfChat = Boss sent this message TO THEIR OWN NUMBER
-        const isSelfChat = msg.from === msg.to;
-
-        // Target ID to reply to
-        // If fromMe (even to others), the target is toId. If from others, target is fromId.
-        const targetId = msg.fromMe ? toId : fromId;
-
-        console.log(`[WA-Bridge] body="${body.substring(0, 20)}" | fromMe=${msg.fromMe} | isSelf=${isSelfChat} | targetId=${targetId}`);
-
-        // ── Deduplication ──────────────────────────────────────────────────
-        // 1. By Message ID
-        const messageId = msg?.id?._serialized;
-        if (messageId && this.processedMessageIds.has(messageId)) return;
-        if (messageId) this.processedMessageIds.add(messageId);
-
-        // 2. By Body (Prevent rapid double-processing)
-        const bodyKey = `${targetId}:${body}`;
-        if (this.processedMessageIds.has(bodyKey)) return;
-        this.processedMessageIds.add(bodyKey);
-        setTimeout(() => this.processedMessageIds.delete(bodyKey), 5000); 
-
-        // ── Loop Protection ───────────────────────────────────────────────
-        // 1. Always ignore bot's own reply markers
-        if (body.includes('[NOVA_AI_BOT]') || body.includes('🤖') || body.includes('\u200B')) {
-            return;
-        }
-
-        // 2. Ignore Nova's outgoing replies to GUESTS (fromMe=true to a non-self chat)
-        //    But allow: isSelfChat=true (Boss commanding Nova)
-        if (msg.fromMe && !isSelfChat) {
-            return;
-        }
-
-        if (!body) return;
-
-        // ── Remote Terminal Commands (From Own Phone / Self-Chat) ─────────────
-        const lowerMsg = body.toLowerCase();
-        
-        // Allow self commands OR explicitly requested commands
-        if (isSelfChat) {
-            // Notify frontend: Visual Pulse (Cyan blink) on ROOT command
-            this.sendToFrontend('whatsapp-event', { event: 'root-pulse', data: { command: body } });
-
-            // Instant System Lock: Supports !lock, lock pc, laptop lock karo, etc.
-            const isLockCmd = lowerMsg === '!lock' || /(?:pc|laptop|computer|liptop|system) (?:lock|band)/i.test(lowerMsg) || /^(?:lock|lock pc|lock laptop)$/i.test(lowerMsg);
-            if (isLockCmd) {
-                console.log('[ROOT_CMD] 🔒 Instant System Lock Triggered');
-                if (process.platform === 'darwin') require('./mac-native').run('/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession',['-suspend']).catch(console.error); else require('child_process').exec('rundll32.exe user32.dll,LockWorkStation');
-                await this.sendReplyWithMimicry(targetId, '🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!', false);
-                return;
-            }
-
-            // !browser [url] — Open URL in default browser
-            if (lowerMsg.startsWith('!browser ')) {
-                const url = body.substring('!browser '.length).trim();
-                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-                console.log(`[ROOT_CMD] 🌐 Opening browser: ${fullUrl}`);
-                require('electron').shell.openExternal(fullUrl);
-                await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Browser mein kholna shuru kar diya:\n${fullUrl}`, false);
-                return;
-            }
-
-            if (lowerMsg === '!sysinfo' || lowerMsg === 'sysinfo' || lowerMsg === '!status') {
-                console.log('[ROOT_CMD] 📊 Status request');
-                const os = require('os');
-                const totalMem = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
-                const freeMem = (os.freemem() / 1024 / 1024 / 1024).toFixed(2);
-                const cpuLoad = os.loadavg()[0].toFixed(2);
-                const info = `*🖥️ NOVA SYSTEM STATUS*\n\n` +
-                             `*CPU:* ${os.cpus()[0].model}\n` +
-                             `*CPU Load:* ${cpuLoad}%\n` +
-                             `*RAM:* ${freeMem} GB Free / ${totalMem} GB Total\n` +
-                             `*Platform:* ${os.platform()} ${os.release()}\n` +
-                             `*Boss Name:* ${this.bossName}\n` +
-                             `*Busy Mode:* ${this.busyModeEnabled ? '🟢 ON' : '🔴 OFF'}`;
-                await this.sendReplyWithMimicry(targetId, info, false);
-                return;
-            }
-
-            if (lowerMsg === '!busy on') {
-                this.busyModeEnabled = true;
-                this._saveBusySettings();
-                await this.sendReplyWithMimicry(targetId, '✅ *[ROOT_CMD]* Busy Mode *ACTIVE*. Guests ko auto-reply milega.', false);
-                return;
-            }
-            if (lowerMsg === '!busy off') {
-                this.busyModeEnabled = false;
-                this._saveBusySettings();
-                await this.sendReplyWithMimicry(targetId, '✅ *[ROOT_CMD]* Busy Mode *DISABLED*.', false);
-                return;
-            }
-
-            // ── Preset Status Commands ─────────────────────────────────────────
-            // Usage: !busy driving | !busy sick | !busy meeting | !busy sleeping | !busy travelling
-            const BUSY_PRESETS = {
-                'driving':    'The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein.',
-                'sick':       'The Carl Moon sir ki tabiyat theek nahi 🤒, get well soon duaen karein.',
-                'meeting':    'The Carl Moon sir abhi meeting mein hain 📋, baad mein available honge.',
-                'sleeping':   'The Carl Moon sir so rahe hain 😴, subah contact karein.',
-                'sleep':      'The Carl Moon sir so rahe hain 😴, subah contact karein.',
-                'travelling': 'The Carl Moon sir safar par hain ✈️, wapas aa kar reply karenge.',
-                'travel':     'The Carl Moon sir safar par hain ✈️, wapas aa kar reply karenge.',
-                'busy':       'The Carl Moon sir abhi busy hain ⏳, thodi der baad try karein.',
-            };
-
-            if (lowerMsg.startsWith('!busy ')) {
-                const param = lowerMsg.substring(6).trim();
-                if (BUSY_PRESETS[param]) {
-                    // Preset match
-                    this.busyModeEnabled = true;
-                    this.busyStatusText = BUSY_PRESETS[param];
-                    this._saveBusySettings();
-                    await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Status set: "${this.busyStatusText}"`, false);
-                    return;
-                }
-                // If param is longer than 3 chars and not a keyword — treat as custom text
-                if (param.length > 3) {
-                    this.busyModeEnabled = true;
-                    this.busyStatusText = param;
-                    this._saveBusySettings();
-                    await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Custom Status set: "${param}"`, false);
-                    return;
-                }
-            }
-
-            // ── !status <text> — Quick custom status update ──────────────────
-            // (Kept here for backward compatibility)
-            
-            // Screenshot command intercept
-            const isScreenshotCmd = lowerMsg === '!ss' || SCREENSHOT_TRIGGERS.some(t => lowerMsg.includes(t));
-            if (isScreenshotCmd) {
-                console.log('[ROOT_CMD] 📸 Screenshot command');
-                this.handleScreenshotCommand(targetId).catch(err =>
-                    console.error('[WA-Intelligence] handleScreenshotCommand failed:', err.message)
-                );
-                return;
-            }
-        }
-
-        // ── Group Intelligence & Stealth Monitor (Pillar 3) ─────────────
-        if (isGroup) {
-            const urgentKeywords = ['payment', 'meeting', 'urgent', 'emergency', 'jaldi', 'zaroori', 'paisa'];
-            const bossMentioned = body.toLowerCase().includes(this.bossName.toLowerCase());
-            const hasUrgentKeyword = urgentKeywords.some(k => body.toLowerCase().includes(k));
-
-            if (bossMentioned || hasUrgentKeyword) {
-                console.log(`[WA-Monitor] 🔔 Group Alert in ${targetId}: ${body.substring(0, 40)}`);
-                this.sendToFrontend('whatsapp-event', {
-                    event: 'group-alert',
-                    data: {
-                        chatId: targetId,
-                        message: body,
-                        sender: fromId,
-                        reason: bossMentioned ? 'MENTION' : 'URGENT_KEYWORD',
-                        bossName: this.bossName
-                    }
-                });
-            }
-            // Silent Monitor: Groups are never auto-replied to unless Boss commands it
-            return; 
-        }
-
-        // ── Urgent Detection & Notifications (For Direct Messages) ───────────
-        if (!isSelfChat) {
-            const urgentKeywords = ['urgent', 'emergency', 'call me', 'jaldi', 'zaroori'];
-            const isUrgent = urgentKeywords.some(k => lowerMsg.includes(k));
-
-            if (isUrgent) {
-                console.log(`[WA-Intelligence] 🚨 URGENT message detected from ${fromId}`);
-                const { Notification } = require('electron');
-                try {
-                    const chat = await msg.getChat();
-                    const contact = await msg.getContact();
-                    const name = contact?.name || contact?.pushname || chat.name || 'Someone';
-                    new Notification({
-                        title: `🚨 URGENT: WhatsApp from ${name}`,
-                        body: body.length > 50 ? body.substring(0, 50) + '...' : body,
-                    }).show();
-                } catch (e) { console.error('Notification error', e); }
-            }
-
-            // ── Shagird / Busy Mode Auto-Reply (Only for Direct Messages) ──────────
-            if (this.busyModeEnabled) {
-                console.log(`[WA-Intelligence] 💤 Busy Mode Active. Auto-replying to ${fromId}`);
-                // Reply will be handled by Shagird Persona in useAppLogic.ts for better AI response
-            }
-        }
-
-        // Forward ALL messages to Nova frontend (Crucial for self-chat commands)
-        this.sendToFrontend('mobile-message', {
-            message:    body,
-            chatId:     targetId,
-            fromMe:     msg.fromMe === true,
-            isSelfChat: isSelfChat,
-            bossName:   this.bossName,
-            timestamp:  msg.timestamp,
-            messageId:  messageId || `msg-${Date.now()}`
-        });
+        await tratarMensagemRecebida(this, msg);
     }
 
-    // ── Remote Screenshot Handler ──────────────────────────────────────────
-    //
-    // Captures the primary display to an in-memory Buffer (no temp file),
-    // converts to whatsapp-web.js MessageMedia, and sends as a photo.
-    // Buffer is GC'd automatically — no cleanup step needed.
+    _clientePronto() {
+        return Boolean(this.client) && this.isReady;
+    }
+
+    _lembrarEnviada(sentMsg) {
+        const sentId = sentMsg?.id?._serialized;
+        if (!sentId) return;
+        this.processedMessageIds.add(sentId);
+        setTimeout(() => this.processedMessageIds.delete(sentId), ESQUECER_ENVIADA_EM_MS);
+    }
+
     async handleScreenshotCommand(targetChatId) {
-        if (!this.client || !this.isReady) {
+        if (!this._clientePronto()) {
             console.warn('[WA-Screenshot] Client not ready — cannot send screenshot.');
             return;
         }
 
         try {
-            console.log('[WA-Screenshot] Capturing primary screen...');
-
-            // Capture to Buffer (screenshot-desktop default: PNG)
+            console.info('[WA-Screenshot] Capturing primary screen...');
             const imgBuffer = await screenshot({ format: 'png' });
-
-            // Convert buffer → base64 → MessageMedia
             const media = new MessageMedia(
                 'image/png',
                 imgBuffer.toString('base64'),
                 'nova_screenshot.png'
             );
-
-            // Send image + caption to self-chat
-            const sentMsg = await this.client.sendMessage(targetChatId, media, {
+            this._lembrarEnviada(await this.client.sendMessage(targetChatId, media, {
                 caption: '🖥️ Here is your current PC screen'
-            });
-
-            // Register sent message ID to prevent echo processing
-            const sentId = sentMsg?.id?._serialized;
-            if (sentId) {
-                this.processedMessageIds.add(sentId);
-                setTimeout(() => this.processedMessageIds.delete(sentId), 120000);
-            }
-
-            console.log('[WA-Screenshot] ✅ Screenshot sent to self-chat');
-
+            }));
+            console.info('[WA-Screenshot] ✅ Screenshot sent to self-chat');
         } catch (err) {
             console.error('[WA-Screenshot] Capture/send error:', err.message);
-            // Notify user so they know capture failed
-            try {
-                await this.client.sendMessage(
-                    targetChatId,
-                    `❌ Screenshot failed: ${err.message}\n\n_${BOT_SIGNATURE}_`
-                );
-            } catch (_) { /* silent — client may have disconnected */ }
+            await this._avisarFalhaDaCaptura(targetChatId, err);
         }
+    }
+
+    async _avisarFalhaDaCaptura(targetChatId, err) {
+        try {
+            await this.client.sendMessage(
+                targetChatId,
+                `❌ Screenshot failed: ${err.message}\n\n_${BOT_SIGNATURE}_`
+            );
+        } catch (_) { }
+    }
+
+    _chaveDoGroq() {
+        let apiKey = process.env.GROQ_API_KEY;
+        const keyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
+
+        if (fs.existsSync(keyPath)) {
+            const data = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+            if (data.apiKey) apiKey = data.apiKey;
+        }
+        return apiKey;
     }
 
     async transcribeAudio(base64Data) {
         try {
-            let apiKey = process.env.GROQ_API_KEY;
-            const keyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
-
-            if (fs.existsSync(keyPath)) {
-                const data = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-                if (data.apiKey) apiKey = data.apiKey;
-            }
-
+            const apiKey = this._chaveDoGroq();
             if (!apiKey) {
                 console.error('[WhatsApp] Groq API key missing for transcription.');
                 return null;
             }
 
-            const audioBuffer = Buffer.from(base64Data, 'base64');
-            const form = new FormData();
-            form.append('file', audioBuffer, {
-                filename: 'audio.ogg',
-                contentType: 'audio/ogg'
-            });
-            form.append('model', 'whisper-large-v3');
-            form.append('response_format', 'json');
-
+            const form = formularioDoAudio(base64Data);
             const response = await axios.post(
                 'https://api.groq.com/openai/v1/audio/transcriptions',
                 form,
@@ -810,17 +583,15 @@ class WhatsAppManager {
                     maxBodyLength: Infinity
                 }
             );
-
-            const text = String(response?.data?.text || '').trim();
-            return text || null;
+            return textoDaTranscricao(response);
         } catch (error) {
-            console.error('[WhatsApp] Transcription error:', error?.response?.data || error.message || error);
+            console.error('[WhatsApp] Transcription error:', detalheDoErro(error));
             return null;
         }
     }
 
     async sendReply(chatId, text, removeSignature = false) {
-        if (!this.client || !this.isReady) {
+        if (!this._clientePronto()) {
             console.warn('[WhatsApp] Send skipped. Client not ready.');
             return false;
         }
@@ -828,22 +599,14 @@ class WhatsAppManager {
         const targetChatId = String(chatId || '').trim();
         const messageText  = String(text   || '').trim();
 
-        if (!targetChatId || targetChatId === 'self' || !messageText) {
+        if (!destinoValido(targetChatId, messageText)) {
             console.warn('[WhatsApp] sendReply: invalid chatId or empty message. chatId:', targetChatId);
             return false;
         }
 
         try {
-            const replyText = removeSignature ? messageText : `${messageText}\n\n_${BOT_SIGNATURE}_`;
-            const sentMsg   = await this.client.sendMessage(targetChatId, replyText);
-
-            const sentId = sentMsg?.id?._serialized;
-
-            if (sentId) {
-                this.processedMessageIds.add(sentId);
-                setTimeout(() => this.processedMessageIds.delete(sentId), 120000);
-            }
-
+            const replyText = removeSignature ? messageText : comAssinatura(messageText);
+            this._lembrarEnviada(await this.client.sendMessage(targetChatId, replyText));
             return true;
         } catch (error) {
             console.error('[WhatsApp] Send error:', error.message || error);
@@ -892,35 +655,20 @@ class WhatsAppManager {
         }
     }
 
-    // ── Human-Mimicry Send Reply ──────────────────────────────────────────
     async sendReplyWithMimicry(chatId, text, addSignature = true) {
-        if (!this.client || !this.isReady) return false;
+        if (!this._clientePronto()) return false;
 
         const targetChatId = String(chatId || '').trim();
         if (!targetChatId) return false;
 
         try {
             const chat = await this.client.getChatById(targetChatId);
-            
-            // Stealth Typing: Short random delay before typing (1s to 2.5s)
-            const initialDelay = Math.random() * 1500 + 1000;
-            await new Promise(r => setTimeout(r, initialDelay));
-            
-            // Send 'typing...' state
+            await esperar(Math.random() * 1500 + 1000);
             await chat.sendStateTyping();
-            
-            // Simulate typing duration based on text length (20ms per char, max 4s)
-            const typingDuration = Math.min(Math.max(text.length * 20, 1000), 4000);
-            await new Promise(r => setTimeout(r, typingDuration));
+            await esperar(Math.min(Math.max(text.length * 20, 1000), 4000));
 
-            const finalMessage = addSignature ? `${text}\n\n_${BOT_SIGNATURE}_` : text;
-            const sentMsg = await this.client.sendMessage(targetChatId, finalMessage);
-
-            const sentId = sentMsg?.id?._serialized;
-            if (sentId) {
-                this.processedMessageIds.add(sentId);
-                setTimeout(() => this.processedMessageIds.delete(sentId), 120000);
-            }
+            const finalMessage = addSignature ? comAssinatura(text) : text;
+            this._lembrarEnviada(await this.client.sendMessage(targetChatId, finalMessage));
             return true;
         } catch (error) {
             console.error('[WA-Intelligence] Mimicry Send error:', error.message || error);
