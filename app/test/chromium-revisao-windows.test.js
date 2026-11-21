@@ -69,3 +69,14 @@ test('global-spoof-service _findChrome devolve null sem nenhum navegador', () =>
   assert.strictEqual(semChromiumEmpacotado(() => servico._findChrome('chrome')), null);
   assert.strictEqual(semChromiumEmpacotado(() => servico._findChrome('brave')), null);
 });
+
+test('findBundledChromiumExecutable prefere a revisão numericamente maior', () => {
+  const { findBundledChromiumExecutable } = require('../electron/services/platform-utils');
+  const navegadores = path.join(raiz, 'revisoes');
+  const exeDa = (revisao) => path.join(navegadores, `chromium-${revisao}`, 'chrome-win64', 'chrome.exe');
+  for (const revisao of [999, 1300]) {
+    fs.mkdirSync(path.dirname(exeDa(revisao)), { recursive: true });
+    fs.writeFileSync(exeDa(revisao), '');
+  }
+  assert.strictEqual(findBundledChromiumExecutable([navegadores]), exeDa(1300));
+});
