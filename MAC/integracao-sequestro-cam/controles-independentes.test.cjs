@@ -91,9 +91,10 @@ test('live antes da injeção: a live grava observe, live preservada em ambos os
 });
 
 test('injeção sem celular no PHONE CONTROL: erro claro e transporte fechado', async t => {
-  const { live } = setup({ semCelular: true });
+  const { live, tunnels } = setup({ semCelular: true });
   t.after(() => live.stop());
   await assert.rejects(live.ensureTransport(), { message: 'Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção.' });
   assert.equal(live.media, null);
   assert.equal(live.tunnel, null);
+  assert.equal(tunnels(), 0);
 });

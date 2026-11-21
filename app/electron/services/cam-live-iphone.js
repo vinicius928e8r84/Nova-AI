@@ -170,12 +170,16 @@ class CamLiveIphone {
     this.media = new UsbMedia({ idleFrame: BLACK_FRAME });
     try {
       await this.media.listen();
-      if (!this.mobile) this.mobile = this.getMobileService?.();
+      this._exigirCelular();
       await this._tunnel();
     } catch (error) {
       await this.closeTransport();
       throw error;
     }
+  }
+  _exigirCelular() {
+    if (!this.mobile) this.mobile = this.getMobileService?.();
+    if (!this.mobile) throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção.');
   }
   async closeTransport() {
     const tunnel = this.tunnel, media = this.media, socketPath = this.socketPath;
@@ -282,10 +286,6 @@ class CamLiveIphone {
       return { type: 'unix', path: socketPath };
     } catch (_) {
       if (this.tunnel) { this.tunnel.novaAbort = true; try { this.tunnel.kill(); } catch (__) {} this.tunnel = null; }
-      if (!this.mobile) {
-        this.socketPath = null;
-        throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção.');
-      }
       this.mobile.iosSsh(`rm -f ${quote(socketPath)}`).catch(() => {});
       this.socketPath = null;
       return this._tcpForward(localPort);
