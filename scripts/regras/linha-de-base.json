@@ -54,7 +54,6 @@
     "app/electron/services/tool-paths.js": 7,
     "app/electron/services/user-profile-manager.js": 39,
     "app/electron/services/whatsapp-manager.js": 305,
-    "app/electron/webview-bridge.js": 14,
     "app/public/audio-processor-worklet.js": 1,
     "app/test/python-runtime.test.js": 1,
     "app/wake_word_bg.py": 6,
