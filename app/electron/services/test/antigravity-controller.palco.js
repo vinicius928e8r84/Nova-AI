@@ -1,6 +1,7 @@
 'use strict';
 const Module = require('module');
 const crypto = require('crypto');
+const path = require('path');
 
 const carregadorOriginal = Module._load;
 const RELOGIOS = ['setTimeout', 'setInterval', 'clearInterval'];
@@ -120,6 +121,7 @@ class Palco {
       electron: () => ({ clipboard: { writeText: texto => this.anotar(`clipboard ${descrever(texto)}`) } }),
       fs: () => this.falsoFs(),
       os: () => ({ tmpdir: () => '/tmp-falso', homedir: () => '/casa-falsa' }),
+      path: () => path.posix,
       './mac-native': () => this.macNative(),
       './paridade-utils': () => ({ macAntigravityStats: async mac => this.estatisticasDoMac(mac) }),
     };
