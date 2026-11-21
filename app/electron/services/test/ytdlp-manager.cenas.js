@@ -1,14 +1,19 @@
 'use strict';
 const fs = require('fs');
 
+const toolPaths = require('../tool-paths');
+
+const YT_DLP = toolPaths.exe('yt-dlp');
+const FFMPEG = toolPaths.exe('ffmpeg');
+
 const CANDIDATOS_DO_YTDLP = [
-  ['recursos', 'bin', 'yt-dlp'],
-  ['recursos', 'app.asar.unpacked', 'resources', 'bin', 'yt-dlp'],
-  ['recursos', 'app.asar.unpacked', 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'],
-  ['app', 'resources', 'bin', 'yt-dlp'],
-  ['app', 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'],
-  ['cwd', 'resources', 'bin', 'yt-dlp'],
-  ['cwd', 'dist_electron', 'win-unpacked', 'resources', 'bin', 'yt-dlp'],
+  ['recursos', 'bin', YT_DLP],
+  ['recursos', 'app.asar.unpacked', 'resources', 'bin', YT_DLP],
+  ['recursos', 'app.asar.unpacked', 'node_modules', 'youtube-dl-exec', 'bin', YT_DLP],
+  ['app', 'resources', 'bin', YT_DLP],
+  ['app', 'node_modules', 'youtube-dl-exec', 'bin', YT_DLP],
+  ['cwd', 'resources', 'bin', YT_DLP],
+  ['cwd', 'dist_electron', 'win-unpacked', 'resources', 'bin', YT_DLP],
 ];
 
 const PASTAS_DO_FFMPEG = [
@@ -45,15 +50,15 @@ const cenas = {
   async 'yt-dlp: ordem dos candidatos'(palco) {
     cadaCandidato(palco, CANDIDATOS_DO_YTDLP, () => palco.manager.getYtDlpPath());
     palco.manager.app = null;
-    palco.criarArquivo('cwd', 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+    palco.criarArquivo('cwd', 'node_modules', 'youtube-dl-exec', 'bin', YT_DLP);
     palco.anotar(`sem app ${palco.manager.getYtDlpPath()}`);
   },
 
   async 'ffmpeg: ordem das pastas'(palco) {
-    const ffmpegEm = PASTAS_DO_FFMPEG.map(pasta => [...pasta, 'ffmpeg']);
+    const ffmpegEm = PASTAS_DO_FFMPEG.map(pasta => [...pasta, FFMPEG]);
     cadaCandidato(palco, ffmpegEm, () => palco.manager.getFfmpegDir());
     palco.manager.app = null;
-    palco.criarArquivo('cwd', 'resources', 'bin', 'ffmpeg');
+    palco.criarArquivo('cwd', 'resources', 'bin', FFMPEG);
     palco.anotar(`sem app ${palco.manager.getFfmpegDir()}`);
   },
 
@@ -61,8 +66,8 @@ const cenas = {
     for (const formato of ['360p', '720p', '1080p', 'mp3', 'constructor', undefined]) {
       (await baixarManual(palco, `https://yt/${formato}`, formato)).fechar(0);
     }
-    palco.criarArquivo('recursos', 'bin', 'yt-dlp');
-    palco.criarArquivo('app', 'resources', 'bin', 'ffmpeg');
+    palco.criarArquivo('recursos', 'bin', YT_DLP);
+    palco.criarArquivo('app', 'resources', 'bin', FFMPEG);
     (await baixarManual(palco, 'https://yt/com-ffmpeg', '720p')).fechar(0);
   },
 
@@ -132,7 +137,7 @@ const cenas = {
 
   async 'pedido de video: busca, progresso e fim'(palco) {
     palco.resultados['musica boa'] = VIDEO;
-    palco.criarArquivo('recursos', 'bin', 'ffmpeg');
+    palco.criarArquivo('recursos', 'bin', FFMPEG);
     await palco.manager.smartDownload('musica boa', '720p', 'video', 'chat-1');
     palco.anotar(`detalhes ${JSON.stringify(palco.manager.activeDetails)}`);
     const processo = palco.processo();

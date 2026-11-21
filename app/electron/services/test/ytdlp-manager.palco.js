@@ -9,6 +9,7 @@ const { EventEmitter } = require('events');
 const toolPaths = require('../tool-paths');
 const carregadorOriginal = Module._load;
 const CONSOLE_PARA_SAIDA = { log: 'saida', info: 'saida', warn: 'erro', error: 'erro' };
+const CAMINHO_COM_SEPARADOR_DO_WINDOWS = /<tmp>(?:\\{1,2}[^\\'"\n]*)+/g;
 
 class ProcessoFalso extends EventEmitter {
   constructor(registrar, killFalha) {
@@ -34,13 +35,25 @@ function semPilha(argumento) {
   return argumento instanceof Error ? `«${argumento.name}: ${argumento.message}»` : argumento;
 }
 
+function formasDaRaiz(raiz) {
+  return [...new Set([JSON.stringify(raiz).slice(1, -1), raiz])];
+}
+
+function caminhoEmPosix(caminho) {
+  return caminho.replace(/\//g, '«/»').replace(/\\{1,2}/g, '/').replace(/\.exe\b/gi, '');
+}
+
+function caminhosEmPosix(linha) {
+  return path.sep === '\\' ? linha.replace(CAMINHO_COM_SEPARADOR_DO_WINDOWS, caminhoEmPosix) : linha;
+}
+
 function serializar(valor) {
   return JSON.stringify(valor, (_chave, v) => (v === undefined ? '«undefined»' : v));
 }
 
 class Palco {
   constructor() {
-    this.raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'ytdlp-palco-'));
+    this.raiz = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'ytdlp-palco-')));
     this.registro = [];
     this.processos = [];
     this.timers = [];
@@ -54,7 +67,8 @@ class Palco {
   caminho(...partes) { return path.join(this.raiz, ...partes); }
 
   anotar(linha) {
-    this.registro.push(linha.split(this.raiz).join('<tmp>').replace(/\[\d{2}:\d{2}:\d{2}\] DOWNLOADER/, '[hora] DOWNLOADER'));
+    const comRaizOculta = formasDaRaiz(this.raiz).reduce((texto, raiz) => texto.split(raiz).join('<tmp>'), linha);
+    this.registro.push(caminhosEmPosix(comRaizOculta).replace(/\[\d{2}:\d{2}:\d{2}\] DOWNLOADER/, '[hora] DOWNLOADER'));
   }
 
   criarJanela() {
