@@ -61,6 +61,7 @@ Os `.exe` de acesso remoto/Android só são necessários se for usar essas funç
 Para listar o iPhone por USB o PC também precisa do driver da Apple (Apple Devices, na Microsoft Store, ou o iTunes); ele não vai no instalador.
 Para ter o Chromium embutido: `npm run browsers` (baixa para `app\browsers\`).
 Python do assistente de voz: `pip install -r requirements.txt`.
+Python embutido (opcional): descompacte a distribuição "embeddable package" oficial do Python 3.12 (python.org/downloads/windows) em `resources\python\` (tem de ficar `resources\python\python.exe`), habilite `import site` no `python312._pth` e instale os pacotes com `resources\python\python.exe -m pip install -r requirements.txt` (rode antes o `get-pip.py` oficial). Sem essa pasta o Nova usa o `python` do PATH. O Nova também põe `resources\bin` na frente do PATH do processo.
 
 A lista completa, incluindo o que é só do Mac, está em [`../app/README.md`](../app/README.md).
 
