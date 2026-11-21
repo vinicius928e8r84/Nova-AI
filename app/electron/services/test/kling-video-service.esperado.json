@@ -1444,6 +1444,19 @@
     "veo envia {\"model\":\"veo-3-fast-generate-001\",\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"image\":{\"imageBytes\":\"REFET1MtREEtRk9UTw==\",\"mimeType\":\"image/jpeg\"},\"config\":{\"aspectRatio\":\"16:9\",\"durationSeconds\":6,\"personGeneration\":\"allow_all\"}}",
     "falha Error: A chave do Nova não tem acesso a vídeo (Veo) — a listagem da API não mostrou nenhum modelo de vídeo. Ative o faturamento no Google AI ou use o botão da IA fal.ai. Detalhe: nenhum"
   ],
+  "veo: 404 e depois nada guarda o erro do 404 no detalhe": [
+    "ffmpeg ffmpeg",
+    "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
+    "progresso {\"step\":\"prepare\",\"percent\":10,\"message\":\"Preparando imagens...\"}",
+    "progresso {\"step\":\"system_prepare\",\"percent\":10,\"message\":\"Preparando a IA do Nova (Veo)...\"}",
+    "genai {\"apiKey\":\"gemini-falso\"}",
+    "https GET generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=gemini-falso {} ",
+    "progresso {\"step\":\"veo_submit\",\"percent\":20,\"message\":\"IA do Nova (veo-3-fast-generate-001): enviando a foto...\"}",
+    "veo envia {\"model\":\"veo-3-fast-generate-001\",\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"image\":{\"imageBytes\":\"REFET1MtREEtRk9UTw==\",\"mimeType\":\"image/jpeg\"},\"config\":{\"aspectRatio\":\"16:9\",\"durationSeconds\":6,\"personGeneration\":\"allow_all\"}}",
+    "progresso {\"step\":\"veo_submit\",\"percent\":20,\"message\":\"IA do Nova (veo-3.0-fast-generate-001): enviando a foto...\"}",
+    "veo envia {\"model\":\"veo-3.0-fast-generate-001\",\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"image\":{\"imageBytes\":\"REFET1MtREEtRk9UTw==\",\"mimeType\":\"image/jpeg\"},\"config\":{\"aspectRatio\":\"16:9\",\"durationSeconds\":6,\"personGeneration\":\"allow_all\"}}",
+    "falha Error: A chave do Nova não tem acesso a vídeo (Veo) — a listagem da API não mostrou nenhum modelo de vídeo. Ative o faturamento no Google AI ou use o botão da IA fal.ai. Detalhe: 404 do primeiro"
+  ],
   "veo: tempo esgotado depois de 90 consultas": [
     "ffmpeg ffmpeg",
     "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",

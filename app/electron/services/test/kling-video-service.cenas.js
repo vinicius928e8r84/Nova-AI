@@ -368,6 +368,11 @@ const cenasDoVeo = {
     palco.veo.envios.push({ operacao: null });
     await pedirComFoto(palco, { engine: 'system' });
   },
+  'veo: 404 e depois nada guarda o erro do 404 no detalhe': async palco => {
+    palco.rota(VEO_LISTA, json({ models: [] }));
+    palco.veo.envios.push({ erro: new Error('404 do primeiro') }, { operacao: null });
+    await pedirComFoto(palco, { engine: 'system' });
+  },
   'veo: tempo esgotado depois de 90 consultas': async palco => {
     palco.rota(VEO_LISTA, json({ models: [] }));
     palco.veo.envios.push({ operacao: { done: false } });
