@@ -159,4 +159,4 @@ def encenar(alvo, cena):
 
 
 if __name__ == '__main__':
-    print(json.dumps(encenar(sys.argv[1], json.loads(sys.argv[2])), ensure_ascii=False))
+    print(json.dumps(encenar(sys.argv[1], json.loads(sys.argv[2]))))

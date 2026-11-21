@@ -6,8 +6,8 @@ const { spawnSync } = require('child_process');
 
 const esperado = require('./wake-word-bg.esperado.json');
 
-const ALVO = path.resolve(__dirname, '../wake_word_bg.py');
-const PALCO = path.resolve(__dirname, 'ajuda/wake-word-palco.py');
+const ALVO = path.join(__dirname, '..', 'wake_word_bg.py');
+const PALCO = path.join(__dirname, 'ajuda', 'wake-word-palco.py');
 const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
 
 const FALAS_VARIADAS = [

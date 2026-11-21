@@ -10,6 +10,8 @@ const { criar } = require('./auxiliar');
 
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'configuracao.json'), 'utf8'));
 
+const SOLTO_COM_NOME_ESTRANHO = process.platform === 'win32' ? 'app/sólto tab.js' : 'app/sólto\ttab.js';
+
 function montarRamo() {
   const repo = criar({
     'backup-antes-traducao/velho.js': 'linha1\nlinha2\nlinha3\n',
@@ -27,7 +29,7 @@ function montarRamo() {
     'app/bin.dat': Buffer.from('\x00\x01\x02bin', 'latin1'),
     'app/utf16.txt': Buffer.from('a\x00b\x00\n\x00', 'latin1'),
     'app/mexe.js': 'mexe\nmais\n',
-    'app/sólto\ttab.js': 'solto\nnovo\n',
+    [SOLTO_COM_NOME_ESTRANHO]: 'solto\nnovo\n',
     'app/solto2.js': 'solto2',
     'app/apaga.js': null,
   });
@@ -42,9 +44,9 @@ const resumo = ({ itens, acrescentadas, copias }) => ({
 });
 
 const ITENS = ['D app/apaga.js', 'A app/bin.dat', 'A app/copia-do-comum.js', 'A app/copia-do-isento.js', 'R app/antes.js app/depois.js', 'M app/mexe.js', 'A app/utf16.txt',
-  'R backup-antes-traducao/velho.js app/velho.js', 'A app/solto2.js', 'A app/sólto\ttab.js'];
+  'R backup-antes-traducao/velho.js app/velho.js', 'A app/solto2.js', `A ${SOLTO_COM_NOME_ESTRANHO}`];
 
-const ACRESCENTADAS_EM_TODO_CASO = { 'app/bin.dat': [1], 'app/copia-do-comum.js': [], 'app/mexe.js': [2], 'app/utf16.txt': [1, 2], 'app/solto2.js': [1], 'app/sólto\ttab.js': [1, 2] };
+const ACRESCENTADAS_EM_TODO_CASO = { 'app/bin.dat': [1], 'app/copia-do-comum.js': [], 'app/mexe.js': [2], 'app/utf16.txt': [1, 2], 'app/solto2.js': [1], [SOLTO_COM_NOME_ESTRANHO]: [1, 2] };
 
 test('caracterização: lerMudancas classifica renomeação, cópia, binário, UTF-16 e arquivo solto', t => {
   const repo = montarRamo();
