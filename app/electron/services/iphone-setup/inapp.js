@@ -140,6 +140,44 @@ const CONSOLE_MARKUP = `
 </div>
 `;
 
+const MENSAGEM_DE_CONECTAR = 'Não foi possível concluir. Verifique o cabo e tente novamente.';
+const MENSAGEM_DE_CONTROLE = 'O controle do iPhone não abriu.';
+const MENSAGEM_DE_JANELA = 'Não foi possível abrir a janela do controle.';
+const SEM_WEBVIEW = 'Esta versão do Nova não permite embutir a tela. Use "Abrir em janela".';
+const FALHA_AO_CARREGAR = 'Não foi possível carregar a tela do iPhone. Confira o cabo e tente de novo, ou use "Abrir em janela".';
+const FALHA_DO_APARELHO = /dpkg:|Segmentation fault|signal \(?11\)?|was killed by signal/i;
+const APARELHO_TRAVOU = 'O iPhone travou ao instalar um pacote — não é a sua senha. Nada foi alterado neste computador. '
+  + 'Não toque em "Tentar novamente": o aparelho precisa ser recuperado (modo seguro) e o pacote '
+  + 'removido antes de tentar de novo. O detalhe técnico ficou registrado.';
+const UM_MINUTO_S = 60;
+const PASSO_DO_CRONOMETRO_MS = 500;
+const ESPERA_PARA_FOCAR_A_SENHA_MS = 30;
+
+const SELETORES_DA_TELA = {
+  wrap: '.nvios-webview-wrap',
+  status: '.nvios-webview-status',
+  fechar: '.nvios-console-close',
+  janela: '.nvios-console-window',
+  refazer: '.nvios-console-retry',
+};
+
+const SELETORES_DO_CONECTAR = {
+  cartao: '.nvios-setup',
+  cartaoDoControle: '.nvios-console',
+  aparelho: '.nvios-device',
+  form: '.nvios-form',
+  senha: '#nvios-pass',
+  enviar: '.nvios-submit',
+  erro: '.nvios-error',
+  progresso: '.nvios-progress',
+  decorrido: '.nvios-elapsed',
+  resultado: '.nvios-result',
+  mensagem: '.nvios-msg',
+  abrirControle: '.nvios-console-open',
+  pronto: '.nvios-done',
+  fechar: '.nvios-setup .nvios-x',
+};
+
 let active = null;
 let activeConsole = null;
 
@@ -151,12 +189,390 @@ function ensureStyle(doc) {
   (doc.head || doc.documentElement).appendChild(style);
 }
 
+const campoDoAparelho = (payload, campo) => String((payload && payload[campo]) || '');
+const fimDoId = id => (id.length > 8 ? '…' + id.slice(-8) : id);
+
 function deviceLine(payload) {
-  const name = String((payload && payload.name) || '').trim();
-  const id = String((payload && payload.id) || '');
-  const tail = id.length > 8 ? '…' + id.slice(-8) : id;
+  const name = campoDoAparelho(payload, 'name').trim();
+  const tail = fimDoId(campoDoAparelho(payload, 'id'));
   if (name && tail) return name + ' · ' + tail;
-  return name || (tail ? 'iPhone ' + tail : 'iPhone conectado por USB');
+  if (name) return name;
+  return tail ? 'iPhone ' + tail : 'iPhone conectado por USB';
+}
+
+function rotuloDoAparelho(id, name) {
+  if (name && id) return name + ' · …' + id.slice(-8);
+  return deviceLine({ id, name });
+}
+
+function explicarFalha(text) {
+  const t = String(text || '');
+  return FALHA_DO_APARELHO.test(t) ? APARELHO_TRAVOU : t;
+}
+
+function erroDoConectar(result) {
+  if (!result) return MENSAGEM_DE_CONECTAR;
+  return result.error || result.message || MENSAGEM_DE_CONECTAR;
+}
+
+const formatarDecorrido = seconds => (seconds < UM_MINUTO_S
+  ? seconds + ' s'
+  : Math.floor(seconds / UM_MINUTO_S) + ' min ' + (seconds % UM_MINUTO_S) + ' s');
+
+const temId = payload => Boolean(payload && payload.id);
+const deuCerto = result => Boolean(result && result.success);
+const urlDoResultado = result => (deuCerto(result) ? result.url : null);
+const erroOuPadrao = (result, padrao) => (result && result.error) || padrao;
+const temFoco = elemento => Boolean(elemento && elemento.focus);
+
+const acharElementos = (host, seletores) => Object.fromEntries(
+  Object.entries(seletores).map(([nome, seletor]) => [nome, host.querySelector(seletor)]),
+);
+
+function criarWebview(doc) {
+  try {
+    return doc.createElement('webview');
+  } catch (e) {
+    return null;
+  }
+}
+
+function limparCampo(campo) {
+  try {
+    campo.value = '';
+  } catch (e) {
+    return;
+  }
+}
+
+function devolverFoco(anterior) {
+  try {
+    if (temFoco(anterior)) anterior.focus();
+  } catch (e) {
+    return;
+  }
+}
+
+class TelaDoControle {
+  constructor(host) {
+    Object.assign(this, acharElementos(host, SELETORES_DA_TELA));
+  }
+
+  mostrarAviso(texto) {
+    this.status.hidden = false;
+    this.status.textContent = texto;
+  }
+
+  embutir(view, url, aoFalhar) {
+    view.className = 'nvios-webview';
+    view.setAttribute('src', url);
+    view.setAttribute('allowpopups', '');
+    view.addEventListener('did-finish-load', () => { this.status.hidden = true; });
+    view.addEventListener('did-fail-load', aoFalhar);
+    this.wrap.appendChild(view);
+    this.fechar.focus();
+  }
+}
+
+class JanelaDoIphone {
+  constructor(doc, markup, invoke) {
+    ensureStyle(doc);
+    this.doc = doc;
+    this.invoke = invoke;
+    this.host = doc.createElement('div');
+    this.host.setAttribute(HOST_ATTR, '');
+    this.host.innerHTML = markup;
+    this.tela = new TelaDoControle(this.host);
+    this.anterior = doc.activeElement;
+    this.aoTeclar = event => this.onKeydown(event);
+  }
+
+  podeFechar() {
+    return true;
+  }
+
+  onKeydown(event) {
+    if (event.key !== 'Escape' || !this.podeFechar()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.close();
+  }
+
+  aoApertarFora(event) {
+    if (event.target === this.host && this.podeFechar()) this.close();
+  }
+
+  ouvirTecladoEFora() {
+    this.host.addEventListener('mousedown', event => this.aoApertarFora(event));
+    this.doc.addEventListener('keydown', this.aoTeclar, true);
+  }
+
+  desmontar() {
+    this.doc.removeEventListener('keydown', this.aoTeclar, true);
+    this.host.remove();
+  }
+
+  async pedir(canal, argumento, padrao) {
+    try {
+      return await this.invoke(canal, argumento);
+    } catch (err) {
+      return { success: false, error: (err && err.message) || padrao };
+    }
+  }
+
+  exibirControle(result) {
+    const url = urlDoResultado(result);
+    if (url) this.montarControle(url);
+    else this.avisarNoControle(erroOuPadrao(result, MENSAGEM_DE_CONTROLE));
+  }
+
+  montarControle(url) {
+    const view = criarWebview(this.doc);
+    if (!view) {
+      this.semWebview();
+      return;
+    }
+    this.tela.embutir(view, url, () => this.falhaAoCarregar());
+  }
+
+  async abrirEmJanela() {
+    this.tela.janela.disabled = true;
+    const result = await this.pedir(CONSOLE_WINDOW_CHANNEL, this.id, MENSAGEM_DE_JANELA);
+    this.tela.janela.disabled = false;
+    if (deuCerto(result)) this.close();
+    else this.avisarNoControle(erroOuPadrao(result, MENSAGEM_DE_JANELA));
+  }
+}
+
+class ModalDoConectar extends JanelaDoIphone {
+  constructor(doc, payload, invoke) {
+    super(doc, SETUP_MARKUP + CONSOLE_MARKUP, invoke);
+    this.el = acharElementos(this.host, SELETORES_DO_CONECTAR);
+    this.el.cartaoDoControle.hidden = true;
+    this.id = String(payload.id);
+    this.name = '';
+    this.running = false;
+    this.timer = null;
+    this.startedAt = 0;
+    this.el.form.addEventListener('submit', event => this.submit(event));
+    this.el.fechar.addEventListener('click', () => this.close());
+    this.el.pronto.addEventListener('click', () => this.close());
+    this.tela.fechar.addEventListener('click', () => this.close());
+    this.el.abrirControle.addEventListener('click', () => this.openConsole());
+    this.tela.janela.addEventListener('click', () => this.abrirEmJanela());
+    this.ouvirTecladoEFora();
+  }
+
+  mostrar(payload) {
+    this.name = String(payload.name || '');
+    this.applyDeviceLabels();
+    this.doc.body.appendChild(this.host);
+    setTimeout(() => this.el.senha.focus(), ESPERA_PARA_FOCAR_A_SENHA_MS);
+  }
+
+  update(next) {
+    if (next && next.id) this.id = String(next.id);
+    if (next && next.name) this.name = String(next.name);
+    this.applyDeviceLabels();
+  }
+
+  focusPassword() {
+    if (!this.running) this.el.senha.focus();
+  }
+
+  applyDeviceLabels() {
+    this.el.aparelho.textContent = rotuloDoAparelho(this.id, this.name);
+  }
+
+  podeFechar() {
+    return !this.running;
+  }
+
+  setRunning(running) {
+    this.running = running;
+    this.el.form.hidden = running;
+    this.el.progresso.hidden = !running;
+    this.el.fechar.disabled = running;
+    if (running) this.iniciarCronometro();
+    else this.pararCronometro();
+  }
+
+  iniciarCronometro() {
+    this.startedAt = Date.now();
+    this.el.decorrido.textContent = '0 s';
+    this.timer = setInterval(() => this.mostrarDecorrido(), PASSO_DO_CRONOMETRO_MS);
+  }
+
+  mostrarDecorrido() {
+    const seconds = Math.max(0, Math.round((Date.now() - this.startedAt) / 1000));
+    this.el.decorrido.textContent = formatarDecorrido(seconds);
+  }
+
+  pararCronometro() {
+    if (!this.timer) return;
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  showError(text) {
+    const { erro, enviar, form, resultado, progresso, senha } = this.el;
+    erro.textContent = explicarFalha(text);
+    erro.hidden = false;
+    enviar.disabled = false;
+    enviar.textContent = 'Tentar novamente';
+    form.hidden = false;
+    resultado.hidden = true;
+    progresso.hidden = true;
+    senha.disabled = false;
+    senha.focus();
+    senha.select();
+  }
+
+  showSuccess(text) {
+    this.el.erro.hidden = true;
+    this.el.form.hidden = true;
+    this.el.progresso.hidden = true;
+    this.el.resultado.hidden = false;
+    this.el.mensagem.textContent = text || 'Conectado por USB.';
+  }
+
+  async submit(event) {
+    event.preventDefault();
+    if (this.running) return;
+    this.el.erro.hidden = true;
+    const tentativa = this.el.senha.value;
+    if (!tentativa) {
+      this.showError('Informe a senha SSH do usuário mobile.');
+      return;
+    }
+    this.comecarConexao();
+    const result = await this.pedir(PREPARE_CHANNEL, { id: this.id, password: tentativa }, MENSAGEM_DE_CONECTAR);
+    this.terminarConexao(result, tentativa);
+  }
+
+  comecarConexao() {
+    this.el.senha.value = '';
+    this.el.senha.disabled = true;
+    this.el.enviar.disabled = true;
+    this.el.enviar.textContent = 'Conectando…';
+    this.setRunning(true);
+  }
+
+  terminarConexao(result, tentativa) {
+    this.setRunning(false);
+    this.el.senha.disabled = false;
+    if (deuCerto(result)) this.conectou(result);
+    else this.naoConectou(result, tentativa);
+  }
+
+  conectou(result) {
+    this.showSuccess(result.message);
+    this.el.abrirControle.focus();
+  }
+
+  naoConectou(result, tentativa) {
+    this.el.senha.value = tentativa;
+    this.showError(erroDoConectar(result));
+    this.el.senha.focus();
+    this.el.senha.select();
+  }
+
+  close() {
+    if (this.running) return;
+    limparCampo(this.el.senha);
+    this.desmontar();
+    if (this.timer) clearInterval(this.timer);
+    active = null;
+    devolverFoco(this.anterior);
+  }
+
+  async openConsole() {
+    const botao = this.el.abrirControle;
+    botao.disabled = true;
+    botao.textContent = 'Abrindo o controle…';
+    const result = await this.pedir(CONSOLE_URL_CHANNEL, this.id, MENSAGEM_DE_CONTROLE);
+    botao.disabled = false;
+    botao.textContent = 'Abrir controle e tela do iPhone';
+    this.exibirControle(result);
+  }
+
+  mostrarCartaoDoControle() {
+    this.el.cartao.hidden = true;
+    this.el.cartaoDoControle.hidden = false;
+  }
+
+  montarControle(url) {
+    this.mostrarCartaoDoControle();
+    super.montarControle(url);
+  }
+
+  semWebview() {
+    this.tela.status.textContent = SEM_WEBVIEW;
+  }
+
+  falhaAoCarregar() {
+    this.tela.mostrarAviso(FALHA_AO_CARREGAR);
+  }
+
+  avisarNoControle(text) {
+    this.mostrarCartaoDoControle();
+    this.tela.mostrarAviso(text);
+  }
+}
+
+class ControleDireto extends JanelaDoIphone {
+  constructor(doc, payload, invoke) {
+    super(doc, CONSOLE_MARKUP, invoke);
+    this.id = String(payload.id);
+    this.tela.fechar.addEventListener('click', () => this.close());
+    this.ouvirTecladoEFora();
+    this.tela.janela.addEventListener('click', () => this.abrirEmJanela());
+    this.tela.refazer.addEventListener('click', () => this.refazerConexao());
+  }
+
+  mostrar() {
+    this.doc.body.appendChild(this.host);
+    this.carregar();
+  }
+
+  focus() {
+    this.tela.fechar.focus();
+  }
+
+  close() {
+    this.desmontar();
+    activeConsole = null;
+    devolverFoco(this.anterior);
+  }
+
+  showError(text) {
+    this.tela.mostrarAviso(text);
+    this.tela.refazer.hidden = false;
+  }
+
+  async carregar() {
+    this.tela.refazer.hidden = false;
+    this.tela.mostrarAviso('Carregando o controle do iPhone…');
+    this.exibirControle(await this.pedir(CONSOLE_URL_CHANNEL, this.id, MENSAGEM_DE_CONTROLE));
+  }
+
+  semWebview() {
+    this.showError(SEM_WEBVIEW);
+  }
+
+  falhaAoCarregar() {
+    this.showError(FALHA_AO_CARREGAR);
+  }
+
+  avisarNoControle(text) {
+    this.showError(text);
+  }
+
+  async refazerConexao() {
+    this.tela.refazer.disabled = true;
+    this.close();
+    await this.pedir(START_CHANNEL, this.id, null);
+  }
 }
 
 function open(payload, invoke) {
@@ -165,329 +581,19 @@ function open(payload, invoke) {
     active.focusPassword();
     return;
   }
-  if (!payload || !payload.id) return;
-
-  const doc = document;
-  ensureStyle(doc);
-
-  const host = doc.createElement('div');
-  host.setAttribute(HOST_ATTR, '');
-  host.innerHTML = SETUP_MARKUP + CONSOLE_MARKUP;
-
-  const setupCard = host.querySelector('.nvios-setup');
-  const consoleCard = host.querySelector('.nvios-console');
-  consoleCard.hidden = true;
-  const deviceEl = host.querySelector('.nvios-device');
-  const form = host.querySelector('.nvios-form');
-  const input = host.querySelector('#nvios-pass');
-  const submitBtn = host.querySelector('.nvios-submit');
-  const errorEl = host.querySelector('.nvios-error');
-  const progressEl = host.querySelector('.nvios-progress');
-  const elapsedEl = host.querySelector('.nvios-elapsed');
-  const resultEl = host.querySelector('.nvios-result');
-  const messageEl = host.querySelector('.nvios-msg');
-  const consoleOpenBtn = host.querySelector('.nvios-console-open');
-  const doneBtn = host.querySelector('.nvios-done');
-  const closeX = host.querySelector('.nvios-setup .nvios-x');
-  const consoleCloseBtn = host.querySelector('.nvios-console-close');
-  const consoleWindowBtn = host.querySelector('.nvios-console-window');
-  const webviewWrap = host.querySelector('.nvios-webview-wrap');
-  const webviewStatus = host.querySelector('.nvios-webview-status');
-  const previousFocus = doc.activeElement;
-  const state = { id: String(payload.id), name: '', running: false, timer: null, startedAt: 0 };
-
-  function applyDeviceLabels() {
-    if (state.name && state.id) deviceEl.textContent = state.name + ' · …' + state.id.slice(-8);
-    else deviceEl.textContent = deviceLine({ id: state.id, name: state.name });
-  }
-
-  function setRunning(running) {
-    state.running = running;
-    form.hidden = running;
-    progressEl.hidden = !running;
-    closeX.disabled = running;
-    if (running) {
-      state.startedAt = Date.now();
-      elapsedEl.textContent = '0 s';
-      state.timer = setInterval(() => {
-        const seconds = Math.max(0, Math.round((Date.now() - state.startedAt) / 1000));
-        elapsedEl.textContent = (seconds < 60 ? seconds + ' s' : Math.floor(seconds / 60) + ' min ' + (seconds % 60) + ' s');
-      }, 500);
-    } else {
-      if (state.timer) { clearInterval(state.timer); state.timer = null; }
-    }
-  }
-
-  // Traduz falhas do dpkg/travamento do aparelho: quem ve so o dump do dpkg
-  // acha que errou a senha. Aqui o texto explica o que houve e o que NAO fazer.
-  function explicarFalha(text) {
-    const t = String(text || '');
-    if (/dpkg:|Segmentation fault|signal \(?11\)?|was killed by signal/i.test(t)) {
-      return 'O iPhone travou ao instalar um pacote — não é a sua senha. Nada foi alterado neste computador. '
-        + 'Não toque em "Tentar novamente": o aparelho precisa ser recuperado (modo seguro) e o pacote '
-        + 'removido antes de tentar de novo. O detalhe técnico ficou registrado.';
-    }
-    return t;
-  }
-
-  function showError(text) {
-    errorEl.textContent = explicarFalha(text);
-    errorEl.hidden = false;
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Tentar novamente';
-    form.hidden = false;
-    resultEl.hidden = true;
-    progressEl.hidden = true;
-    input.disabled = false;
-    input.focus();
-    input.select();
-  }
-
-  function showSuccess(text) {
-    errorEl.hidden = true;
-    form.hidden = true;
-    progressEl.hidden = true;
-    resultEl.hidden = false;
-    messageEl.textContent = text || 'Conectado por USB.';
-  }
-
-  async function submit(event) {
-    event.preventDefault();
-    if (state.running) return;
-    errorEl.hidden = true;
-    let password = input.value;
-    if (!password) {
-      showError('Informe a senha SSH do usuário mobile.');
-      return;
-    }
-    // Guarda a senha nesta sessão do modal: se o Conectar falhar, "Tentar
-    // novamente" reaproveita o que a pessoa já digitou (nada é persistido; o
-    // campo e a variável são limpos quando o modal fecha).
-    const tentativa = password;
-    input.value = '';
-    input.disabled = true;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Conectando…';
-    setRunning(true);
-    let result;
-    try {
-      result = await invoke(PREPARE_CHANNEL, { id: state.id, password });
-    } catch (err) {
-      result = { success: false, error: (err && err.message) || 'Não foi possível concluir. Verifique o cabo e tente novamente.' };
-    } finally {
-      password = '';
-    }
-    setRunning(false);
-    input.disabled = false;
-    if (result && result.success) {
-      showSuccess(result.message);
-      consoleOpenBtn.focus();
-    } else {
-      // Devolve a senha para o campo: tentar de novo não exige digitar outra vez.
-      input.value = tentativa;
-      showError((result && (result.error || result.message)) || 'Não foi possível concluir. Verifique o cabo e tente novamente.');
-      input.focus();
-      input.select();
-    }
-  }
-
-  function close() {
-    if (state.running) return;
-    try { input.value = ''; } catch (e) { /* ignora */ }
-    doc.removeEventListener('keydown', onKeydown, true);
-    host.remove();
-    if (state.timer) clearInterval(state.timer);
-    active = null;
-    try { if (previousFocus && previousFocus.focus) previousFocus.focus(); } catch (e) { /* ignora */ }
-  }
-
-  function onKeydown(event) {
-    if (event.key === 'Escape' && !state.running) {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-    }
-  }
-
-  function mountConsole(url) {
-    setupCard.hidden = true;
-    consoleCard.hidden = false;
-    let view;
-    try {
-      view = doc.createElement('webview');
-    } catch (e) {
-      view = null;
-    }
-    if (!view) {
-      webviewStatus.textContent = 'Esta versão do Nova não permite embutir a tela. Use "Abrir em janela".';
-      return;
-    }
-    view.className = 'nvios-webview';
-    view.setAttribute('src', url);
-    view.setAttribute('allowpopups', '');
-    view.addEventListener('did-finish-load', () => { webviewStatus.hidden = true; });
-    view.addEventListener('did-fail-load', () => {
-      webviewStatus.hidden = false;
-      webviewStatus.textContent = 'Não foi possível carregar a tela do iPhone. Confira o cabo e tente de novo, ou use "Abrir em janela".';
-    });
-    webviewWrap.appendChild(view);
-    consoleCloseBtn.focus();
-  }
-
-  function showConsoleMessage(text) {
-    setupCard.hidden = true;
-    consoleCard.hidden = false;
-    webviewStatus.hidden = false;
-    webviewStatus.textContent = text;
-  }
-
-  async function openConsole() {
-    consoleOpenBtn.disabled = true;
-    consoleOpenBtn.textContent = 'Abrindo o controle…';
-    let result;
-    try {
-      result = await invoke(CONSOLE_URL_CHANNEL, state.id);
-    } catch (err) {
-      result = { success: false, error: (err && err.message) || 'O controle do iPhone não abriu.' };
-    }
-    consoleOpenBtn.disabled = false;
-    consoleOpenBtn.textContent = 'Abrir controle e tela do iPhone';
-    if (result && result.success && result.url) mountConsole(result.url);
-    else showConsoleMessage((result && result.error) || 'O controle do iPhone não abriu.');
-  }
-
-  async function openConsoleWindow() {
-    consoleWindowBtn.disabled = true;
-    let result;
-    try {
-      result = await invoke(CONSOLE_WINDOW_CHANNEL, state.id);
-    } catch (err) {
-      result = { success: false, error: (err && err.message) || 'Não foi possível abrir a janela do controle.' };
-    }
-    consoleWindowBtn.disabled = false;
-    if (result && result.success) close();
-    else showConsoleMessage((result && result.error) || 'Não foi possível abrir a janela do controle.');
-  }
-
-  host.querySelector('.nvios-form').addEventListener('submit', submit);
-  closeX.addEventListener('click', close);
-  doneBtn.addEventListener('click', close);
-  consoleCloseBtn.addEventListener('click', close);
-  consoleOpenBtn.addEventListener('click', openConsole);
-  consoleWindowBtn.addEventListener('click', openConsoleWindow);
-  host.addEventListener('mousedown', (event) => { if (event.target === host && !state.running) close(); });
-  doc.addEventListener('keydown', onKeydown, true);
-
-  active = {
-    update(next) {
-      if (next && next.id) state.id = String(next.id);
-      if (next && next.name) state.name = String(next.name);
-      applyDeviceLabels();
-    },
-    focusPassword() {
-      if (!state.running) input.focus();
-    },
-  };
-
-  state.name = String(payload.name || '');
-  applyDeviceLabels();
-  doc.body.appendChild(host);
-  setTimeout(() => input.focus(), 30);
+  if (!temId(payload)) return;
+  active = new ModalDoConectar(document, payload, invoke);
+  active.mostrar(payload);
 }
 
-// Console aberto direto pelo cartão do aparelho ("Abrir controle"): sem senha.
 function openConsoleOnly(payload, invoke) {
-  if (!payload || !payload.id) return;
-  if (activeConsole) { activeConsole.focus(); return; }
-
-  const doc = document;
-  ensureStyle(doc);
-  const host = doc.createElement('div');
-  host.setAttribute(HOST_ATTR, '');
-  host.innerHTML = CONSOLE_MARKUP;
-
-  const webviewWrap = host.querySelector('.nvios-webview-wrap');
-  const webviewStatus = host.querySelector('.nvios-webview-status');
-  const closeBtn = host.querySelector('.nvios-console-close');
-  const windowBtn = host.querySelector('.nvios-console-window');
-  const retryBtn = host.querySelector('.nvios-console-retry');
-  const id = String(payload.id);
-  const previousFocus = doc.activeElement;
-
-  function close() {
-    doc.removeEventListener('keydown', onKeydown, true);
-    host.remove();
-    activeConsole = null;
-    try { if (previousFocus && previousFocus.focus) previousFocus.focus(); } catch (e) { /* ignora */ }
+  if (!temId(payload)) return;
+  if (activeConsole) {
+    activeConsole.focus();
+    return;
   }
-
-  function onKeydown(event) {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-    }
-  }
-
-  function showError(text) {
-    webviewStatus.hidden = false;
-    webviewStatus.textContent = text;
-    retryBtn.hidden = false;
-  }
-
-  function mount(url) {
-    let view;
-    try { view = doc.createElement('webview'); } catch (e) { view = null; }
-    if (!view) {
-      showError('Esta versão do Nova não permite embutir a tela. Use "Abrir em janela".');
-      return;
-    }
-    view.className = 'nvios-webview';
-    view.setAttribute('src', url);
-    view.setAttribute('allowpopups', '');
-    view.addEventListener('did-finish-load', () => { webviewStatus.hidden = true; });
-    view.addEventListener('did-fail-load', () => {
-      showError('Não foi possível carregar a tela do iPhone. Confira o cabo e tente de novo, ou use "Abrir em janela".');
-    });
-    webviewWrap.appendChild(view);
-    closeBtn.focus();
-  }
-
-  async function carregar() {
-    retryBtn.hidden = false;
-    webviewStatus.hidden = false;
-    webviewStatus.textContent = 'Carregando o controle do iPhone…';
-    let result;
-    try { result = await invoke(CONSOLE_URL_CHANNEL, id); }
-    catch (err) { result = { success: false, error: (err && err.message) || 'O controle do iPhone não abriu.' }; }
-    if (result && result.success && result.url) mount(result.url);
-    else showError((result && result.error) || 'O controle do iPhone não abriu.');
-  }
-
-  closeBtn.addEventListener('click', close);
-  host.addEventListener('mousedown', (event) => { if (event.target === host) close(); });
-  doc.addEventListener('keydown', onKeydown, true);
-
-  windowBtn.addEventListener('click', async () => {
-    windowBtn.disabled = true;
-    let result;
-    try { result = await invoke(CONSOLE_WINDOW_CHANNEL, id); }
-    catch (err) { result = { success: false, error: (err && err.message) || 'Não foi possível abrir a janela do controle.' }; }
-    windowBtn.disabled = false;
-    if (result && result.success) close();
-    else showError((result && result.error) || 'Não foi possível abrir a janela do controle.');
-  });
-
-  retryBtn.addEventListener('click', async () => {
-    // Fecha o controle e reabre o quadro de senha do Conectar.
-    retryBtn.disabled = true;
-    close();
-    try { await invoke(START_CHANNEL, id); } catch (e) { /* o main abre o modal */ }
-  });
-
-  activeConsole = { focus() { closeBtn.focus(); } };
-  doc.body.appendChild(host);
-  carregar();
+  activeConsole = new ControleDireto(document, payload, invoke);
+  activeConsole.mostrar();
 }
 
 // Chamado uma única vez pelo preload. `invoke` existe para os testes em

@@ -37,7 +37,6 @@
     "app/electron/services/ios-bridge.js": 12,
     "app/electron/services/ios-camera.js": 16,
     "app/electron/services/ios-devices.js": 5,
-    "app/electron/services/iphone-setup/inapp.js": 15,
     "app/electron/services/iphone-setup/setup.js": 129,
     "app/electron/services/iphone-ssh.js": 7,
     "app/electron/services/kling-video-service.js": 172,
