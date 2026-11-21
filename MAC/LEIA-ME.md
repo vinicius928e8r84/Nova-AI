@@ -6,6 +6,13 @@
 - **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo, gatilhos `labeled`/`unlabeled`), `scripts/ci/codescene-na-refatoracao.js` (a mensagem de falta de resposta nomeia o check pendente), `scripts/regras/caminhos-sensiveis.json` (`scripts/ci/**` passa a ser ALTA, para um PR comum não desligar o gate), `scripts/regras/test/codescene.test.js`, `registro.test.js`, `endurecimento.test.js`.
 - **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`).
 
+## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
+
+- **O que mudou:** o ssh da câmera do iPhone (`ios-camera.js` e `cam-live-iphone.js`) usava `StrictHostKeyChecking=yes`; passou a `accept-new`, igual aos outros 5 pontos (mesmo `BatchMode=yes` e `ConnectTimeout`). `accept-new` grava a chave quando o `known_hosts` do app ainda não tem o aparelho, como os outros 5 pontos. Chave trocada (reset do jailbreak) continua recusada até o Conectar gravar a nova, igual a antes. Nenhuma linha nova de código além do teste.
+- **Arquivos:** `app/electron/services/ios-camera.js`, `app/electron/services/cam-live-iphone.js` e as cópias do Mac `integracao-iphone/ios-camera.js`, `integracao-camlive/cam-live-iphone.js`, `integracao-sequestro-cam/ios-camera.patched.js`, `integracao-sequestro-cam/cam-live-iphone.patched.js`; teste novo `integracao-iphone/tests/chave-de-host.cjs` (`node --test`), que também trava `ios-bridge.js`, `idioma-ipc.js` e `physicalMobileService.js`.
+- **App instalado no Mac que muda:** `Contents/Resources/app/electron/services/ios-camera.js` e `.../cam-live-iphone.js` (guardar os anteriores em `reservas/`, copiar de `app/electron/services/ios-camera.js` e `app/electron/services/cam-live-iphone.js`, nunca das cópias em `MAC/`, que são mais velhas; reiniciar o Nova).
+- **Sem testar:** iPhone, Mac e Windows reais; o teste só confere as opções nos arquivos.
+
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
 - **O que mudou:** apagadas cópias sem consumidor: os dois `*.antes-proxy-20261104-193310` (−6.881 linhas), `MAC/controle-celular-plataformas/geo-proxy/aplicado/*`, `MAC/encerramento-nova/{main.js,original/}` (inclui o executável Mach-O e `CodeResources`), `MAC/integracao-kling/main.js`, `MAC/integracao-modelo-app/main.modelo.js`, `MAC/integracao-iphone/physicalMobileService.patched.js` e `MAC/integracao-sequestro-cam/physicalMobileService.patched.js`. O git guarda a história. Fora do escopo: `reservas/`, `backup-*`, mp4, `backup-antes-traducao/`.
@@ -519,3 +526,14 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** mesma ordem de pastas (`resources/bin`, Homebrew, PATH); comportamento igual. O túnel segue desligado por padrão (`NOVA_REMOTE_TUNNEL=1`).
 - **Teste:** `app/electron/services/testes/cloudflared-caminho.test.js` (`node --test`, com `exists` falso).
 - **Sem testar:** Windows e Mac reais, túnel real da Cloudflare.
+
+## 2026-11-19 — E2: permissão de câmera no lugar do PnP
+
+- **O que mudou:** o IPC `enable-physical-cameras` deixou de rodar PowerShell/`Get-PnpDevice` (só Windows, exigia administrador) e passou a conferir a permissão de câmera do sistema (`systemPreferences.getMediaAccessStatus`). Negada ou restrita: abre os Ajustes de privacidade de câmera (Mac: `Privacy_Camera`; Windows: `ms-settings:privacy-webcam`). Mac com permissão ainda não decidida: pede a permissão ao sistema. Removidos o `disableAllPhysicalCams()` do `hijack` e os dois métodos vazios `disableAllPhysicalCams`/`enableAllPhysicalCams` do `global-spoof-service.js`. Saldo: `main.js` −39 linhas, `global-spoof-service.js` −2.
+- **Arquivos do app instalado no Mac que mudam** (reaplicar com `cp` dentro de `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/`; guarde os antigos em `reservas/`):
+  - `main.js` ← `app/electron/main.js`
+  - `services/global-spoof-service.js` ← `app/electron/services/global-spoof-service.js`
+  - `services/camera-acesso.js` (novo) ← `app/electron/services/camera-acesso.js`
+  - O bundle da interface não muda (ignora a resposta do IPC). Reiniciar o Nova.
+- **Teste:** `node --test app/electron/services/test/camera-acesso.test.js` (estados × Mac/Windows, com mocks).
+- **Sem testar:** Mac e Windows reais. Prova pendente: no Mac, negar a câmera ao Nova em Ajustes, abrir a câmera no Nova e ver os Ajustes abrirem; no Windows, desligar "apps da área de trabalho" e repetir.
