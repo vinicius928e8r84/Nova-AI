@@ -34,104 +34,105 @@ class ImportacaoQueFalha(importlib.abc.MetaPathFinder):
         return None
 
 
-def montar_sounddevice(cena, saida):
-    sd = types.ModuleType('sounddevice')
-
-    class RawInputStream:
-        def __init__(self, **opcoes):
-            saida.anotar(f'RawInputStream {sorted(opcoes.items())}')
-            if cena.get('stream_falha'):
-                raise OSError('sem dispositivo de entrada')
-
-        def start(self):
-            saida.anotar('stream.start')
-
-        def read(self, tamanho):
-            saida.anotar(f'stream.read {tamanho}')
-            return bytearray(b'\x01\x02'), False
-
-        def stop(self):
-            saida.anotar('stream.stop')
-
-        def close(self):
-            saida.anotar('stream.close')
-
-    def query_devices(kind):
-        saida.anotar(f'query_devices {kind}')
-        if cena.get('consulta_falha'):
-            raise RuntimeError('sem dispositivos')
-
-    sd.RawInputStream = RawInputStream
-    sd.query_devices = query_devices
-    return sd
+class Encenado:
+    cena = {}
+    saida = None
 
 
-def montar_speech_recognition(cena, saida):
-    sr = types.ModuleType('speech_recognition')
+class RawInputStream(Encenado):
+    def __init__(self, **opcoes):
+        self.saida.anotar(f'RawInputStream {sorted(opcoes.items())}')
+        if self.cena.get('stream_falha'):
+            raise OSError('sem dispositivo de entrada')
 
-    class AudioSource:
-        pass
+    def start(self):
+        self.saida.anotar('stream.start')
 
-    class UnknownValueError(Exception):
-        pass
+    def read(self, tamanho):
+        self.saida.anotar(f'stream.read {tamanho}')
+        return bytearray(b'\x01\x02'), False
 
-    class RequestError(Exception):
-        pass
+    def stop(self):
+        self.saida.anotar('stream.stop')
 
-    class Microphone(AudioSource):
-        def __init__(self):
-            saida.anotar('Microphone()')
-            if cena.get('microfone_falha'):
-                raise OSError('sem PyAudio')
-
-        def __enter__(self):
-            saida.anotar('Microphone.__enter__')
-            if cena.get('entrada_falha'):
-                raise OSError('sem dispositivo')
-            return self
-
-        def __exit__(self, *args):
-            saida.anotar('Microphone.__exit__')
-
-    falhas_do_reconhecimento = {'desconhecido': UnknownValueError, 'requisicao': RequestError, 'erro': RuntimeError}
-
-    class Recognizer:
-        def __init__(self):
-            self.falas = list(cena.get('falas', []))
-
-        def adjust_for_ambient_noise(self, fonte, duration):
-            saida.anotar(f'ajuste {type(fonte).__name__} {duration} {self.energy_threshold} {self.dynamic_energy_threshold}')
-
-        def listen(self, fonte, phrase_time_limit):
-            saida.anotar(f'listen {type(fonte).__name__} {phrase_time_limit}')
-            if not self.falas:
-                raise KeyboardInterrupt
-            if fonte.stream is not None:
-                saida.anotar(f'lido {list(fonte.stream.read(fonte.CHUNK))}')
-            tipo, valor = self.falas.pop(0)
-            if tipo == 'escuta_falha':
-                raise ValueError(valor)
-            return tipo, valor
-
-        def recognize_google(self, audio):
-            tipo, valor = audio
-            if tipo in falhas_do_reconhecimento:
-                raise falhas_do_reconhecimento[tipo](valor)
-            return valor
-
-    Microphone.stream = None
-    sr.AudioSource = AudioSource
-    sr.UnknownValueError = UnknownValueError
-    sr.RequestError = RequestError
-    sr.Microphone = Microphone
-    sr.Recognizer = Recognizer
-    return sr
+    def close(self):
+        self.saida.anotar('stream.close')
 
 
-def preparar_sounddevice(cena, saida):
+def query_devices(kind):
+    Encenado.saida.anotar(f'query_devices {kind}')
+    if Encenado.cena.get('consulta_falha'):
+        raise RuntimeError('sem dispositivos')
+
+
+class AudioSource:
+    pass
+
+
+class UnknownValueError(Exception):
+    pass
+
+
+class RequestError(Exception):
+    pass
+
+
+class Microphone(AudioSource, Encenado):
+    stream = None
+
+    def __init__(self):
+        self.saida.anotar('Microphone()')
+        if self.cena.get('microfone_falha'):
+            raise OSError('sem PyAudio')
+
+    def __enter__(self):
+        self.saida.anotar('Microphone.__enter__')
+        if self.cena.get('entrada_falha'):
+            raise OSError('sem dispositivo')
+        return self
+
+    def __exit__(self, *args):
+        self.saida.anotar('Microphone.__exit__')
+
+
+class Recognizer(Encenado):
+    FALHAS_DO_RECONHECIMENTO = {'desconhecido': UnknownValueError, 'requisicao': RequestError, 'erro': RuntimeError}
+
+    def __init__(self):
+        self.falas = list(self.cena.get('falas', []))
+
+    def adjust_for_ambient_noise(self, fonte, duration):
+        self.saida.anotar(f'ajuste {type(fonte).__name__} {duration} {self.energy_threshold} {self.dynamic_energy_threshold}')
+
+    def listen(self, fonte, phrase_time_limit):
+        self.saida.anotar(f'listen {type(fonte).__name__} {phrase_time_limit}')
+        if not self.falas:
+            raise KeyboardInterrupt
+        if fonte.stream is not None:
+            self.saida.anotar(f'lido {list(fonte.stream.read(fonte.CHUNK))}')
+        tipo, valor = self.falas.pop(0)
+        if tipo == 'escuta_falha':
+            raise ValueError(valor)
+        return tipo, valor
+
+    def recognize_google(self, audio):
+        tipo, valor = audio
+        if tipo in self.FALHAS_DO_RECONHECIMENTO:
+            raise self.FALHAS_DO_RECONHECIMENTO[tipo](valor)
+        return valor
+
+
+def modulo_falso(nome, membros):
+    modulo = types.ModuleType(nome)
+    for membro in membros:
+        setattr(modulo, membro.__name__, membro)
+    return modulo
+
+
+def preparar_sounddevice(cena):
     modo = cena.get('sounddevice', 'presente')
     if modo == 'presente':
-        sys.modules['sounddevice'] = montar_sounddevice(cena, saida)
+        sys.modules['sounddevice'] = modulo_falso('sounddevice', [RawInputStream, query_devices])
         return
     sys.modules.pop('sounddevice', None)
     sys.meta_path.insert(0, ImportacaoQueFalha(ImportError if modo == 'ausente' else OSError))
@@ -139,8 +140,10 @@ def preparar_sounddevice(cena, saida):
 
 def encenar(alvo, cena):
     saida = Saida()
-    sys.modules['speech_recognition'] = montar_speech_recognition(cena, saida)
-    preparar_sounddevice(cena, saida)
+    Encenado.cena = cena
+    Encenado.saida = saida
+    sys.modules['speech_recognition'] = modulo_falso('speech_recognition', [AudioSource, UnknownValueError, RequestError, Microphone, Recognizer])
+    preparar_sounddevice(cena)
     original = sys.stdout
     sys.stdout = saida
     try:
