@@ -98,8 +98,13 @@ test('main.js: atualizador sem ramo por sistema e sem linha em branco dupla na c
     const corpo = fonte.slice(inicio, fonte.indexOf('\n  });', inicio));
     assert.ok(!corpo.includes('process.platform'), canal);
   }
-  const abertura = fonte.slice(fonte.indexOf('autoUpdater.checkForUpdates()') - 120, fonte.indexOf('autoUpdater.checkForUpdates()'));
-  assert.ok(!abertura.includes('process.platform'));
+  const chamadaDaAbertura = fonte.indexOf('autoUpdater.checkForUpdates().catch');
+  assert.ok(chamadaDaAbertura > 0);
+  assert.strictEqual(fonte.lastIndexOf('autoUpdater.checkForUpdates().catch'), chamadaDaAbertura);
+  const inicioDaAbertura = fonte.lastIndexOf('if (app.isPackaged) {', chamadaDaAbertura);
+  const fimDaAbertura = fonte.indexOf('}, 5000);', chamadaDaAbertura);
+  assert.ok(inicioDaAbertura > 0 && fimDaAbertura > chamadaDaAbertura);
+  assert.ok(!fonte.slice(inicioDaAbertura, fimDaAbertura).includes('process.platform'));
   const marca = fonte.indexOf('autoUpdater.autoInstallOnAppQuit');
   assert.ok(!fonte.slice(marca, marca + 200).includes('\n\n\n'));
 });
