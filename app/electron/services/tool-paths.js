@@ -45,6 +45,10 @@ function posixPath(file, opts) {
   return sistema(opts).win ? String(file).replace(/\\/g, '/') : String(file);
 }
 
+function pastasDoPath(s) {
+  return (s.env.PATH || s.env.Path || '').split(s.delimiter);
+}
+
 function ffmpegDirs(s) {
   const unix = [
     '/opt/homebrew/bin',
@@ -56,7 +60,7 @@ function ffmpegDirs(s) {
     s.resourcesPath && s.p.join(s.resourcesPath, 'bin'),
     s.p.join(s.dirname, '../../resources/bin'),
     ...(s.win ? win : unix),
-    ...(s.env.PATH || s.env.Path || '').split(s.delimiter)
+    ...pastasDoPath(s)
   ].filter(Boolean);
 }
 
@@ -78,32 +82,39 @@ function iosTool(name, opts) {
   return s.p.join(root, 'ios-tools', 'bin', exe(name, opts));
 }
 
-function pythonScripts(s) {
+function lerPastaInjetada(opts) {
+  return (opts && opts.readdir) || fs.readdirSync;
+}
+
+function pythonScripts(s, readdir) {
   const appData = s.env.APPDATA;
   if (!appData) return [];
   const base = s.p.join(appData, 'Python');
   let versoes = [];
-  try { versoes = (s.readdir || fs.readdirSync)(base); } catch { return []; }
+  try { versoes = readdir(base); } catch { return []; }
   return versoes.filter((v) => /^Python3/i.test(v)).sort().map((v) => s.p.join(base, v, 'Scripts'));
+}
+
+function pastasGpsWindows(s, readdir) {
+  const doApp = (...partes) => s.resourcesPath && s.p.join(s.resourcesPath, ...partes);
+  return [doApp('ios-tools', 'bin'), doApp('bin'), ...pythonScripts(s, readdir), ...pastasDoPath(s)];
+}
+
+function pastasGpsMac(name, s) {
+  if (name === 'pymobiledevice3') return [s.p.join(s.home, '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin'];
+  return [s.resourcesPath && s.p.join(s.resourcesPath, 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin'];
+}
+
+function caminhoForcadoGps(name, s) {
+  return name === 'pymobiledevice3' ? s.env.NOVA_PYMOBILEDEVICE3 : null;
 }
 
 function gpsTool(name, opts) {
   const s = sistema(opts);
-  s.readdir = (opts || {}).readdir;
   const file = exe(name, opts);
-  const resources = s.resourcesPath;
-  const dirs = s.win
-    ? [
-        resources && s.p.join(resources, 'ios-tools', 'bin'),
-        resources && s.p.join(resources, 'bin'),
-        ...pythonScripts(s),
-        ...(s.env.PATH || s.env.Path || '').split(s.delimiter)
-      ]
-    : name === 'pymobiledevice3'
-      ? [s.p.join(s.home, '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin']
-      : [resources && s.p.join(resources, 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin'];
-  const override = name === 'pymobiledevice3' && s.env.NOVA_PYMOBILEDEVICE3;
-  return [override, ...dirs.filter(Boolean).map((d) => s.p.join(d, file))].filter(Boolean).find((f) => s.exists(f)) || null;
+  const pastas = s.win ? pastasGpsWindows(s, lerPastaInjetada(opts)) : pastasGpsMac(name, s);
+  const candidatos = [caminhoForcadoGps(name, s), ...pastas.filter(Boolean).map((d) => s.p.join(d, file))];
+  return candidatos.filter(Boolean).find((f) => s.exists(f)) || null;
 }
 
 module.exports = { gpsTool, ssh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe, iconFile };
