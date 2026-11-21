@@ -1,10 +1,32 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
+
+- **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.
+- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro. Também apagado `physicalMobileService.languageForCountry` (19 linhas, sem chamador depois da remoção); `registro.test.js` passa a citar `idioma-ipc.js`. `app/test/mapa-ipc.json` regravado sem os 11 canais de `identidade-ipc.js`.
+- **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
+- **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
+
+## Últimas cópias soltas apagadas (Onda 1g) — 20/11/2026
+
+- **O que mudou:** apagadas seis cópias de arquivos que hoje vivem em `app/`: `MAC/integracao-kling/kling-video-service.js`, `MAC/encerramento-nova/{ios-bridge.js,iphone-ssh.js,nova-shutdown.js}` (a pasta sai do git), `MAC/traducao-interface/cam-live.js` e `MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. `reservas/` e `backup-*` ficaram. O git guarda a história.
+- **Teste:** `geo-proxy/teste-geo.cjs` passou a carregar `app/electron/services/geo-proxy.js`. `linha-de-base.json` perdeu a entrada de `traducao-interface/cam-live.js`.
+- **Achado:** o `geo-proxy.js` apagado era mais novo que o de `app/`. O commit `011395f` (08/11) trocou o `parseProxy` (aceita http/https, a ordem invertida `host:porta@usuario:senha`, `host:porta:usuario:senha` sem esquema, aspas e barra no fim, e adivinha o esquema pela porta), mas o app instalado copiado para `app/` em 09/11 não tinha essa troca. Em 14 entradas, as duas versões só dão o mesmo resultado em 2. Para recuperar: `git show 011395f:MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. Levar isso para `app/` fica para outra PR.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. `app/` não muda. Nada a reaplicar.
+- **Sem testar:** `teste-geo.cjs` com proxy (precisa de proxy real e de `socks-proxy-agent`; só o `byIp` rodou); empacotamento real e Mac e Windows reais. `traducao-interface/preparar.py` ainda grava `cam-live.js` na pasta quando roda (copia de `integracao-camlive/cam-live.js`), e o arquivo gerado aparece como não versionado.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
 - **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo, gatilhos `labeled`/`unlabeled`), `scripts/ci/codescene-na-refatoracao.js` (a mensagem de falta de resposta nomeia o check pendente), `scripts/regras/caminhos-sensiveis.json` (`scripts/ci/**` passa a ser ALTA, para um PR comum não desligar o gate), `scripts/regras/test/codescene.test.js`, `registro.test.js`, `endurecimento.test.js`.
 - **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`).
+
+## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
+
+- **O que mudou:** o ssh da câmera do iPhone (`ios-camera.js` e `cam-live-iphone.js`) usava `StrictHostKeyChecking=yes`; passou a `accept-new`, igual aos outros 5 pontos (mesmo `BatchMode=yes` e `ConnectTimeout`). `accept-new` grava a chave quando o `known_hosts` do app ainda não tem o aparelho, como os outros 5 pontos. Chave trocada (reset do jailbreak) continua recusada até o Conectar gravar a nova, igual a antes. Nenhuma linha nova de código além do teste.
+- **Arquivos:** `app/electron/services/ios-camera.js`, `app/electron/services/cam-live-iphone.js` e as cópias do Mac `integracao-iphone/ios-camera.js`, `integracao-camlive/cam-live-iphone.js`, `integracao-sequestro-cam/ios-camera.patched.js`, `integracao-sequestro-cam/cam-live-iphone.patched.js`; teste novo `integracao-iphone/tests/chave-de-host.cjs` (`node --test`), que também trava `ios-bridge.js`, `idioma-ipc.js` e `physicalMobileService.js`.
+- **App instalado no Mac que muda:** `Contents/Resources/app/electron/services/ios-camera.js` e `.../cam-live-iphone.js` (guardar os anteriores em `reservas/`, copiar de `app/electron/services/ios-camera.js` e `app/electron/services/cam-live-iphone.js`, nunca das cópias em `MAC/`, que são mais velhas; reiniciar o Nova).
+- **Sem testar:** iPhone, Mac e Windows reais; o teste só confere as opções nos arquivos.
 
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
@@ -484,6 +506,12 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
 
+## 2026-11-19 — M3 de paridade: navegador no Mac procura nos mesmos lugares do Windows
+
+- **O que mudou:** `mac-native.browser(tipo)` também procura o `.app` embutido em `<resources>/browsers/<tipo>/<Nome>.app` e na pasta `browsers` do projeto (Brave, Vivaldi, Firefox, Edge e Chrome), como o Windows. O WhatsApp no Mac respeita `PUPPETEER_EXECUTABLE_PATH` (se o arquivo existir), depois o Chromium de `<userData>/browsers` (como o Windows), depois Chrome e por fim o Edge. A limpeza do navegador órfão do perfil do WhatsApp (`MAC_BROWSER_KILL_PATTERN`) agora também mata o Microsoft Edge da sessão, como o Windows já faz com `msedge.exe`. `userData/browsers` vale só para o Chromium do WhatsApp, nos dois sistemas; a fazenda, o CAM spoof e o navegador do app não o usam em nenhum. Removido: a pasta `userData/browsers` da busca geral de navegadores do Mac (a rodada anterior do próprio PR a tinha posto).
+- **Arquivos do app instalado que mudam:** `app/electron/services/mac-native.js`, `app/electron/services/whatsapp-manager.js` e `app/electron/services/paridade-utils.js` (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guarde os anteriores em `reservas/` e rode `node --check` nos três). Não muda `main.js`, `preload.js` nem o bundle da interface. Teste novo: `MAC/navegador-mac/tests/navegador.cjs` (`node --test`, isola `/Applications` e `playwright`, então passa em Mac com navegadores instalados); o teste do `pkill` em `app/test/paridade-b.test.js` ganhou o Edge. `navegador.cjs` também testa o ramo do Windows do WhatsApp (Chromium de `userData/browsers`) e zera o cache do `platform-utils` ao trocar a plataforma.
+- **Sem testar:** Mac real; navegador `.app` real embutido ou em `userData`; só pastas falsas em Linux.
+
 ## 2026-11-19 — ISS14: aviso quando o WhatsApp falha 8 vezes ao iniciar
 
 - **O que mudou:** ao atingir o limite de 8 tentativas (`reconnect-limit-reached`), o app abre um aviso com a permissão a conferir (Mac: Gerenciamento de apps e Microfone; Windows: firewall, antivírus e pasta de dados; outros: aviso genérico) e o texto vai também no campo `hint` do evento de status. Mesma detecção nos dois sistemas; só o texto muda.
@@ -519,3 +547,14 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** mesma ordem de pastas (`resources/bin`, Homebrew, PATH); comportamento igual. O túnel segue desligado por padrão (`NOVA_REMOTE_TUNNEL=1`).
 - **Teste:** `app/electron/services/testes/cloudflared-caminho.test.js` (`node --test`, com `exists` falso).
 - **Sem testar:** Windows e Mac reais, túnel real da Cloudflare.
+
+## 2026-11-19 — E2: permissão de câmera no lugar do PnP
+
+- **O que mudou:** o IPC `enable-physical-cameras` deixou de rodar PowerShell/`Get-PnpDevice` (só Windows, exigia administrador) e passou a conferir a permissão de câmera do sistema (`systemPreferences.getMediaAccessStatus`). Negada ou restrita: abre os Ajustes de privacidade de câmera (Mac: `Privacy_Camera`; Windows: `ms-settings:privacy-webcam`). Mac com permissão ainda não decidida: pede a permissão ao sistema. Removidos o `disableAllPhysicalCams()` do `hijack` e os dois métodos vazios `disableAllPhysicalCams`/`enableAllPhysicalCams` do `global-spoof-service.js`. Saldo: `main.js` −39 linhas, `global-spoof-service.js` −2.
+- **Arquivos do app instalado no Mac que mudam** (reaplicar com `cp` dentro de `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/`; guarde os antigos em `reservas/`):
+  - `main.js` ← `app/electron/main.js`
+  - `services/global-spoof-service.js` ← `app/electron/services/global-spoof-service.js`
+  - `services/camera-acesso.js` (novo) ← `app/electron/services/camera-acesso.js`
+  - O bundle da interface não muda (ignora a resposta do IPC). Reiniciar o Nova.
+- **Teste:** `node --test app/electron/services/test/camera-acesso.test.js` (estados × Mac/Windows, com mocks).
+- **Sem testar:** Mac e Windows reais. Prova pendente: no Mac, negar a câmera ao Nova em Ajustes, abrir a câmera no Nova e ver os Ajustes abrirem; no Windows, desligar "apps da área de trabalho" e repetir.
