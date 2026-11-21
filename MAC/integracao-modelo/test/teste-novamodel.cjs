@@ -23,31 +23,41 @@ function ok(msg) {
 
 // --- 1. Banco de modelos (models.json) -------------------------------
 function testModels() {
-  const p = path.join(ROOT, 'models.json');
-  const raw = fs.readFileSync(p, 'utf8');
-  let db;
-  try {
-    db = JSON.parse(raw);
-  } catch (e) {
-    fail('models.json não é JSON válido: ' + e.message);
-    return;
-  }
+  const banco = lerBanco();
+  if (!banco) return;
+  const { db } = banco;
   if (db.version !== 1) fail('models.json: version deve ser 1');
-  if (!Array.isArray(db.models) || db.models.length < 4) {
+  if (!temModelosSuficientes(db)) {
     fail('models.json: "models" deve ser um array com vários modelos');
     return;
   }
-  const re = /^iPhone\d+,\d+$/;
   const seen = new Set();
-  for (const m of db.models) {
-    const pt = m && m.productType;
-    const name = m && m.name;
-    if (typeof pt !== 'string' || !re.test(pt)) fail(`productType inválido: ${JSON.stringify(pt)}`);
-    if (typeof name !== 'string' || !name.trim()) fail(`name inválido para ${pt}`);
-    if (seen.has(pt)) fail(`productType duplicado: ${pt}`);
-    seen.add(pt);
-  }
+  for (const m of db.models) conferirModelo(m, seen);
   ok(`models.json: ${db.models.length} modelos, productTypes únicos e válidos`);
+}
+
+const PRODUCT_TYPE = /^iPhone\d+,\d+$/;
+const productTypeValido = pt => typeof pt === 'string' && PRODUCT_TYPE.test(pt);
+const nomeValido = name => typeof name === 'string' && Boolean(name.trim());
+const temModelosSuficientes = db => Array.isArray(db.models) && db.models.length >= 4;
+
+function lerBanco() {
+  const raw = fs.readFileSync(path.join(ROOT, 'models.json'), 'utf8');
+  try {
+    return { db: JSON.parse(raw) };
+  } catch (e) {
+    fail('models.json não é JSON válido: ' + e.message);
+    return null;
+  }
+}
+
+function conferirModelo(m, seen) {
+  const pt = m && m.productType;
+  const name = m && m.name;
+  if (!productTypeValido(pt)) fail(`productType inválido: ${JSON.stringify(pt)}`);
+  if (!nomeValido(name)) fail(`name inválido para ${pt}`);
+  if (seen.has(pt)) fail(`productType duplicado: ${pt}`);
+  seen.add(pt);
 }
 
 // --- 2. Cópia instalada no aparelho idêntica à fonte -----------------
@@ -81,12 +91,8 @@ function testMGWhitelist() {
   if (!m) { fail('Tweak.x: não encontrei o whitelist g_mgKeys'); return; }
   const keys = [...m[1].matchAll(/@"([A-Za-z]+)"/g)].map(x => x[1]);
   const expected = ['ProductType', 'HWModelStr', 'ModelNumber', 'ProductName', 'MarketingProductName'];
-  for (const k of expected) {
-    if (!keys.includes(k)) fail(`Tweak.x: chave MG ${k} ausente do whitelist`);
-  }
-  for (const k of keys) {
-    if (!expected.includes(k)) fail(`Tweak.x: chave MG ${k} fora da spec no whitelist`);
-  }
+  for (const k of expected.filter(k => !keys.includes(k))) fail(`Tweak.x: chave MG ${k} ausente do whitelist`);
+  for (const k of keys.filter(k => !expected.includes(k))) fail(`Tweak.x: chave MG ${k} fora da spec no whitelist`);
   if (!process.exitCode) ok(`Tweak.x: whitelist MG = ${keys.join(', ')}`);
 }
 
