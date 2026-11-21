@@ -499,6 +499,12 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
 
+## 2026-11-19 — M3 de paridade: navegador no Mac procura nos mesmos lugares do Windows
+
+- **O que mudou:** `mac-native.browser(tipo)` também procura o `.app` embutido em `<resources>/browsers/<tipo>/<Nome>.app` e na pasta `browsers` do projeto (Brave, Vivaldi, Firefox, Edge e Chrome), como o Windows. O WhatsApp no Mac respeita `PUPPETEER_EXECUTABLE_PATH` (se o arquivo existir), depois o Chromium de `<userData>/browsers` (como o Windows), depois Chrome e por fim o Edge. A limpeza do navegador órfão do perfil do WhatsApp (`MAC_BROWSER_KILL_PATTERN`) agora também mata o Microsoft Edge da sessão, como o Windows já faz com `msedge.exe`. `userData/browsers` vale só para o Chromium do WhatsApp, nos dois sistemas; a fazenda, o CAM spoof e o navegador do app não o usam em nenhum. Removido: a pasta `userData/browsers` da busca geral de navegadores do Mac (a rodada anterior do próprio PR a tinha posto).
+- **Arquivos do app instalado que mudam:** `app/electron/services/mac-native.js`, `app/electron/services/whatsapp-manager.js` e `app/electron/services/paridade-utils.js` (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guarde os anteriores em `reservas/` e rode `node --check` nos três). Não muda `main.js`, `preload.js` nem o bundle da interface. Teste novo: `MAC/navegador-mac/tests/navegador.cjs` (`node --test`, isola `/Applications` e `playwright`, então passa em Mac com navegadores instalados); o teste do `pkill` em `app/test/paridade-b.test.js` ganhou o Edge. `navegador.cjs` também testa o ramo do Windows do WhatsApp (Chromium de `userData/browsers`) e zera o cache do `platform-utils` ao trocar a plataforma.
+- **Sem testar:** Mac real; navegador `.app` real embutido ou em `userData`; só pastas falsas em Linux.
+
 ## 2026-11-19 — ISS14: aviso quando o WhatsApp falha 8 vezes ao iniciar
 
 - **O que mudou:** ao atingir o limite de 8 tentativas (`reconnect-limit-reached`), o app abre um aviso com a permissão a conferir (Mac: Gerenciamento de apps e Microfone; Windows: firewall, antivírus e pasta de dados; outros: aviso genérico) e o texto vai também no campo `hint` do evento de status. Mesma detecção nos dois sistemas; só o texto muda.
