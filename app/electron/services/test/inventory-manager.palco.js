@@ -67,6 +67,7 @@ function criarBanco(palco) {
       palco.anotar('db.abrir', caminho);
       if (palco.cenario.falhaAoAbrir) throw new Error('unable to open database file');
       this.banco = new DatabaseSync(caminho);
+      palco.bancosAbertos.add(this.banco);
     }
 
     pragma(texto) {
@@ -100,6 +101,7 @@ function criarBanco(palco) {
     close() {
       palco.anotar('db.fechar');
       this.banco.close();
+      palco.bancosAbertos.delete(this.banco);
     }
   };
 }
@@ -340,6 +342,7 @@ class Palco {
     this.pendentes = [];
     this.ws = { nome: 'ws' };
     this.proximoDialogo = null;
+    this.bancosAbertos = new Set();
   }
 
   anotar(...entrada) {
@@ -466,6 +469,8 @@ class Palco {
 
   restaurar() {
     for (const desfazer of this.desfazer.splice(0).reverse()) desfazer();
+    for (const banco of this.bancosAbertos) banco.close();
+    this.bancosAbertos.clear();
     fs.rmSync(this.raiz, { recursive: true, force: true });
   }
 }

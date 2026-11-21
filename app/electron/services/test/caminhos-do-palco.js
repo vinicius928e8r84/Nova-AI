@@ -18,4 +18,11 @@ function relativoEmPosix(de, para, caminhos = path) {
   return caminhos.relative(de, para).split(caminhos.sep).join('/');
 }
 
-module.exports = { marcarCaminhos, relativoEmPosix };
+const nomeDaEntrada = entrada => (typeof entrada === 'string' ? entrada : entrada.name);
+const naOrdemDoUnix = (a, b) => Buffer.compare(Buffer.from(nomeDaEntrada(a)), Buffer.from(nomeDaEntrada(b)));
+
+function listaEmOrdem(fs) {
+  return { ...fs, readdirSync: (...argumentos) => fs.readdirSync(...argumentos).sort(naOrdemDoUnix) };
+}
+
+module.exports = { marcarCaminhos, relativoEmPosix, listaEmOrdem };

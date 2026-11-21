@@ -5,6 +5,7 @@ const assert = require('node:assert');
 const path = require('path');
 const navegador = require('./browser-manager.palco');
 const estoque = require('./inventory-manager.palco');
+const { listaEmOrdem } = require('./caminhos-do-palco');
 
 const TEMPORARIA = 'C:\\Users\\nova\\AppData\\Local\\Temp';
 const APP_NO_WINDOWS = 'C:\\Nova\\app';
@@ -41,4 +42,28 @@ test('lista de arquivos com separador do Windows sai com a barra gravada', () =>
   const imagem = raiz + '\\documents\\Nova_Vault\\inventory\\product_images\\foto.png';
   assert.strictEqual(navegador.relativoEmPosix(raiz, imagem, path.win32), 'documents/Nova_Vault/inventory/product_images/foto.png');
   assert.strictEqual(estoque.relativoEmPosix(raiz, imagem, path.win32), 'documents/Nova_Vault/inventory/product_images/foto.png');
+});
+
+test('lista da pasta na ordem do NTFS sai na ordem gravada', () => {
+  const ordemDoNtfs = ['exato.bin', 'final thumbnail.png', 'nota.final', 'Video.MP4'];
+  const comoDirent = nome => ({ name: nome, isFile: () => true });
+  const fsDoWindows = {
+    existsSync: () => true,
+    readdirSync: (_, opcoes) => (opcoes && opcoes.withFileTypes ? ordemDoNtfs.map(comoDirent) : ordemDoNtfs.slice()),
+  };
+  const fsDoPalco = listaEmOrdem(fsDoWindows);
+  assert.deepStrictEqual(fsDoPalco.readdirSync('pasta'), ['Video.MP4', 'exato.bin', 'final thumbnail.png', 'nota.final']);
+  assert.deepStrictEqual(fsDoPalco.readdirSync('pasta', { withFileTypes: true }).map(entrada => entrada.name), ['Video.MP4', 'exato.bin', 'final thumbnail.png', 'nota.final']);
+  assert.strictEqual(fsDoPalco.existsSync, fsDoWindows.existsSync);
+});
+
+test('inventory-manager: banco que a cena deixou aberto fecha antes de apagar a raiz', async () => {
+  let gerenteDaCena;
+  await estoque.rodarCena(path.join(__dirname, '..', 'inventory-manager.js'), {
+    rodar: async (palco, gerente) => {
+      gerente.init();
+      gerenteDaCena = gerente;
+    },
+  });
+  assert.strictEqual(gerenteDaCena.db.banco.isOpen, false);
 });

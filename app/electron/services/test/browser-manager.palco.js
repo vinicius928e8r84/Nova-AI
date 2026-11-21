@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const vm = require('vm');
 const { EventEmitter } = require('events');
-const { marcarCaminhos, relativoEmPosix } = require('./caminhos-do-palco');
+const { marcarCaminhos, relativoEmPosix, listaEmOrdem } = require('./caminhos-do-palco');
 
 const AGORA = Date.UTC(2026, 10, 21, 12, 0, 0);
 const RODADAS_POR_PASSO = 8;
@@ -478,6 +478,7 @@ class Palco {
 
   falsos() {
     return {
+      fs: listaEmOrdem(fs),
       playwright: criarPlaywright(this),
       electron: criarElectron(this),
       net: criarRede(this),
