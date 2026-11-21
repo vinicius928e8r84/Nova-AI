@@ -1,0 +1,921 @@
+{
+  "sem chave": [
+    [
+      "stderr",
+      "[UserProfileManager] No API key provided for context sync."
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": "(undefined)",
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "sem o pacote do Gemini": [
+    [
+      "stderr",
+      "[UserProfileManager] @google/generative-ai not found"
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] GoogleGenerativeAI not initialized."
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": "(undefined)",
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "desligado depois de três falhas": [
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": 3,
+        "lastAnalysisAttemptTime": "(undefined)",
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "espera quinze minutos entre tentativas": [
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1699999940000,
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "nada para amostrar": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "conversas não são lista": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "conversas e cofre instalado, primeiro modelo responde": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      "utf8"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 714,
+        "sha256": "d9a9a95ba805206601aed52f06779db5458e48620ad4c36a92b1167630f9897c",
+        "fim": "longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo "
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil do usuário\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil do usuário"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "cofre do app quando não há o instalado": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      "utf8"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 567,
+        "sha256": "b3ca693ed8125a8620bf11ecbc55bb0ca5071778aed7f48f762bfd374fe10a38",
+        "fim": "longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo longo "
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "cofre corrompido segue com as conversas": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      "utf8"
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] Failed to read MyActivity.json",
+      {
+        "erro": "SyntaxError",
+        "mensagem": "Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+      }
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "cofre com mais de cem itens e amostra cortada em 50 mil": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      "utf8"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 32836,
+        "sha256": "d45e0e099e718e5dca293305b30143116460beacacb3eee27840e03dbf7f759a",
+        "fim": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "conversa enorme é cortada em 50 mil": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 50148,
+        "sha256": "0c153679e1c58734c3e1c3b457f3f45de0fa5035737e0c546791103471a10ed4",
+        "fim": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "primeiro modelo falha, segundo responde": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] gemini-3.8-flash failed: 500 interno"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-4-argon"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil do segundo\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil do segundo"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "primeiro modelo responde vazio, segundo responde": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-4-argon"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/nova_user_context.json",
+      "{\n  \"lastUpdated\": 1700000000000,\n  \"context\": \"perfil do segundo\"\n}"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] ✓ User profile synced successfully."
+    ],
+    [
+      "analyzeUserGraph",
+      "perfil do segundo"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": 0
+      }
+    ]
+  ],
+  "404 para de tentar e conta a falha": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] gemini-3.8-flash failed: [404] not found"
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] Attempt 1 failed. Retrying later..."
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": 1,
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "todos falham e a terceira falha desliga": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] gemini-3.8-flash failed: a"
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-4-argon"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] gemini-4-argon failed: b"
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] Analysis failed 3 times. DISABLING background tasks for this session."
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": 3,
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "todos vazios contam uma falha": [
+    [
+      "fs.existsSync",
+      "/instalado/Nova/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "<app>/Nova_Vault/MyActivity.json",
+      false
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-3.8-flash"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stdout",
+      "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+    ],
+    [
+      "new GoogleGenerativeAI",
+      "chave"
+    ],
+    [
+      "getGenerativeModel",
+      {
+        "model": "gemini-4-argon"
+      },
+      {
+        "apiVersion": "v1beta"
+      }
+    ],
+    [
+      "generateContent",
+      {
+        "tamanho": 293,
+        "sha256": "a8e22c8bab5aebf25812de1e705e65b6e9dfb59e36097b9e3077addf579758ec",
+        "fim": " oi\nNOVA: olá\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nNOVA: a\n\n\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\nUser: 4\n"
+      },
+      {
+        "timeout": 30000
+      }
+    ],
+    [
+      "stderr",
+      "[UserProfileManager] Attempt 2 failed. Retrying later..."
+    ],
+    [
+      "analyzeUserGraph",
+      null
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": 2,
+        "lastAnalysisAttemptTime": 1700000000000,
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "contexto gravado": [
+    [
+      "fs.existsSync",
+      "/dados/userData/nova_user_context.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/dados/userData/nova_user_context.json",
+      "utf-8"
+    ],
+    [
+      "getUserContext",
+      "o perfil"
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": "(undefined)",
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "contexto ausente": [
+    [
+      "fs.existsSync",
+      "/dados/userData/nova_user_context.json",
+      false
+    ],
+    [
+      "getUserContext",
+      ""
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": "(undefined)",
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ],
+  "contexto corrompido": [
+    [
+      "fs.existsSync",
+      "/dados/userData/nova_user_context.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/dados/userData/nova_user_context.json",
+      "utf-8"
+    ],
+    [
+      "getUserContext",
+      ""
+    ],
+    [
+      "globais",
+      {
+        "profileAnalysisFailCount": "(undefined)",
+        "lastAnalysisAttemptTime": "(undefined)",
+        "lastAnalysisFailureTime": "(undefined)"
+      }
+    ]
+  ]
+}

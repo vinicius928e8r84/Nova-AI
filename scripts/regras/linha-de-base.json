@@ -50,7 +50,6 @@
     "app/electron/services/python-runtime.js": 2,
     "app/electron/services/remote-access.js": 132,
     "app/electron/services/tool-paths.js": 7,
-    "app/electron/services/user-profile-manager.js": 39,
     "app/electron/services/whatsapp-manager.js": 305,
     "app/electron/webview-bridge.js": 14,
     "app/public/audio-processor-worklet.js": 1,
