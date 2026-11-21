@@ -81,3 +81,24 @@ test('GPS do iPhone: Mac mantém a lista de antes e Windows procura .exe, Script
   assert.equal(tp.gpsTool('idevicesetlocation', { ...winOpts, exists: (f) => f === 'D:\\b\\idevicesetlocation.exe' }), 'D:\\b\\idevicesetlocation.exe');
   assert.equal(tp.gpsTool('idevicesetlocation', { ...winOpts, exists: () => false }), null);
 });
+
+test('ícone, yt-dlp e ffmpeg seguem o sistema nos dois lados', () => {
+  assert.equal(tp.iconFile(mac), 'nova-icon.png');
+  assert.equal(tp.iconFile(win), 'nova.ico');
+  assert.equal(tp.exe('yt-dlp', mac), 'yt-dlp');
+  assert.equal(tp.exe('yt-dlp', win), 'yt-dlp.exe');
+  assert.equal(tp.exe('ffmpeg', mac), 'ffmpeg');
+  assert.equal(tp.exe('ffmpeg', win), 'ffmpeg.exe');
+  const dentro = { ...win, exists: (f) => f === 'C:\\app\\resources\\bin\\ffmpeg.exe' };
+  assert.equal(tp.ffmpeg(dentro), 'C:\\app\\resources\\bin\\ffmpeg.exe');
+  assert.equal(tp.ffmpeg({ ...win, exists: () => false }), null);
+});
+
+test('spoof e pré-escuta não montam caminho de ffmpeg nem reabrem arquivo apagado', () => {
+  const lerFonte = (f) => fs.readFileSync(path.join(__dirname, '../../../app/electron', f), 'utf8');
+  const spoof = lerFonte('services/global-spoof-service.js');
+  assert.match(spoof, /^const toolPaths = require\('\.\/tool-paths'\);$/m);
+  assert.match(spoof, /this\.ffmpegPath\s*=\s*toolPaths\.ffmpeg\(\) \|\| 'ffmpeg';/);
+  assert.doesNotMatch(spoof, /altPath/);
+  assert.doesNotMatch(lerFonte('main.js'), /if \(playErr\)/);
+});

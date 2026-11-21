@@ -66,6 +66,10 @@ function tool(name, opts) {
   return ffmpegDirs(s).map((d) => s.p.join(d, file)).find((f) => s.exists(f)) || null;
 }
 
+function iconFile(opts) {
+  return sistema(opts).platform === 'darwin' ? 'nova-icon.png' : 'nova.ico';
+}
+
 const ffmpeg = (opts) => tool('ffmpeg', opts);
 
 function iosTool(name, opts) {
@@ -102,4 +106,4 @@ function gpsTool(name, opts) {
   return [override, ...dirs.filter(Boolean).map((d) => s.p.join(d, file))].filter(Boolean).find((f) => s.exists(f)) || null;
 }
 
-module.exports = { gpsTool, ssh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe };
+module.exports = { gpsTool, ssh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe, iconFile };
