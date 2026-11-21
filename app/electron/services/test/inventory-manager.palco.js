@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const { EventEmitter } = require('events');
 const { DatabaseSync } = require('node:sqlite');
+const { marcarCaminhos, relativoEmPosix } = require('./caminhos-do-palco');
 
 const AGORA = Date.UTC(2026, 10, 21, 12, 0, 0);
 const RELOGIO_DO_BANCO = "'2026-11-21 12:00:00'";
@@ -32,11 +33,12 @@ function descreverValor(valor) {
   return valor;
 }
 
-function normalizar(valor, raiz) {
+function normalizar(valor, raiz, separador = path.sep) {
+  const trocas = [[raiz, '<raiz>'], [raiz.replace(/'/g, "''"), '<raiz>']];
   const texto = JSON.stringify(valor === undefined ? null : valor, (_, v) => {
     const descrito = descreverValor(v);
     if (typeof descrito !== 'string') return descrito;
-    return descrito.split(raiz).join('<raiz>').split(raiz.replace(/'/g, "''")).join('<raiz>');
+    return marcarCaminhos(descrito, trocas, separador);
   });
   return JSON.parse(texto === undefined ? 'null' : texto);
 }
@@ -312,9 +314,9 @@ function criarDataFixa() {
 function listarArquivos(pasta, raiz) {
   return fs.readdirSync(pasta, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name)).flatMap(entrada => {
     const caminho = path.join(pasta, entrada.name);
-    if (entrada.isDirectory()) return [path.relative(raiz, caminho) + '/', ...listarArquivos(caminho, raiz)];
+    if (entrada.isDirectory()) return [relativoEmPosix(raiz, caminho) + '/', ...listarArquivos(caminho, raiz)];
     if (SUFIXOS_DO_WAL.some(sufixo => entrada.name.endsWith(sufixo))) return [];
-    return [path.relative(raiz, caminho)];
+    return [relativoEmPosix(raiz, caminho)];
   });
 }
 
@@ -484,4 +486,4 @@ async function rodarCena(modulo, cena) {
   }
 }
 
-module.exports = { rodarCena, AGORA };
+module.exports = { rodarCena, AGORA, normalizar, relativoEmPosix };

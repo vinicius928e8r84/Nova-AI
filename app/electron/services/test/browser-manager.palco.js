@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const vm = require('vm');
 const { EventEmitter } = require('events');
+const { marcarCaminhos, relativoEmPosix } = require('./caminhos-do-palco');
 
 const AGORA = Date.UTC(2026, 10, 21, 12, 0, 0);
 const RODADAS_POR_PASSO = 8;
@@ -31,8 +32,8 @@ function descreverValor(valor) {
   return valor;
 }
 
-function normalizador(trocas) {
-  const trocar = texto => trocas.reduce((atual, [de, para]) => atual.split(de).join(para), texto);
+function normalizador(trocas, separador = path.sep) {
+  const trocar = texto => marcarCaminhos(texto, trocas, separador);
   return valor => {
     const texto = JSON.stringify(valor === undefined ? null : valor, (_, v) => {
       if (v?.type === 'Buffer' && Array.isArray(v?.data)) return 'buffer:' + Buffer.from(v.data).toString('base64');
@@ -555,9 +556,9 @@ class Palco {
   fotografar() {
     const listar = pasta => fs.readdirSync(pasta, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name)).flatMap(entrada => {
       const caminho = path.join(pasta, entrada.name);
-      if (entrada.isDirectory()) return [{ caminho: path.relative(this.raiz, caminho) + '/' }, ...listar(caminho)];
+      if (entrada.isDirectory()) return [{ caminho: relativoEmPosix(this.raiz, caminho) + '/' }, ...listar(caminho)];
       const conteudo = this.normalizar(fs.readFileSync(caminho, 'utf8'));
-      return [{ caminho: path.relative(this.raiz, caminho), conteudo: conteudo.length > LIMITE_DE_TEXTO ? resumoDoTexto(conteudo) : conteudo }];
+      return [{ caminho: relativoEmPosix(this.raiz, caminho), conteudo: conteudo.length > LIMITE_DE_TEXTO ? resumoDoTexto(conteudo) : conteudo }];
     });
     this.anotar('arquivos', listar(this.raiz));
   }
@@ -604,4 +605,4 @@ async function rodarCena(modulo, cena) {
   }
 }
 
-module.exports = { rodarCena, AGORA };
+module.exports = { rodarCena, AGORA, normalizador, relativoEmPosix };
