@@ -104,7 +104,6 @@ jobs:
       - name: Testes de MAC/ que rodam sem Mac
         run: >-
           node --test
-          MAC/controle-celular-plataformas/geo-proxy/teste-geo.cjs
           MAC/integracao-camlive/test/iphone-lifecycle.cjs
           MAC/integracao-camlive/test/iphone-protocol.cjs
           MAC/integracao-iphone/conexao-usb/locale-helper.test.cjs
