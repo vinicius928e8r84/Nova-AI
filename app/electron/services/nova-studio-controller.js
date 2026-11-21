@@ -32,6 +32,111 @@ try {
 
 const SYSTEM_INSTRUCTION = "You are Nova, an intelligent AI assistant and Creative Director of NOVA STUDIO. You must always act on previously extracted text if the user instructs you to. You remember all context in a conversation. You are brief, professional, and focus on high-fidelity results for both imaging and document tasks.";
 
+const PEDIDO_DE_TEXTO = /copy|text|read|extract|ocr/i;
+const PROMPT_DE_ANALISE = 'Analyze this image in detail and describe everything you see.';
+const AVISO_DE_MODELO_AUSENTE = 'CRITICAL ERROR: The model you requested is not available. System has been updated to use gemini-1.5-flash.';
+const AVISO_DE_REGENERACAO = 'Boss, I am re-generating the entire card based on the original data. Text rendering on complex official documents might have slight alignment/spelling variations.';
+
+function pedidoDeEdicao({ image, command, mode, history = [], accountMode = false, selectedModel = null }) {
+    return { image, command, mode, history, accountMode, selectedModel };
+}
+
+function usaContaGoogle(edicao) {
+    return Boolean(edicao.accountMode && geminiBrowserEngine);
+}
+
+function semLoginNaConta() {
+    return {
+        success: false,
+        error: 'NOT_LOGGED_IN',
+        role: 'nova',
+        message: '⚠️ Conta Google não conectada. Vá em Ajustes do Studio → "Conectar Conta Google".'
+    };
+}
+
+function textoDoTurno(turno) {
+    return Array.isArray(turno.parts) ? (turno.parts[0]?.text || '') : '';
+}
+
+function turnoParaOMotor(turno) {
+    return {
+        role: turno.role === 'user' ? 'user' : 'model',
+        text: textoDoTurno(turno)
+    };
+}
+
+function mensagemParaOMotor(edicao, modelo) {
+    return {
+        prompt:      edicao.command || (edicao.image ? PROMPT_DE_ANALISE : 'Hello'),
+        imageBase64: edicao.image || null,
+        model:       modelo,
+        history:     edicao.history.map(turnoParaOMotor),
+    };
+}
+
+function pedeTextoDaImagem({ image, command }) {
+    if (!image || !command) return false;
+    return PEDIDO_DE_TEXTO.test(command);
+}
+
+function respostaDaConta(edicao, resultado) {
+    if (pedeTextoDaImagem(edicao)) clipboard.writeText(resultado.text);
+    return {
+        success:       true,
+        intent:        edicao.image ? 'ocr_extraction' : 'chat',
+        message:       resultado.text,
+        extractedText: resultado.text,
+        answer:        resultado.text,
+        role:          'nova',
+        model:         resultado.model,
+    };
+}
+
+function respostaDeOcr(texto) {
+    clipboard.writeText(texto);
+    return { success: true, intent: 'ocr', extractedText: texto, message: texto, role: 'nova' };
+}
+
+function respostaDePergunta(texto) {
+    return { success: true, intent: 'chat', answer: texto, message: texto, role: 'nova' };
+}
+
+const RESPOSTAS_EM_TEXTO = new Map([
+    ['ocr_extraction', respostaDeOcr],
+    ['question', respostaDePergunta],
+]);
+
+function respostaComImagem(edicao, roteiro, imagem) {
+    return {
+        success: true,
+        intent: roteiro.intent,
+        image: imagem,
+        replacementText: roteiro.replacement_text,
+        message: roteiro.confirmation_text,
+        role: 'nova',
+        metadata: { prompt: roteiro.positive, mode: edicao.mode }
+    };
+}
+
+function modeloNaoEncontrado(mensagem) {
+    return mensagem.includes('404') || mensagem.includes('not found');
+}
+
+function respostaDeModeloAusente(mensagem) {
+    console.info('[Studio] 404 detected. Model may be outdated.');
+    return { success: false, error: `404 MODEL NOT FOUND: ${mensagem}`, role: 'nova', message: AVISO_DE_MODELO_AUSENTE };
+}
+
+function respostaDeErro(error) {
+    if (modeloNaoEncontrado(error.message)) return respostaDeModeloAusente(error.message);
+    return {
+        success: false,
+        error: error.message || 'Neural Matrix Destabilized',
+        role: 'nova',
+        message: error.message.includes('IMAGEN') ? AVISO_DE_REGENERACAO : `GEMINI_ERROR: ${error.message}`
+    };
+}
+
 class NovaStudioController {
     constructor(mainWindow, app) {
         this.mainWindow = mainWindow;
@@ -66,156 +171,61 @@ class NovaStudioController {
         }
     }
 
-    /**
-     * Main Entry Point for the Studio Panel (Real Intelligence Overhaul)
-     *
-     * accountMode=true  → uses the logged-in Google Account browser session
-     * accountMode=false → falls back to Gemini SDK + API key
-     */
-    async executeEdit({ image, command, mode, history = [], accountMode = false, selectedModel = null }) {
-        console.log(`[Studio] Neural Routing: ${command} (${mode} | accountMode=${accountMode}) | History: ${history.length} turns`);
+    async executeEdit(pedido) {
+        const edicao = pedidoDeEdicao(pedido);
+        console.info(`[Studio] Neural Routing: ${edicao.command} (${edicao.mode} | accountMode=${edicao.accountMode}) | History: ${edicao.history.length} turns`);
+        const respostaPelaConta = usaContaGoogle(edicao) ? await this.editarPelaConta(edicao) : null;
+        return respostaPelaConta || this.editarPelaChave(edicao);
+    }
 
-        // ══ ACCOUNT MODE: Route through Browser Engine (no API quota) ═══════
-        if (accountMode && geminiBrowserEngine) {
-            const authStatus = geminiBrowserEngine.getAuthStatus();
-            if (!authStatus.isLoggedIn) {
-                return {
-                    success: false,
-                    error: 'NOT_LOGGED_IN',
-                    role: 'nova',
-                    message: '⚠️ Conta Google não conectada. Vá em Ajustes do Studio → "Conectar Conta Google".'
-                };
-            }
-
-            const activeModel = selectedModel || geminiBrowserEngine.getSelectedModel();
-            console.log(`[Studio] → Account Mode via Browser Engine (model: ${activeModel})`);
-
-            try {
-                const engineResult = await geminiBrowserEngine.sendMessage({
-                    prompt:      command || (image ? 'Analyze this image in detail and describe everything you see.' : 'Hello'),
-                    imageBase64: image || null,
-                    model:       activeModel,
-                    history:     history.map(h => ({
-                        role: h.role === 'user' ? 'user' : 'model',
-                        text: Array.isArray(h.parts) ? (h.parts[0]?.text || '') : ''
-                    })),
-                });
-
-                if (engineResult.success) {
-                    if (image && command && /copy|text|read|extract|ocr/i.test(command)) {
-                        clipboard.writeText(engineResult.text);
-                    }
-                    return {
-                        success:       true,
-                        intent:        image ? 'ocr_extraction' : 'chat',
-                        message:       engineResult.text,
-                        extractedText: engineResult.text,
-                        answer:        engineResult.text,
-                        role:          'nova',
-                        model:         engineResult.model,
-                    };
-                }
-
-                // Engine returned an error — fall through to API key
-                console.warn('[Studio] Account engine error, falling back to API key:', engineResult.error);
-            } catch (engineErr) {
-                console.warn('[Studio] Browser Engine exception, falling back:', engineErr.message);
-            }
-        }
-
-        // ══ API KEY MODE: Gemini SDK (original flow) ═════════════════════════
-        let cleanKey = null;
+    async editarPelaConta(edicao) {
+        if (!geminiBrowserEngine.getAuthStatus().isLoggedIn) return semLoginNaConta();
+        const modelo = edicao.selectedModel || geminiBrowserEngine.getSelectedModel();
+        console.info(`[Studio] → Account Mode via Browser Engine (model: ${modelo})`);
         try {
-            const apiKey = await this.app.getGeminiToken();
-            if (!apiKey) throw new Error("GEMINI_API_KEY_MISSING");
+            const resultado = await geminiBrowserEngine.sendMessage(mensagemParaOMotor(edicao, modelo));
+            if (resultado.success) return respostaDaConta(edicao, resultado);
+            console.warn('[Studio] Account engine error, falling back to API key:', resultado.error);
+        } catch (erro) {
+            console.warn('[Studio] Browser Engine exception, falling back:', erro.message);
+        }
+        return null;
+    }
 
-            cleanKey = apiKey.trim();
-            const genAI = new GoogleGenerativeAI(cleanKey);
-
-            // PHASE 1: INTENT CLASSIFICATION (Lightning Fast via Flash)
-            const classification = await this.classifyIntent(image, command, genAI, history);
-            console.log(`[Studio] Goal Identified:`, classification.intent);
-
-            // PHASE 2: CONTEXT-AWARE RESPONSE GENERATION (Deep Reasoning via Pro)
-            // If it's pure chat or OCR, we need the final answer now.
-            if (classification.intent === 'ocr_extraction' || classification.intent === 'question') {
-                const aiResult = await this.generateVisionResponse(image, command, classification.intent, genAI, history);
-                
-                if (classification.intent === 'ocr_extraction') {
-                    clipboard.writeText(aiResult);
-                    return {
-                        success: true,
-                        intent: 'ocr',
-                        extractedText: aiResult,
-                        message: aiResult, // AI text describing the extraction
-                        role: 'nova'
-                    };
-                }
-
-                return {
-                    success: true,
-                    intent: 'chat',
-                    answer: aiResult,
-                    message: aiResult,
-                    role: 'nova'
-                };
-            }
-
-            // PHASE 3: NATIVE IMAGE GENERATION (Imagen 3)
-            // Use Pro to get a conversational confirmation + The high-fidelity description for Imagen
-            const brainResponse = await this.enhancePrompt(image, command, genAI, history);
-
-            // Construct a detailed professional prompt for the full re-generation
-            const result = await this.generateNativeImage(brainResponse.positive);
-
-            return {
-                success: true,
-                intent: brainResponse.intent,
-                image: result,
-                replacementText: brainResponse.replacement_text,
-                message: brainResponse.confirmation_text, // REAL conversational confirmation
-                role: 'nova',
-                metadata: {
-                    prompt: brainResponse.positive,
-                    mode: mode
-                }
-            };
-
+    async editarPelaChave(edicao) {
+        try {
+            const genAI = await this.clienteDoGemini();
+            return await this.responderPelaIntencao(edicao, genAI);
         } catch (error) {
             console.error('GEMINI SDK EXCEPTION:', error);
-            
-            // PHASE 3 (Auto-Discovery): Log the truth when 404 occurs
-            if (error.message.includes('404') || error.message.includes('not found')) {
-                console.log('[Studio] 404 detected. Model may be outdated.');
-                
-                return {
-                    success: false,
-                    error: `404 MODEL NOT FOUND: ${error.message}`,
-                    role: 'nova',
-                    message: `CRITICAL ERROR: The model you requested is not available. System has been updated to use gemini-1.5-flash.`
-                };
-            }
-
-            // Add user-requested disclaimer for generative editing
-            const resultPayload = {
-                success: false,
-                error: error.message || "Neural Matrix Destabilized",
-                role: 'nova',
-                message: `GEMINI_ERROR: ${error.message}`
-            };
-
-            if (error.message.includes("IMAGEN")) {
-                resultPayload.message = `Boss, I am re-generating the entire card based on the original data. Text rendering on complex official documents might have slight alignment/spelling variations.`;
-            }
-
-            return resultPayload;
+            return respostaDeErro(error);
         }
+    }
+
+    async clienteDoGemini() {
+        const apiKey = await this.app.getGeminiToken();
+        if (!apiKey) throw new Error('GEMINI_API_KEY_MISSING');
+        return new GoogleGenerativeAI(apiKey.trim());
+    }
+
+    async responderPelaIntencao(edicao, genAI) {
+        const classificacao = await this.classifyIntent(edicao.image, edicao.command, genAI, edicao.history);
+        console.info('[Studio] Goal Identified:', classificacao.intent);
+        const responderComTexto = RESPOSTAS_EM_TEXTO.get(classificacao.intent);
+        if (!responderComTexto) return this.editarImagem(edicao, genAI);
+        return responderComTexto(await this.generateVisionResponse(edicao, classificacao.intent, genAI));
+    }
+
+    async editarImagem(edicao, genAI) {
+        const roteiro = await this.enhancePrompt(edicao.image, edicao.command, genAI, edicao.history);
+        const imagem = await this.generateNativeImage(roteiro.positive);
+        return respostaComImagem(edicao, roteiro, imagem);
     }
 
     /**
      * MULTIMODAL VISION: Deep Reasoning & OCR (Gemini 1.5 Pro)
      */
-    async generateVisionResponse(image, command, intent, genAI, history = []) {
+    async generateVisionResponse({ image, command, history }, intent, genAI) {
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-3.8-flash',
             systemInstruction: SYSTEM_INSTRUCTION
