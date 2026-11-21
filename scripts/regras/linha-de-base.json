@@ -14,7 +14,10 @@
     "prototype-cam-live/index.html": 1670
   },
   "saude-do-codigo": {
-    "app/electron/main.js": 4197,
+    "app/dist/audio-processor-worklet.js": 1,
+    "app/dist/cam-live-audio.js": 39,
+    "app/dist/cam-live.js": 356,
+    "app/electron/main.js": 4153,
     "app/electron/nova-grab-extension/content.js": 166,
     "app/electron/pwa/app.js": 8,
     "app/electron/services/agent-swarm-controller.js": 140,
@@ -24,6 +27,7 @@
     "app/electron/services/browserFarmService.js": 1040,
     "app/electron/services/cam-live-iphone.js": 81,
     "app/electron/services/cam-live-service.js": 82,
+    "app/electron/services/camera-acesso.js": 1,
     "app/electron/services/cdp-shim.js": 7,
     "app/electron/services/child-worker-agent.js": 148,
     "app/electron/services/gemini-browser-engine.js": 117,
