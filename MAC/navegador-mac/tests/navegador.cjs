@@ -76,37 +76,66 @@ function carregarGerente(plataforma, base) {
   } finally { Module._load = original; }
 }
 
+function semEnvDoPuppeteer(acao) {
+  const original = process.env.PUPPETEER_EXECUTABLE_PATH;
+  delete process.env.PUPPETEER_EXECUTABLE_PATH;
+  try { return acao(); } finally {
+    if (original === undefined) delete process.env.PUPPETEER_EXECUTABLE_PATH; else process.env.PUPPETEER_EXECUTABLE_PATH = original;
+  }
+}
+
+function comGerenteNoMac(base, acao) {
+  const { restaurar } = carregar({ resources: path.join(base, 'res'), userData: path.join(base, 'ud'), home: path.join(base, 'home') });
+  const { gerente, restaurar: restaurarPlataforma } = carregarGerente('darwin', base);
+  try { return semEnvDoPuppeteer(() => acao(gerente)); } finally { restaurarPlataforma(); restaurar(); }
+}
+
+function edgeEmbutido(base) {
+  return criarExecutavel(base, 'res', 'browsers', 'edge', 'Microsoft Edge.app', 'Contents', 'MacOS', 'Microsoft Edge');
+}
+
+function chromiumNoUserData(base, pastaDoSistema, ...executavel) {
+  return criarExecutavel(base, 'ud', 'browsers', 'chromium-1208', pastaDoSistema, ...executavel);
+}
+
 test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH vence, depois Chromium de userData/browsers, depois Edge embutido', () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
-  const edge = criarExecutavel(base, 'res', 'browsers', 'edge', 'Microsoft Edge.app', 'Contents', 'MacOS', 'Microsoft Edge');
-  const { restaurar } = carregar({ resources: path.join(base, 'res'), userData: path.join(base, 'ud'), home: path.join(base, 'home') });
-  const envOriginal = process.env.PUPPETEER_EXECUTABLE_PATH;
-  const { gerente, restaurar: restaurarPlataforma } = carregarGerente('darwin', base);
-  try {
-    delete process.env.PUPPETEER_EXECUTABLE_PATH;
+  const edge = edgeEmbutido(base);
+  comGerenteNoMac(base, (gerente) => {
     assert.strictEqual(gerente.resolveBrowserExecutable(), edge);
-    const chromium = criarExecutavel(base, 'ud', 'browsers', 'chromium-1208', 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium');
+    const chromium = chromiumNoUserData(base, 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium');
     assert.strictEqual(gerente.resolveBrowserExecutable(), chromium);
     const proprio = criarExecutavel(base, 'meu', 'chrome');
     process.env.PUPPETEER_EXECUTABLE_PATH = proprio;
     assert.strictEqual(gerente.resolveBrowserExecutable(), proprio);
-  } finally {
-    restaurarPlataforma();
-    if (envOriginal === undefined) delete process.env.PUPPETEER_EXECUTABLE_PATH; else process.env.PUPPETEER_EXECUTABLE_PATH = envOriginal;
-    restaurar();
-  }
+  });
+});
+
+test('whatsapp no Mac: PUPPETEER_EXECUTABLE_PATH para arquivo que nao existe fica de fora', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
+  const edge = edgeEmbutido(base);
+  comGerenteNoMac(base, (gerente) => {
+    process.env.PUPPETEER_EXECUTABLE_PATH = path.join(base, 'nao-existe', 'chrome');
+    assert.strictEqual(gerente.resolveBrowserExecutable(), edge);
+  });
+});
+
+test('whatsapp no Mac: Chromium de userData/browsers vem antes do Chrome instalado em ~/Applications', () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
+  edgeEmbutido(base);
+  const chrome = criarExecutavel(base, 'home', 'Applications', 'Google Chrome.app', 'Contents', 'MacOS', 'Google Chrome');
+  comGerenteNoMac(base, (gerente) => {
+    assert.strictEqual(gerente.resolveBrowserExecutable(), chrome);
+    const chromium = chromiumNoUserData(base, 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium');
+    assert.strictEqual(gerente.resolveBrowserExecutable(), chromium);
+  });
 });
 
 test('whatsapp no Windows: Chromium de userData/browsers vale, como no Mac', () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'nav-'));
-  const chromium = criarExecutavel(base, 'ud', 'browsers', 'chromium-1208', 'chrome-win64', 'chrome.exe');
-  const envOriginal = process.env.PUPPETEER_EXECUTABLE_PATH;
+  const chromium = chromiumNoUserData(base, 'chrome-win64', 'chrome.exe');
   const { gerente, restaurar } = carregarGerente('win32', base);
   try {
-    delete process.env.PUPPETEER_EXECUTABLE_PATH;
-    assert.strictEqual(gerente.resolveBrowserExecutable(), chromium);
-  } finally {
-    restaurar();
-    if (envOriginal === undefined) delete process.env.PUPPETEER_EXECUTABLE_PATH; else process.env.PUPPETEER_EXECUTABLE_PATH = envOriginal;
-  }
+    semEnvDoPuppeteer(() => assert.strictEqual(gerente.resolveBrowserExecutable(), chromium));
+  } finally { restaurar(); }
 });
