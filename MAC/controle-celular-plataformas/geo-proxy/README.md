@@ -52,7 +52,7 @@ A DDI cai quando o iPhone reinicia; o auto-mount remonta na próxima vez que o G
 | `electron/main.js` | IPC `spoofer:geo-from-proxy` |
 | `dist/assets/index-Dun7lr2S.js` | `pGeoApply`, `pGeoOnOpen`, chamadas ao salvar, remoção do botão "Fixar GPS Falso" |
 
-Cópias dos arquivos já aplicados: `aplicado/`. Backup do original: `reservas/<data-hora>/`.
+Os arquivos aplicados vivem em `app/` (a pasta `aplicado/` foi apagada). Backup do original: `reservas/<data-hora>/`.
 
 ## Reaplicar (depois de atualizar o app)
 
@@ -64,8 +64,7 @@ python3 aplicar-geo.py reservas/<data>/index-Dun7lr2S.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
 ```
 
-Backend: copiar `aplicado/main.geo.js`, `aplicado/physicalMobileService.geo.js` e `geo-proxy.js`
-para os caminhos correspondentes (ou reaplicar os trechos manualmente).
+Backend: `geo-proxy.js` e os trechos de geo já estão em `app/electron/main.js` e `app/electron/services/physicalMobileService.js`.
 
 ## Desfazer
 

@@ -81,6 +81,10 @@ function tool(name, opts) {
   return ffmpegDirs(s).map((d) => s.p.join(d, file)).find((f) => s.exists(f)) || null;
 }
 
+function iconFile(opts) {
+  return sistema(opts).platform === 'darwin' ? 'nova-icon.png' : 'nova.ico';
+}
+
 const ffmpeg = (opts) => tool('ffmpeg', opts);
 
 function iosTool(name, opts) {
@@ -89,4 +93,4 @@ function iosTool(name, opts) {
   return s.p.join(root, 'ios-tools', 'bin', exe(name, opts));
 }
 
-module.exports = { ssh, exigirOpenssh, execSsh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe };
+module.exports = { ssh, exigirOpenssh, execSsh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe, iconFile };

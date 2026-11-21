@@ -163,7 +163,7 @@ preservada); pausa do CAM LIVE com ponte simulada (sessão viva, sem erro).
 - `reservas/antes-transmissao-*/` — originais dos 4 arquivos de serviço antes
   do ajuste da transmissão.
 - `index-Dun7lr2S.patched.js`, `ios-camera.patched.js`,
-  `physicalMobileService.patched.js`, `cam-live-service.patched.js`,
+  `cam-live-service.patched.js`,
   `cam-live-iphone.patched.js` — versões aplicadas no app.
 - `patch_bundle.py`, `patch_transmissao.py` — cirurgias (rodam sobre as reservas).
 
