@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Foto ➔ Vídeo: `kling-video-service.js` refatorado com saída idêntica (Onda 4, alvo 6) — 21/11/2026
+
+- **O que mudou:** `convertPictureToVideo` deixa de ser uma cascata de 127 linhas: o motor escolhido sai de uma tabela (`fal`, `system`), a Kling Cloud é tentada com `temChaveDaKling` e o motor local fica por último. fal.ai e Veo dividem a mesma regra "tenta os modelos em ordem e pula o indisponível" (`primeiroModeloQueAceita`); proporção e movimento do FFmpeg viraram tabelas (`TAMANHO_POR_PROPORCAO`, `MOVIMENTOS`). Mesmo canal (`kling:convert-picture-to-video`, `kling:progress`), mesmo pedido, mesma resposta, mesmos argumentos do `ffmpeg` e mesmas chamadas HTTP. Igual no Mac e no Windows: nenhum ramo por sistema novo, o `.exe` continua vindo de `tool-paths.exe`.
+- **Teste:** `node --test app/electron/services/test/kling-video-service.test.js` (71 cenas com `fs`, `https`, `http`, `child_process`, `os` e `@google/genai` falsos), gravado com o módulo antigo.
+- **Arquivos do app instalado no Mac que mudam:** `services/kling-video-service.js`. Guardar o anterior em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
+- **Sem testar:** gerar vídeo de verdade pelos quatro motores (local, Kling Cloud, fal.ai e Veo) no Mac e no Windows; fica para a prova real.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
