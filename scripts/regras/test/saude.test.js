@@ -332,7 +332,7 @@ test('falha: arquivo novo no caminho de uma entrada velha não herda a folga', (
 });
 
 test('o que configuracao.json isenta não é medido', () => {
-  const r = semRepo(repo => repo.escrever({ 'app/dist/novo.js': TRES_PONTOS }));
+  const r = semRepo(repo => repo.escrever({ 'app/dist/assets/novo.js': TRES_PONTOS }));
   assert.equal(r.codigo, 0, r.saida);
 });
 
