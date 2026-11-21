@@ -52,16 +52,16 @@ function getChromiumCandidateSubpaths() {
     ];
 }
 
-/**
- * Scan the given browsers/ directories for a chromium-<rev> folder that
- * contains this platform's executable. Returns the absolute executable
- * path or null.
- */
 function revisaoDoChromium(nomeDaPasta) {
     const revisao = Number(nomeDaPasta.slice('chromium-'.length));
     return Number.isInteger(revisao) ? revisao : -1;
 }
 
+/**
+ * Scan the given browsers/ directories for a chromium-<rev> folder that
+ * contains this platform's executable. Returns the absolute executable
+ * path or null.
+ */
 function findBundledChromiumExecutable(searchDirs) {
     const candidates = getChromiumCandidateSubpaths();
     for (const browsersDir of searchDirs) {
