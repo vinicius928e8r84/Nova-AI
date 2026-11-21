@@ -180,15 +180,16 @@ test('binário falha: .tar e .iso novos', () => {
   assert.equal(r.codigo, 1, r.saida);
 });
 
-test('lista de checks obrigatórios confere com os nomes dos jobs dos workflows', () => {
+test('lista de checks obrigatórios e opcionais confere com os nomes dos jobs dos workflows', () => {
   const raiz = path.join(__dirname, '..', '..', '..');
-  const { checks } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'checks-obrigatorios.json'), 'utf8'));
+  const { checks, opcionais = [] } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'checks-obrigatorios.json'), 'utf8'));
   const dosWorkflows = [];
   for (const arquivo of fs.readdirSync(path.join(raiz, '.github', 'workflows'))) {
     const texto = fs.readFileSync(path.join(raiz, '.github', 'workflows', arquivo), 'utf8');
     for (const m of texto.matchAll(/^ {4}name: (.+)$/gm)) dosWorkflows.push(m[1].trim());
   }
-  assert.deepEqual([...dosWorkflows].sort(), [...checks].sort());
+  assert.deepEqual([...dosWorkflows].sort(), [...checks, ...opcionais].sort());
+  assert.ok(!checks.some((nome) => opcionais.includes(nome)));
 });
 
 test('workflows: sem pull_request_target, ações presas por SHA e regras lidas da base', () => {
