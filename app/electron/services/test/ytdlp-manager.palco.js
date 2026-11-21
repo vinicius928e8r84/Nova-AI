@@ -85,8 +85,9 @@ class Palco {
     this.anotar(`tela ${canal} ${serializar(dados)}`);
   }
 
-  spawn(comando, argumentos) {
-    this.anotar(`spawn ${comando} ${serializar(argumentos)}`);
+  spawn(comando, argumentos, opcoes) {
+    const comOpcoes = opcoes === undefined ? '' : ` ${serializar(opcoes)}`;
+    this.anotar(`spawn ${comando} ${serializar(argumentos)}${comOpcoes}`);
     const processo = new ProcessoFalso(linha => this.anotar(linha), this.killFalha);
     this.processos.push(processo);
     return processo;
@@ -118,7 +119,7 @@ class Palco {
 
   carregar(caminhoDoModulo) {
     const falsos = {
-      child_process: { spawn: (c, a) => this.spawn(c, a) },
+      child_process: { spawn: (c, a, o) => this.spawn(c, a, o) },
       'yt-search': consulta => this.buscar(consulta),
       os: { ...os, homedir: () => this.caminho('casa') },
       './tool-paths': toolPaths,
