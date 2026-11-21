@@ -57,6 +57,11 @@ function getChromiumCandidateSubpaths() {
  * contains this platform's executable. Returns the absolute executable
  * path or null.
  */
+function revisaoDoChromium(nomeDaPasta) {
+    const revisao = Number(nomeDaPasta.slice('chromium-'.length));
+    return Number.isInteger(revisao) ? revisao : -1;
+}
+
 function findBundledChromiumExecutable(searchDirs) {
     const candidates = getChromiumCandidateSubpaths();
     for (const browsersDir of searchDirs) {
@@ -65,8 +70,7 @@ function findBundledChromiumExecutable(searchDirs) {
         try {
             entries = fs.readdirSync(browsersDir)
                 .filter((e) => e.startsWith('chromium-'))
-                .sort()
-                .reverse(); // prefer the newest revision when several exist
+                .sort((a, b) => revisaoDoChromium(b) - revisaoDoChromium(a));
         } catch {
             continue;
         }
