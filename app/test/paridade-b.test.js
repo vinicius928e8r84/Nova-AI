@@ -78,7 +78,9 @@ test('instalacaoPorSistema: todo caminho da receita vai entre aspas e o .dmg man
 test('instalacaoPorSistema: a receita do Mac roda em segundo plano e a do Windows avisa do limite de 15 s', () => {
   const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
   const mac = instalacaoPorSistema('darwin');
-  assert.ok(mac.includes(' >/dev/null 2>&1 &'));
+  const [receitaDmg, receitaPkg] = mac.split('| .pkg =');
+  assert.ok(receitaDmg.includes('.dmg =') && receitaDmg.includes(' >/dev/null 2>&1 &'));
+  assert.ok(receitaPkg.includes('installer -pkg') && receitaPkg.includes(' >/dev/null 2>&1 &'));
   assert.ok(mac.includes('pkgutil --pkgs'));
   assert.ok(/background/i.test(mac));
   const win = instalacaoPorSistema('win32');
