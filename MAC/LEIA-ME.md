@@ -1,5 +1,21 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## telegram-manager.js refatorado sem mudar o comportamento (Onda 4) — 21/11/2026
+
+- **O que mudou:** `registerTelegramEvents` (136 linhas, complexidade 33) virou um tratador por tipo de mensagem (privada, grupo), uma tabela de comandos do chat próprio (`COMANDOS_DO_CHEFE`) e uma ação por comando. `getClientOptions` passou a ler o perfil do aparelho de uma tabela (`PERFIS_DE_APARELHO`) e a montar o proxy em funções puras (MTProto e SOCKS). O fim de login repetido 4 vezes (nome do dono, sessão gravada, eventos) virou `concluirLogin`; o login por QR ganhou um método por etapa. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que no Node e no Electron escreve no mesmo stdout. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o do bloqueio de tela já existia e só foi movido).
+- **Arquivos do app instalado no Mac que mudam:** `services/telegram-manager.js`. Guardar o anterior em `reservas/`, copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, `node --check` e reiniciar o Nova.
+- **Testes:** `node --test app/electron/services/test/telegram-manager.test.js` (30 casos com dublês de `telegram`, `qrcode`, `electron`, `os`, `child_process` e `mac-native`).
+- **Sem testar:** conta real do Telegram no Mac e no Windows (login por código, senha e QR, receber e responder mensagem, comandos `!lock`, `!browser`, `!sysinfo`, `!busy`, aviso de grupo monitorado).
+
+## Catraca de saúde do código (Onda 0.2 do plano nota 10) — 20/11/2026
+
+- **O que mudou:** nova regra `saude-do-codigo` em `scripts/regras/` (`regra-saude.js`, analisador em `scripts/regras/analisador/` com acorn 8.19.0 para JS e `ast` do Python), portada da https://github.com/vinicius928e8r84/PerpetualMiner/pull/641. Cada arquivo `.js`/`.mjs`/`.cjs`/`.py` que a PR toca é medido inteiro e não pode ter mais pontos que a sua entrada na chave `saude-do-codigo` de `scripts/regras/linha-de-base.json`; arquivo novo nasce em 0. O job "Regras de revisão" instala o analisador (`npm ci --prefix …/analisador`). Vale a partir da PR seguinte à que a cria, porque o job roda as regras da base. `--criar-linha-de-base` e `--atualizar-linha-de-base` aceitam `--regra`.
+- **Arquivos:** `scripts/regras/regra-saude.js`, `scripts/regras/linha-de-base.js`, `scripts/regras/analisador/*`, `scripts/regras/verificar.js`, `scripts/regras/regra-linhas.js`, `scripts/regras/linha-de-base.json`, `scripts/regras/test/saude.test.js`, `scripts/regras/test/auxiliar.js`, `.github/workflows/regras.yml`, `CONTRIBUTING.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Só regras e CI.
+- **Testado:** `node --test "scripts/regras/test/*.test.js"` e `node scripts/regras/verificar.js --base origin/main` no Linux.
+- **Mac e Windows:** a mesma regra e o mesmo código nos dois, sem ramo por sistema. O medidor de Python lê o stdin em UTF-8 em qualquer sistema (no Windows até o Python 3.14 a página de código local quebrava em `Á`, `Í` e emojis), e um Python que sai com erro sem rodar o medidor (alias da Microsoft Store, stub do `xcode-select`) vira aviso e pula, como a falta de acorn. Cada um tem teste. A folga de `main.js` (4153) já soma as PRs abertas que tocam o mesmo arquivo; `whatsapp-manager.js` (305) não tem mais PR aberta que o toque.
+- **Sem testar:** a calibração contra o painel do CodeScene nos 16 arquivos com nota (o painel roda na máquina do dono); a regra foi conferida contra os checks do CodeScene publicados nas PRs do GitHub.
+
 ## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
 
 - **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.
