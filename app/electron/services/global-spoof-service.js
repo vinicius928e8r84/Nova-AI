@@ -13,7 +13,7 @@ const path  = require('path');
 const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
-const { findBundledChromiumExecutable } = require('./platform-utils');
+const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
 // ── Helper to ensure profile has persistent stealth specifications ──
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
@@ -1675,9 +1675,8 @@ applyStealth(window);
             ];
         }
 
-        for (const p of searchPaths) {
-            if (p && fs.existsSync(p)) return p;
-        }
+        const doNavegadorPedido = primeiroCaminhoExistente(searchPaths);
+        if (doNavegadorPedido) return doNavegadorPedido;
 
         // Final fallback: if requested browser is not found, check other browsers in order
         const fallbackOrders = ['chrome', 'brave', 'vivaldi', 'firefox'];
@@ -1724,9 +1723,8 @@ applyStealth(window);
                     path.join(os.homedir(), 'AppData\\Local\\Mozilla Firefox\\firefox.exe'),
                 ];
             }
-            for (const p of fbPaths) {
-                if (p && fs.existsSync(p)) return p;
-            }
+            const doAlternativo = primeiroCaminhoExistente(fbPaths);
+            if (doAlternativo) return doAlternativo;
         }
 
         return null;

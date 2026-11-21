@@ -6,7 +6,7 @@ const fs = require('fs');
 const { chromium, firefox } = require('playwright');
 const crypto = require('crypto');
 const os = require('os');
-const { findBundledChromiumExecutable } = require('./platform-utils');
+const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
 const si = require('systeminformation');
 
 const MOBILE_UAS = [
@@ -439,12 +439,7 @@ class BrowserFarmService {
       path.join(process.resourcesPath || '', 'browsers', 'chrome', 'chrome.exe'),
       path.join(app.getAppPath(), 'browsers', 'chrome', 'chrome.exe')
     ];
-    for (const p of paths) {
-      if (p && fs.existsSync(p)) {
-        return p;
-      }
-    }
-    return null;
+    return primeiroCaminhoExistente(paths);
   }
 
   getBraveExecutablePath() {

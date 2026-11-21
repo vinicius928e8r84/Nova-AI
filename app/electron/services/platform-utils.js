@@ -80,6 +80,10 @@ function findBundledChromiumExecutable(searchDirs) {
     return null;
 }
 
+function primeiroCaminhoExistente(caminhos) {
+    return caminhos.filter(Boolean).find((caminho) => fs.existsSync(caminho)) ?? null;
+}
+
 /**
  * Absolute path to the bundled `bin/` directory (agent-browser, etc.), or
  * null when it is not shipped. Checked in production-first order because in
@@ -276,6 +280,7 @@ module.exports = {
     execPromise,
     getChromiumCandidateSubpaths,
     findBundledChromiumExecutable,
+    primeiroCaminhoExistente,
     findBundledBinDir,
     getDefaultUserAgent,
     macOpenApplication,

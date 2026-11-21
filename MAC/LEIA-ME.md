@@ -10,9 +10,11 @@
 
 `browserFarmService.js` (`getChromeExecutablePath`) e `global-spoof-service.js` (`_findChrome`, os dois pontos que listavam `chromium-1208`) passam a usar `findBundledChromiumExecutable` de `platform-utils.js`, como `browser-manager.js` e `whatsapp-manager.js` já faziam. Uma pasta `browsers\chromium-<qualquer revisão>\chrome-win64\chrome.exe` agora é achada; a ordem de busca (Chrome do sistema antes do empacotado) não mudou. O Mac não muda: os dois caminhos retornam antes por `mac-native.browser`.
 
-Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js` e `app/electron/services/global-spoof-service.js` (comportamento idêntico no Mac, mas o arquivo muda; guardar o anterior em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). `platform-utils.js` já existe no app e não muda. Depois: `node --check` e reiniciar o Nova.
+Os laços que procuravam o primeiro caminho existente nessas duas funções viram `primeiroCaminhoExistente` (novo em `platform-utils.js`), que descarta o `null` do helper antes de consultar o disco: `fs.existsSync(null)` emite `DEP0187` no Node 24, e a guarda dentro de `_findChrome` piorava a complexidade dele no CodeScene.
 
-**Testado:** `node --test app/test/chromium-revisao-windows.test.js` (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac.
+Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js`, `app/electron/services/global-spoof-service.js` e `app/electron/services/platform-utils.js` (comportamento idêntico no Mac, mas os três arquivos mudam e precisam ir juntos; guardar os anteriores em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). Depois: `node --check` nos três e reiniciar o Nova.
+
+**Testado:** `node --test app/test/chromium-revisao-windows.test.js` (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; o `existsSync` falso recusa caminho que não é texto; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac.
 
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 

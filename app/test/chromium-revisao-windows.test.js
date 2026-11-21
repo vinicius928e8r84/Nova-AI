@@ -28,7 +28,10 @@ const GlobalSpoofService = require('../electron/services/global-spoof-service');
 
 const semNavegadorDoSistema = (fn) => {
   const existe = fs.existsSync;
-  fs.existsSync = (p) => (String(p).startsWith(raiz) && existe(p));
+  fs.existsSync = (p) => {
+    assert.strictEqual(typeof p, 'string', 'existsSync recebeu um caminho que não é texto (DEP0187)');
+    return p.startsWith(raiz) && existe(p);
+  };
   try { return fn(); } finally { fs.existsSync = existe; }
 };
 
@@ -37,13 +40,15 @@ test('browserFarmService acha chromium-1248 empacotado', () => {
   assert.strictEqual(semNavegadorDoSistema(() => servico.getChromeExecutablePath()), executavel);
 });
 
-test('browserFarmService devolve null sem nenhum chromium', () => {
-  const servico = Object.create(BrowserFarmService.prototype);
+const semChromiumEmpacotado = (fn) => {
   const antes = process.resourcesPath;
   process.resourcesPath = path.join(raiz, 'vazio');
-  try {
-    assert.strictEqual(semNavegadorDoSistema(() => servico.getChromeExecutablePath()), null);
-  } finally { process.resourcesPath = antes; }
+  try { return semNavegadorDoSistema(fn); } finally { process.resourcesPath = antes; }
+};
+
+test('browserFarmService devolve null sem nenhum chromium', () => {
+  const servico = Object.create(BrowserFarmService.prototype);
+  assert.strictEqual(semChromiumEmpacotado(() => servico.getChromeExecutablePath()), null);
 });
 
 test('global-spoof-service _findChrome acha chromium-1248 empacotado', () => {
@@ -56,4 +61,11 @@ test('global-spoof-service cai no chromium empacotado quando o navegador pedido 
   const servico = Object.create(GlobalSpoofService.prototype);
   servico.app = { isPackaged: true };
   assert.strictEqual(semNavegadorDoSistema(() => servico._findChrome('brave')), executavel);
+});
+
+test('global-spoof-service _findChrome devolve null sem nenhum navegador', () => {
+  const servico = Object.create(GlobalSpoofService.prototype);
+  servico.app = { isPackaged: true };
+  assert.strictEqual(semChromiumEmpacotado(() => servico._findChrome('chrome')), null);
+  assert.strictEqual(semChromiumEmpacotado(() => servico._findChrome('brave')), null);
 });
