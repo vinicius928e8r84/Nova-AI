@@ -15,6 +15,20 @@ const cwdReal = process.cwd;
 const INSTANTE = 1700000000000;
 const NIVEIS_DO_CONSOLE = { log: 'saida', info: 'saida', warn: 'erro', error: 'erro' };
 
+function comBarra(caminho) {
+  return String(caminho).replace(/\\/g, '/');
+}
+
+const caminhosComBarra = {
+  ...path.posix,
+  join: (...partes) => path.posix.join(...partes.map(comBarra)),
+};
+
+const ferramentasDoMac = {
+  ...toolPaths,
+  exe: nome => toolPaths.exe(nome, { platform: 'darwin' }),
+};
+
 function serializar(valor) {
   return JSON.stringify(valor, (_chave, v) => (v === undefined ? '«undefined»' : v));
 }
@@ -171,7 +185,7 @@ class RedeFalsa {
 class Palco {
   constructor(caminhoDoModulo) {
     this.modulo = path.resolve(caminhoDoModulo);
-    this.raiz = path.resolve(path.dirname(this.modulo), '..', '..', '..');
+    this.raiz = comBarra(path.resolve(path.dirname(this.modulo), '..', '..', '..'));
     this.registro = [];
     this.disco = new DiscoFalso(this);
     this.rotas = new Map();
@@ -184,7 +198,7 @@ class Palco {
   }
 
   caminho(...partes) {
-    return path.join(this.raiz, ...partes);
+    return path.posix.join(this.raiz, ...partes);
   }
 
   anotar(linha) {
@@ -284,7 +298,8 @@ class Palco {
         execFile: (...argumentos) => this.execFile(...argumentos),
         execFileSync: (...argumentos) => this.execFileSync(...argumentos),
       },
-      './tool-paths': toolPaths,
+      path: caminhosComBarra,
+      './tool-paths': ferramentasDoMac,
     };
   }
 
