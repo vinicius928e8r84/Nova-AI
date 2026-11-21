@@ -171,3 +171,8 @@ test('mata a ferramenta que desce de um helper do Electron e poupa o helper', as
   await limpeza.terminate();
   assert.deepStrictEqual(mortos, [120]);
 });
+
+test('tabela ignora o processo ocioso (PID 0), linha vazia e PID que nao e inteiro', () => {
+  const t = parseWindowsProcessTable(JSON.stringify([linha(0, 0, null), null, linha('7', 4, 'a.exe'), linha(8, 4, 'b.exe')]));
+  assert.deepStrictEqual([...t.keys()], [8]);
+});
