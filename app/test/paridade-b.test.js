@@ -54,7 +54,7 @@ test('downloadFile: redirecionamento ftp:, file: ou Location invalida rejeita se
   srv.close();
 });
 
-test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto', () => {
+test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o texto', () => {
   const { spawn, spawnSync } = require('child_process');
   const { MAC_BROWSER_KILL_PATTERN } = require('../electron/services/paridade-utils');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-pk-'));
@@ -68,10 +68,12 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
   const sess = '--user-data-dir=/Users/u/Library/Application Support/Nova AI/.wwebjs_auth/session-nova-desktop-client';
   const chromium = mk('Chromium.app/Contents/MacOS/Chromium');
   const chrome = mk('Google Chrome.app/Contents/MacOS/Google Chrome');
+  const edge = mk('Microsoft Edge.app/Contents/MacOS/Microsoft Edge');
   const outro = mk('Outro/Chromium.app/Contents/MacOS/Chromium');
   const kids = [
     spawn(chromium, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
     spawn(chrome, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
+    spawn(edge, ['-e', IDLE, '--', sess], { stdio: 'ignore' }),
   ];
   const vivos = [
     spawn(outro, ['-e', IDLE, '--', '--user-data-dir=/x/pessoal'], { stdio: 'ignore' }),
@@ -87,6 +89,22 @@ test('pkill do Mac: so casa o Chrome/Chromium da sessao, nao um bash com o texto
       vivos.forEach(k => assert.strictEqual(k.signalCode, null, 'nao deveria morrer'));
     }).finally(() => [...kids, ...vivos].forEach(k => { try { k.kill('SIGKILL'); } catch (e) {} }));
   })();
+});
+
+test('macAntigravityStats: memória do ps, CPU 0 como no Windows; só o estouro de tempo vira não respondendo', async () => {
+  const { macAntigravityStats } = require('../electron/services/paridade-utils');
+  const falso = (osascript) => ({ run: async (file, args) => {
+    if (file === '/usr/bin/pgrep') return '4242\n4300';
+    if (file === '/bin/ps') { assert.deepStrictEqual(args, ['-p', '4242', '-o', 'rss=']); return ' 204800'; }
+    return osascript();
+  } });
+  assert.deepStrictEqual(await macAntigravityStats(falso(async () => 'Projeto')), { pid: 4242, cpu: 0, memory: 200, responding: true, title: 'Projeto' });
+  const semJanela = await macAntigravityStats(falso(async () => { throw Object.assign(new Error('-1719'), { killed: false }); }));
+  assert.strictEqual(semJanela.responding, true);
+  assert.strictEqual(semJanela.title, '');
+  const travado = await macAntigravityStats(falso(async () => { throw Object.assign(new Error('timeout'), { killed: true, signal: 'SIGTERM' }); }));
+  assert.strictEqual(travado.responding, false);
+  await assert.rejects(macAntigravityStats({ run: async () => { throw new Error('sem processo'); } }));
 });
 
 test('pkill do CAM spoof no Mac: so mata o Chrome com o Y4M do nova_webcam_hijack', () => {

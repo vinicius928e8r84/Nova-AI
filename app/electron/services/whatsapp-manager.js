@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { MAC_BROWSER_KILL_PATTERN } = require('./paridade-utils');
+const { avisarFalhaRepetida } = require('./whatsapp-aviso');
 const { spawnSync } = require('child_process');
 const axios = require('axios');
 const FormData = require('form-data');
@@ -17,6 +18,11 @@ const SCREENSHOT_TRIGGERS = [
     'ss lo', 'screen lo', 'screen capture', 'pc screen', 'screen bhejo',
     'screen short', 'tasveer bhejo', 'pc screen dikhao', 'photo bhejo'
 ];
+
+function navegadorDoAmbienteSeExistir() {
+    const doAmbiente = process.env.PUPPETEER_EXECUTABLE_PATH;
+    return doAmbiente && fs.existsSync(doAmbiente) ? doAmbiente : null;
+}
 
 class WhatsAppManager {
     constructor(mainWindow, app) {
@@ -184,7 +190,12 @@ class WhatsAppManager {
 
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             console.error('[WhatsApp] Reconnect limit reached. Waiting for manual restart.');
-            this.setStatus('disconnected', { reason: 'reconnect-limit-reached' });
+            const aviso = avisarFalhaRepetida({
+                platform: process.platform,
+                tentativas: this.maxReconnectAttempts,
+                mostrar: texto => require('electron').dialog.showMessageBox(this.mainWindow, { type: 'warning', title: 'WhatsApp', message: texto })
+            });
+            this.setStatus('disconnected', { reason: 'reconnect-limit-reached', hint: aviso });
             return;
         }
 
@@ -204,9 +215,21 @@ class WhatsAppManager {
         }, delayMs);
     }
 
+    resolverNavegadorNoMac() {
+        const macNative = require('./mac-native');
+        return navegadorDoAmbienteSeExistir()
+            || this.chromiumBaixadoNoUserData()
+            || macNative.browser('chrome')
+            || macNative.browser('edge');
+    }
+
+    chromiumBaixadoNoUserData() {
+        return require('./platform-utils').findBundledChromiumExecutable([path.join(this.app.getPath('userData'), 'browsers')]);
+    }
+
     resolveBrowserExecutable() {
         if (process.platform === "darwin") {
-            return require('./mac-native').browser('chrome');
+            return this.resolverNavegadorNoMac();
         }
 
         const candidates = [];
@@ -353,9 +376,11 @@ class WhatsAppManager {
 
         this.registerClientEvents(this.client);
 
+        const cliente = this.client;
         try {
-            await this.client.initialize();
+            await cliente.initialize();
         } catch (error) {
+            if (this.client !== cliente) return;
             const errorMessage = String(error?.message || error || '');
             console.error('[WhatsApp] Initialize error:', errorMessage);
             this.clearInitTimeout();

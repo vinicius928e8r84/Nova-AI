@@ -3,7 +3,7 @@
  *  uso: node teste-geo.cjs "socks5://host:porta:usuario:senha"
  *  Sem argumento: testa só o byIp com um IP público conhecido.
  */
-const geo = require('./geo-proxy');
+const geo = require('../../../app/electron/services/geo-proxy');
 
 (async () => {
   const proxy = process.argv[2] || process.env.NOVA_PROXY || '';
