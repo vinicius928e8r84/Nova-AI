@@ -7,6 +7,20 @@
 - **Arquivos do app instalado no Mac que mudam:** `services/kling-video-service.js`. Guardar o anterior em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
 - **Sem testar:** gerar vídeo de verdade pelos quatro motores (local, Kling Cloud, fal.ai e Veo) no Mac e no Windows; fica para a prova real.
 
+## telegram-manager.js refatorado sem mudar o comportamento (Onda 4) — 21/11/2026
+
+- **O que mudou:** `registerTelegramEvents` (136 linhas, complexidade 33) virou um tratador por tipo de mensagem (privada, grupo), uma tabela de comandos do chat próprio (`COMANDOS_DO_CHEFE`) e uma ação por comando. `getClientOptions` passou a ler o perfil do aparelho de uma tabela (`PERFIS_DE_APARELHO`) e a montar o proxy em funções puras (MTProto e SOCKS). O fim de login repetido 4 vezes (nome do dono, sessão gravada, eventos) virou `concluirLogin`; o login por QR ganhou um método por etapa. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que no Node e no Electron escreve no mesmo stdout. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o do bloqueio de tela já existia e só foi movido).
+- **Arquivos do app instalado no Mac que mudam:** `services/telegram-manager.js`. Guardar o anterior em `reservas/`, copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, `node --check` e reiniciar o Nova.
+- **Testes:** `node --test app/electron/services/test/telegram-manager.test.js` (30 casos com dublês de `telegram`, `qrcode`, `electron`, `os`, `child_process` e `mac-native`).
+- **Sem testar:** conta real do Telegram no Mac e no Windows (login por código, senha e QR, receber e responder mensagem, comandos `!lock`, `!browser`, `!sysinfo`, `!busy`, aviso de grupo monitorado).
+
+## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
+
+- **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.
+- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro. Também apagado `physicalMobileService.languageForCountry` (19 linhas, sem chamador depois da remoção); `registro.test.js` passa a citar `idioma-ipc.js`. `app/test/mapa-ipc.json` regravado sem os 11 canais de `identidade-ipc.js`.
+- **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
+- **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
+
 ## Últimas cópias soltas apagadas (Onda 1g) — 20/11/2026
 
 - **O que mudou:** apagadas seis cópias de arquivos que hoje vivem em `app/`: `MAC/integracao-kling/kling-video-service.js`, `MAC/encerramento-nova/{ios-bridge.js,iphone-ssh.js,nova-shutdown.js}` (a pasta sai do git), `MAC/traducao-interface/cam-live.js` e `MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. `reservas/` e `backup-*` ficaram. O git guarda a história.
