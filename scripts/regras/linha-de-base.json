@@ -98,7 +98,6 @@
     "pesquisas/proxy-geo/geo-proxy.cjs": 6,
     "prototype-proxy-tipo/teste-proxy-parse.js": 1,
     "prototype-sequestro-cam/servir.py": 2,
-    "scripts/regras/auditoria.js": 12,
     "scripts/regras/comentarios.js": 108,
     "scripts/regras/docstrings.py": 2,
     "scripts/regras/git.js": 24,
