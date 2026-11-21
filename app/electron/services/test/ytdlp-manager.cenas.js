@@ -159,6 +159,8 @@ const cenas = {
     processo.escrever('[download]  30.0% of 2MiB');
     processo.escrever('[download]  100% done, 100% of 1MiB');
     processo.escrever('[download]  90.0% of 1MiB');
+    processo.escrever('[download] 100%, sem tamanho');
+    processo.escrever('[download]  10.0% of 1MiB');
     processo.fechar(1);
     palco.manager.activeProcess = {};
     palco.rodarTimers();
