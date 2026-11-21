@@ -1,5 +1,13 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Últimas cópias soltas apagadas (Onda 1g) — 20/11/2026
+
+- **O que mudou:** apagadas seis cópias de arquivos que hoje vivem em `app/`: `MAC/integracao-kling/kling-video-service.js`, `MAC/encerramento-nova/{ios-bridge.js,iphone-ssh.js,nova-shutdown.js}` (a pasta sai do git), `MAC/traducao-interface/cam-live.js` e `MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. `reservas/` e `backup-*` ficaram. O git guarda a história.
+- **Teste:** `geo-proxy/teste-geo.cjs` passou a carregar `app/electron/services/geo-proxy.js`. `linha-de-base.json` perdeu a entrada de `traducao-interface/cam-live.js`.
+- **Achado:** o `geo-proxy.js` apagado era mais novo que o de `app/`. O commit `011395f` (08/11) trocou o `parseProxy` (aceita http/https, a ordem invertida `host:porta@usuario:senha`, `host:porta:usuario:senha` sem esquema, aspas e barra no fim, e adivinha o esquema pela porta), mas o app instalado copiado para `app/` em 09/11 não tinha essa troca. Em 14 entradas, as duas versões só dão o mesmo resultado em 2. Para recuperar: `git show 011395f:MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. Levar isso para `app/` fica para outra PR.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. `app/` não muda. Nada a reaplicar.
+- **Sem testar:** `teste-geo.cjs` com proxy (precisa de proxy real e de `socks-proxy-agent`; só o `byIp` rodou); empacotamento real e Mac e Windows reais. `traducao-interface/preparar.py` ainda grava `cam-live.js` na pasta quando roda (copia de `integracao-camlive/cam-live.js`), e o arquivo gerado aparece como não versionado.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
