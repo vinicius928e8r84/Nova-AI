@@ -4,7 +4,7 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const {
-  ATENCOES, BLOQUEADA, FRASE, SECAO_DA_PROVA, atencaoValida, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, marcaDeProvaParcial, tituloDe,
+  ATENCOES, BLOQUEADA, FRASE, SECAO_DA_PROVA, atencaoValida, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, marcaDeProvaParcial, tituloDe,
 } = require('./registro-da-pr');
 
 const WORKFLOW = 'registro-da-pr.yml';
@@ -134,7 +134,7 @@ function planejarProva(opcoes, pr, nota) {
   if (marca) return { recusa: `a nota diz ${marca}, e isso é cobertura parcial: prove o que falta ou rode com --cobertura parcial (escreve ${BLOQUEADA}, sem ${FRASE})` };
   const secao = secaoDaProva(head, nota, opcoes.cobertura);
   const corpo = corpoComAProva(pr.corpo, secao);
-  const falta = !parcial && faltaDaProva(linhasQueValem(corpo), head);
+  const falta = !parcial && faltaDaProva(corpo, head);
   if (falta) return { recusa: `o check não aceitaria esta prova: ${falta.replace(/^atenção ALTA: /, '')}` };
   return { corpo, secao, depois: conferir({ ...pr, corpo, head }) };
 }

@@ -7,7 +7,7 @@ const ROTULO_DE_RISCO_ALTO = 'risco:alto';
 const SECAO_DA_PROVA = 'Prova real';
 const FRASE = 'PROVADO 100% REAL';
 const BLOQUEADA = 'BLOQUEADA-iPhone';
-const MARCAS_DE_PROVA_PARCIAL = /\b(nao coberto|bloqueada)\b/;
+const MARCAS_DE_PROVA_PARCIAL = /\b(nao[\s-]+cobert[oa]s?|bloquead[oa]s?)\b/;
 const VEREDITO_LIMPO = 'CLEAN';
 const QUEM_REGISTRA = ['OWNER', 'MEMBER', 'COLLABORATOR'];
 const MODELO = '.github/PULL_REQUEST_TEMPLATE.md';
@@ -45,31 +45,37 @@ const atencaoValida = valor => ATENCOES.find(atencao => igual(atencao, valor));
 const maiorAtencao = (...atencoes) => ATENCOES[Math.max(...atencoes.map(atencao => ATENCOES.indexOf(atencao)))];
 
 function marcaDeProvaParcial(texto) {
-  const achada = MARCAS_DE_PROVA_PARCIAL.exec(semCaixaNemAcento(String(texto || '')));
-  return achada && achada[1].toUpperCase();
+  const achada = MARCAS_DE_PROVA_PARCIAL.exec(semCaixaNemAcento(String(texto || '').replace(/[*_`]/g, '')));
+  return achada && achada[1].replace(/[\s-]+/g, ' ').toUpperCase();
 }
 
-function linhasQueValem(markdown) {
-  const saida = [];
+const linhasSemComentario = markdown => String(markdown || '').replace(/<!--[^]*?(?:-->|$)/g, '').split(/\r?\n/);
+const fechaACerca = (marca, cerca, linha) => marca[0] === cerca[0] && marca.length >= cerca.length && linha.trim() === marca;
+
+function linhaQueVale(crua) {
+  const titulo = tituloDe(crua);
+  return { texto: semMarcacao(titulo ? titulo.texto : crua), nivel: titulo ? titulo.nivel : 0 };
+}
+
+function linhasDoCorpo(markdown) {
   let cerca = null;
-  for (const linha of String(markdown || '').replace(/<!--[^]*?(?:-->|$)/g, '').split(/\r?\n/)) {
-    const abre = CERCA.exec(linha);
+  return linhasSemComentario(markdown).map(crua => {
+    const abre = CERCA.exec(crua);
+    const vale = !abre && !cerca && !CITACAO.test(crua);
     if (abre && !cerca) cerca = abre[1];
-    else if (abre && abre[1][0] === cerca[0] && abre[1].length >= cerca.length && linha.trim() === abre[1]) cerca = null;
-    else if (!cerca && !CITACAO.test(linha)) {
-      const titulo = tituloDe(linha);
-      saida.push({ texto: semMarcacao(titulo ? titulo.texto : linha), nivel: titulo ? titulo.nivel : 0 });
-    }
-  }
-  return saida;
+    else if (abre && fechaACerca(abre[1], cerca, crua)) cerca = null;
+    return { crua, vale, ...(vale ? linhaQueVale(crua) : { nivel: 0 }) };
+  });
 }
 
-function secao(linhas, nome) {
+const linhasQueValem = markdown => linhasDoCorpo(markdown).filter(linha => linha.vale).map(({ texto, nivel }) => ({ texto, nivel }));
+
+function trechoDaSecao(linhas, nome) {
   const inicio = linhas.findIndex(linha => linha.nivel && igual(linha.texto, nome));
   if (inicio < 0) return null;
   const resto = linhas.slice(inicio + 1);
   const fim = resto.findIndex(linha => linha.nivel && linha.nivel <= linhas[inicio].nivel);
-  return (fim < 0 ? resto : resto.slice(0, fim)).map(linha => linha.texto);
+  return fim < 0 ? resto : resto.slice(0, fim);
 }
 
 const valoresDe = (textos, campo) => textos.filter(texto => texto.includes(':'))
@@ -137,10 +143,11 @@ function faltaDaRevisao(registros, head, autorDaPr) {
   return faltas.includes(null) ? null : faltas[faltas.length - 1];
 }
 
-function faltaDaProva(linhas, head) {
-  const prova = secao(linhas, SECAO_DA_PROVA);
-  if (!prova) return `atenção ALTA: o corpo não tem a seção "${SECAO_DA_PROVA}"`;
-  const parcial = marcaDeProvaParcial(prova.join('\n'));
+function faltaDaProva(corpo, head) {
+  const trecho = trechoDaSecao(linhasDoCorpo(corpo), SECAO_DA_PROVA);
+  if (!trecho) return `atenção ALTA: o corpo não tem a seção "${SECAO_DA_PROVA}"`;
+  const parcial = marcaDeProvaParcial(trecho.map(linha => linha.crua).join('\n'));
+  const prova = trecho.filter(linha => linha.vale).map(linha => linha.texto);
   if (parcial) return `atenção ALTA: a seção "${SECAO_DA_PROVA}" diz ${parcial}: prova parcial não vale como ${FRASE}; prove o que falta e escreva a nota sem NÃO COBERTO nem BLOQUEADA`;
   if (!prova.includes(FRASE)) return `atenção ALTA: a seção "${SECAO_DA_PROVA}" não tem a linha ${FRASE} (a frase sozinha na linha)`;
   const semHead = faltaDoHead(prova, head, `a seção "${SECAO_DA_PROVA}"`);
@@ -165,8 +172,8 @@ function faltaDoCaminhoSensivel({ risco, doCorpo }) {
   return `a PR mexe em caminho sensível, e isso conta como ALTA, mas o corpo diz ${doCorpo}: ${resumo(risco.motivos, 5).join('; ')}`;
 }
 
-function faltaDaProvaDaPr(linhas, head, { alta, doCorpo, subiuPeloRevisor }) {
-  const falta = alta && faltaDaProva(linhas, head);
+function faltaDaProvaDaPr(corpo, head, { alta, doCorpo, subiuPeloRevisor }) {
+  const falta = alta && faltaDaProva(corpo, head);
   if (!subiuPeloRevisor) return falta;
   return falta && falta.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`);
 }
@@ -180,7 +187,7 @@ function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], au
     quadro.falta,
     faltaDoCaminhoSensivel(quadro),
     faltaDaRevisao(registros, head, autor),
-    faltaDaProvaDaPr(linhas, head, quadro),
+    faltaDaProvaDaPr(corpo, head, quadro),
   ].filter(Boolean);
   if (!faltas.length) return { ok: true, mensagem: `registro da PR ok no head ${head}: atenção ${atencao}, revisão ${VEREDITO_LIMPO}${alta ? `, ${FRASE}` : ''}` };
   return {
@@ -188,7 +195,7 @@ function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], au
     mensagem: [
       `✗ O registro da PR não vale para o head ${head}:`,
       ...faltas.map(falta => `    - ${falta}`),
-      `  Conserto: o formato de cada parte está em ${MODELO} e no CONTRIBUTING.md. O que está em comentário de HTML, em bloco de código ou em citação não conta.`,
+      `  Conserto: o formato de cada parte está em ${MODELO} e no CONTRIBUTING.md. O que está em comentário de HTML, em bloco de código ou em citação não conta; na seção "${SECAO_DA_PROVA}", a parte não coberta ou bloqueada conta também no código e na citação.`,
       `  Registrar a revisão e a prova com o head lido do GitHub: node ${PUBLICADOR} --help`,
     ].join('\n'),
   };
