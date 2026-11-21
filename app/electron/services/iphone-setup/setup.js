@@ -76,7 +76,7 @@ async function prepare(id,password,service){
  const known=sshPaths.knownHosts,line='[127.0.0.1]:2222 '+fields.slice(0,2).join(' ');
  const prior=fs.existsSync(known)?fs.readFileSync(known,'utf8'):'';
  if(!prior.includes(line))fs.appendFileSync(known,(prior&&!prior.endsWith('\n')?'\n':'')+line+'\n',{mode:0o600});
- const check=await service.iosSsh('test -d /var/jb');if(!check.ok)throw new Error('Senha aceita, mas a chave de acesso não foi validada. Verifique conflitos de chave SSH neste Mac.');
+ const check=await service.iosSsh('test -d /var/jb');if(!check.ok)throw new Error('Senha aceita, mas a chave de acesso não foi validada. Verifique conflitos de chave SSH neste computador.');
  const model=await run(require('../ios-tools').tool('ideviceinfo'),['-u',udid,'-k','ProductType']);
  const version=await run(require('../ios-tools').tool('ideviceinfo'),['-u',udid,'-k','ProductVersion']);
  let camera='Ponte de câmera não instalada: este modelo/iOS ainda não foi validado.';

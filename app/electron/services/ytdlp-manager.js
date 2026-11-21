@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const ytSearch = require('yt-search');
+const toolPaths = require('./tool-paths');
 
 class YtDlpManager {
     constructor(mainWindow, app) {
@@ -23,13 +24,13 @@ class YtDlpManager {
 
     getYtDlpPath() {
         const candidates = [
-            path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe')),
-            path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe')),
-            path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'youtube-dl-exec', 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe')),
-            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe')),
-            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'node_modules', 'youtube-dl-exec', 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe')),
-            path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe')),
-            path.join(process.cwd(), 'dist_electron', 'win-unpacked', 'resources', 'bin', (process.platform === 'darwin' ? 'yt-dlp' : 'yt-dlp.exe'))
+            path.join(process.resourcesPath, 'bin', toolPaths.exe('yt-dlp')),
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'bin', toolPaths.exe('yt-dlp')),
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'youtube-dl-exec', 'bin', toolPaths.exe('yt-dlp')),
+            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'resources', 'bin', toolPaths.exe('yt-dlp')),
+            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'node_modules', 'youtube-dl-exec', 'bin', toolPaths.exe('yt-dlp')),
+            path.join(process.cwd(), 'resources', 'bin', toolPaths.exe('yt-dlp')),
+            path.join(process.cwd(), 'dist_electron', 'win-unpacked', 'resources', 'bin', toolPaths.exe('yt-dlp'))
         ];
         for (const p of candidates) {
             if (fs.existsSync(p)) return p;
@@ -46,7 +47,7 @@ class YtDlpManager {
             path.join(process.cwd(), 'dist_electron', 'win-unpacked', 'resources', 'bin')
         ];
         for (const p of candidates) {
-            if (fs.existsSync(path.join(p, (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe')))) return p;
+            if (fs.existsSync(path.join(p, toolPaths.exe('ffmpeg')))) return p;
         }
         return path.join(process.resourcesPath, 'bin');
     }
@@ -176,7 +177,7 @@ class YtDlpManager {
             args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
         }
 
-        if (fs.existsSync(path.join(ffmpegDir, (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe')))) {
+        if (fs.existsSync(path.join(ffmpegDir, toolPaths.exe('ffmpeg')))) {
             args.push('--ffmpeg-location', ffmpegDir);
         }
 
@@ -352,7 +353,7 @@ class YtDlpManager {
             args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
         }
 
-        if (fs.existsSync(path.join(ffmpegDir, (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe')))) {
+        if (fs.existsSync(path.join(ffmpegDir, toolPaths.exe('ffmpeg')))) {
             args.push('--ffmpeg-location', ffmpegDir);
         }
 
