@@ -14,7 +14,7 @@ Aqui fica só o lado do app: serviço + IPC + banco + instalação do `.deb` pel
   (nomes exatos do contrato da UI — branch `agent/frontend/modelo-iphone-20261105`).
 - Banco `iosModels.json` (em `electron/services/`, junto do serviço) alimenta o seletor e
   valida o productType antes de aplicar.
-- `conexao-usb/setup.js`: instala `novamodel.deb` pelo fluxo Conectar quando o pacote
+- `iphone-setup/setup.js`: instala `novamodel.deb` pelo fluxo Conectar quando o pacote
   existir ao lado do `camera.deb`.
 
 ## Como o painel vai chamar (contrato IPC)
@@ -34,17 +34,17 @@ e envia o `productType` no apply (ex.: iPhone 13 = `iPhone14,5`).
 
 | Arquivo | Papel |
 |---|---|
-| `MAC/integracao-iphone/ios-modelo.js` (novo) | módulo puro: comandos + parse de status (testável) |
+| `app/electron/services/ios-modelo.js` | módulo puro: comandos + parse de status (testável) |
 | `MAC/integracao-iphone/iosModels.json` (novo) | banco de modelos iOS |
 | `app/electron/services/physicalMobileService.js` | `getIosModels`/`applyIOSModel`/`clearIOSModel`/`getIOSModel` |
-| `MAC/integracao-iphone/conexao-usb/setup.js` | + instalação do `novamodel.deb` (guardado por existência) |
+| `app/electron/services/iphone-setup/setup.js` | + instalação do `novamodel.deb` (guardado por existência) |
 | `MAC/integracao-modelo-app/novamodel.test.cjs` | teste com mock de SSH |
 
 ## Aplicar no app instalado (quando o .deb existir)
 
-1. Copiar `ios-modelo.js` e `iosModels.json` para `Contents/Resources/app/electron/services/`.
+1. Copiar `app/electron/services/ios-modelo.js` e `iosModels.json` para `Contents/Resources/app/electron/services/`.
 2. Os 4 IPCs já estão em `app/electron/main.js`.
-3. Aplicar o bloco do `novamodel.deb` em `Contents/Resources/app/electron/services/iphone-setup/setup.js`.
+3. Copiar `app/electron/services/iphone-setup/setup.js` (já tem o bloco do `novamodel.deb`) para `Contents/Resources/app/electron/services/iphone-setup/`.
 4. Colocar o `novamodel.deb` (do Jailbreak Specialist) em `services/iphone-setup/` ao lado do `camera.deb`.
 5. `node --check` nos arquivos tocados e reiniciar o Nova.
 

@@ -24,7 +24,7 @@ const { EventEmitter } = require('node:events');
 
 const SH = process.env.NOVA_LOCALE_SH || path.join(__dirname, 'nova-locale.sh');
 const TWIN = path.join(__dirname, '..', '..', 'controle-celular-plataformas', 'geo-proxy', 'helper', 'nova-locale.sh');
-const SETUP = process.env.NOVA_SETUP_JS || path.join(__dirname, 'setup.js');
+const SETUP = process.env.NOVA_SETUP_JS || path.join(__dirname, '../../../app/electron/services/iphone-setup/setup.js');
 const src = fs.readFileSync(SH, 'utf8');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

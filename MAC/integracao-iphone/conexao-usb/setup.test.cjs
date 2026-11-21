@@ -24,7 +24,7 @@ const sandbox = {
     return require(name);
   },
 };
-vm.runInNewContext(fs.readFileSync(path.join(__dirname, 'setup.js'), 'utf8'), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../../app/electron/services/iphone-setup/setup.js'), 'utf8'), sandbox);
 const setup = sandbox.module.exports;
 
 const win = { isDestroyed: () => false, webContents: { send: (channel, data) => sent.push({ channel, data }) } };
