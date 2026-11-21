@@ -1573,25 +1573,6 @@ exit 0
         return { success: true };
     }
 
-    languageForCountry(cc) {
-        const map = {
-            US: ['en-US', 'en_US'], GB: ['en-GB', 'en_GB'], CA: ['en-CA', 'en_CA'], AU: ['en-AU', 'en_AU'],
-            NZ: ['en-NZ', 'en_NZ'], IE: ['en-IE', 'en_IE'], DE: ['de-DE', 'de_DE'], AT: ['de-AT', 'de_AT'],
-            CH: ['de-CH', 'de_CH'], FR: ['fr-FR', 'fr_FR'], BE: ['fr-BE', 'fr_BE'], ES: ['es-ES', 'es_ES'],
-            MX: ['es-MX', 'es_MX'], AR: ['es-AR', 'es_AR'], CO: ['es-CO', 'es_CO'], CL: ['es-CL', 'es_CL'],
-            PE: ['es-PE', 'es_PE'], VE: ['es-VE', 'es_VE'], BR: ['pt-BR', 'pt_BR'], PT: ['pt-PT', 'pt_PT'],
-            IT: ['it-IT', 'it_IT'], NL: ['nl-NL', 'nl_NL'], SE: ['sv-SE', 'sv_SE'], NO: ['nb-NO', 'nb_NO'],
-            DK: ['da-DK', 'da_DK'], FI: ['fi-FI', 'fi_FI'], PL: ['pl-PL', 'pl_PL'], RU: ['ru-RU', 'ru_RU'],
-            UA: ['uk-UA', 'uk_UA'], TR: ['tr-TR', 'tr_TR'], JP: ['ja-JP', 'ja_JP'], KR: ['ko-KR', 'ko_KR'],
-            CN: ['zh-CN', 'zh_CN'], TW: ['zh-TW', 'zh_TW'], HK: ['zh-HK', 'zh_HK'], IN: ['en-IN', 'en_IN'],
-            ID: ['id-ID', 'id_ID'], TH: ['th-TH', 'th_TH'], VN: ['vi-VN', 'vi_VN'], PH: ['en-PH', 'en_PH'],
-            MY: ['ms-MY', 'ms_MY'], SG: ['en-SG', 'en_SG'], ZA: ['en-ZA', 'en_ZA'], AE: ['ar-AE', 'ar_AE'],
-            SA: ['ar-SA', 'ar_SA'], IL: ['he-IL', 'he_IL'], EG: ['ar-EG', 'ar_EG'], NG: ['en-NG', 'en_NG']
-        };
-        const hit = map[String(cc || '').toUpperCase()] || ['en-US', 'en_US'];
-        return { language: hit[0], locale: hit[1] };
-    }
-
     iosLocaleStatus() {
         return this.iosSsh('cat /var/tmp/nova-locale-status.json 2>/dev/null').then((r) => {
             try { return JSON.parse(String(r.stdout || '').trim()); } catch (_) { return null; }
