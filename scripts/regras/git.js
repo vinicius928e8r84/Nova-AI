@@ -77,65 +77,100 @@ function nomeDoCabecalho(resto) {
   return bruto.startsWith('b/') ? bruto.slice(2) : null;
 }
 
-function linhasAcrescentadas(diff) {
-  const porArquivo = new Map();
-  let atual = null;
-  let noCabecalho = false;
-  for (const linha of diff.split('\n')) {
-    if (linha.startsWith('diff --git ')) {
-      noCabecalho = true;
-      atual = null;
-    } else if (noCabecalho && linha.startsWith('+++ ')) {
-      const nome = nomeDoCabecalho(linha.slice(4));
-      atual = nome === null ? null : new Set();
-      if (nome !== null) porArquivo.set(nome, atual);
-    } else if (linha.startsWith('@@')) {
-      noCabecalho = false;
-      const hunk = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(linha);
-      if (hunk && atual) {
-        const quantas = hunk[2] === undefined ? 1 : Number(hunk[2]);
-        for (let i = 0; i < quantas; i++) atual.add(Number(hunk[1]) + i);
-      }
-    }
+const LINHAS_DO_HUNK = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
+
+function linhasDoHunk(cabecalho) {
+  const hunk = LINHAS_DO_HUNK.exec(cabecalho);
+  if (!hunk) return [];
+  const quantas = hunk[2] === undefined ? 1 : Number(hunk[2]);
+  return Array.from({ length: quantas }, (_, i) => Number(hunk[1]) + i);
+}
+
+class LeitorDeDiff {
+  constructor() {
+    this.porArquivo = new Map();
+    this.atual = null;
+    this.noCabecalho = false;
   }
-  return porArquivo;
+
+  ler(linha) {
+    if (linha.startsWith('diff --git ')) this.abrirArquivo();
+    else if (this.noCabecalho && linha.startsWith('+++ ')) this.nomearArquivo(linha.slice(4));
+    else if (linha.startsWith('@@')) this.lerHunk(linha);
+  }
+
+  abrirArquivo() {
+    this.noCabecalho = true;
+    this.atual = null;
+  }
+
+  nomearArquivo(resto) {
+    const nome = nomeDoCabecalho(resto);
+    this.atual = null;
+    if (nome === null) return;
+    this.atual = new Set();
+    this.porArquivo.set(nome, this.atual);
+  }
+
+  lerHunk(linha) {
+    this.noCabecalho = false;
+    if (!this.atual) return;
+    for (const numero of linhasDoHunk(linha)) this.atual.add(numero);
+  }
+}
+
+function linhasAcrescentadas(diff) {
+  const leitor = new LeitorDeDiff();
+  for (const linha of diff.split('\n')) leitor.ler(linha);
+  return leitor.porArquivo;
 }
 
 const ehBinario = buffer => buffer.subarray(0, 8000).includes(0);
+const BOM_LE = Buffer.from([0xff, 0xfe]);
+const BOM_BE = Buffer.from([0xfe, 0xff]);
+const temBom = (buffer, bom) => buffer.subarray(0, 2).equals(bom);
+const comoLe = bytes => bytes.toString('utf16le');
+const comoBe = bytes => Buffer.from(bytes).swap16().toString('utf16le');
+const predomina = (muitos, poucos, casais) => muitos >= casais * 0.3 && poucos <= casais * 0.01;
+
+function ordemPelosZeros(buffer, par) {
+  const amostra = Math.min(par, 8000);
+  const zeros = [0, 0];
+  for (let i = 0; i < amostra; i++) if (buffer[i] === 0) zeros[i % 2]++;
+  const casais = amostra / 2;
+  if (predomina(zeros[1], zeros[0], casais)) return comoLe;
+  if (predomina(zeros[0], zeros[1], casais)) return comoBe;
+  return null;
+}
 
 function decodificarUtf16(buffer) {
   if (buffer.length < 2) return null;
   const par = buffer.length - (buffer.length % 2);
-  if (buffer[0] === 0xff && buffer[1] === 0xfe) return buffer.subarray(2, par).toString('utf16le');
-  if (buffer[0] === 0xfe && buffer[1] === 0xff) return Buffer.from(buffer.subarray(2, par)).swap16().toString('utf16le');
-  const amostra = Math.min(par, 8000);
-  let zerosNoPar = 0;
-  let zerosNoImpar = 0;
-  for (let i = 0; i < amostra; i += 2) {
-    if (buffer[i] === 0) zerosNoPar++;
-    if (buffer[i + 1] === 0) zerosNoImpar++;
-  }
-  const casais = amostra / 2;
-  if (zerosNoImpar >= casais * 0.3 && zerosNoPar <= casais * 0.01) return buffer.subarray(0, par).toString('utf16le');
-  if (zerosNoPar >= casais * 0.3 && zerosNoImpar <= casais * 0.01) return Buffer.from(buffer.subarray(0, par)).swap16().toString('utf16le');
-  return null;
+  if (temBom(buffer, BOM_LE)) return comoLe(buffer.subarray(2, par));
+  if (temBom(buffer, BOM_BE)) return comoBe(buffer.subarray(2, par));
+  const decodificar = ordemPelosZeros(buffer, par);
+  return decodificar ? decodificar(buffer.subarray(0, par)) : null;
 }
 
-function lerArquivo(raiz, caminho) {
-  const completo = path.join(raiz, caminho);
-  let buffer;
+function lerBytes(completo) {
   try {
-    buffer = fs.readFileSync(completo);
+    return fs.readFileSync(completo);
   } catch {
     return null;
   }
-  const comBom = buffer.length >= 2 && ((buffer[0] === 0xff && buffer[1] === 0xfe) || (buffer[0] === 0xfe && buffer[1] === 0xff));
-  if (comBom || ehBinario(buffer)) {
-    const decodificado = decodificarUtf16(buffer);
-    if (decodificado !== null) return { buffer, binario: false, utf16: true, texto: decodificado };
-    return { buffer, binario: true, utf16: false, texto: null };
-  }
-  return { buffer, binario: false, utf16: false, texto: buffer.toString('utf8') };
+}
+
+function comoArquivo(buffer) {
+  const comBom = temBom(buffer, BOM_LE) || temBom(buffer, BOM_BE);
+  if (!comBom && !ehBinario(buffer)) return { buffer, binario: false, utf16: false, texto: buffer.toString('utf8') };
+  const decodificado = decodificarUtf16(buffer);
+  if (decodificado === null) return { buffer, binario: true, utf16: false, texto: null };
+  return { buffer, binario: false, utf16: true, texto: decodificado };
+}
+
+function lerArquivo(raiz, caminho) {
+  const buffer = lerBytes(path.join(raiz, caminho));
+  return buffer === null ? null : comoArquivo(buffer);
 }
 
 function bytesDaBase(raiz, desde, caminho) {
@@ -164,46 +199,75 @@ function hashesDaBase(raiz, desde) {
   return hashes;
 }
 
+const todasAsLinhasDe = texto => new Set(Array.from({ length: contarLinhas(texto) }, (_, i) => i + 1));
+
+function acrescentarSoltos(itens, soltos) {
+  const conhecidos = new Set(itens.map(item => item.caminho));
+  for (const caminho of soltos) {
+    if (!conhecidos.has(caminho)) itens.push({ status: 'A', caminho });
+  }
+}
+
+class ClassificadorDeMudancas {
+  constructor(raiz, desde, config, acrescentadas) {
+    this.raiz = raiz;
+    this.config = config;
+    this.acrescentadas = acrescentadas;
+    this.hashes = hashesDaBase(raiz, desde);
+    this.copias = new Set();
+  }
+
+  isento(caminho) {
+    return Boolean(this.config) && casaAlgum(this.config.ignorarCodigo, caminho);
+  }
+
+  saiuDaIsencao(origens, caminho) {
+    return origens.every(origem => this.isento(origem)) && !this.isento(caminho);
+  }
+
+  classificar(item) {
+    if (item.status === 'R') this.classificarRenomeado(item);
+    else if (item.status === 'A') this.classificarNovo(item.caminho);
+  }
+
+  classificarRenomeado({ antigo, caminho }) {
+    if (!this.saiuDaIsencao([antigo], caminho)) return;
+    const arquivo = lerArquivo(this.raiz, caminho);
+    if (arquivo) this.marcarTudo(caminho, arquivo);
+  }
+
+  classificarNovo(caminho) {
+    const arquivo = lerArquivo(this.raiz, caminho);
+    if (!arquivo) return;
+    const origens = this.hashes.get(git(this.raiz, ['hash-object', '--', caminho]).trim());
+    if (!origens) this.marcarNovo(caminho, arquivo);
+    else if (this.saiuDaIsencao(origens, caminho)) this.marcarTudo(caminho, arquivo);
+    else this.marcarCopia(caminho);
+  }
+
+  marcarTudo(caminho, arquivo) {
+    if (!arquivo.binario) this.acrescentadas.set(caminho, todasAsLinhasDe(arquivo.texto));
+  }
+
+  marcarNovo(caminho, arquivo) {
+    if (!this.acrescentadas.has(caminho)) this.marcarTudo(caminho, arquivo);
+  }
+
+  marcarCopia(caminho) {
+    this.copias.add(caminho);
+    this.acrescentadas.set(caminho, new Set());
+  }
+}
+
 function lerMudancas(raiz, base, config = null) {
   const { desde } = base;
   const itens = lerStatus(git(raiz, ['diff', '--name-status', '-M', '-z', '--no-color', '--no-ext-diff', desde]));
   const diff = git(raiz, ['diff', '-U0', '-M', '--text', '--ignore-cr-at-eol', '--no-textconv', '--no-color', '--no-ext-diff', desde]);
   const acrescentadas = linhasAcrescentadas(diff);
-  const novosSoltos = git(raiz, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean);
-  const conhecidos = new Set(itens.map(item => item.caminho));
-  for (const caminho of novosSoltos) {
-    if (!conhecidos.has(caminho)) itens.push({ status: 'A', caminho });
-  }
-  const hashes = hashesDaBase(raiz, desde);
-  const copias = new Set();
-  const isento = caminho => Boolean(config) && casaAlgum(config.ignorarCodigo, caminho);
-  const todasAsLinhas = (caminho, arquivo) => {
-    if (arquivo.binario) return;
-    const total = contarLinhas(arquivo.texto);
-    acrescentadas.set(caminho, new Set(Array.from({ length: total }, (_, i) => i + 1)));
-  };
-  for (const item of itens) {
-    if (item.status === 'R' && isento(item.antigo) && !isento(item.caminho)) {
-      const arquivo = lerArquivo(raiz, item.caminho);
-      if (arquivo) todasAsLinhas(item.caminho, arquivo);
-      continue;
-    }
-    if (item.status !== 'A') continue;
-    const arquivo = lerArquivo(raiz, item.caminho);
-    if (!arquivo) continue;
-    const hash = git(raiz, ['hash-object', '--', item.caminho]).trim();
-    const origens = hashes.get(hash);
-    if (origens && origens.every(isento) && !isento(item.caminho)) {
-      todasAsLinhas(item.caminho, arquivo);
-    } else if (origens) {
-      copias.add(item.caminho);
-      acrescentadas.set(item.caminho, new Set());
-    } else if (!acrescentadas.has(item.caminho) && !arquivo.binario) {
-      const total = contarLinhas(arquivo.texto);
-      acrescentadas.set(item.caminho, new Set(Array.from({ length: total }, (_, i) => i + 1)));
-    }
-  }
-  return { base, itens, acrescentadas, copias };
+  acrescentarSoltos(itens, git(raiz, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean));
+  const classificador = new ClassificadorDeMudancas(raiz, desde, config, acrescentadas);
+  for (const item of itens) classificador.classificar(item);
+  return { base, itens, acrescentadas, copias: classificador.copias };
 }
 
 function arquivoNaBase(raiz, desde, caminho) {
