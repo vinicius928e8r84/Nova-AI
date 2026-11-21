@@ -34,6 +34,11 @@ test('workflow: os testes do PR rodam depois das regras, nunca antes', () => {
   assert.ok(!texto.slice(testes, texto.indexOf('\n  auditoria:')).includes('REGRAS_DIR'), 'nada depois dos testes pode usar REGRAS_DIR');
 });
 
+test('workflow: rótulo posto ou tirado depois de abrir também dispara as regras', () => {
+  const texto = fs.readFileSync(path.join(RAIZ, '.github', 'workflows', 'regras.yml'), 'utf8');
+  assert.match(texto, /types: \[opened, synchronize, reopened, edited, labeled, unlabeled\]/);
+});
+
 test('UTF-16 não escapa das regras de conteúdo (com BOM, sem BOM, big endian e working-tree-encoding)', () => {
   const JS = 'const a = 1; // novo\nconsole.log(a);\n';
   const formas = {
