@@ -126,10 +126,28 @@ test('registro falha: revisão sem a linha Risco ou com um risco inválido', () 
 });
 
 test('registro falha: PROVADO com a nota dizendo NÃO COBERTO ou BLOQUEADA', () => {
-  for (const nota of ['NAO COBERTO: o GPS do iPhone', 'O GPS do iPhone ficou não coberto.', 'iPhone BLOQUEADA-iPhone sem cabo']) {
+  const notas = [
+    'NAO COBERTO: o GPS do iPhone', 'O GPS do iPhone ficou não coberto.', 'iPhone BLOQUEADA-iPhone sem cabo',
+    'GPS do iPhone: NÃO COBERTA (aparelho fora do cabo).', 'casos não cobertos: GPS', 'parte real NAO COBERTA', 'iPhone e Android: não cobertas.',
+    'iPhone bloqueado', 'iPhone e Android: BLOQUEADOS.', 'iPhone e Android: bloqueadas.', 'GPS: **NÃO** COBERTO.', 'GPS: NÃO-COBERTO.',
+    '```text\nMac: ok\niPhone: NÃO COBERTO\n```', '~~~\n## iPhone\nbloqueado\n~~~', '> NÃO COBERTA: o GPS.', '  > > nao cobertos: o GPS e a câmera.',
+  ];
+  for (const nota of notas) {
     const r = conferir({ ...comum, corpo: `${DESCRICAO}\nAtenção: ALTA\n\n${PROVA(HEAD)}${nota}\n` });
     assert.equal(r.ok, false, nota);
-    assert.match(r.mensagem, /prova parcial não vale como PROVADO 100% REAL/);
+    assert.match(r.mensagem, /prova parcial não vale como PROVADO 100% REAL/, nota);
+  }
+});
+
+test('registro passa: NÃO COBERTO fora da seção Prova real ou em comentário de HTML não conta', () => {
+  const comAProva = antes => `${DESCRICAO}\nAtenção: ALTA\n\n${antes}${PROVA(HEAD)}`;
+  for (const corpo of [
+    comAProva('```\n## Prova real\nNÃO COBERTO\n```\n\n'),
+    comAProva('## Limites\n\nNÃO COBERTO: a versão antiga, fora do escopo.\n> BLOQUEADA\n\n'),
+    `${comAProva('')}\n<!-- NÃO COBERTO: o GPS. -->\n\`\`\`text\nMac: ok\n\`\`\`\n> Abriu o cartão do iPhone.\n`,
+  ]) {
+    const r = conferir({ ...comum, corpo });
+    assert.equal(r.ok, true, r.mensagem);
   }
 });
 
@@ -142,6 +160,9 @@ test('registrar-na-pr: prova parcial escreve BLOQUEADA-iPhone e fica vermelha; t
   assert.equal(parcial.depois.ok, false);
   assert.match(parcial.depois.mensagem, /diz BLOQUEADA/);
   assert.match(planejar({ comando: 'prova', head: HEAD, cobertura: 'total' }, pr, nota).recusa, /a nota diz NAO COBERTO/);
+  for (const suja of ['GPS do iPhone: NÃO COBERTA (aparelho fora do cabo).', 'casos não cobertos: GPS', 'iPhone bloqueado', 'GPS: **NÃO** COBERTO.', '> NÃO-COBERTAS: GPS e câmera.']) {
+    assert.match(planejar({ comando: 'prova', head: HEAD, cobertura: 'total' }, pr, suja).recusa || '', /a nota diz (NAO COBERT|BLOQUEAD)/, suja);
+  }
   const limpa = planejar({ comando: 'prova', head: HEAD, cobertura: 'total' }, pr, 'Rodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.');
   assert.equal(limpa.depois.ok, true, limpa.depois.mensagem);
 });
