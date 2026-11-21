@@ -46,7 +46,7 @@ class PhysicalMobileService {
 
     resolveAdbPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('adb') || require('./android-tools-mac').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
+            return require('./mac-native').tool('adb') || require('./android-tools').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
         }
 
         if (this._adbPath && fs.existsSync(this._adbPath)) {
@@ -89,7 +89,7 @@ class PhysicalMobileService {
 
     resolveScrcpyPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('scrcpy') || require('./android-tools-mac').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
+            return require('./mac-native').tool('scrcpy') || require('./android-tools').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
         }
 
         if (this._scrcpyPath && fs.existsSync(this._scrcpyPath)) {
@@ -133,84 +133,7 @@ class PhysicalMobileService {
     }
 
     async ensureTools(force = false) {
-        if (process.platform === "darwin") return require('./android-tools-mac').ensureForService(this, force);
-
-        const adbReady = fs.existsSync(this.adbPath);
-        const scrcpyReady = fs.existsSync(this.scrcpyPath);
-
-        if (adbReady && scrcpyReady && !force) {
-            return { success: true, message: 'Ferramentas prontas.' };
-        }
-
-        if (this.isProvisioning) {
-            return { success: true, message: 'Configuração em andamento...' };
-        }
-
-        this.isProvisioning = true;
-        this.sendToFrontend('physical-mobile:setup-progress', { stage: 'starting', message: 'Configurando Motor de Controle Móvel...' });
-
-        try {
-            if (!adbReady || force) {
-                this.sendToFrontend('physical-mobile:setup-progress', { stage: 'adb', message: 'Baixando Motor ADB Android...' });
-                const adbZipUrl = 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip';
-                const adbZipPath = path.join(this.baseDir, 'platform-tools.zip');
-                
-                const response = await axios({
-                    url: adbZipUrl,
-                    method: 'GET',
-                    responseType: 'arraybuffer',
-                    timeout: 60000
-                });
-                fs.writeFileSync(adbZipPath, Buffer.from(response.data));
-
-                await new Promise((resolve, reject) => {
-                    const extractCmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Path '${adbZipPath}' -DestinationPath '${this.baseDir}' -Force"`;
-                    exec(extractCmd, (err) => {
-                        try { fs.unlinkSync(adbZipPath); } catch (_) {}
-                        if (err) reject(err); else resolve();
-                    });
-                });
-            }
-
-            if (!scrcpyReady || force) {
-                this.sendToFrontend('physical-mobile:setup-progress', { stage: 'scrcpy', message: 'Configurando Motor de Espelhamento de Tela...' });
-                const scrcpyZipUrl = 'https://github.com/Genymobile/scrcpy/releases/download/v2.4/scrcpy-win64-v2.4.zip';
-                const scrcpyZipPath = path.join(this.baseDir, 'scrcpy.zip');
-                const scrcpyDest = path.join(this.baseDir, 'scrcpy');
-
-                try {
-                    const response = await axios({
-                        url: scrcpyZipUrl,
-                        method: 'GET',
-                        responseType: 'arraybuffer',
-                        timeout: 60000
-                    });
-                    fs.writeFileSync(scrcpyZipPath, Buffer.from(response.data));
-
-                    await new Promise((resolve, reject) => {
-                        const extractCmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$temp = Join-Path '${this.baseDir}' 'scrcpy_temp'; Expand-Archive -Path '${scrcpyZipPath}' -DestinationPath $temp -Force; $inner = Get-ChildItem -Path $temp -Directory | Select-Object -First 1; if ($inner) { Move-Item -Path ($inner.FullName + '\\*') -Destination '${scrcpyDest}' -Force } else { Move-Item -Path ($temp + '\\*') -Destination '${scrcpyDest}' -Force }; Remove-Item -Recurse -Force $temp"`;
-                        if (!fs.existsSync(scrcpyDest)) fs.mkdirSync(scrcpyDest, { recursive: true });
-                        exec(extractCmd, (err) => {
-                            try { fs.unlinkSync(scrcpyZipPath); } catch (_) {}
-                            if (err) reject(err); else resolve();
-                        });
-                    });
-                } catch (e) {
-                    console.warn('[PhysicalMobile] Scrcpy download mirror failed, attempting fallback...', e);
-                }
-            }
-
-            this.resolveAdbPath();
-            this.resolveScrcpyPath();
-            this.sendToFrontend('physical-mobile:setup-progress', { stage: 'done', message: 'Motores prontos!' });
-            return { success: true };
-        } catch (error) {
-            console.error('[PhysicalMobile] ensureTools error:', error);
-            this.sendToFrontend('physical-mobile:setup-progress', { stage: 'error', message: 'A configuração automática encontrou um erro: ' + error.message });
-            return { success: false, error: error.message };
-        } finally {
-            this.isProvisioning = false;
-        }
+        return require('./android-tools').ensureForService(this, force);
     }
 
     async getConnectedDevices() {
