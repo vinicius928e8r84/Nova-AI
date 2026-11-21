@@ -43,32 +43,40 @@ function docstringsDePython(fonte) {
   }
 }
 
-function verificar(ctx) {
-  const achados = [];
-  for (const item of ctx.arquivos) {
-    const { caminho } = item;
-    const novas = ctx.mudancas.acrescentadas.get(caminho);
-    if (!novas || novas.size === 0) continue;
-    const arquivo = ctx.ler(caminho);
-    if (!arquivo || arquivo.binario) continue;
-    if (!ehCodigoDeComentario(ctx.config, caminho, arquivo.texto)) continue;
-    const vistas = new Set();
-    for (const { linha, corpo, bruto } of linhasDeComentario(caminho, arquivo.texto)) {
-      if (!novas.has(linha) || !corpo || permitida(linha, corpo, bruto)) continue;
-      vistas.add(linha);
-      achados.push({ arquivo: caminho, linha, detalhe: `comentário novo: “${corpo.length > 70 ? `${corpo.slice(0, 67)}…` : corpo}”` });
-    }
-    if (caminho.endsWith('.py')) {
-      for (const [de, ate] of docstringsDePython(arquivo.texto)) {
-        for (let linha = de; linha <= ate; linha++) {
-          if (!novas.has(linha) || vistas.has(linha)) continue;
-          achados.push({ arquivo: caminho, linha, detalhe: 'docstring nova (é um comentário com outro nome)' });
-          break;
-        }
-      }
-    }
-  }
-  return achados;
+const TAMANHO_DO_RESUMO = 70;
+const resumoDoComentario = corpo => (corpo.length > TAMANHO_DO_RESUMO ? `${corpo.slice(0, TAMANHO_DO_RESUMO - 3)}…` : corpo);
+
+const semLinhaNova = novas => !novas || novas.size === 0;
+const ehTexto = arquivo => Boolean(arquivo) && !arquivo.binario;
+
+function comentariosNovos(caminho, texto, novas) {
+  return linhasDeComentario(caminho, texto)
+    .filter(({ linha, corpo }) => novas.has(linha) && Boolean(corpo))
+    .filter(({ linha, corpo, bruto }) => !permitida(linha, corpo, bruto));
 }
+
+function primeiraLinhaNova([de, ate], novas, vistas) {
+  for (let linha = de; linha <= ate; linha++) if (novas.has(linha) && !vistas.has(linha)) return linha;
+  return null;
+}
+
+function docstringsNovas(texto, novas, vistas) {
+  return docstringsDePython(texto).map(trecho => primeiraLinhaNova(trecho, novas, vistas)).filter(linha => linha !== null);
+}
+
+function achadosDoArquivo(ctx, caminho) {
+  const novas = ctx.mudancas.acrescentadas.get(caminho);
+  if (semLinhaNova(novas)) return [];
+  const arquivo = ctx.ler(caminho);
+  if (!ehTexto(arquivo) || !ehCodigoDeComentario(ctx.config, caminho, arquivo.texto)) return [];
+  const comentarios = comentariosNovos(caminho, arquivo.texto, novas);
+  const achados = comentarios.map(({ linha, corpo }) => ({ arquivo: caminho, linha, detalhe: `comentário novo: “${resumoDoComentario(corpo)}”` }));
+  if (!caminho.endsWith('.py')) return achados;
+  const vistas = new Set(comentarios.map(({ linha }) => linha));
+  const docstrings = docstringsNovas(arquivo.texto, novas, vistas);
+  return [...achados, ...docstrings.map(linha => ({ arquivo: caminho, linha, detalhe: 'docstring nova (é um comentário com outro nome)' }))];
+}
+
+const verificar = ctx => ctx.arquivos.flatMap(({ caminho }) => achadosDoArquivo(ctx, caminho));
 
 module.exports = { id, titulo, conserto, verificar };
