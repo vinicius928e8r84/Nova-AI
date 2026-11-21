@@ -4,10 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { contarLinhas, git, arquivoNaBase } = require('./git');
 const { ehCodigoDoLimite } = require('./escopo');
+const { ARQUIVO_DA_LINHA_DE_BASE, gravarChave } = require('./linha-de-base');
 
 const id = 'limite-de-linhas';
 const titulo = 'Arquivo de código com no máximo 1000 linhas';
-const ARQUIVO_DA_LINHA_DE_BASE = 'scripts/regras/linha-de-base.json';
 
 const conserto = 'Divida o arquivo por responsabilidade em módulos menores (no máximo 1000 linhas cada) e leve o código novo para um módulo novo, '
   + 'não para o arquivo grande. A linha de base (scripts/regras/linha-de-base.json) lista os arquivos que já passavam do limite: ela só encolhe. '
@@ -122,8 +122,9 @@ function atualizarLinhaDeBase(ctx) {
 }
 
 function gravar(raiz, arquivos) {
-  const ordenado = Object.fromEntries(Object.entries(arquivos).sort(([a], [b]) => a.localeCompare(b)));
-  fs.writeFileSync(path.join(raiz, ARQUIVO_DA_LINHA_DE_BASE), `${JSON.stringify({ arquivos: ordenado }, null, 2)}\n`);
+  gravarChave(raiz, 'arquivos', arquivos);
 }
 
-module.exports = { id, titulo, conserto, verificar, ARQUIVO_DA_LINHA_DE_BASE, atualizarLinhaDeBase, calcularLinhaDeBase, gravar };
+const linhaDeBase = { chave: 'arquivos', ler: dados => dados.arquivos, calcular: calcularLinhaDeBase, atualizar: atualizarLinhaDeBase };
+
+module.exports = { id, titulo, conserto, verificar, linhaDeBase, ARQUIVO_DA_LINHA_DE_BASE, arquivosDoRepositorio, atualizarLinhaDeBase, calcularLinhaDeBase, gravar, renomeados };
