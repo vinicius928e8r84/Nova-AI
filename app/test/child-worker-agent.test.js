@@ -136,3 +136,64 @@ test('executeTask recusa tarefa nova enquanto o agente está ocupado', async () 
   assert.deepStrictEqual(await agente.executeTask('y', 'k'), { error: 'Agent already busy. Wait or cancel first.' });
   assert.deepStrictEqual(prompts, []);
 });
+
+const COMANDOS_DAS_RECEITAS = [
+  ['darwin', '{ hdiutil attach -nobrowse -readonly -mountpoint "TMP" "ARQ" && ditto "TMP/X.app" "/Applications/X.app"; hdiutil detach "TMP"; } >/dev/null 2>&1 &'],
+  ['darwin', 'osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' >/dev/null 2>&1 &'],
+  ['win32', '"ARQ" /S'],
+  ['win32', 'msiexec /i "ARQ" /qn /norestart'],
+];
+
+for (const [plataforma, comando] of COMANDOS_DAS_RECEITAS) {
+  test(`receita do ${plataforma} chega inteira ao execute_shell pelo leitor ReAct: ${comando.slice(0, 24)}`, async () => {
+    assert.ok(instalacaoPorSistema(plataforma).includes(comando));
+    const { ferramentas } = await rodarTarefa([`Thought: instalar\nAction: execute_shell(${comando})`, 'Thought: ok\nAction: FINAL_ANSWER(instalado)'], {}, 'instalar', 'k');
+    assert.deepStrictEqual(ferramentas, [{ nome: 'execute_shell', args: comando }]);
+  });
+}
+
+test('receita do .dmg, lida pelo leitor ReAct, roda no sh e chama hdiutil e ditto em segundo plano', { skip: process.platform === 'win32' }, async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'nv-receita-dmg-'));
+  const registro = path.join(pasta, 'chamadas.log');
+  for (const programa of ['hdiutil', 'ditto']) {
+    fs.writeFileSync(path.join(pasta, programa), `#!/bin/sh\necho "${programa} $*" >> "${registro}"\n`, { mode: 0o755 });
+  }
+  const caminhoOriginal = process.env.PATH;
+  process.env.PATH = `${pasta}${path.delimiter}${caminhoOriginal}`;
+  try {
+    const comando = COMANDOS_DAS_RECEITAS[0][1].replaceAll('TMP', `${pasta}/mnt`).replaceAll('ARQ', `${pasta}/App.dmg`).replaceAll('X.app', 'App.app');
+    const { agente, ferramentas } = await rodarTarefa([`Thought: instalar\nAction: execute_shell(${comando})`, 'Thought: ok\nAction: FINAL_ANSWER(instalado)'], {}, 'instalar', 'k');
+    assert.strictEqual(await agente._execShell(ferramentas[0].args), 'Command executed successfully.');
+    for (let tentativa = 0; tentativa < 50 && !(fs.existsSync(registro) && fs.readFileSync(registro, 'utf8').includes('detach')); tentativa++) {
+      await new Promise(r => setTimeout(r, 20));
+    }
+    assert.deepStrictEqual(fs.readFileSync(registro, 'utf8').trim().split('\n'), [
+      `hdiutil attach -nobrowse -readonly -mountpoint ${pasta}/mnt ${pasta}/App.dmg`,
+      `ditto ${pasta}/mnt/App.app /Applications/App.app`,
+      `hdiutil detach ${pasta}/mnt`,
+    ]);
+  } finally {
+    process.env.PATH = caminhoOriginal;
+    fs.rmSync(pasta, { recursive: true, force: true });
+  }
+});
+
+test('executeTask espera entre os passos, nunca antes do primeiro, e sem Thought registra Analyzing...', async () => {
+  const rodada = criarAgente(['Action: web_search(a)', 'Thought: b\nAction: web_search(b)', 'Thought: fim\nAction: FINAL_ANSWER(ok)']);
+  rodada.agente.STEP_DELAY_MS = 7;
+  const esperas = [];
+  const setTimeoutOriginal = global.setTimeout;
+  global.setTimeout = (funcao, ms, ...resto) => {
+    if (ms === 7) esperas.push(ms);
+    return setTimeoutOriginal(funcao, ms, ...resto);
+  };
+  try {
+    await semLogNoConsole(() => rodada.agente.executeTask('x', 'k'));
+  } finally {
+    global.setTimeout = setTimeoutOriginal;
+  }
+  assert.deepStrictEqual(esperas, [7, 7]);
+  assert.ok(rodada.prompts[1].includes('===HISTORY===\nThought: Analyzing...\nObservation: obs de web_search\n'));
+});

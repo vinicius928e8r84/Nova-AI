@@ -16,12 +16,14 @@ function edgeTtsBinary(platform, python) {
 
 const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium|Microsoft Edge)[^/]* (.* )?--user-data-dir=[^=]*/\\.wwebjs_auth/session-nova-desktop-client( |$)';
 
+const AVISO_DE_PARENTESES = ' Rename ARQ first if its name has parentheses: the Action parser stops at the first closing parenthesis.';
+
 function instalacaoPorSistema(platform) {
   if (platform === 'darwin') {
-    return 'INSTALL (macOS, runs in background because execute_shell kills after 15 s): .dmg = (hdiutil attach -nobrowse -readonly -mountpoint "TMP" "ARQ" && ditto "TMP/X.app" "/Applications/X.app"; hdiutil detach "TMP") >/dev/null 2>&1 & (check with ls /Applications afterwards) | .pkg = osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' >/dev/null 2>&1 & (asks the Mac password once; ARQ without single quotes; check with pkgutil --pkgs afterwards).';
+    return 'INSTALL (macOS, runs in background because execute_shell kills after 15 s): .dmg = { hdiutil attach -nobrowse -readonly -mountpoint "TMP" "ARQ" && ditto "TMP/X.app" "/Applications/X.app"; hdiutil detach "TMP"; } >/dev/null 2>&1 & (check with ls /Applications afterwards) | .pkg = osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' >/dev/null 2>&1 & (asks the Mac password once; ARQ without single quotes; check with pkgutil --pkgs afterwards).' + AVISO_DE_PARENTESES;
   }
   if (platform === 'win32') {
-    return 'INSTALL (Windows, keeps running in background after execute_shell\'s 15 s limit): .exe = "ARQ" /S; .msi = msiexec /i "ARQ" /qn /norestart (asks UAC when needed; check the installed program afterwards).';
+    return 'INSTALL (Windows, keeps running in background after execute_shell\'s 15 s limit): .exe = "ARQ" /S; .msi = msiexec /i "ARQ" /qn /norestart (asks UAC when needed; check the installed program afterwards).' + AVISO_DE_PARENTESES;
   }
   return '';
 }
