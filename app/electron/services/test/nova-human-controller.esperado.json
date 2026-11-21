@@ -1,0 +1,1821 @@
+{
+  "primeira tentativa: Enter abre os resultados e o vídeo carrega na terceira volta": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Initializing Direct RPA Sequence for: \"lofi & chuva\"..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Navigating to YouTube Media Database..."
+      }
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Manually typing query: \"lofi & chuva\""
+      }
+    ],
+    [
+      "browser.type",
+      "input#search",
+      "lofi & chuva",
+      {
+        "delay": 120,
+        "pressEnter": true
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Selecting Media Result #1..."
+      }
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      0
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Stabilizing encrypted media link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Playback confirmed. Capturing link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Media Link Captured Successfully."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "janela.show"
+    ],
+    [
+      "janela.focus"
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc",
+        "query": "lofi & chuva"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "lofi & chuva",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "primeira tentativa: Enter não pesquisa e clica na lupa": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Initializing Direct RPA Sequence for: \"música\"..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Navigating to YouTube Media Database..."
+      }
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Manually typing query: \"música\""
+      }
+    ],
+    [
+      "browser.type",
+      "input#search",
+      "música",
+      {
+        "delay": 120,
+        "pressEnter": true
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Search not triggered via Enter. Clicking Search Icon manually..."
+      }
+    ],
+    [
+      "page.click",
+      "button#search-icon-legacy"
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Selecting Media Result #1..."
+      }
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      0
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Stabilizing encrypted media link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Playback confirmed. Capturing link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Media Link Captured Successfully."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "janela.show"
+    ],
+    [
+      "janela.focus"
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc",
+        "query": "música"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "música",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "segunda tentativa a partir do vídeo volta e escolhe o segundo": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → System Fallback [Attempt 2]: Selecting alternative media result..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Returning to Search interface..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "page.goBack"
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Selecting Media Result #2..."
+      }
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      1
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      1
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Stabilizing encrypted media link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Playback confirmed. Capturing link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Media Link Captured Successfully."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "janela.show"
+    ],
+    [
+      "janela.focus"
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc",
+        "query": "música"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "música",
+        "currentAttempt": 2
+      }
+    ]
+  ],
+  "terceira tentativa fora do vídeo pesquisa pela URL e fica no único": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → System Fallback [Attempt 3]: Selecting alternative media result..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Returning to Search interface..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com/results?search_query=a%2Fb%20c"
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Selecting Media Result #1..."
+      }
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      0
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Stabilizing encrypted media link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Playback confirmed. Capturing link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Media Link Captured Successfully."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "janela.show"
+    ],
+    [
+      "janela.focus"
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc",
+        "query": "a/b c"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "a/b c",
+        "currentAttempt": 3
+      }
+    ]
+  ],
+  "sem vídeos": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Initializing Direct RPA Sequence for: \"nada\"..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Navigating to YouTube Media Database..."
+      }
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Manually typing query: \"nada\""
+      }
+    ],
+    [
+      "browser.type",
+      "input#search",
+      "nada",
+      {
+        "delay": 120,
+        "pressEnter": true
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Extraction Interrupted: No videos found."
+      }
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": false,
+        "error": "No videos found."
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "nada",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "o link nunca estabiliza": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Initializing Direct RPA Sequence for: \"lento\"..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Navigating to YouTube Media Database..."
+      }
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Manually typing query: \"lento\""
+      }
+    ],
+    [
+      "browser.type",
+      "input#search",
+      "lento",
+      {
+        "delay": 120,
+        "pressEnter": true
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Selecting Media Result #1..."
+      }
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      0
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Stabilizing encrypted media link..."
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Extraction Interrupted: Link stabilization failed."
+      }
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": false,
+        "error": "Link stabilization failed."
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "lento",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "navegador não abre": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Initializing Direct RPA Sequence for: \"x\"..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Extraction Interrupted: sem chromium"
+      }
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": false,
+        "error": "sem chromium"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "x",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "resultados não aparecem": [
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → System Fallback [Attempt 2]: Selecting alternative media result..."
+      }
+    ],
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Returning to Search interface..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+      }
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Extraction Interrupted: Timeout 20000ms"
+      }
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": false,
+        "error": "Timeout 20000ms"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "x",
+        "currentAttempt": 2
+      }
+    ]
+  ],
+  "janela destruída não recebe log nem foco": [
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "browser.type",
+      "input#search",
+      "x",
+      {
+        "delay": 120,
+        "pressEnter": true
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc",
+        "query": "x"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "x",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "sem janela": [
+    [
+      "browser.launch"
+    ],
+    [
+      "browser.getPage"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "browser.navigate",
+      "https://www.youtube.com"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "browser.type",
+      "input#search",
+      "x",
+      {
+        "delay": 120,
+        "pressEnter": true
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      2000
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/results?search_query=x"
+    ],
+    [
+      "page.bringToFront"
+    ],
+    [
+      "page.waitForSelector",
+      "ytd-video-renderer",
+      {
+        "visible": true,
+        "timeout": 20000
+      }
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.locator",
+      "ytd-video-renderer a#video-title"
+    ],
+    [
+      "results.count"
+    ],
+    [
+      "results.nth.scrollIntoViewIfNeeded",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      800
+    ],
+    [
+      "results.nth.click",
+      0
+    ],
+    [
+      "page.waitForTimeout",
+      500
+    ],
+    [
+      "page.url",
+      "https://www.youtube.com/watch?v=abc"
+    ],
+    [
+      "page.waitForTimeout",
+      1500
+    ],
+    [
+      "page.waitForTimeout",
+      1000
+    ],
+    [
+      "executeHumanDownload",
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc",
+        "query": "x"
+      }
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "x",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "limpeza fecha o navegador": [
+    [
+      "browser.close"
+    ],
+    [
+      "toLocaleTimeString",
+      [],
+      {
+        "hour12": false
+      }
+    ],
+    [
+      "janela.send",
+      "swarm:log",
+      {
+        "agent": "nova",
+        "text": "[12:34:56] [NOVA] → Sub-system cleanup complete."
+      }
+    ],
+    [
+      "cleanup",
+      "(undefined)"
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "",
+        "currentAttempt": 1
+      }
+    ]
+  ],
+  "limpeza engole a falha": [
+    [
+      "browser.close"
+    ],
+    [
+      "cleanup",
+      "(undefined)"
+    ],
+    [
+      "estado",
+      {
+        "lastQuery": "",
+        "currentAttempt": 1
+      }
+    ]
+  ]
+}
