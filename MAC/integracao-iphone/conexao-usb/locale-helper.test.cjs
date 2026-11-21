@@ -194,6 +194,7 @@ async function testeFluxoNormal(sb) {
 
     await waitFor(() => status(), 4000, 'status de partida');
     assert.deepEqual(status(), { ok: true, message: 'pronto v' + versao });
+    await waitFor(() => linhasLog() > 0, 2000, 'linha de partida no log');
     assert.equal(linhasLog(), 1);
 
     await enviar('action=ping\n', { ok: true, message: 'pronto v' + versao });
