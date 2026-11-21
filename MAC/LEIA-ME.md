@@ -14,6 +14,15 @@
 - **Testes:** `node --test app/electron/services/test/telegram-manager.test.js` (30 casos com dublês de `telegram`, `qrcode`, `electron`, `os`, `child_process` e `mac-native`).
 - **Sem testar:** conta real do Telegram no Mac e no Windows (login por código, senha e QR, receber e responder mensagem, comandos `!lock`, `!browser`, `!sysinfo`, `!busy`, aviso de grupo monitorado).
 
+## Catraca de saúde do código (Onda 0.2 do plano nota 10) — 20/11/2026
+
+- **O que mudou:** nova regra `saude-do-codigo` em `scripts/regras/` (`regra-saude.js`, analisador em `scripts/regras/analisador/` com acorn 8.19.0 para JS e `ast` do Python), portada da https://github.com/vinicius928e8r84/PerpetualMiner/pull/641. Cada arquivo `.js`/`.mjs`/`.cjs`/`.py` que a PR toca é medido inteiro e não pode ter mais pontos que a sua entrada na chave `saude-do-codigo` de `scripts/regras/linha-de-base.json`; arquivo novo nasce em 0. O job "Regras de revisão" instala o analisador (`npm ci --prefix …/analisador`). Vale a partir da PR seguinte à que a cria, porque o job roda as regras da base. `--criar-linha-de-base` e `--atualizar-linha-de-base` aceitam `--regra`.
+- **Arquivos:** `scripts/regras/regra-saude.js`, `scripts/regras/linha-de-base.js`, `scripts/regras/analisador/*`, `scripts/regras/verificar.js`, `scripts/regras/regra-linhas.js`, `scripts/regras/linha-de-base.json`, `scripts/regras/test/saude.test.js`, `scripts/regras/test/auxiliar.js`, `.github/workflows/regras.yml`, `CONTRIBUTING.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Só regras e CI.
+- **Testado:** `node --test "scripts/regras/test/*.test.js"` e `node scripts/regras/verificar.js --base origin/main` no Linux.
+- **Mac e Windows:** a mesma regra e o mesmo código nos dois, sem ramo por sistema. O medidor de Python lê o stdin em UTF-8 em qualquer sistema (no Windows até o Python 3.14 a página de código local quebrava em `Á`, `Í` e emojis), e um Python que sai com erro sem rodar o medidor (alias da Microsoft Store, stub do `xcode-select`) vira aviso e pula, como a falta de acorn. Cada um tem teste. A folga de `main.js` (4153) já soma as PRs abertas que tocam o mesmo arquivo; `whatsapp-manager.js` (305) não tem mais PR aberta que o toque.
+- **Sem testar:** a calibração contra o painel do CodeScene nos 16 arquivos com nota (o painel roda na máquina do dono); a regra foi conferida contra os checks do CodeScene publicados nas PRs do GitHub.
+
 ## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
 
 - **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.
@@ -34,6 +43,18 @@
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
 - **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo, gatilhos `labeled`/`unlabeled`), `scripts/ci/codescene-na-refatoracao.js` (a mensagem de falta de resposta nomeia o check pendente), `scripts/regras/caminhos-sensiveis.json` (`scripts/ci/**` passa a ser ALTA, para um PR comum não desligar o gate), `scripts/regras/test/codescene.test.js`, `registro.test.js`, `endurecimento.test.js`.
 - **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`).
+
+## Chromium de qualquer revisão no Windows (P6 da paridade) — 19/11/2026
+
+`browserFarmService.js` (`getChromeExecutablePath`) e `global-spoof-service.js` (`_findChrome`, os dois pontos que listavam `chromium-1208`) passam a usar `findBundledChromiumExecutable` de `platform-utils.js`, como `browser-manager.js` e `whatsapp-manager.js` já faziam. Uma pasta `browsers\chromium-<qualquer revisão>\chrome-win64\chrome.exe` agora é achada; a ordem de busca (Chrome do sistema antes do empacotado) não mudou.
+
+`findBundledChromiumExecutable` passa a ordenar as pastas `chromium-<n>` pela revisão **numérica**, da maior para a menor (`chromium-1300` antes de `chromium-999`); antes era `.sort().reverse()`, ordem de texto, que punha `999` na frente. Pastas cujo sufixo não é um número inteiro (`chromium-tip`, `chromium-1208.bak`) vão para o fim. O helper também é usado no Mac (`mac-native.browser('chrome')`) e por `browser-manager.js` e `whatsapp-manager.js`, então a ordem nova vale nesses caminhos também. Com uma só revisão empacotada (hoje `chromium-1208`) a saída é idêntica; muda só quando há várias pastas `chromium-*`, e aí ganha a revisão maior.
+
+Os laços que procuravam o primeiro caminho existente nessas duas funções viram `primeiroCaminhoExistente` (novo em `platform-utils.js`), que descarta o `null` do helper antes de consultar o disco: `fs.existsSync(null)` emite `DEP0187` no Node 24, e a guarda dentro de `_findChrome` piorava a complexidade dele no CodeScene.
+
+Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js`, `app/electron/services/global-spoof-service.js` e `app/electron/services/platform-utils.js` (no Mac o comportamento é idêntico com uma só revisão `chromium-*` empacotada, mas os três arquivos mudam e precisam ir juntos; guardar os anteriores em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). Depois: `node --check` nos três e reiniciar o Nova.
+
+**Testado:** `node --test app/test/chromium-revisao-windows.test.js`, 6 testes (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; o `existsSync` falso recusa caminho que não é texto; `chromium-1300` vence `chromium-999`; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac com várias pastas `chromium-*`.
 
 ## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
 
