@@ -2,7 +2,6 @@
   "arquivos": {
     "app/electron/main.js": 4290,
     "app/electron/pwa/admin.html": 1523,
-    "app/electron/services/browser-manager.js": 2744,
     "app/electron/services/browserFarmService.js": 2138,
     "app/electron/services/global-spoof-service.js": 1789,
     "app/electron/services/live-cam-bridge.js": 1024,
@@ -21,7 +20,6 @@
     "app/electron/services/agent-swarm-controller.js": 140,
     "app/electron/services/android-tools-mac.js": 10,
     "app/electron/services/antigravity-controller.js": 12,
-    "app/electron/services/browser-manager.js": 371,
     "app/electron/services/browserFarmService.js": 1040,
     "app/electron/services/cam-live-iphone.js": 81,
     "app/electron/services/cam-live-service.js": 82,
