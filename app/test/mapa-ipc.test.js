@@ -5,138 +5,129 @@ const path = require('path');
 
 const RAIZ_DO_APP = path.join(__dirname, '..');
 const ELECTRON = path.join(RAIZ_DO_APP, 'electron');
+const DIST = path.join(RAIZ_DO_APP, 'dist');
 const ARQUIVO_DO_MAPA = path.join(__dirname, 'mapa-ipc.json');
-const METODOS_DE_REGISTRO = new Set(['handle', 'handleOnce', 'on', 'once']);
-const METODOS_DE_CONSUMO = new Set(['invoke', 'send', 'sendSync']);
+const REGISTRO = { objeto: 'ipcMain', metodos: new Set(['handle', 'handleOnce', 'on', 'once']) };
+const CONSUMO = { objeto: null, metodos: new Set(['invoke', 'send', 'sendSync']) };
 const PASTAS_IGNORADAS = new Set(['node_modules', 'pwa']);
+const PONTOS = new Set(['.', '?.']);
+const FECHA_EXPRESSAO = new Set([')', ']', '}']);
+const TIPOS_QUE_FECHAM_EXPRESSAO = new Set(['texto', 'numero', 'regex']);
 const PALAVRAS_ANTES_DE_REGEX = new Set([
   'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw',
   'case', 'do', 'else', 'yield', 'await',
 ]);
-const PONTUACAO = /^(?:>>>=|\.\.\.|===|!==|\*\*=|<<=|>>=|>>>|=>|==|!=|<=|>=|&&|\|\||\?\?=|\?\?|\?\.|\+\+|--|\+=|-=|\*=|\/=|%=|&=|\|=|\^=|&&=|\|\|=|\*\*|<<|>>|[{}()[\];,<>+\-*/%&|^!~?:=.@#])/;
-const COMECO_DE_IDENTIFICADOR = /[A-Za-z_$\u00c0-\uffff]/;
-const RESTO_DE_IDENTIFICADOR = /[A-Za-z0-9_$\u00c0-\uffff]/;
+const PROFUNDIDADE = { '{': 1, '}': -1 };
+const CORPO_DE_TEMPLATE = /(?:\\[\s\S]|\$(?!\{)|[^`\\$])*(?:`|\$\{)?/y;
+const PONTUACAO = /(?:>>>=|\.\.\.|===|!==|\*\*=|<<=|>>=|>>>|&&=|\|\|=|\?\?=|=>|==|!=|<=|>=|&&|\|\||\?\?|\?\.|\+\+|--|\+=|-=|\*=|\/=|%=|&=|\|=|\^=|\*\*|<<|>>|[\s\S])/y;
 
-function lerString(fonte, inicio) {
-  const aspa = fonte[inicio];
-  let i = inicio + 1;
-  let valor = '';
-  while (i < fonte.length && fonte[i] !== aspa) {
-    if (fonte[i] === '\\') { valor += fonte[i + 1]; i += 2; continue; }
-    if (fonte[i] === '\n') break;
-    valor += fonte[i];
-    i += 1;
-  }
-  return { valor, fim: i + 1 };
+function porRegex(re, tipo, condicao = () => true) {
+  return (estado) => {
+    if (!condicao(estado)) return false;
+    re.lastIndex = estado.i;
+    const achado = re.exec(estado.fonte);
+    if (!achado) return false;
+    if (tipo) estado.tokens.push({ tipo, valor: achado[0], inicio: estado.i });
+    estado.i += achado[0].length;
+    return true;
+  };
 }
 
-function lerRegex(fonte, inicio) {
-  let i = inicio + 1;
-  let emClasse = false;
-  while (i < fonte.length) {
-    const c = fonte[i];
-    if (c === '\\') { i += 2; continue; }
-    if (c === '\n') break;
-    if (c === '[') emClasse = true;
-    else if (c === ']') emClasse = false;
-    else if (c === '/' && !emClasse) { i += 1; break; }
-    i += 1;
-  }
-  while (i < fonte.length && RESTO_DE_IDENTIFICADOR.test(fonte[i])) i += 1;
-  return i;
+function fechaExpressao(token) {
+  if (TIPOS_QUE_FECHAM_EXPRESSAO.has(token.tipo)) return true;
+  if (token.tipo === 'nome') return !PALAVRAS_ANTES_DE_REGEX.has(token.valor);
+  return FECHA_EXPRESSAO.has(token.valor);
 }
 
-function regexPodeComecar(anterior) {
-  if (!anterior) return true;
-  if (anterior.tipo === 'texto' || anterior.tipo === 'numero' || anterior.tipo === 'regex') return false;
-  if (anterior.tipo === 'nome') return PALAVRAS_ANTES_DE_REGEX.has(anterior.valor);
-  return ![')', ']', '}'].includes(anterior.valor);
+function regexPodeComecar(estado) {
+  const anterior = estado.tokens[estado.tokens.length - 1];
+  return !anterior || !fechaExpressao(anterior);
 }
+
+function continuaTemplate(estado) {
+  return estado.fonte[estado.i] === '}' && estado.templates[estado.templates.length - 1] === estado.profundidade;
+}
+
+function lerTemplate(estado) {
+  const abre = estado.fonte[estado.i] === '`';
+  const continua = continuaTemplate(estado);
+  if (!abre && !continua) return false;
+  if (continua) estado.templates.pop();
+  CORPO_DE_TEMPLATE.lastIndex = estado.i + 1;
+  const corpo = CORPO_DE_TEMPLATE.exec(estado.fonte)[0];
+  const aberto = corpo.endsWith('${');
+  if (aberto) estado.templates.push(estado.profundidade);
+  const tipo = aberto ? 'template' : 'texto';
+  estado.tokens.push({ tipo, valor: estado.fonte.slice(estado.i, estado.i + 1 + corpo.length), inicio: estado.i });
+  estado.i += 1 + corpo.length;
+  return true;
+}
+
+function lerPontuacao(estado) {
+  PONTUACAO.lastIndex = estado.i;
+  const valor = PONTUACAO.exec(estado.fonte)[0];
+  estado.profundidade += PROFUNDIDADE[valor] || 0;
+  estado.tokens.push({ tipo: 'pontuacao', valor, inicio: estado.i });
+  estado.i += valor.length;
+  return true;
+}
+
+const LEITORES = [
+  porRegex(/#![^\n]*/y, null, (estado) => estado.i === 0),
+  porRegex(/\s+/y, null),
+  porRegex(/\/\/[^\n]*/y, null),
+  porRegex(/\/\*[\s\S]*?(?:\*\/|$)/y, null),
+  porRegex(/'(?:\\[\s\S]|[^'\\\n])*'?|"(?:\\[\s\S]|[^"\\\n])*"?/y, 'texto'),
+  lerTemplate,
+  porRegex(/\/(?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[])*\/?[A-Za-z]*/y, 'regex', regexPodeComecar),
+  porRegex(/\.?[0-9][0-9A-Za-z_.]*/y, 'numero'),
+  porRegex(/[A-Za-z_$\\\u00c0-\uffff][A-Za-z0-9_$\\\u00c0-\uffff]*/y, 'nome'),
+  lerPontuacao,
+];
 
 function tokenizar(fonte) {
-  const tokens = [];
-  const pilhaDeTemplates = [];
-  let profundidade = 0;
-  let i = 0;
-  if (fonte.startsWith('#!')) i = fonte.indexOf('\n');
-  const empurrar = (tipo, valor, inicio) => tokens.push({ tipo, valor, inicio });
-  const lerTemplate = (inicio) => {
-    let j = inicio;
-    let valor = '';
-    while (j < fonte.length) {
-      const c = fonte[j];
-      if (c === '\\') { valor += fonte[j + 1]; j += 2; continue; }
-      if (c === '`') return { valor, fim: j + 1, aberto: false };
-      if (c === '$' && fonte[j + 1] === '{') return { valor, fim: j + 2, aberto: true };
-      valor += c;
-      j += 1;
-    }
-    return { valor, fim: j, aberto: false };
-  };
-  while (i < fonte.length && i >= 0) {
-    const c = fonte[i];
-    if (c === ' ' || c === '\t' || c === '\n' || c === '\r' || c === '\ufeff' || c === '\u00a0' || c === '\u2028' || c === '\u2029') { i += 1; continue; }
-    if (c === '/' && fonte[i + 1] === '/') { const fim = fonte.indexOf('\n', i); i = fim < 0 ? fonte.length : fim; continue; }
-    if (c === '/' && fonte[i + 1] === '*') { const fim = fonte.indexOf('*/', i + 2); i = fim < 0 ? fonte.length : fim + 2; continue; }
-    if (c === '\'' || c === '"') { const s = lerString(fonte, i); empurrar('texto', s.valor, i); i = s.fim; continue; }
-    if (c === '`' || (c === '}' && pilhaDeTemplates.length && pilhaDeTemplates[pilhaDeTemplates.length - 1] === profundidade)) {
-      if (c === '}') pilhaDeTemplates.pop();
-      const t = lerTemplate(i + 1);
-      const completo = c === '`' && !t.aberto;
-      empurrar(completo ? 'texto' : 'template', t.valor, i);
-      if (t.aberto) pilhaDeTemplates.push(profundidade);
-      i = t.fim;
-      continue;
-    }
-    if (c === '/' && regexPodeComecar(tokens[tokens.length - 1])) { const fim = lerRegex(fonte, i); empurrar('regex', fonte.slice(i, fim), i); i = fim; continue; }
-    if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(fonte[i + 1]))) {
-      let j = i + 1;
-      while (j < fonte.length && /[0-9A-Za-z_.]/.test(fonte[j])) j += 1;
-      empurrar('numero', fonte.slice(i, j), i);
-      i = j;
-      continue;
-    }
-    if (COMECO_DE_IDENTIFICADOR.test(c) || c === '\\') {
-      let j = i + 1;
-      while (j < fonte.length && RESTO_DE_IDENTIFICADOR.test(fonte[j])) j += 1;
-      empurrar('nome', fonte.slice(i, j), i);
-      i = j;
-      continue;
-    }
-    const p = PONTUACAO.exec(fonte.slice(i, i + 4));
-    const valor = p ? p[0] : c;
-    if (valor === '{') profundidade += 1;
-    if (valor === '}') profundidade -= 1;
-    empurrar('pontuacao', valor, i);
-    i += valor.length;
-  }
-  return tokens;
+  const estado = { fonte, i: 0, tokens: [], templates: [], profundidade: 0 };
+  while (estado.i < fonte.length) LEITORES.some((ler) => ler(estado));
+  return estado.tokens;
 }
 
-function chamadas(tokens, objeto, metodos) {
+function valorDoTexto(token) {
+  return token.valor.slice(1, -1).replace(/\\([\s\S])/g, '$1');
+}
+
+function ehNome(token, valor) {
+  return token.tipo === 'nome' && token.valor === valor;
+}
+
+const FORMA_DA_CHAMADA = [
+  (janela, alvo) => alvo.objeto === null || ehNome(janela[0], alvo.objeto),
+  (janela) => PONTOS.has(janela[1].valor),
+  (janela, alvo) => janela[2].tipo === 'nome' && alvo.metodos.has(janela[2].valor),
+  (janela) => janela[3].valor === '(',
+];
+
+function achado(janela) {
+  const canal = janela[4];
+  return { metodo: janela[2].valor, canal: canal.tipo === 'texto' ? valorDoTexto(canal) : null, inicio: canal.inicio };
+}
+
+function chamadas(tokens, alvo) {
   const achadas = [];
   for (let i = 0; i + 4 < tokens.length; i += 1) {
-    const [o, ponto, metodo, parentese, canal] = tokens.slice(i, i + 5);
-    if (objeto && (o.tipo !== 'nome' || o.valor !== objeto)) continue;
-    if (ponto.valor !== '.' && ponto.valor !== '?.') continue;
-    if (metodo.tipo !== 'nome' || !metodos.has(metodo.valor) || parentese.valor !== '(') continue;
-    const literal = canal.tipo === 'texto';
-    achadas.push({ metodo: metodo.valor, canal: literal ? canal.valor : null, inicio: canal.inicio });
+    const janela = tokens.slice(i, i + 5);
+    if (FORMA_DA_CHAMADA.every((casa) => casa(janela, alvo))) achadas.push(achado(janela));
   }
   return achadas;
 }
 
+function entradaJs(pasta, entrada) {
+  const caminho = path.join(pasta, entrada.name);
+  if (entrada.isDirectory()) return PASTAS_IGNORADAS.has(entrada.name) ? [] : arquivosJs(caminho);
+  return /\.(?:c|m)?js$/.test(entrada.name) ? [caminho] : [];
+}
+
 function arquivosJs(pasta) {
-  const lista = [];
-  for (const entrada of fs.readdirSync(pasta, { withFileTypes: true })) {
-    const caminho = path.join(pasta, entrada.name);
-    if (entrada.isDirectory()) {
-      if (!PASTAS_IGNORADAS.has(entrada.name)) lista.push(...arquivosJs(caminho));
-    } else if (/\.(?:c|m)?js$/.test(entrada.name)) {
-      lista.push(caminho);
-    }
-  }
-  return lista.sort();
+  return fs.readdirSync(pasta, { withFileTypes: true }).flatMap((entrada) => entradaJs(pasta, entrada)).sort();
 }
 
 function relativo(caminho) {
@@ -147,79 +138,94 @@ function linhaDe(fonte, inicio) {
   return fonte.slice(0, inicio).split('\n').length;
 }
 
-function consumidoresDoRenderizador() {
-  const assets = path.join(RAIZ_DO_APP, 'dist', 'assets');
-  const doBundle = fs.existsSync(assets)
-    ? fs.readdirSync(assets).filter((nome) => /^index-.*\.js$/.test(nome)).map((nome) => path.join(assets, nome))
-    : [];
-  const daPastaDist = fs.readdirSync(path.join(RAIZ_DO_APP, 'dist'))
-    .filter((nome) => nome.endsWith('.js')).map((nome) => path.join(RAIZ_DO_APP, 'dist', nome));
-  const doElectron = arquivosJs(ELECTRON).filter((arquivo) => /\bipcRenderer\b|electronAPI/.test(fs.readFileSync(arquivo, 'utf8')));
-  return [...doElectron, ...daPastaDist, ...doBundle].sort();
+function jsDaPasta(pasta, filtro) {
+  if (!fs.existsSync(pasta)) return [];
+  return fs.readdirSync(pasta).filter((nome) => filtro.test(nome)).map((nome) => path.join(pasta, nome));
+}
+
+function usaIpcDaJanela(arquivo) {
+  return /\bipcRenderer\b|electronAPI/.test(fs.readFileSync(arquivo, 'utf8'));
+}
+
+function arquivosDaJanela() {
+  return [
+    ...arquivosJs(ELECTRON).filter(usaIpcDaJanela),
+    ...jsDaPasta(DIST, /\.js$/),
+    ...jsDaPasta(path.join(DIST, 'assets'), /^index-.*\.js$/),
+  ].sort();
+}
+
+function registrosDoArquivo(arquivo) {
+  const fonte = fs.readFileSync(arquivo, 'utf8');
+  const nome = relativo(arquivo);
+  const achadas = chamadas(tokenizar(fonte), REGISTRO);
+  return {
+    nome,
+    canais: achadas.filter((a) => a.canal !== null).map((a) => `${a.metodo} ${a.canal}`).sort(),
+    dinamicos: achadas.filter((a) => a.canal === null).map((a) => `${nome}:${linhaDe(fonte, a.inicio)}`),
+  };
+}
+
+function consumosDoArquivo(arquivo, canaisRegistrados) {
+  const canais = chamadas(tokenizar(fs.readFileSync(arquivo, 'utf8')), CONSUMO)
+    .map((a) => a.canal)
+    .filter((canal) => canaisRegistrados.has(canal));
+  return { nome: relativo(arquivo), canais: [...new Set(canais)].sort() };
+}
+
+function comoObjeto(lista) {
+  return Object.fromEntries(lista.filter((item) => item.canais.length).map((item) => [item.nome, item.canais]));
 }
 
 function montarMapa() {
-  const registrados = {};
-  const canaisRegistrados = new Set();
-  const dinamicos = [];
-  for (const arquivo of arquivosJs(ELECTRON)) {
-    const fonte = fs.readFileSync(arquivo, 'utf8');
-    const achadas = chamadas(tokenizar(fonte), 'ipcMain', METODOS_DE_REGISTRO);
-    if (!achadas.length) continue;
-    const nome = relativo(arquivo);
-    for (const a of achadas) {
-      if (a.canal === null) { dinamicos.push(`${nome}:${linhaDe(fonte, a.inicio)}`); continue; }
-      canaisRegistrados.add(a.canal);
-    }
-    registrados[nome] = achadas.filter((a) => a.canal !== null).map((a) => `${a.metodo} ${a.canal}`).sort();
-  }
-  const consumidos = {};
-  const canaisConsumidos = new Set();
-  for (const arquivo of consumidoresDoRenderizador()) {
-    const fonte = fs.readFileSync(arquivo, 'utf8');
-    const canais = [...new Set(chamadas(tokenizar(fonte), null, METODOS_DE_CONSUMO)
-      .filter((a) => a.canal !== null && canaisRegistrados.has(a.canal))
-      .map((a) => a.canal))].sort();
-    if (!canais.length) continue;
-    consumidos[relativo(arquivo)] = canais;
-    canais.forEach((c) => canaisConsumidos.add(c));
-  }
-  const semConsumidorLiteral = [...canaisRegistrados].filter((c) => !canaisConsumidos.has(c)).sort();
-  const totais = Object.fromEntries(Object.entries(registrados).map(([nome, lista]) => [nome, lista.length]));
-  totais.total = Object.values(totais).reduce((a, b) => a + b, 0);
-  return { totais, registrados, dinamicos, consumidos, semConsumidorLiteral };
+  const registros = arquivosJs(ELECTRON).map(registrosDoArquivo).filter((r) => r.canais.length || r.dinamicos.length);
+  const canaisRegistrados = new Set(registros.flatMap((r) => r.canais.map((c) => c.split(' ')[1])));
+  const consumos = arquivosDaJanela().map((arquivo) => consumosDoArquivo(arquivo, canaisRegistrados));
+  const canaisConsumidos = new Set(consumos.flatMap((c) => c.canais));
+  const registrados = comoObjeto(registros);
+  const totais = Object.fromEntries(registros.map((r) => [r.nome, r.canais.length]));
+  totais.total = registros.reduce((soma, r) => soma + r.canais.length, 0);
+  return {
+    totais,
+    registrados,
+    dinamicos: registros.flatMap((r) => r.dinamicos),
+    consumidos: comoObjeto(consumos),
+    semConsumidorLiteral: [...canaisRegistrados].filter((c) => !canaisConsumidos.has(c)).sort(),
+  };
+}
+
+function diferencaDaChave(chave, antes, depois) {
+  const sobra = [...antes];
+  const novos = depois.filter((item) => {
+    const k = sobra.indexOf(item);
+    if (k < 0) return true;
+    sobra.splice(k, 1);
+    return false;
+  });
+  return [...novos.map((item) => `+ ${chave}: ${item}`), ...sobra.map((item) => `- ${chave}: ${item}`)];
 }
 
 function diferenca(antes, depois) {
-  const linhas = [];
-  for (const chave of new Set([...Object.keys(antes), ...Object.keys(depois)])) {
-    const a = antes[chave] || [];
-    const d = depois[chave] || [];
-    const sobra = [...a];
-    const novos = [];
-    for (const item of d) {
-      const k = sobra.indexOf(item);
-      if (k >= 0) sobra.splice(k, 1); else novos.push(item);
-    }
-    novos.forEach((item) => linhas.push(`+ ${chave}: ${item}`));
-    sobra.forEach((item) => linhas.push(`- ${chave}: ${item}`));
-  }
-  return linhas;
+  const chaves = [...new Set([...Object.keys(antes), ...Object.keys(depois)])];
+  return chaves.flatMap((chave) => diferencaDaChave(chave, antes[chave] || [], depois[chave] || []));
 }
 
 test('tokenizar ignora comentário, texto, template e regex que imitam um registro', () => {
   const fonte = [
+    '#!/usr/bin/env node',
     '// reg.handle(\'falso-1\')',
     '/* reg.on("falso-2") */',
     'const a = "reg.handle(\'falso-3\')";',
     'const b = `x ${reg.handle(\'dentro-do-template\', f)} reg.on(\'falso-4\')`;',
     'const c = /reg.on\\(\'falso-5\'\\)/g;',
     'const d = x / 2; reg.on(\'depois-da-divisao\', f);',
-    'reg.handle(`template-fixo`, f); reg.once(nome, f);',
+    'reg.handle(`template-fixo`, f); reg.once(nome, f); reg.on(`com-${x}`, f);',
+    'reg.on("escapado-\\"x\\"", f);',
   ].join('\n');
-  const achadas = chamadas(tokenizar(fonte), 'reg', METODOS_DE_REGISTRO);
+  const achadas = chamadas(tokenizar(fonte), { objeto: 'reg', metodos: REGISTRO.metodos });
   assert.deepStrictEqual(achadas.map((a) => `${a.metodo} ${a.canal}`), [
-    'handle dentro-do-template', 'on depois-da-divisao', 'handle template-fixo', 'once null',
+    'handle dentro-do-template', 'on depois-da-divisao', 'handle template-fixo', 'once null', 'on null',
+    'on escapado-"x"',
   ]);
 });
 
