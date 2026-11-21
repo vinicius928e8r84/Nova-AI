@@ -100,7 +100,6 @@
     "scripts/regras/registro-da-pr.js": 16,
     "scripts/regras/regra-binario.js": 17,
     "scripts/regras/regra-comentario.js": 13,
-    "scripts/regras/regra-debug.js": 9,
     "scripts/regras/regra-linhas.js": 23,
     "scripts/regras/regra-segredo.js": 10,
     "scripts/regras/risco.js": 1,
