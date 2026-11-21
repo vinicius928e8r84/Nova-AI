@@ -62,21 +62,20 @@ function getJson(url, agent, timeoutMs = 15000) {
   });
 }
 
-async function main() {
-  const raw = process.argv[2] || process.env.NOVA_PROXY || '';
-  const agentUrl = toAgentUrl(raw);
-  let agent;
-  if (agentUrl) {
-    const SocksProxyAgent = loadAgent();
-    agent = new SocksProxyAgent(agentUrl);
-  }
+function agenteDoProxy(agentUrl) {
+  if (!agentUrl) return undefined;
+  const SocksProxyAgent = loadAgent();
+  return new SocksProxyAgent(agentUrl);
+}
 
-  const data = await getJson('https://ipwho.is/', agent);
+function conferirResposta(data) {
   if (!data || data.success === false) {
-    throw new Error(`ipwho.is falhou: ${(data && data.message) || 'sem detalhes'}`);
+    throw new Error(`ipwho.is falhou: ${data?.message || 'sem detalhes'}`);
   }
+}
 
-  const out = {
+function localizacao(data, agentUrl) {
+  return {
     via: agentUrl ? 'proxy' : 'direto',
     ip: data.ip,
     city: data.city,
@@ -85,9 +84,16 @@ async function main() {
     country_code: data.country_code,
     lat: data.latitude,
     lon: data.longitude,
-    timezone: (data.timezone && data.timezone.id) || null,
-    utc_offset: (data.timezone && data.timezone.utc) || null
+    timezone: data.timezone?.id || null,
+    utc_offset: data.timezone?.utc || null
   };
+}
+
+async function main() {
+  const agentUrl = toAgentUrl(process.argv[2] || process.env.NOVA_PROXY || '');
+  const data = await getJson('https://ipwho.is/', agenteDoProxy(agentUrl));
+  conferirResposta(data);
+  const out = localizacao(data, agentUrl);
   console.log(JSON.stringify(out, null, 2));
 }
 
