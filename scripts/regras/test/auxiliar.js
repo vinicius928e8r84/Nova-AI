@@ -10,7 +10,9 @@ const LINHA_DE_BASE = 'scripts/regras/linha-de-base.json';
 
 const linhas = quantas => Array.from({ length: quantas }, (_, i) => `const v${i} = ${i};`).join('\n') + '\n';
 
-function criar(arquivosDaBase = {}, listaDaBase = {}) {
+const comoLinhaDeBase = (arquivos, saude) => `${JSON.stringify(saude === null ? { arquivos } : { arquivos, 'saude-do-codigo': saude })}\n`;
+
+function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'regras-teste-'));
   const git = (...args) => execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: raiz, encoding: 'utf8', stdio: 'pipe' }).trim();
   const escrever = arquivos => {
@@ -29,7 +31,7 @@ function criar(arquivosDaBase = {}, listaDaBase = {}) {
     git('commit', '-q', '--allow-empty', '-m', mensagem);
   };
   git('init', '-q', '-b', 'main');
-  escrever({ ...arquivosDaBase, [LINHA_DE_BASE]: `${JSON.stringify({ arquivos: listaDaBase })}\n` });
+  escrever({ ...arquivosDaBase, [LINHA_DE_BASE]: comoLinhaDeBase(listaDaBase, saudeDaBase) });
   guardar('base');
   git('checkout', '-q', '-b', 'ramo');
   const rodar = (...args) => {
@@ -38,7 +40,7 @@ function criar(arquivosDaBase = {}, listaDaBase = {}) {
     });
     return { codigo: resultado.status, saida: `${resultado.stdout}${resultado.stderr}` };
   };
-  const lista = obj => escrever({ [LINHA_DE_BASE]: `${JSON.stringify({ arquivos: obj })}\n` });
+  const lista = (obj, saude = saudeDaBase) => escrever({ [LINHA_DE_BASE]: comoLinhaDeBase(obj, saude) });
   return { raiz, git, escrever, guardar, rodar, lista, limpar: () => fs.rmSync(raiz, { recursive: true, force: true }) };
 }
 
