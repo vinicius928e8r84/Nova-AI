@@ -28,7 +28,7 @@
 - **Arquivos:** `app/electron/services/android-tools.js` (era `android-tools-mac.js`), `app/electron/services/physicalMobileService.js`, `app/tests/android-tools.test.js` (era `android-tools-mac.test.js`), `app/tests/physical-mobile-axios.test.js` (novo), `scripts/regras/linha-de-base.json`.
 - **Arquivos do app instalado no Mac que mudam (trocar os dois juntos):** `Resources/app/electron/services/android-tools.js` (novo) e `Resources/app/electron/services/physicalMobileService.js`. O `physicalMobileService.js` instalado faz `require('./android-tools-mac')`; por isso só apague o `android-tools-mac.js` depois de trocar os dois.
 - **Reaplicar:** guardar em `reservas/` o `android-tools-mac.js` e o `physicalMobileService.js` instalados; comparar o `physicalMobileService.js` instalado com o do repositório antes do `cp` (já divergiram uma vez) e, se diferir, aplicar só as mudanças do PR; copiar os dois arquivos, apagar `android-tools-mac.js`, `node --check` nos dois e reiniciar o Nova.
-- **Testado:** `node --check`; `node --test app/tests/android-tools.test.js app/tests/physical-mobile-axios.test.js` (26 testes, rede e extração simuladas).
+- **Testado:** `node --check`; `node --test app/tests/android-tools.test.js app/tests/physical-mobile-axios.test.js` (27 testes: 26 do downloader e 1 do `axios`; rede e extração simuladas).
 - **Sem testar:** extração real com PowerShell, execução de adb/scrcpy, espelhar e câmera num Windows com Android; Mac real.
 
 ## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
