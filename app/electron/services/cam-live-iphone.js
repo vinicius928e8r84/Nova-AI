@@ -170,11 +170,16 @@ class CamLiveIphone {
     this.media = new UsbMedia({ idleFrame: BLACK_FRAME });
     try {
       await this.media.listen();
+      this._exigirCelular();
       await this._tunnel();
     } catch (error) {
       await this.closeTransport();
       throw error;
     }
+  }
+  _exigirCelular() {
+    if (!this.mobile) this.mobile = this.getMobileService?.();
+    if (!this.mobile) throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção.');
   }
   async closeTransport() {
     const tunnel = this.tunnel, media = this.media, socketPath = this.socketPath;
