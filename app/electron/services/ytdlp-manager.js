@@ -5,55 +5,235 @@ const fs = require('fs');
 const ytSearch = require('yt-search');
 const toolPaths = require('./tool-paths');
 
+const LIMITE_DA_PLAYLIST = 50;
+const MARCOS_DA_PLAYLIST = [25, 50, 75];
+const PASSO_DO_LOG_DE_PROGRESSO = 10;
+
+const ARGUMENTOS_BASE = [
+    '--newline',
+    '--no-check-certificate',
+    '--no-warnings',
+    '--prefer-free-formats',
+    '--retries', '5',
+    '--fragment-retries', '5',
+    '--windows-filenames',
+    '--yes-playlist'
+];
+const ARGUMENTOS_DO_PEDIDO = ['--max-downloads', String(LIMITE_DA_PLAYLIST)];
+const ARGUMENTOS_DE_AUDIO = ['-x', '--audio-format', 'mp3', '--audio-quality', '0'];
+const SELETORES_DE_VIDEO = new Map([
+    ['360p', 'bestvideo[height<=480]+bestaudio/best[height<=480]/best[height<=360]/best'],
+    ['720p', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'],
+    ['1080p', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best']
+]);
+
+const LEITURA_MANUAL = {
+    porcentagem: [/\[download\]\s+(\d+\.?\d*)%/i, /(\d+\.?\d*)%/],
+    velocidade: /at\s+([0-9.]+[a-zA-Z]+\/s)/i,
+    eta: /ETA\s+([0-9:]+)/i,
+    tamanho: /of\s+([0-9.]+[a-zA-Z]+)/i,
+    destino: [/Destination:\s*(.+)$/m, /\[download\]\s+(.+?)\s+has already been/i]
+};
+const LEITURA_DO_PEDIDO = {
+    porcentagem: /\[download\]\s+(\d+\.?\d*)%/,
+    velocidade: /at\s+([0-9.]+[a-zA-Z]+\/s)/,
+    eta: /ETA\s+([0-9:]+)/,
+    arquivoPulado: /\[download\] (.*?) has already been/
+};
+
+const RESPOSTAS_QUE_SUBSTITUEM = new Set(['haan', 'yes']);
+const RESPOSTAS_QUE_MANTEM = new Set(['nahi', 'no']);
+
+function primeiroGrupo(texto, expressoes) {
+    for (const expressao of expressoes) {
+        const achado = texto.match(expressao);
+        if (achado) return achado[1];
+    }
+    return undefined;
+}
+
+function grupoOuVazio(texto, expressao) {
+    const achado = texto.match(expressao);
+    return achado ? achado[1] : '';
+}
+
+function jaFoiBaixado(texto) {
+    return texto.toLowerCase().includes('already been downloaded');
+}
+
+function terminouUmArquivo(texto) {
+    return texto.includes('[download] 100%') || texto.includes('100% of');
+}
+
+function argumentosDoFormato(formato) {
+    const seletor = SELETORES_DE_VIDEO.get(formato);
+    return seletor ? ['-f', seletor, '--merge-output-format', 'mp4'] : ARGUMENTOS_DE_AUDIO;
+}
+
+function tituloDoDestino(texto) {
+    const destino = primeiroGrupo(texto, LEITURA_MANUAL.destino);
+    return destino ? path.basename(destino.trim()) : undefined;
+}
+
+function progressoManual(texto) {
+    const porcentagem = primeiroGrupo(texto, LEITURA_MANUAL.porcentagem);
+    const titulo = tituloDoDestino(texto);
+    if (porcentagem) {
+        return {
+            status: 'DOWNLOADING',
+            progress: parseFloat(porcentagem),
+            speed: grupoOuVazio(texto, LEITURA_MANUAL.velocidade),
+            eta: grupoOuVazio(texto, LEITURA_MANUAL.eta),
+            size: grupoOuVazio(texto, LEITURA_MANUAL.tamanho),
+            title: titulo
+        };
+    }
+    if (jaFoiBaixado(texto)) return { status: 'COMPLETE', progress: 100, title: titulo || 'File already downloaded' };
+    return null;
+}
+
+function ultimoErroDoStderr(stderr) {
+    const linhas = stderr.trim().split('\n').filter(linha => !linha.startsWith('WARNING:'));
+    return linhas[linhas.length - 1] || 'Download failed or was interrupted.';
+}
+
+function fimDoDownloadManual(codigo, stderr) {
+    if (codigo === 0) return { status: 'COMPLETE', progress: 100 };
+    return { status: 'ERROR', error: `Exit Code ${codigo}: ${ultimoErroDoStderr(stderr)}` };
+}
+
+function primeiroResultado(resposta, lista, erro) {
+    const itens = resposta && resposta[lista];
+    if (!itens || itens.length === 0) throw new Error(erro);
+    return itens[0];
+}
+
+async function buscarPlaylist(consulta) {
+    const playlist = primeiroResultado(await ytSearch(consulta + ' full playlist'), 'playlists', 'No playlist found.');
+    return { url: playlist.url, title: playlist.title, totalCount: playlist.videoCount || 1 };
+}
+
+async function buscarVideo(consulta) {
+    const video = primeiroResultado(await ytSearch(consulta), 'videos', 'No video found.');
+    return { url: video.url, title: video.title, totalCount: 1 };
+}
+
+function buscarNoYoutube(pedido) {
+    return pedido.type === 'playlist' ? buscarPlaylist(pedido.searchQuery) : buscarVideo(pedido.searchQuery);
+}
+
+class DownloadDoPedido {
+    constructor(pedido, alvo) {
+        this.pedido = pedido;
+        this.alvo = alvo;
+        this.arquivoAtual = 1;
+        this.ultimoAviso = 0;
+    }
+
+    get ehPlaylist() { return this.pedido.type === 'playlist'; }
+    get passaDoLimite() { return this.ehPlaylist && this.alvo.totalCount > LIMITE_DA_PLAYLIST; }
+    get totalBaixavel() { return Math.min(this.alvo.totalCount, LIMITE_DA_PLAYLIST); }
+    get contagem() { return `${this.arquivoAtual} / ${this.totalBaixavel}`; }
+    get tituloNaTela() { return this.alvo.title + (this.ehPlaylist ? ' [Playlist]' : ''); }
+
+    progressoNaTela(progresso, velocidade, eta) {
+        return {
+            status: 'DOWNLOADING',
+            title: this.tituloNaTela,
+            format: this.pedido.format,
+            progress: progresso,
+            speed: velocidade,
+            eta,
+            fileCount: this.contagem
+        };
+    }
+
+    conclusaoNaTela() {
+        return { status: 'COMPLETE', title: this.alvo.title, format: this.pedido.format, fileCount: `${this.totalBaixavel}`, saveLocation: 'Nova Downloads' };
+    }
+
+    avancouUmPasso(porcentagem) {
+        if (porcentagem < this.ultimoAviso + PASSO_DO_LOG_DE_PROGRESSO) return false;
+        this.ultimoAviso = Math.floor(porcentagem / PASSO_DO_LOG_DE_PROGRESSO) * PASSO_DO_LOG_DE_PROGRESSO;
+        return true;
+    }
+
+    marcoAlcancado(porcentagem) {
+        if (!this.ehPlaylist) return null;
+        const marco = MARCOS_DA_PLAYLIST.find(m => porcentagem >= m && this.ultimoAviso < m);
+        if (marco === undefined) return null;
+        this.ultimoAviso = marco;
+        return marco;
+    }
+
+    concluirArquivo() {
+        this.arquivoAtual++;
+        this.ultimoAviso = 0;
+    }
+}
+
 class YtDlpManager {
     constructor(mainWindow, app) {
         this.mainWindow = mainWindow;
         this.app = app;
         this.defaultSavePath = path.resolve(os.homedir(), 'Downloads', 'Nova Downloads');
-        
+        this.garantirPastaDeDownloads();
+        this.activeProcess = null;
+        this.activeDetails = null;
+        this.awaitingConfirmation = false;
+        this.pendingDownloadArgs = null;
+    }
+
+    garantirPastaDeDownloads() {
         if (!fs.existsSync(this.defaultSavePath)) {
             fs.mkdirSync(this.defaultSavePath, { recursive: true });
         }
-        
-        // State variables
-        this.activeProcess = null;
-        this.activeDetails = null; // { title, format, type, url, targetChatId }
-        this.awaitingConfirmation = false;
-        this.pendingDownloadArgs = null; // { searchQuery, format, type, targetChatId }
+    }
+
+    raizDoApp() {
+        return this.app ? this.app.getAppPath() : process.cwd();
     }
 
     getYtDlpPath() {
+        const ytDlp = toolPaths.exe('yt-dlp');
+        const raizDoApp = this.raizDoApp();
         const candidates = [
-            path.join(process.resourcesPath, 'bin', toolPaths.exe('yt-dlp')),
-            path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'bin', toolPaths.exe('yt-dlp')),
-            path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'youtube-dl-exec', 'bin', toolPaths.exe('yt-dlp')),
-            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'resources', 'bin', toolPaths.exe('yt-dlp')),
-            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'node_modules', 'youtube-dl-exec', 'bin', toolPaths.exe('yt-dlp')),
-            path.join(process.cwd(), 'resources', 'bin', toolPaths.exe('yt-dlp')),
-            path.join(process.cwd(), 'dist_electron', 'win-unpacked', 'resources', 'bin', toolPaths.exe('yt-dlp'))
+            path.join(process.resourcesPath, 'bin', ytDlp),
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'bin', ytDlp),
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules', 'youtube-dl-exec', 'bin', ytDlp),
+            path.join(raizDoApp, 'resources', 'bin', ytDlp),
+            path.join(raizDoApp, 'node_modules', 'youtube-dl-exec', 'bin', ytDlp),
+            path.join(process.cwd(), 'resources', 'bin', ytDlp),
+            path.join(process.cwd(), 'dist_electron', 'win-unpacked', 'resources', 'bin', ytDlp)
         ];
-        for (const p of candidates) {
-            if (fs.existsSync(p)) return p;
-        }
-        return 'yt-dlp';
+        return candidates.find(p => fs.existsSync(p)) || 'yt-dlp';
     }
 
     getFfmpegDir() {
+        const ffmpeg = toolPaths.exe('ffmpeg');
         const candidates = [
             path.join(process.resourcesPath, 'bin'),
             path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'bin'),
-            path.join(this.app ? this.app.getAppPath() : process.cwd(), 'resources', 'bin'),
+            path.join(this.raizDoApp(), 'resources', 'bin'),
             path.join(process.cwd(), 'resources', 'bin'),
             path.join(process.cwd(), 'dist_electron', 'win-unpacked', 'resources', 'bin')
         ];
-        for (const p of candidates) {
-            if (fs.existsSync(path.join(p, toolPaths.exe('ffmpeg')))) return p;
-        }
-        return path.join(process.resourcesPath, 'bin');
+        return candidates.find(p => fs.existsSync(path.join(p, ffmpeg))) || path.join(process.resourcesPath, 'bin');
+    }
+
+    argumentosDoYtDlp(url, formato, argumentosDoModo) {
+        const ffmpegDir = this.getFfmpegDir();
+        const ffmpeg = fs.existsSync(path.join(ffmpegDir, toolPaths.exe('ffmpeg'))) ? ['--ffmpeg-location', ffmpegDir] : [];
+        const savePathTemplate = path.resolve(this.defaultSavePath, '%(title)s.%(ext)s');
+        return [...ARGUMENTOS_BASE, ...argumentosDoModo, '-o', savePathTemplate, ...argumentosDoFormato(formato), ...ffmpeg, url];
+    }
+
+    janelaAberta() {
+        return Boolean(this.mainWindow) && !this.mainWindow.isDestroyed();
     }
 
     sendToFrontend(event, data) {
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+        if (!this.janelaAberta()) return;
         try {
             this.mainWindow.webContents.send(event, data);
         } catch (error) {
@@ -62,7 +242,7 @@ class YtDlpManager {
     }
 
     sendSwarmLog(text) {
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+        if (!this.janelaAberta()) return;
         try {
             const ts = new Date().toLocaleTimeString([], { hour12: false });
             const line = `[${ts}] DOWNLOADER → ${text}`;
@@ -71,14 +251,10 @@ class YtDlpManager {
     }
 
     sendSwarmStatus(status, progress) {
-        if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
+        if (!this.janelaAberta()) return;
         try {
             this.mainWindow.webContents.send('swarm:status', { agentId: 'downloader', status, progress });
         } catch (error) {}
-    }
-
-    getWhatsappManager() {
-        return require('../main').whatsappManager;
     }
 
     sendWhatsappReply(chatId, message) {
@@ -89,389 +265,247 @@ class YtDlpManager {
         } catch(e) { console.error('Failed sending WA message', e); }
     }
 
+    encerrarProcessoAtivo() {
+        if (!this.activeProcess) return false;
+        try { this.activeProcess.kill(); } catch (e) {}
+        this.activeProcess = null;
+        return true;
+    }
+
+    downloadOcupado() {
+        return Boolean(this.activeProcess) || this.awaitingConfirmation;
+    }
+
     async smartDownload(searchQuery, format, type, targetChatId) {
-        console.log(`[YTDLP-Smart] Received Request: Query="${searchQuery}", Format=${format}, Type=${type}`);
-        
-        // Check Queue State
-        if (this.activeProcess || this.awaitingConfirmation) {
-            console.log('[YTDLP-Smart] A download is already running.');
-            this.awaitingConfirmation = true;
-            this.pendingDownloadArgs = { searchQuery, format, type, targetChatId };
-            const m = `⚠️ Ek download already chal raha hai (Title: ${this.activeDetails?.title || 'Unknown'}). Rokun aur naya shuru karun? (haan/nahi)`;
-            this.sendWhatsappReply(targetChatId, m);
-            this.sendToFrontend('ytdl-progress', { status: 'ERROR', error: "Download busy. Waiting for confirmation." });
-            this.sendSwarmLog('Waiting for user confirmation...');
-            this.sendSwarmStatus('waiting');
+        console.info(`[YTDLP-Smart] Received Request: Query="${searchQuery}", Format=${format}, Type=${type}`);
+        if (this.downloadOcupado()) {
+            this.pedirConfirmacao({ searchQuery, format, type, targetChatId });
             return;
         }
-
         await this.executePipeline(searchQuery, format, type, targetChatId);
+    }
+
+    pedirConfirmacao(pedido) {
+        console.info('[YTDLP-Smart] A download is already running.');
+        this.awaitingConfirmation = true;
+        this.pendingDownloadArgs = pedido;
+        const tituloAtual = this.activeDetails?.title || 'Unknown';
+        this.sendWhatsappReply(pedido.targetChatId, `⚠️ Ek download already chal raha hai (Title: ${tituloAtual}). Rokun aur naya shuru karun? (haan/nahi)`);
+        this.sendToFrontend('ytdl-progress', { status: 'ERROR', error: "Download busy. Waiting for confirmation." });
+        this.sendSwarmLog('Waiting for user confirmation...');
+        this.sendSwarmStatus('waiting');
     }
 
     async handleConfirmation(userResponse) {
         if (!this.awaitingConfirmation) return false;
-
-        const response = (userResponse || '').toLowerCase().trim();
-        const { searchQuery, format, type, targetChatId } = this.pendingDownloadArgs;
-
-        if (response === 'haan' || response === 'yes') {
-            this.sendWhatsappReply(targetChatId, '🛑 Current download stopped. Starting new request...');
-            if (this.activeProcess) {
-                try { this.activeProcess.kill(); } catch (e) {}
-                this.activeProcess = null;
-            }
-            this.awaitingConfirmation = false;
-            this.pendingDownloadArgs = null;
-            
-            // Start the new one
-            await this.executePipeline(searchQuery, format, type, targetChatId);
-            return true;
-        } 
-        else if (response === 'nahi' || response === 'no') {
-            this.sendWhatsappReply(targetChatId, '⏳ Naya request queue mein daal diya hai. Current load complete hone ke baad check karein.');
-            this.awaitingConfirmation = false;
-            this.pendingDownloadArgs = null;
-            this.sendToFrontend('ytdl-progress', { status: 'DOWNLOADING', title: this.activeDetails?.title });
+        const resposta = (userResponse || '').toLowerCase().trim();
+        const pedido = this.pendingDownloadArgs;
+        if (RESPOSTAS_QUE_SUBSTITUEM.has(resposta)) {
+            await this.substituirDownload(pedido);
             return true;
         }
-
+        if (RESPOSTAS_QUE_MANTEM.has(resposta)) {
+            this.manterDownloadAtual(pedido);
+            return true;
+        }
         return false;
+    }
+
+    encerrarConfirmacao() {
+        this.awaitingConfirmation = false;
+        this.pendingDownloadArgs = null;
+    }
+
+    async substituirDownload(pedido) {
+        this.sendWhatsappReply(pedido.targetChatId, '🛑 Current download stopped. Starting new request...');
+        this.encerrarProcessoAtivo();
+        this.encerrarConfirmacao();
+        await this.executePipeline(pedido.searchQuery, pedido.format, pedido.type, pedido.targetChatId);
+    }
+
+    manterDownloadAtual(pedido) {
+        this.sendWhatsappReply(pedido.targetChatId, '⏳ Naya request queue mein daal diya hai. Current load complete hone ke baad check karein.');
+        this.encerrarConfirmacao();
+        this.sendToFrontend('ytdl-progress', { status: 'DOWNLOADING', title: this.activeDetails?.title });
     }
 
     async manualDownload(url, format, type) {
-        console.log(`[YTDLP-Manual] Received: URL=${url}, Format=${format}, Type=${type}`);
-        
-        if (this.activeProcess) {
-            try { this.activeProcess.kill(); } catch(e) {}
-            this.activeProcess = null;
-        }
-
-        if (!fs.existsSync(this.defaultSavePath)) {
-            fs.mkdirSync(this.defaultSavePath, { recursive: true });
-        }
-
-        const savePathTemplate = path.resolve(this.defaultSavePath, '%(title)s.%(ext)s');
+        console.info(`[YTDLP-Manual] Received: URL=${url}, Format=${format}, Type=${type}`);
+        this.encerrarProcessoAtivo();
+        this.garantirPastaDeDownloads();
         const ytDlpPath = this.getYtDlpPath();
-        const ffmpegDir = this.getFfmpegDir();
-
-        const args = [
-            '--newline',
-            '--no-check-certificate',
-            '--no-warnings',
-            '--prefer-free-formats',
-            '--retries', '5',
-            '--fragment-retries', '5',
-            '--windows-filenames',
-            '--yes-playlist',
-            '-o', savePathTemplate
-        ];
-
-        // Format rules
-        if (format === '360p') {
-            args.push('-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]/best[height<=360]/best', '--merge-output-format', 'mp4');
-        } else if (format === '720p') {
-            args.push('-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best', '--merge-output-format', 'mp4');
-        } else if (format === '1080p') {
-            args.push('-f', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best', '--merge-output-format', 'mp4');
-        } else {
-            args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
-        }
-
-        if (fs.existsSync(path.join(ffmpegDir, toolPaths.exe('ffmpeg')))) {
-            args.push('--ffmpeg-location', ffmpegDir);
-        }
-
-        args.push(url);
-
-        console.log(`[YTDLP-Manual] Spawning: ${ytDlpPath} with args:`, args);
-
-        this.sendToFrontend('manual-ytdl-progress', { 
-            status: 'DOWNLOADING', 
-            progress: 0, 
-            speed: '', 
-            eta: '', 
+        const args = this.argumentosDoYtDlp(url, format, []);
+        console.info(`[YTDLP-Manual] Spawning: ${ytDlpPath} with args:`, args);
+        this.sendToFrontend('manual-ytdl-progress', {
+            status: 'DOWNLOADING',
+            progress: 0,
+            speed: '',
+            eta: '',
             title: 'Initializing download...'
         });
-
-        let stderrLog = '';
         this.activeProcess = spawn(ytDlpPath, args);
+        this.acompanharDownloadManual(this.activeProcess);
+    }
 
-        this.activeProcess.stdout.on('data', (data) => {
-            const text = data.toString();
-            const percentMatch = text.match(/\[download\]\s+(\d+\.?\d*)%/i) || text.match(/(\d+\.?\d*)%/);
-            const speedMatch = text.match(/at\s+([0-9.]+[a-zA-Z]+\/s)/i);
-            const etaMatch = text.match(/ETA\s+([0-9:]+)/i);
-            const sizeMatch = text.match(/of\s+([0-9.]+[a-zA-Z]+)/i);
-            const destMatch = text.match(/Destination:\s*(.+)$/m) || text.match(/\[download\]\s+(.+?)\s+has already been/i);
+    acompanharDownloadManual(processo) {
+        const stderr = [];
+        processo.stdout.on('data', (data) => this.mostrarProgressoManual(data.toString()));
+        processo.stderr.on('data', (data) => stderr.push(this.registrarStderrManual(data.toString())));
+        processo.on('close', (code) => this.encerrarDownloadManual(code, stderr.join('')));
+        processo.on('error', (err) => this.falharDownloadManual(err));
+    }
 
-            let extractedTitle = undefined;
-            if (destMatch && destMatch[1]) {
-                extractedTitle = path.basename(destMatch[1].trim());
-            }
+    mostrarProgressoManual(texto) {
+        const progresso = progressoManual(texto);
+        if (progresso) this.sendToFrontend('manual-ytdl-progress', progresso);
+    }
 
-            if (percentMatch) {
-                this.sendToFrontend('manual-ytdl-progress', { 
-                    status: 'DOWNLOADING', 
-                    progress: parseFloat(percentMatch[1]), 
-                    speed: speedMatch ? speedMatch[1] : '', 
-                    eta: etaMatch ? etaMatch[1] : '',
-                    size: sizeMatch ? sizeMatch[1] : '',
-                    title: extractedTitle
-                });
-            } else if (text.toLowerCase().includes('already been downloaded')) {
-                this.sendToFrontend('manual-ytdl-progress', { 
-                    status: 'COMPLETE',
-                    progress: 100,
-                    title: extractedTitle || 'File already downloaded'
-                });
-            }
-        });
+    registrarStderrManual(texto) {
+        console.warn(`[YTDLP-Manual-Stderr]: ${texto}`);
+        return texto + '\n';
+    }
 
-        this.activeProcess.stderr.on('data', (data) => {
-            const text = data.toString();
-            console.warn(`[YTDLP-Manual-Stderr]: ${text}`);
-            stderrLog += text + '\n';
-        });
+    encerrarDownloadManual(code, stderr) {
+        console.info(`[YTDLP-Manual] Exit code ${code}`);
+        this.activeProcess = null;
+        this.sendToFrontend('manual-ytdl-progress', fimDoDownloadManual(code, stderr));
+    }
 
-        this.activeProcess.on('close', (code) => {
-            console.log(`[YTDLP-Manual] Exit code ${code}`);
-            this.activeProcess = null;
-            if (code === 0) {
-                this.sendToFrontend('manual-ytdl-progress', { status: 'COMPLETE', progress: 100 });
-            } else {
-                let errorMsg = 'Download failed or was interrupted.';
-                if (stderrLog.trim().length > 0) {
-                    const lines = stderrLog.trim().split('\n').filter(l => !l.startsWith('WARNING:'));
-                    errorMsg = lines[lines.length - 1] || errorMsg;
-                }
-                this.sendToFrontend('manual-ytdl-progress', { status: 'ERROR', error: `Exit Code ${code}: ${errorMsg}` });
-            }
-        });
-
-        this.activeProcess.on('error', (err) => {
-            console.error('[YTDLP-Manual] Error:', err);
-            this.sendToFrontend('manual-ytdl-progress', { status: 'ERROR', error: err.message });
-            this.activeProcess = null;
-        });
+    falharDownloadManual(err) {
+        console.error('[YTDLP-Manual] Error:', err);
+        this.sendToFrontend('manual-ytdl-progress', { status: 'ERROR', error: err.message });
+        this.activeProcess = null;
     }
 
     cancelManualDownload() {
-        if (this.activeProcess) {
-            try { this.activeProcess.kill(); } catch (e) {}
-            this.activeProcess = null;
-            this.sendToFrontend('manual-ytdl-progress', { status: 'ERROR', error: 'Download Canceled by User' });
-            return true;
-        }
-        return false;
+        if (!this.encerrarProcessoAtivo()) return false;
+        this.sendToFrontend('manual-ytdl-progress', { status: 'ERROR', error: 'Download Canceled by User' });
+        return true;
     }
 
     async executePipeline(searchQuery, format, type, targetChatId) {
-        this.activeDetails = { query: searchQuery, format, type, targetChatId, title: 'Searching...' };
-        
+        const pedido = { searchQuery, format, type, targetChatId };
+        this.anunciarBusca(pedido);
+        const alvo = await this.buscarAlvo(pedido);
+        if (!alvo) return;
+        const download = new DownloadDoPedido(pedido, alvo);
+        this.anunciarAlvo(download);
+        this.baixarPedido(download);
+    }
+
+    anunciarBusca(pedido) {
+        this.activeDetails = { query: pedido.searchQuery, format: pedido.format, type: pedido.type, targetChatId: pedido.targetChatId, title: 'Searching...' };
         this.sendSwarmStatus('busy', 0);
         this.sendSwarmLog(`🔍 Initializing search sequence...`);
-
-        // 1. WhatsApp Search Start
-        this.sendWhatsappReply(targetChatId, `🔍 Searching YouTube for: "${searchQuery}"...`);
-        this.sendToFrontend('ytdl-progress', { 
-            status: 'SEARCHING', 
-            query: searchQuery, 
-            message: 'Procurando no YouTube...' 
+        this.sendWhatsappReply(pedido.targetChatId, `🔍 Searching YouTube for: "${pedido.searchQuery}"...`);
+        this.sendToFrontend('ytdl-progress', {
+            status: 'SEARCHING',
+            query: pedido.searchQuery,
+            message: 'Procurando no YouTube...'
         });
+        this.sendSwarmLog(`🌐 Querying YouTube databanks: "${pedido.searchQuery}"`);
+    }
 
-        // 2. yt-search Phase
-        this.sendSwarmLog(`🌐 Querying YouTube databanks: "${searchQuery}"`);
-        let url = '';
-        let title = '';
-        let totalCount = 1;
+    async buscarAlvo(pedido) {
         try {
-            if (type === 'playlist') {
-                const searchRes = await ytSearch(searchQuery + ' full playlist');
-                if (!searchRes || !searchRes.playlists || searchRes.playlists.length === 0) {
-                    throw new Error('No playlist found.');
-                }
-                const pl = searchRes.playlists[0];
-                url = pl.url;
-                title = pl.title;
-                totalCount = pl.videoCount || 1;
-            } else {
-                const searchRes = await ytSearch(searchQuery);
-                if (!searchRes || !searchRes.videos || searchRes.videos.length === 0) {
-                    throw new Error('No video found.');
-                }
-                const vid = searchRes.videos[0];
-                url = vid.url;
-                title = vid.title;
-            }
+            return await buscarNoYoutube(pedido);
         } catch (e) {
-            console.error('[YTDLP-Smart] Search failed:', e.message);
-            this.sendWhatsappReply(targetChatId, `❌ YouTube par koi result nahi mila: ${searchQuery}`);
-            this.sendToFrontend('ytdl-progress', { status: 'ERROR', error: `No results found for: ${searchQuery}` });
-            this.sendSwarmLog(`❌ Search failed: No results`);
-            this.sendSwarmStatus('idle', 0);
-            this.activeDetails = null;
-            return; // Normal state wapas
+            this.avisarBuscaSemResultado(pedido, e);
+            return null;
         }
+    }
 
-        this.activeDetails.url = url;
-        this.activeDetails.title = title;
+    avisarBuscaSemResultado(pedido, erro) {
+        console.error('[YTDLP-Smart] Search failed:', erro.message);
+        this.sendWhatsappReply(pedido.targetChatId, `❌ YouTube par koi result nahi mila: ${pedido.searchQuery}`);
+        this.sendToFrontend('ytdl-progress', { status: 'ERROR', error: `No results found for: ${pedido.searchQuery}` });
+        this.sendSwarmLog(`❌ Search failed: No results`);
+        this.sendSwarmStatus('idle', 0);
+        this.activeDetails = null;
+    }
 
-        // Found message
-        this.sendSwarmLog(`✅ Found Target: ${title.substring(0, 45)}...`);
-        this.sendWhatsappReply(targetChatId, `✅ Found: ${title}\nFormat: ${format}\nType: ${type}\nStarting download...`);
-
-        if (type === 'playlist' && totalCount > 50) {
-            this.sendWhatsappReply(targetChatId, `⚠️ Playlist mein ${totalCount} videos hain. Pehle 50 download ho rahe hain.`);
+    anunciarAlvo(download) {
+        const { pedido, alvo } = download;
+        this.activeDetails.url = alvo.url;
+        this.activeDetails.title = alvo.title;
+        this.sendSwarmLog(`✅ Found Target: ${alvo.title.substring(0, 45)}...`);
+        this.sendWhatsappReply(pedido.targetChatId, `✅ Found: ${alvo.title}\nFormat: ${pedido.format}\nType: ${pedido.type}\nStarting download...`);
+        if (download.passaDoLimite) {
+            this.sendWhatsappReply(pedido.targetChatId, `⚠️ Playlist mein ${alvo.totalCount} videos hain. Pehle ${LIMITE_DA_PLAYLIST} download ho rahe hain.`);
         }
+    }
 
-        // Generate arguments based on user exact instructions
-        const savePathTemplate = path.resolve(this.defaultSavePath, '%(title)s.%(ext)s');
-        
+    baixarPedido(download) {
         const ytDlpPath = this.getYtDlpPath();
-        const ffmpegDir = this.getFfmpegDir();
-
-        const args = [
-            '--newline',
-            '--no-check-certificate',
-            '--no-warnings',
-            '--prefer-free-formats',
-            '--retries', '5',
-            '--fragment-retries', '5',
-            '--windows-filenames',
-            '--yes-playlist',
-            '--max-downloads', '50',
-            '-o', savePathTemplate
-        ];
-
-        if (format === '360p') {
-            args.push('-f', 'bestvideo[height<=480]+bestaudio/best[height<=480]/best[height<=360]/best', '--merge-output-format', 'mp4');
-        } else if (format === '720p') {
-            args.push('-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best', '--merge-output-format', 'mp4');
-        } else if (format === '1080p') {
-            args.push('-f', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best', '--merge-output-format', 'mp4');
-        } else {
-            args.push('-x', '--audio-format', 'mp3', '--audio-quality', '0');
-        }
-
-        if (fs.existsSync(path.join(ffmpegDir, toolPaths.exe('ffmpeg')))) {
-            args.push('--ffmpeg-location', ffmpegDir);
-        }
-
-        args.push(url);
-
-        console.log(`[YTDLP-Smart] Spawning: ${ytDlpPath} with args:`, args);
-
-        // State variables for parsing loop
-        let currentItemIndex = 1;
-        let lastNotifiedPercentage = 0;
-        let currentItemTitle = title;
-        let currentPercentage = 0;
-
-        this.sendToFrontend('ytdl-progress', { 
-            status: 'DOWNLOADING', 
-            title: title + (type === 'playlist' ? ' [Playlist]' : ''), 
-            format, 
-            progress: 0, 
-            speed: 'Calculating...', 
-            eta: 'Calculating...', 
-            fileCount: `${currentItemIndex} / ${Math.min(totalCount, 50)}`
-        });
-
+        const args = this.argumentosDoYtDlp(download.alvo.url, download.pedido.format, ARGUMENTOS_DO_PEDIDO);
+        console.info(`[YTDLP-Smart] Spawning: ${ytDlpPath} with args:`, args);
+        this.sendToFrontend('ytdl-progress', download.progressoNaTela(0, 'Calculating...', 'Calculating...'));
         this.activeProcess = spawn(ytDlpPath, args);
+        this.acompanharPedido(download, this.activeProcess);
+    }
 
-        // Parse stdout
-        this.activeProcess.stdout.on('data', (data) => {
-            const text = data.toString();
-            
-            if (text.toLowerCase().includes('already been downloaded') || text.toLowerCase().includes('has already been downloaded')) {
-                let skipTitle = currentItemTitle;
-                const fileMatch = text.match(/\[download\] (.*?) has already been/);
-                if(fileMatch) skipTitle = path.basename(fileMatch[1]);
-                this.sendWhatsappReply(targetChatId, `⏭️ ${skipTitle} already downloaded hai — skip kiya.`);
-                return;
-            }
+    acompanharPedido(download, processo) {
+        processo.stdout.on('data', (data) => this.lerSaidaDoPedido(download, data.toString()));
+        processo.stderr.on('data', (data) => console.warn(`[YTDLP-Smart-Stderr]: ${data.toString()}`));
+        processo.on('close', (code) => this.concluirPedido(download, code));
+        processo.on('error', (err) => this.falharPedido(download, err));
+    }
 
-            const percentMatch = text.match(/\[download\]\s+(\d+\.?\d*)%/);
-            const speedMatch = text.match(/at\s+([0-9.]+[a-zA-Z]+\/s)/);
-            const etaMatch = text.match(/ETA\s+([0-9:]+)/);
+    lerSaidaDoPedido(download, texto) {
+        if (jaFoiBaixado(texto)) {
+            this.avisarArquivoPulado(download, texto);
+            return;
+        }
+        const porcentagem = texto.match(LEITURA_DO_PEDIDO.porcentagem);
+        if (porcentagem) this.mostrarProgressoDoPedido(download, texto, parseFloat(porcentagem[1]));
+        if (terminouUmArquivo(texto)) {
+            this.sendSwarmLog(`✅ File Extracted.`);
+            download.concluirArquivo();
+        }
+    }
 
-            if (percentMatch) {
-                currentPercentage = parseFloat(percentMatch[1]);
-                let speedRaw = speedMatch ? speedMatch[1] : '';
-                let etaRaw = etaMatch ? etaMatch[1] : '';
+    avisarArquivoPulado(download, texto) {
+        const arquivo = texto.match(LEITURA_DO_PEDIDO.arquivoPulado);
+        const titulo = arquivo ? path.basename(arquivo[1]) : download.alvo.title;
+        this.sendWhatsappReply(download.pedido.targetChatId, `⏭️ ${titulo} already downloaded hai — skip kiya.`);
+    }
 
-                this.sendToFrontend('ytdl-progress', { 
-                    status: 'DOWNLOADING', 
-                    title: title + (type === 'playlist' ? ' [Playlist]' : ''), 
-                    format, 
-                    progress: currentPercentage, 
-                    speed: speedRaw, 
-                    eta: etaRaw, 
-                    fileCount: `${currentItemIndex} / ${Math.min(totalCount, 50)}`
-                });
-                
-                this.sendSwarmStatus('busy', currentPercentage);
-                
-                // Throttle swarm logs for progress to mostly just major milestones (every 10%)
-                if (currentPercentage >= lastNotifiedPercentage + 10) {
-                     lastNotifiedPercentage = Math.floor(currentPercentage / 10) * 10;
-                     this.sendSwarmLog(`⬇ Downloading... ${currentPercentage}% (${speedRaw})`);
-                }
+    mostrarProgressoDoPedido(download, texto, porcentagem) {
+        const velocidade = grupoOuVazio(texto, LEITURA_DO_PEDIDO.velocidade);
+        this.sendToFrontend('ytdl-progress', download.progressoNaTela(porcentagem, velocidade, grupoOuVazio(texto, LEITURA_DO_PEDIDO.eta)));
+        this.sendSwarmStatus('busy', porcentagem);
+        if (download.avancouUmPasso(porcentagem)) {
+            this.sendSwarmLog(`⬇ Downloading... ${porcentagem}% (${velocidade})`);
+        }
+        const marco = download.marcoAlcancado(porcentagem);
+        if (marco) {
+            this.sendWhatsappReply(download.pedido.targetChatId, `⬇️ Downloading... ${marco}% complete\n${download.contagem} videos done`);
+        }
+    }
 
-                if (type === 'playlist') {
-                    if (currentPercentage >= 25 && lastNotifiedPercentage < 25) { 
-                        lastNotifiedPercentage = 25; 
-                        this.sendWhatsappReply(targetChatId, `⬇️ Downloading... 25% complete\n${currentItemIndex} / ${Math.min(totalCount, 50)} videos done`);
-                    } else if (currentPercentage >= 50 && lastNotifiedPercentage < 50) { 
-                        lastNotifiedPercentage = 50; 
-                        this.sendWhatsappReply(targetChatId, `⬇️ Downloading... 50% complete\n${currentItemIndex} / ${Math.min(totalCount, 50)} videos done`);
-                    } else if (currentPercentage >= 75 && lastNotifiedPercentage < 75) { 
-                        lastNotifiedPercentage = 75; 
-                        this.sendWhatsappReply(targetChatId, `⬇️ Downloading... 75% complete\n${currentItemIndex} / ${Math.min(totalCount, 50)} videos done`);
-                    }
-                }
-            }
+    concluirPedido(download, code) {
+        console.info(`[YTDLP-Smart] child process exited with code ${code}`);
+        this.sendToFrontend('ytdl-progress', download.conclusaoNaTela());
+        this.sendWhatsappReply(download.pedido.targetChatId, `✅ Download Complete!\nTitle: ${download.alvo.title}\nSaved in: Nova Downloads folder`);
+        this.sendSwarmLog(`✅ Download Sequence Complete.`);
+        this.sendSwarmStatus('done');
+        setTimeout(() => this.avisarOciosoSeLivre(), 2000);
+        this.activeProcess = null;
+        this.activeDetails = null;
+    }
 
-            if (text.includes('[download] 100%') || text.includes('100% of')) {
-                this.sendSwarmLog(`✅ File Extracted.`);
-                currentItemIndex++;
-                lastNotifiedPercentage = 0; 
-            }
-        });
+    avisarOciosoSeLivre() {
+        if (!this.activeProcess) this.sendSwarmStatus('idle');
+    }
 
-        this.activeProcess.stderr.on('data', (data) => {
-            console.warn(`[YTDLP-Smart-Stderr]: ${data.toString()}`);
-        });
-
-        this.activeProcess.on('close', (code) => {
-            console.log(`[YTDLP-Smart] child process exited with code ${code}`);
-            
-            this.sendToFrontend('ytdl-progress', { 
-                status: 'COMPLETE', 
-                title: title, 
-                format,
-                fileCount: `${Math.min(totalCount, 50)}`,
-                saveLocation: 'Nova Downloads'
-            });
-            this.sendWhatsappReply(targetChatId, `✅ Download Complete!\nTitle: ${title}\nSaved in: Nova Downloads folder`);
-            
-            this.sendSwarmLog(`✅ Download Sequence Complete.`);
-            this.sendSwarmStatus('done');
-            setTimeout(() => { if (!this.activeProcess) this.sendSwarmStatus('idle'); }, 2000);
-            
-            this.activeProcess = null;
-            this.activeDetails = null;
-        });
-
-        this.activeProcess.on('error', (err) => {
-            console.error('[YTDLP-Smart] Child Process Spawn Error:', err);
-            this.sendWhatsappReply(targetChatId, `❌ Download failed: Unable to spawn yt-dlp.\nKoi aur command do ya retry karo`);
-            this.sendToFrontend('ytdl-progress', { status: 'ERROR', error: err.message });
-            this.sendSwarmLog(`❌ Download Error: ${err.message}`);
-            this.sendSwarmStatus('idle');
-            this.activeProcess = null;
-            this.activeDetails = null;
-        });
+    falharPedido(download, err) {
+        console.error('[YTDLP-Smart] Child Process Spawn Error:', err);
+        this.sendWhatsappReply(download.pedido.targetChatId, `❌ Download failed: Unable to spawn yt-dlp.\nKoi aur command do ya retry karo`);
+        this.sendToFrontend('ytdl-progress', { status: 'ERROR', error: err.message });
+        this.sendSwarmLog(`❌ Download Error: ${err.message}`);
+        this.sendSwarmStatus('idle');
+        this.activeProcess = null;
+        this.activeDetails = null;
     }
 }
 
