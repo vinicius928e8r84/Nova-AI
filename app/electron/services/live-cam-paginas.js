@@ -132,6 +132,11 @@ const CAMERA_DO_CELULAR = `<!DOCTYPE html>
             }
         }
 
+        function podeEnviarQuadro() {
+            const conectado = ws && ws.readyState === WebSocket.OPEN;
+            return conectado && video.videoWidth > 0;
+        }
+
         function startSendingLoop() {
             isStreaming = true;
             statusEl.textContent = 'STREAMING LIVE';
@@ -140,7 +145,7 @@ const CAMERA_DO_CELULAR = `<!DOCTYPE html>
             if (sendInterval) clearInterval(sendInterval);
 
             sendInterval = setInterval(() => {
-                if (ws && ws.readyState === WebSocket.OPEN && video.videoWidth > 0) {
+                if (podeEnviarQuadro()) {
                     canvas.width = 640;
                     canvas.height = 480;
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -397,6 +402,33 @@ const SPOOF_DO_CELULAR = `<!DOCTYPE html>
             }
         });
 
+        function carregarVideoDoSpoof(msg) {
+            if (msg.hasVideo) {
+                empty.style.display = 'none';
+                video.src = '/api/spoof-video?t=' + Date.now();
+                video.load();
+                video.play().catch(() => {});
+            } else {
+                empty.style.display = 'flex';
+            }
+        }
+
+        const comandosDoSpoof = new Map([
+            ['load-video', carregarVideoDoSpoof],
+            ['spoof-state', carregarVideoDoSpoof],
+            ['play', () => video.play().catch(() => {})],
+            ['pause', () => video.pause()],
+            ['restart', () => {
+                video.currentTime = 0;
+                video.play().catch(() => {});
+            }],
+            ['speed', (msg) => {
+                if (msg.speed) {
+                    video.playbackRate = msg.speed;
+                }
+            }]
+        ]);
+
         // WebSocket Bi-Directional Synchronization with PC Dashboard
         function connectWs() {
             const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -405,24 +437,9 @@ const SPOOF_DO_CELULAR = `<!DOCTYPE html>
             ws.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    if (msg.type === 'load-video' || msg.type === 'spoof-state') {
-                        if (msg.hasVideo) {
-                            empty.style.display = 'none';
-                            video.src = '/api/spoof-video?t=' + Date.now();
-                            video.load();
-                            video.play().catch(() => {});
-                        } else {
-                            empty.style.display = 'flex';
-                        }
-                    } else if (msg.type === 'play') {
-                        video.play().catch(() => {});
-                    } else if (msg.type === 'pause') {
-                        video.pause();
-                    } else if (msg.type === 'restart') {
-                        video.currentTime = 0;
-                        video.play().catch(() => {});
-                    } else if (msg.type === 'speed' && msg.speed) {
-                        video.playbackRate = msg.speed;
+                    const comando = comandosDoSpoof.get(msg.type);
+                    if (comando) {
+                        comando(msg);
                     }
                 } catch (e) {}
             };
