@@ -30,61 +30,95 @@ function renomeados(mudancas) {
   return mapa;
 }
 
-function verificar(ctx) {
-  const { config, mudancas } = ctx;
-  const limite = config.limiteDeLinhas;
-  const achados = [];
-  const falha = (arquivo, detalhe) => achados.push({ arquivo, detalhe });
-  const naBase = arquivoNaBase(ctx.raiz, mudancas.base.desde, ARQUIVO_DA_LINHA_DE_BASE);
-  const noRamo = ctx.ler(ARQUIVO_DA_LINHA_DE_BASE);
-  if (!noRamo || noRamo.binario) {
-    falha(ARQUIVO_DA_LINHA_DE_BASE, 'a linha de base não existe neste ramo; ela é versionada junto com as regras');
-    return achados;
-  }
+const CAMPO_QUE_SUMIU = new Map([['D', 'caminho'], ['R', 'antigo']]);
+const caminhoQueSumiu = item => (CAMPO_QUE_SUMIU.has(item.status) ? item[CAMPO_QUE_SUMIU.get(item.status)] : null);
+
+function linhasDoArquivo(ctx, item) {
+  if (item.status === 'D' || !ehCodigoDoLimite(ctx.config, item.caminho)) return null;
+  const arquivo = ctx.ler(item.caminho);
+  if (!arquivo || arquivo.binario) return null;
+  return contarLinhas(arquivo.texto);
+}
+
+function listasDaLinhaDeBase(ctx, noRamo, naBase) {
   const doRamo = lerLista(noRamo.texto, ARQUIVO_DA_LINHA_DE_BASE);
   const primeira = naBase === null;
-  const doTeto = primeira ? doRamo : lerLista(naBase, `${mudancas.base.ref}:${ARQUIVO_DA_LINHA_DE_BASE}`);
-  if (primeira) ctx.aviso(`${mudancas.base.ref} ainda não tem ${ARQUIVO_DA_LINHA_DE_BASE}: esta é a primeira linha de base, nada a comparar`);
-  const origem = renomeados(mudancas);
+  const doTeto = primeira ? doRamo : lerLista(naBase, `${ctx.mudancas.base.ref}:${ARQUIVO_DA_LINHA_DE_BASE}`);
+  if (primeira) ctx.aviso(`${ctx.mudancas.base.ref} ainda não tem ${ARQUIVO_DA_LINHA_DE_BASE}: esta é a primeira linha de base, nada a comparar`);
+  return { doRamo, doTeto, primeira };
+}
 
-  for (const item of mudancas.itens) {
-    if (item.status === 'D') continue;
-    const { caminho } = item;
-    if (!ehCodigoDoLimite(config, caminho)) continue;
-    const arquivo = ctx.ler(caminho);
-    if (!arquivo || arquivo.binario) continue;
-    const linhas = contarLinhas(arquivo.texto);
-    const antigo = origem.get(caminho);
-    const teto = caminho in doTeto ? doTeto[caminho] : antigo !== undefined ? doTeto[antigo] : undefined;
-    const naLista = teto !== undefined;
-    if (linhas <= limite) {
-      if (caminho in doRamo) falha(caminho, `tem ${linhas} linhas, dentro do limite de ${limite}: tire-o da linha de base (--atualizar-linha-de-base)`);
-      continue;
-    }
-    if (!naLista) {
-      falha(caminho, `${linhas} linhas, ${linhas - limite} acima do limite de ${limite}; arquivo novo (ou que não estava na linha de base) tem de caber no limite`);
-    } else if (linhas > teto) {
-      falha(caminho, `${linhas} linhas; a linha de base o deixa em ${teto}: arquivo grande não pode crescer (${linhas - teto} linhas a mais)`);
-    } else if (doRamo[caminho] === undefined) {
-      falha(caminho, `${linhas} linhas e saiu da linha de base sem ficar abaixo de ${limite}`);
-    } else if (doRamo[caminho] !== linhas) {
-      falha(caminho, `tem ${linhas} linhas e a linha de base do ramo diz ${doRamo[caminho]}: ajuste com --atualizar-linha-de-base (o teto é o tamanho de hoje)`);
-    }
+class ConferenciaDeLinhas {
+  constructor(ctx, { doRamo, doTeto, primeira }) {
+    this.ctx = ctx;
+    this.limite = ctx.config.limiteDeLinhas;
+    this.doRamo = doRamo;
+    this.doTeto = doTeto;
+    this.primeira = primeira;
+    this.origem = renomeados(ctx.mudancas);
+    this.achados = [];
   }
 
-  for (const item of mudancas.itens) {
-    const sumiu = item.status === 'D' ? item.caminho : item.status === 'R' ? item.antigo : null;
-    if (sumiu && sumiu in doRamo) falha(sumiu, 'o arquivo não existe mais neste caminho: tire-o da linha de base (--atualizar-linha-de-base)');
+  anotar(arquivo, problema) {
+    if (problema) this.achados.push({ arquivo, detalhe: problema });
   }
 
-  if (!primeira) {
-    for (const [caminho, valor] of Object.entries(doRamo)) {
-      const anterior = caminho in doTeto ? doTeto[caminho] : doTeto[origem.get(caminho)];
-      if (anterior === undefined) falha(caminho, `entrou na linha de base, que só encolhe: arquivo acima de ${limite} linhas tem de ser dividido, não listado`);
-      else if (valor > anterior) falha(caminho, `a linha de base subiu de ${anterior} para ${valor}: ela só encolhe`);
-    }
+  conferir() {
+    for (const item of this.ctx.mudancas.itens) this.conferirTamanho(item);
+    for (const item of this.ctx.mudancas.itens) this.conferirSumido(caminhoQueSumiu(item));
+    if (!this.primeira) this.conferirLista();
+    return this.achados;
   }
-  return achados;
+
+  conferirLista() {
+    for (const [caminho, valor] of Object.entries(this.doRamo)) this.anotar(caminho, this.problemaNaLista(caminho, valor));
+  }
+
+  conferirTamanho(item) {
+    const linhas = linhasDoArquivo(this.ctx, item);
+    if (linhas !== null) this.anotar(item.caminho, this.problemaDoTamanho(item.caminho, linhas));
+  }
+
+  tetoDe(caminho) {
+    if (caminho in this.doTeto) return this.doTeto[caminho];
+    const antigo = this.origem.get(caminho);
+    return antigo !== undefined ? this.doTeto[antigo] : undefined;
+  }
+
+  problemaDoTamanho(caminho, linhas) {
+    const { limite } = this;
+    if (linhas <= limite) return caminho in this.doRamo ? `tem ${linhas} linhas, dentro do limite de ${limite}: tire-o da linha de base (--atualizar-linha-de-base)` : null;
+    const teto = this.tetoDe(caminho);
+    if (teto === undefined) return `${linhas} linhas, ${linhas - limite} acima do limite de ${limite}; arquivo novo (ou que não estava na linha de base) tem de caber no limite`;
+    if (linhas > teto) return `${linhas} linhas; a linha de base o deixa em ${teto}: arquivo grande não pode crescer (${linhas - teto} linhas a mais)`;
+    return this.problemaNoRamo(caminho, linhas);
+  }
+
+  problemaNoRamo(caminho, linhas) {
+    const noRamo = this.doRamo[caminho];
+    if (noRamo === undefined) return `${linhas} linhas e saiu da linha de base sem ficar abaixo de ${this.limite}`;
+    if (noRamo === linhas) return null;
+    return `tem ${linhas} linhas e a linha de base do ramo diz ${noRamo}: ajuste com --atualizar-linha-de-base (o teto é o tamanho de hoje)`;
+  }
+
+  conferirSumido(sumiu) {
+    if (sumiu && sumiu in this.doRamo) this.anotar(sumiu, 'o arquivo não existe mais neste caminho: tire-o da linha de base (--atualizar-linha-de-base)');
+  }
+
+  problemaNaLista(caminho, valor) {
+    const anterior = caminho in this.doTeto ? this.doTeto[caminho] : this.doTeto[this.origem.get(caminho)];
+    if (anterior === undefined) return `entrou na linha de base, que só encolhe: arquivo acima de ${this.limite} linhas tem de ser dividido, não listado`;
+    return valor > anterior ? `a linha de base subiu de ${anterior} para ${valor}: ela só encolhe` : null;
+  }
+}
+
+function verificar(ctx) {
+  const naBase = arquivoNaBase(ctx.raiz, ctx.mudancas.base.desde, ARQUIVO_DA_LINHA_DE_BASE);
+  const noRamo = ctx.ler(ARQUIVO_DA_LINHA_DE_BASE);
+  if (!noRamo || noRamo.binario) {
+    return [{ arquivo: ARQUIVO_DA_LINHA_DE_BASE, detalhe: 'a linha de base não existe neste ramo; ela é versionada junto com as regras' }];
+  }
+  return new ConferenciaDeLinhas(ctx, listasDaLinhaDeBase(ctx, noRamo, naBase)).conferir();
 }
 
 function arquivosDoRepositorio(raiz) {

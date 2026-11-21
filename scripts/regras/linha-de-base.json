@@ -104,7 +104,6 @@
     "scripts/regras/registro-da-pr.js": 16,
     "scripts/regras/regra-debug.js": 9,
     "scripts/regras/regra-eslint.js": 10,
-    "scripts/regras/regra-linhas.js": 23,
     "scripts/regras/regra-sintaxe.js": 2,
     "scripts/regras/risco.js": 1
   }
