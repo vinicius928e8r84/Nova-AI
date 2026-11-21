@@ -33,7 +33,7 @@ const opcoes = { noInlineConfig: true };
 export default [
   {
     ignores: [
-      '**/node_modules/**', 'app/dist/**', 'MAC/**/dist/**', 'MAC/**/reservas/**', 'backup-antes-traducao/**', 'MAC/**/backup-*/**',
+      '**/node_modules/**', 'app/dist/assets/**', 'MAC/**/dist/**', 'MAC/**/reservas/**', 'backup-antes-traducao/**', 'MAC/**/backup-*/**',
       'MAC/**/fixtures/**', 'MAC/**/index-Dun7lr2S*.js', 'app/electron/pwa/marked.min.js',
     ],
   },

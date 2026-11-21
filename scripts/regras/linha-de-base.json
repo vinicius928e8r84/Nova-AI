@@ -1,6 +1,6 @@
 {
   "arquivos": {
-    "app/electron/main.js": 4331,
+    "app/electron/main.js": 4292,
     "app/electron/pwa/admin.html": 1523,
     "app/electron/services/browser-manager.js": 2744,
     "app/electron/services/browserFarmService.js": 2133,
@@ -10,7 +10,6 @@
     "app/electron/services/physicalMobileService.js": 2498,
     "MAC/integracao-camlive/cam-live.js": 1215,
     "MAC/integracao-iphone/bridge/Tweak.x": 1587,
-    "MAC/traducao-interface/cam-live.js": 1215,
     "prototype-cam-live/index.html": 1670
   }
 }
