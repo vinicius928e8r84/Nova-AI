@@ -8,6 +8,7 @@
 'use strict';
 
 const { spawn } = require('child_process');
+const toolPaths = require('./tool-paths');
 const path  = require('path');
 const fs    = require('fs');
 const crypto = require('crypto');
@@ -140,25 +141,9 @@ class GlobalSpoofService {
         this.app        = app;
         this.browserFarmService = browserFarmService;
 
-        const isPackaged = app ? app.isPackaged : false;
-        let ffmpegPath = isPackaged
-            ? path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'))
-            : path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
-
-        if (!fs.existsSync(ffmpegPath)) {
-            const altPath = isPackaged
-                ? path.join(process.cwd(), 'resources', 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'))
-                : path.join(process.resourcesPath, 'bin', (process.platform === 'darwin' ? 'ffmpeg' : 'ffmpeg.exe'));
-            if (fs.existsSync(altPath)) {
-                ffmpegPath = altPath;
-            } else {
-                ffmpegPath = 'ffmpeg';
-            }
-        }
-        this.ffmpegPath     = ffmpegPath;
+        this.ffmpegPath     = toolPaths.ffmpeg() || 'ffmpeg';
         this.tempDir        = path.join(os.tmpdir(), 'nova_webcam_hijack');
         this.y4mPath        = path.join(this.tempDir, 'fake_cam.y4m');
-        this.profileDir     = path.join(this.tempDir, 'chrome_profile');
 
         this.isHijacking    = false;
         this.activeMode     = null;
@@ -179,7 +164,6 @@ class GlobalSpoofService {
 
         // Ensure temp dir exists
         if (!fs.existsSync(this.tempDir)) fs.mkdirSync(this.tempDir, { recursive: true });
-        if (!fs.existsSync(this.profileDir)) fs.mkdirSync(this.profileDir, { recursive: true });
 
         console.log('[GlobalSpoof] v4.0 — Native Y4M Hijack Engine initialized.');
     }
@@ -201,13 +185,13 @@ class GlobalSpoofService {
             return { success: false, error: 'Already hijacking.' };
         }
 
-        // Kill any orphaned chrome.exe processes associated with Nova's profile to prevent session reuse
         try {
             console.log('[GlobalSpoof] Checking for orphaned Nova Chrome processes...');
-            const { execSync } = require('child_process');
-            
-            // Try using wmic first (very fast on Windows)
-            try {
+            const { execSync, spawnSync } = require('child_process');
+            if (process.platform === 'darwin') {
+                const r = spawnSync('pkill', ['-f', '--', require('./paridade-utils').MAC_CAM_SPOOF_KILL_PATTERN], { timeout: 5000 });
+                if (r.error || r.status > 1) console.error('[GlobalSpoof] Failed to run Chrome cleanup:', r.error ? r.error.message : `pkill status ${r.status}`);
+            } else try {
                 execSync('wmic process where "name=\'chrome.exe\' and CommandLine like \'%nova_webcam_hijack%\'" call terminate', { stdio: 'ignore', timeout: 3000 });
                 console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via WMIC.');
             } catch (wmicErr) {

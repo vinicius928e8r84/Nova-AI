@@ -1,23 +1,15 @@
 {
   "arquivos": {
-    "app/electron/main.js": 4337,
+    "app/electron/main.js": 4331,
     "app/electron/pwa/admin.html": 1523,
     "app/electron/services/browser-manager.js": 2744,
     "app/electron/services/browserFarmService.js": 2138,
-    "app/electron/services/global-spoof-service.js": 1807,
+    "app/electron/services/global-spoof-service.js": 1791,
     "app/electron/services/inventory-manager.js": 1815,
     "app/electron/services/live-cam-bridge.js": 1024,
     "app/electron/services/physicalMobileService.js": 2421,
-    "MAC/controle-celular-plataformas/geo-proxy/aplicado/main.geo.js": 4590,
-    "MAC/controle-celular-plataformas/geo-proxy/aplicado/physicalMobileService.geo.js": 2634,
-    "MAC/encerramento-nova/main.js": 4512,
-    "MAC/encerramento-nova/original/main.js": 4470,
     "MAC/integracao-camlive/cam-live.js": 1215,
     "MAC/integracao-iphone/bridge/Tweak.x": 1587,
-    "MAC/integracao-iphone/physicalMobileService.patched.js": 2705,
-    "MAC/integracao-kling/main.js": 4468,
-    "MAC/integracao-modelo-app/main.modelo.js": 4595,
-    "MAC/integracao-sequestro-cam/physicalMobileService.patched.js": 2655,
     "MAC/traducao-interface/cam-live.js": 1215,
     "prototype-cam-live/index.html": 1670
   }
