@@ -1,9 +1,23 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## telegram-manager.js refatorado sem mudar o comportamento (Onda 4) — 21/11/2026
+
+- **O que mudou:** `registerTelegramEvents` (136 linhas, complexidade 33) virou um tratador por tipo de mensagem (privada, grupo), uma tabela de comandos do chat próprio (`COMANDOS_DO_CHEFE`) e uma ação por comando. `getClientOptions` passou a ler o perfil do aparelho de uma tabela (`PERFIS_DE_APARELHO`) e a montar o proxy em funções puras (MTProto e SOCKS). O fim de login repetido 4 vezes (nome do dono, sessão gravada, eventos) virou `concluirLogin`; o login por QR ganhou um método por etapa. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que no Node e no Electron escreve no mesmo stdout. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o do bloqueio de tela já existia e só foi movido).
+- **Arquivos do app instalado no Mac que mudam:** `services/telegram-manager.js`. Guardar o anterior em `reservas/`, copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, `node --check` e reiniciar o Nova.
+- **Testes:** `node --test app/electron/services/test/telegram-manager.test.js` (30 casos com dublês de `telegram`, `qrcode`, `electron`, `os`, `child_process` e `mac-native`).
+- **Sem testar:** conta real do Telegram no Mac e no Windows (login por código, senha e QR, receber e responder mensagem, comandos `!lock`, `!browser`, `!sysinfo`, `!busy`, aviso de grupo monitorado).
+
+## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
+
+- **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.
+- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro. Também apagado `physicalMobileService.languageForCountry` (19 linhas, sem chamador depois da remoção); `registro.test.js` passa a citar `idioma-ipc.js`. `app/test/mapa-ipc.json` regravado sem os 11 canais de `identidade-ipc.js`.
+- **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
+- **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
+
 ## GPS do iPhone no Windows (P2 da paridade) — 19/11/2026
 
 - **O que mudou:** `idevicesetlocation` e `pymobiledevice3` passam por `tool-paths.gpsTool()`. No Windows procura `.exe` em `resources\ios-tools\bin`, `resources\bin`, `%APPDATA%\Python\Python3*\Scripts` e `PATH`. No Mac a lista é exatamente a de antes (teste de igualdade em `tool-paths.test.cjs`). A decisão fica em funções pequenas de `tool-paths.js` (`pastasGpsMac`, `pastasGpsWindows`, `caminhoForcadoGps`, `pastasDoPath`); `gpsTool` só junta e procura. A mensagem "idevicesetlocation não encontrado neste computador." agora chega à tela (a chave era `error`, os chamadores leem `err`). Os dois `execFile` do GPS passam a usar `windowsHide: true` (sem janela de console no Windows; sem efeito no Mac). Teste: `app/test/gps-iphone.test.js`.
-- **Removido:** as duas listas de caminhos soltas em `physicalMobileService.js` (o arquivo encolheu de 2498 para 2479 linhas; linha de base atualizada).
+- **Removido:** as duas listas de caminhos soltas em `physicalMobileService.js` (o arquivo encolheu de 2479 para 2460 linhas; linha de base atualizada).
 - **Arquivos do app instalado no Mac que mudam** (guarde o anterior em `reservas/` antes): `Contents/Resources/app/electron/services/tool-paths.js` e `Contents/Resources/app/electron/services/physicalMobileService.js`. Reaplicar: `cp app/electron/services/{tool-paths,physicalMobileService}.js` para essa pasta, `node --check` e reiniciar o Nova.
 - **Sem testar:** prova real com Windows + iPhone (aplicar e resetar o GPS); depende de P1 (os `.exe`).
 
