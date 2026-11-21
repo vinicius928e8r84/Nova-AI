@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## telegram-manager.js refatorado sem mudar o comportamento (Onda 4) — 21/11/2026
+
+- **O que mudou:** `registerTelegramEvents` (136 linhas, complexidade 33) virou um tratador por tipo de mensagem (privada, grupo), uma tabela de comandos do chat próprio (`COMANDOS_DO_CHEFE`) e uma ação por comando. `getClientOptions` passou a ler o perfil do aparelho de uma tabela (`PERFIS_DE_APARELHO`) e a montar o proxy em funções puras (MTProto e SOCKS). O fim de login repetido 4 vezes (nome do dono, sessão gravada, eventos) virou `concluirLogin`; o login por QR ganhou um método por etapa. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que no Node e no Electron escreve no mesmo stdout. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o do bloqueio de tela já existia e só foi movido).
+- **Arquivos do app instalado no Mac que mudam:** `services/telegram-manager.js`. Guardar o anterior em `reservas/`, copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, `node --check` e reiniciar o Nova.
+- **Testes:** `node --test app/electron/services/test/telegram-manager.test.js` (30 casos com dublês de `telegram`, `qrcode`, `electron`, `os`, `child_process` e `mac-native`).
+- **Sem testar:** conta real do Telegram no Mac e no Windows (login por código, senha e QR, receber e responder mensagem, comandos `!lock`, `!browser`, `!sysinfo`, `!busy`, aviso de grupo monitorado).
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
