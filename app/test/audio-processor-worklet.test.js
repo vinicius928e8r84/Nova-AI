@@ -54,3 +54,7 @@ for (const arquivo of COPIAS) {
     assert.deepStrictEqual(buffers.map(buffer => Array.from(new Int16Array(buffer))), [[16383], [-16384, 32767]]);
   });
 }
+
+test('dist e public têm o mesmo worklet', () => {
+  assert.strictEqual(fs.readFileSync(COPIAS[0], 'utf8'), fs.readFileSync(COPIAS[1], 'utf8'));
+});
