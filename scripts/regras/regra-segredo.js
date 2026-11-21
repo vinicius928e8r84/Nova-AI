@@ -35,18 +35,31 @@ const pareceSegredo = valor => {
   return classes >= 3 && new Set(valor).size >= 8;
 };
 
+const ehFormatoInvertido = (credencial, resto) => /^\d{1,5}$/.test(credencial) && resto.includes(':');
+
+function partesDaUrl([inteira, credencial]) {
+  const resto = inteira.slice(inteira.indexOf('@') + 1).split(/[/?#]/)[0];
+  if (!ehFormatoInvertido(credencial, resto)) return { host: resto, senha: credencial.split(':').pop() };
+  return { host: inteira.slice(inteira.indexOf('://') + 3).split(':')[0], senha: resto.slice(resto.indexOf(':') + 1) };
+}
+
+const ehSenhaReal = ({ host, senha }) => !HOST_DE_EXEMPLO.test(host) && !SENHA_DE_EXEMPLO.test(senha);
+
+function temUrlComSenha(texto) {
+  for (const url of texto.matchAll(URL_COM_SENHA)) if (ehSenhaReal(partesDaUrl(url))) return true;
+  return false;
+}
+
+function temValorEmCampoDeSegredo(texto) {
+  const atribuicao = ATRIBUICAO.exec(texto);
+  return Boolean(atribuicao) && pareceSegredo(atribuicao[1]);
+}
+
 function acharNaJanela(texto) {
-  for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
-  for (const url of texto.matchAll(URL_COM_SENHA)) {
-    const resto = url[0].slice(url[0].indexOf('@') + 1).split(/[/?#]/)[0];
-    const invertida = /^\d{1,5}$/.test(url[1]) && resto.includes(':');
-    const host = invertida ? url[0].slice(url[0].indexOf('://') + 3).split(':')[0] : resto;
-    if (HOST_DE_EXEMPLO.test(host)) continue;
-    const senha = invertida ? resto.slice(resto.indexOf(':') + 1) : url[1].split(':').pop();
-    if (!SENHA_DE_EXEMPLO.test(senha)) return 'URL com usuário e senha';
-  }
-  const m = ATRIBUICAO.exec(texto);
-  if (m && pareceSegredo(m[1])) return 'valor literal em campo de segredo';
+  const padrao = PADROES.find(({ regex }) => regex.test(texto));
+  if (padrao) return padrao.nome;
+  if (temUrlComSenha(texto)) return 'URL com usuário e senha';
+  if (temValorEmCampoDeSegredo(texto)) return 'valor literal em campo de segredo';
   return null;
 }
 
@@ -80,38 +93,46 @@ function segredoNoBinario(buffer) {
   return null;
 }
 
+const CAMPO_DA_ORIGEM = { M: 'caminho', R: 'antigo' };
+
 function segredoNovoNoBinario(ctx, item, arquivo) {
   const nome = segredoNoBinario(arquivo.buffer);
   if (!nome) return null;
-  const origem = item.status === 'M' ? item.caminho : item.status === 'R' ? item.antigo : null;
+  const campo = CAMPO_DA_ORIGEM[item.status];
+  const origem = campo ? item[campo] : null;
   const antes = origem ? bytesDaBase(ctx.raiz, ctx.mudancas.base.desde, origem) : null;
   return antes && segredoNoBinario(antes) ? null : nome;
 }
 
-function verificar(ctx) {
-  const achados = [];
-  for (const item of ctx.arquivos) {
-    const { caminho } = item;
-    if (casaAlgum(ctx.config.arquivosProibidos, caminho)) {
-      achados.push({ arquivo: caminho, detalhe: 'arquivo de segredo, chave ou sessão não entra no repositório' });
-      continue;
-    }
-    const arquivo = ctx.ler(caminho);
-    if (arquivo && arquivo.binario) {
-      const nome = ctx.mudancas.copias.has(caminho) ? null : segredoNovoNoBinario(ctx, item, arquivo);
-      if (nome) achados.push({ arquivo: caminho, detalhe: `arquivo binário com texto que parece ${nome} (o valor não é mostrado)` });
-      continue;
-    }
-    const novas = ctx.mudancas.acrescentadas.get(caminho);
-    if (!novas || novas.size === 0) continue;
-    if (!arquivo) continue;
-    const linhas = arquivo.texto.split('\n');
-    for (const numero of [...novas].sort((a, b) => a - b)) {
-      const nome = acharNaLinha(linhas[numero - 1] || '');
-      if (nome) achados.push({ arquivo: caminho, linha: numero, detalhe: `parece ${nome} (o valor não é mostrado)` });
-    }
-  }
-  return achados;
+function achadosDoBinario(ctx, item, arquivo) {
+  if (ctx.mudancas.copias.has(item.caminho)) return [];
+  const nome = segredoNovoNoBinario(ctx, item, arquivo);
+  return nome ? [{ arquivo: item.caminho, detalhe: `arquivo binário com texto que parece ${nome} (o valor não é mostrado)` }] : [];
 }
+
+function achadoDaLinha(caminho, numero, texto) {
+  const nome = acharNaLinha(texto);
+  return nome ? [{ arquivo: caminho, linha: numero, detalhe: `parece ${nome} (o valor não é mostrado)` }] : [];
+}
+
+const semLinhaNova = novas => !novas || novas.size === 0;
+
+function achadosDoTexto(ctx, caminho, arquivo) {
+  const novas = ctx.mudancas.acrescentadas.get(caminho);
+  if (semLinhaNova(novas) || !arquivo) return [];
+  const linhas = arquivo.texto.split('\n');
+  return [...novas].sort((a, b) => a - b).flatMap(numero => achadoDaLinha(caminho, numero, linhas[numero - 1] || ''));
+}
+
+function achadosDoArquivo(ctx, item) {
+  if (casaAlgum(ctx.config.arquivosProibidos, item.caminho)) {
+    return [{ arquivo: item.caminho, detalhe: 'arquivo de segredo, chave ou sessão não entra no repositório' }];
+  }
+  const arquivo = ctx.ler(item.caminho);
+  if (arquivo && arquivo.binario) return achadosDoBinario(ctx, item, arquivo);
+  return achadosDoTexto(ctx, item.caminho, arquivo);
+}
+
+const verificar = ctx => ctx.arquivos.flatMap(item => achadosDoArquivo(ctx, item));
 
 module.exports = { id, titulo, conserto, verificar, acharNaLinha };
