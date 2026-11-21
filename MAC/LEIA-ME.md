@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## live-cam-bridge.js refatorado com saída idêntica (Onda 4) — 21/11/2026
+
+- **O que mudou:** `app/electron/services/live-cam-bridge.js` passa de 1.024 para cerca de 600 linhas, sem mudar canal IPC, argumento nem resposta. As quatro páginas HTML servidas aos celulares foram para o módulo novo `app/electron/services/live-cam-paginas.js`, byte a byte iguais. A pontuação dos IPs virou uma tabela por faixa. O `startServer` foi separado em certificado, servidor e um papel por tipo de celular. As rotas HTTP viraram um mapa. O caminho do scrcpy embutido escolhe entre os mesmos dois caminhos de antes. `linha-de-base.json` perde a entrada do arquivo.
+- **Testes:** `node --test app/electron/services/test/live-cam-bridge.test.js` (32 cenas gravadas no código antigo, com dublês de `http`, `https`, `ws`, `os`, `fs`, `child_process`, `qrcode` e `selfsigned`).
+- **Arquivos do app instalado no Mac que mudam:** `services/live-cam-bridge.js` e **`services/live-cam-paginas.js` (arquivo novo)**. O primeiro faz `require('./live-cam-paginas')` no topo: copiar só ele impede o CAM spoof de abrir (MODULE_NOT_FOUND). Guardar o anterior em `reservas/`, copiar os dois para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, rodar `node --check` e reiniciar o Nova. O bundle não muda.
+- **Sem testar:** QR, câmera do celular no painel, webcam do PC no celular, vídeo spoof no celular e câmera do Android por scrcpy, em Mac e Windows reais. Fica para a prova real.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
