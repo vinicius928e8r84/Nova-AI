@@ -240,6 +240,9 @@ const CENAS_DO_PROGRESSO = [
     palco.foto('progresso em texto');
     palco.progresso({ progress: 10, downloaded: 1024 });
     palco.foto('tamanho em número');
+    palco.progresso(null);
+    palco.progresso(undefined);
+    palco.foto('sem dados');
   }),
 ];
 
