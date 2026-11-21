@@ -9,6 +9,14 @@
 - **Mac e Windows:** a mesma regra e o mesmo código nos dois, sem ramo por sistema. O medidor de Python lê o stdin em UTF-8 em qualquer sistema (no Windows até o Python 3.14 a página de código local quebrava em `Á`, `Í` e emojis), e um Python que sai com erro sem rodar o medidor (alias da Microsoft Store, stub do `xcode-select`) vira aviso e pula, como a falta de acorn. Cada um tem teste. A folga de `main.js` (4197) e `whatsapp-manager.js` (311) já soma as PRs abertas que tocam o mesmo arquivo.
 - **Sem testar:** a calibração contra o painel do CodeScene nos 16 arquivos com nota (o painel roda na máquina do dono); a regra foi conferida contra os checks do CodeScene publicados nas PRs do GitHub.
 
+## Últimas cópias soltas apagadas (Onda 1g) — 20/11/2026
+
+- **O que mudou:** apagadas seis cópias de arquivos que hoje vivem em `app/`: `MAC/integracao-kling/kling-video-service.js`, `MAC/encerramento-nova/{ios-bridge.js,iphone-ssh.js,nova-shutdown.js}` (a pasta sai do git), `MAC/traducao-interface/cam-live.js` e `MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. `reservas/` e `backup-*` ficaram. O git guarda a história.
+- **Teste:** `geo-proxy/teste-geo.cjs` passou a carregar `app/electron/services/geo-proxy.js`. `linha-de-base.json` perdeu a entrada de `traducao-interface/cam-live.js`.
+- **Achado:** o `geo-proxy.js` apagado era mais novo que o de `app/`. O commit `011395f` (08/11) trocou o `parseProxy` (aceita http/https, a ordem invertida `host:porta@usuario:senha`, `host:porta:usuario:senha` sem esquema, aspas e barra no fim, e adivinha o esquema pela porta), mas o app instalado copiado para `app/` em 09/11 não tinha essa troca. Em 14 entradas, as duas versões só dão o mesmo resultado em 2. Para recuperar: `git show 011395f:MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. Levar isso para `app/` fica para outra PR.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. `app/` não muda. Nada a reaplicar.
+- **Sem testar:** `teste-geo.cjs` com proxy (precisa de proxy real e de `socks-proxy-agent`; só o `byIp` rodou); empacotamento real e Mac e Windows reais. `traducao-interface/preparar.py` ainda grava `cam-live.js` na pasta quando roda (copia de `integracao-camlive/cam-live.js`), e o arquivo gerado aparece como não versionado.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
@@ -499,6 +507,12 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Arquivos:** `app/electron/main.js`, `app/electron/services/ios-tools.js`, `ios-bridge.js`, `physicalMobileService.js`, `ios-devices.js` (novo: a listagem de aparelhos saiu de `physicalMobileService.js` para o arquivo grande não crescer); teste novo `MAC/integracao-iphone/tests/ferramenta-ausente.cjs` (`node --test`).
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
+
+## 2026-11-19 — M3 de paridade: navegador no Mac procura nos mesmos lugares do Windows
+
+- **O que mudou:** `mac-native.browser(tipo)` também procura o `.app` embutido em `<resources>/browsers/<tipo>/<Nome>.app` e na pasta `browsers` do projeto (Brave, Vivaldi, Firefox, Edge e Chrome), como o Windows. O WhatsApp no Mac respeita `PUPPETEER_EXECUTABLE_PATH` (se o arquivo existir), depois o Chromium de `<userData>/browsers` (como o Windows), depois Chrome e por fim o Edge. A limpeza do navegador órfão do perfil do WhatsApp (`MAC_BROWSER_KILL_PATTERN`) agora também mata o Microsoft Edge da sessão, como o Windows já faz com `msedge.exe`. `userData/browsers` vale só para o Chromium do WhatsApp, nos dois sistemas; a fazenda, o CAM spoof e o navegador do app não o usam em nenhum. Removido: a pasta `userData/browsers` da busca geral de navegadores do Mac (a rodada anterior do próprio PR a tinha posto).
+- **Arquivos do app instalado que mudam:** `app/electron/services/mac-native.js`, `app/electron/services/whatsapp-manager.js` e `app/electron/services/paridade-utils.js` (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guarde os anteriores em `reservas/` e rode `node --check` nos três). Não muda `main.js`, `preload.js` nem o bundle da interface. Teste novo: `MAC/navegador-mac/tests/navegador.cjs` (`node --test`, isola `/Applications` e `playwright`, então passa em Mac com navegadores instalados); o teste do `pkill` em `app/test/paridade-b.test.js` ganhou o Edge. `navegador.cjs` também testa o ramo do Windows do WhatsApp (Chromium de `userData/browsers`) e zera o cache do `platform-utils` ao trocar a plataforma.
+- **Sem testar:** Mac real; navegador `.app` real embutido ou em `userData`; só pastas falsas em Linux.
 
 ## 2026-11-19 — ISS14: aviso quando o WhatsApp falha 8 vezes ao iniciar
 
