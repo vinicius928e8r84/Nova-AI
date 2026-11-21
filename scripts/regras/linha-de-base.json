@@ -106,7 +106,6 @@
     "scripts/regras/regra-eslint.js": 10,
     "scripts/regras/regra-linhas.js": 23,
     "scripts/regras/regra-sintaxe.js": 2,
-    "scripts/regras/risco.js": 1,
-    "scripts/regras/verificar.js": 19
+    "scripts/regras/risco.js": 1
   }
 }

@@ -1,0 +1,80 @@
+{
+  "ajuda": {
+    "codigo": 0,
+    "saida": "uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]\n                                     [--criar-linha-de-base | --atualizar-linha-de-base]\n\nConfere o que a mudança (merge-base com a base até a árvore de trabalho) acrescenta ou toca; linha que a mudança não toca nunca falha.\n\n  --base <ref>                 a branch-alvo (padrão: $REGRAS_BASE, senão origin/main)\n  --raiz <pasta>               outro repositório (os testes usam)\n  --regra <id>                 roda só esta regra (pode repetir)\n  --lista                      lista as regras e sai\n  --criar-linha-de-base        cria em scripts/regras/linha-de-base.json a linha de base que ainda falta\n                               (com --regra, só a dessa regra: limite-de-linhas ou saude-do-codigo)\n  --atualizar-linha-de-base    baixa a linha de base depois de melhorar ou mover um arquivo (nunca sobe;\n                               com --regra, só a dessa regra)\n  --help                       esta ajuda\n\nSai com 0 se tudo passa, 1 se alguma regra falha, 2 em erro de uso.\n"
+  },
+  "ajuda curta": {
+    "codigo": 2,
+    "saida": "error: bandeira desconhecida: --x\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "lista": {
+    "codigo": 0,
+    "saida": "sem-comentario-novo: Nenhum comentário novo nas linhas acrescentadas\nlimite-de-linhas: Arquivo de código com no máximo 1000 linhas\nsem-segredo: Nenhum segredo, chave, token ou arquivo de credencial no diff\nsem-binario-nem-lixo: Nenhum instalador, binário, arquivo grande ou cópia de backup novo\nsem-depuracao-esquecida: Nenhum console.log, debugger ou depuração esquecida nas linhas novas\nsintaxe-valida: Os arquivos mudados compilam (node --check, py_compile, bash -n, JSON)\neslint-nas-linhas-novas: ESLint (variável não declarada, não usada, código inalcançável…) só nas linhas novas\nsaude-do-codigo: Catraca de saúde do código: nenhum arquivo tocado piora (complexidade, aninhamento, condições, argumentos, tamanho)\n"
+  },
+  "bandeira desconhecida": {
+    "codigo": 2,
+    "saida": "error: bandeira desconhecida: --x\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "regra sem valor": {
+    "codigo": 2,
+    "saida": "error: --regra precisa de um valor\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "regra seguida de bandeira": {
+    "codigo": 2,
+    "saida": "error: --regra precisa de um valor\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "regra desconhecida": {
+    "codigo": 2,
+    "saida": "error: regra desconhecida: nao-existe\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "criar e atualizar juntas": {
+    "codigo": 2,
+    "saida": "error: --criar-linha-de-base e --atualizar-linha-de-base não andam juntas\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "sem base": {
+    "codigo": 0,
+    "saida": "aviso: sem base de comparação (primeiro push de uma branch); nada foi conferido\n"
+  },
+  "base que não existe": {
+    "codigo": 2,
+    "saida": "error: a base nao-existe não é um commit deste repositório; use --base <ref> ou REGRAS_BASE (no CI, fetch-depth: 0)\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "tudo limpo em duas regras": {
+    "codigo": 0,
+    "saida": "✓ sem-comentario-novo\n✓ sem-segredo\nrisco: nenhum caminho sensível mudou\nregras ok (2) em main..HEAD\n"
+  },
+  "sem --regra roda todas": {
+    "linhasDeRegra": 8,
+    "ultima": "regras ok (8) em main..HEAD"
+  },
+  "falhas, achados cortados em 10 e risco ALTA com resumo": {
+    "codigo": 1,
+    "saida": "risco: ALTA — a PR precisa de \"Atenção: ALTA\" e da seção Prova real:\n  app/b.js (ipc: registra canal IPC ou muda a segurança da janela)\n  app/b.js (processos: executa processo externo)\n  app/d.js (arquivos-fora-do-app: apaga arquivo ou lê fora da pasta do app)\n  app/d.js (credenciais-no-codigo: lida com chave, keychain ou autenticação)\n  app/d.js (atualizacao: atualização automática do app)\n  app/e.js (licenca: validação de licença)\n  app/electron/preload.js (ipc-e-preload: processo principal, preload e canais IPC)\n  app/f.js (ssh: usa SSH)\n\n✗ sem-comentario-novo — Nenhum comentário novo nas linhas acrescentadas\n    app/a.js:1: comentário novo: “nota 0”\n    app/a.js:2: comentário novo: “nota 1”\n    app/a.js:3: comentário novo: “nota 2”\n    app/a.js:4: comentário novo: “nota 3”\n    app/a.js:5: comentário novo: “nota 4”\n    app/a.js:6: comentário novo: “nota 5”\n    app/a.js:7: comentário novo: “nota 6”\n    app/a.js:8: comentário novo: “nota 7”\n    app/a.js:9: comentário novo: “nota 8”\n    app/a.js:10: comentário novo: “nota 9”\n    app/a.js: … e mais 1\n  Conserto: Apague o comentário. O que ele explicava vai para o nome da função ou da variável; a decisão (o porquê) vai para o corpo da PR ou para a documentação. Passam só a linha 1 `#!`, as diretivas de ferramenta (@ts-*, noqa, type: ignore, istanbul/c8 ignore, prettier-ignore, coding:) e o cabeçalho de licença (SPDX-License-Identifier, Copyright) nas 5 primeiras linhas. Um comentário que já existia numa linha que a mudança tocou, reindentou ou moveu também conta: apague-o.\n\n✗ limite-de-linhas — Arquivo de código com no máximo 1000 linhas\n    app/grande.js: tem 1100 linhas e a linha de base do ramo diz 1200: ajuste com --atualizar-linha-de-base (o teto é o tamanho de hoje)\n  Conserto: Divida o arquivo por responsabilidade em módulos menores (no máximo 1000 linhas cada) e leve o código novo para um módulo novo, não para o arquivo grande. A linha de base (scripts/regras/linha-de-base.json) lista os arquivos que já passavam do limite: ela só encolhe. Depois de encolher um deles, rode `node scripts/regras/verificar.js --atualizar-linha-de-base` e versione o arquivo.\n\n✗ sem-binario-nem-lixo — Nenhum instalador, binário, arquivo grande ou cópia de backup novo\n    app/instalador.exe: extensão .exe: instalador, pacote ou binário não entra no repositório\n  Conserto: Instaladores e binários (.dmg, .exe, .zip, .deb, .tgz…) ficam fora do git: .gitignore e AGENTS.md seção 4. Gere-os no CI ou publique como release. Cópias de backup (*.bak-*, *.orig, *.antes-*) não entram: o git já guarda o arquivo anterior. O que precisa ser guardado antes de trocar o do app vai em MAC/<área>/reservas/. Cópia idêntica de arquivo que já existe também conta.\n\nerror: 3 regra(s) falharam em main..HEAD\n"
+  },
+  "criar linha de base que já existe": {
+    "codigo": 2,
+    "saida": "error: scripts/regras/linha-de-base.json já tem a linha de base de limite-de-linhas, saude-do-codigo; ela só encolhe (--atualizar-linha-de-base)\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "criar linha de base de regra sem linha de base": {
+    "codigo": 2,
+    "saida": "error: sem-segredo não tem linha de base; as que têm: limite-de-linhas, saude-do-codigo\nhelp: node scripts/regras/verificar.js --help\n"
+  },
+  "atualizar a linha de base de linhas": {
+    "codigo": 0,
+    "saida": "linha de base de limite-de-linhas atualizada: 1 arquivo(s)\n"
+  },
+  "linha de base depois de atualizar": {
+    "arquivos": {
+      "app/grande.js": 1100
+    },
+    "saude-do-codigo": {}
+  },
+  "base sem linha de base avisa": {
+    "codigo": 0,
+    "saida": "✓ limite-de-linhas\nrisco: ALTA — a PR precisa de \"Atenção: ALTA\" e da seção Prova real:\n  scripts/regras/linha-de-base.json (regras-do-repositorio: as próprias regras de revisão e a automação do GitHub)\n  app/b.js (ipc: registra canal IPC ou muda a segurança da janela)\n  app/b.js (processos: executa processo externo)\n  app/d.js (arquivos-fora-do-app: apaga arquivo ou lê fora da pasta do app)\n  app/d.js (credenciais-no-codigo: lida com chave, keychain ou autenticação)\n  app/d.js (atualizacao: atualização automática do app)\n  app/e.js (licenca: validação de licença)\n  app/electron/preload.js (ipc-e-preload: processo principal, preload e canais IPC)\n  … e mais 1\naviso: vazio ainda não tem scripts/regras/linha-de-base.json: esta é a primeira linha de base, nada a comparar\nregras ok (1) em vazio..HEAD\n"
+  },
+  "raiz fora do git": {
+    "codigo": 2,
+    "saida": "error: <fora> não é um repositório git\nhelp: node scripts/regras/verificar.js --help\n"
+  }
+}
