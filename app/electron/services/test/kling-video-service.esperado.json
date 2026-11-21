@@ -301,6 +301,22 @@
     "progresso {\"step\":\"complete\",\"percent\":100,\"message\":\"Geração de vídeo concluída!\"}",
     "resultado {\"success\":true,\"videoPath\":\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\",\"fileName\":\"kling_video_1700000000000.mp4\",\"sizeBytes\":4096,\"duration\":5,\"engine\":\"Nova Motion Engine (Cloud fallback)\",\"aspectRatio\":\"16:9\"}"
   ],
+  "kling: code diferente de 0 mesmo com task_id": [
+    "ffmpeg ffmpeg",
+    "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
+    "progresso {\"step\":\"prepare\",\"percent\":10,\"message\":\"Preparando imagens...\"}",
+    "progresso {\"step\":\"cloud_kling\",\"percent\":25,\"message\":\"Enviando tarefa para a Kling AI Cloud...\"}",
+    "https POST api.klingai.com/v1/videos/image2video {\"Content-Type\":\"application/json\",\"Authorization\":\"Bearer kling-falso-123\",\"Content-Length\":185} {\"model_name\":\"kling-v1\",\"image\":\"data:image/jpeg;base64,REFET1MtREEtRk9UTw==\",\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"duration\":\"5\",\"aspect_ratio\":\"16:9\",\"mode\":\"std\"}",
+    "erro [KlingService] Kling Cloud API notice: Kling API task submission error → Seamlessly using Nova Motion Engine.",
+    "progresso {\"step\":\"fallback\",\"percent\":35,\"message\":\"Kling Cloud: Kling API task submission error. Running Nova Motion Engine...\"}",
+    "progresso {\"step\":\"synthesizing\",\"percent\":40,\"message\":\"Sintetizando vídeo de movimento cinematográfico a 60fps...\"}",
+    "saida [KlingService] Spawning FFmpeg Motion Video: ffmpeg -y -i /fotos/foto.jpg -vf zoompan=z='min(1+0.20*on/150,1.20)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720:fps=30,fade=t=in:st=0:d=0.4,fade=t=out:st=4.6:d=0.4,format=yuv420p -c:v libx264 -t 5 -pix_fmt yuv420p -preset fast -crf 18 <raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4",
+    "execFile ffmpeg [\"-y\",\"-i\",\"/fotos/foto.jpg\",\"-vf\",\"zoompan=z='min(1+0.20*on/150,1.20)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720:fps=30,fade=t=in:st=0:d=0.4,fade=t=out:st=4.6:d=0.4,format=yuv420p\",\"-c:v\",\"libx264\",\"-t\",\"5\",\"-pix_fmt\",\"yuv420p\",\"-preset\",\"fast\",\"-crf\",\"18\",\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\"] {\"windowsHide\":true}",
+    "progresso {\"step\":\"rendering\",\"percent\":70,\"message\":\"Renderizando caminho de câmera cinematográfico a 60fps...\"}",
+    "saida [KlingService] Local motion video generated successfully: <raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4",
+    "progresso {\"step\":\"complete\",\"percent\":100,\"message\":\"Geração de vídeo concluída!\"}",
+    "resultado {\"success\":true,\"videoPath\":\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\",\"fileName\":\"kling_video_1700000000000.mp4\",\"sizeBytes\":4096,\"duration\":5,\"engine\":\"Nova Motion Engine (Cloud fallback)\",\"aspectRatio\":\"16:9\"}"
+  ],
   "kling: criação sem data": [
     "ffmpeg ffmpeg",
     "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
@@ -1222,6 +1238,25 @@
     "progresso {\"step\":\"complete\",\"percent\":100,\"message\":\"Geração de vídeo concluída!\"}",
     "resultado {\"success\":true,\"videoPath\":\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\",\"fileName\":\"kling_video_1700000000000.mp4\",\"sizeBytes\":2000,\"duration\":5,\"engine\":\"IA fal.ai (Seedance Lite)\",\"aspectRatio\":\"16:9\"}"
   ],
+  "fal: duração 10 no limite": [
+    "ffmpeg ffmpeg",
+    "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
+    "progresso {\"step\":\"prepare\",\"percent\":10,\"message\":\"Preparando imagens...\"}",
+    "progresso {\"step\":\"fal_prepare\",\"percent\":10,\"message\":\"Preparando a IA fal.ai...\"}",
+    "execFileSync security [\"find-generic-password\",\"-a\",\"dono\",\"-s\",\"fal-key\",\"-w\"] {\"encoding\":\"utf8\",\"stdio\":[\"ignore\",\"pipe\",\"ignore\"]}",
+    "progresso {\"step\":\"fal_submit\",\"percent\":20,\"message\":\"fal.ai (Seedance 1.0 Lite): enviando a foto...\"}",
+    "https POST queue.fal.run/fal-ai/bytedance/seedance/v1/lite/image-to-video {\"Authorization\":\"Key fal-falso\",\"Content-Type\":\"application/json\"} {\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"image_url\":\"data:image/jpeg;base64,REFET1MtREEtRk9UTw==\",\"resolution\":\"720p\",\"duration\":\"10\"}",
+    "espera 4000",
+    "https GET queue.fal.run/fal-ai/bytedance/seedance/v1/lite/image-to-video/requests/r1/status {\"Authorization\":\"Key fal-falso\",\"Content-Type\":\"application/json\"} ",
+    "progresso {\"step\":\"fal_wait\",\"percent\":26,\"message\":\"fal.ai (Seedance 1.0 Lite) gerando o vídeo... 4s (COMPLETED)\"}",
+    "https GET queue.fal.run/fal-ai/bytedance/seedance/v1/lite/image-to-video/requests/r1 {\"Authorization\":\"Key fal-falso\",\"Content-Type\":\"application/json\"} ",
+    "progresso {\"step\":\"fal_save\",\"percent\":95,\"message\":\"Baixando o vídeo gerado...\"}",
+    "abre-escrita <raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4",
+    "https get https://cdn.exemplo/video.mp4",
+    "fecha <raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4",
+    "progresso {\"step\":\"complete\",\"percent\":100,\"message\":\"Geração de vídeo concluída!\"}",
+    "resultado {\"success\":true,\"videoPath\":\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\",\"fileName\":\"kling_video_1700000000000.mp4\",\"sizeBytes\":2000,\"duration\":10,\"engine\":\"IA fal.ai (Seedance Lite)\",\"aspectRatio\":\"16:9\"}"
+  ],
   "fal: resultado sem vídeo": [
     "ffmpeg ffmpeg",
     "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
@@ -1711,6 +1746,20 @@
     "progresso {\"step\":\"veo_submit\",\"percent\":20,\"message\":\"IA do Nova (veo-3-fast-generate-001): enviando a foto...\"}",
     "veo envia {\"model\":\"veo-3-fast-generate-001\",\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"image\":{\"imageBytes\":\"REFET1MtREEtRk9UTw==\",\"mimeType\":\"image/jpeg\"},\"config\":{\"aspectRatio\":\"16:9\",\"durationSeconds\":6,\"personGeneration\":\"allow_all\"}}",
     "falha Error: A IA do Nova não devolveu vídeo."
+  ],
+  "veo: duração 10 no limite": [
+    "ffmpeg ffmpeg",
+    "mkdir <raiz>/app/youtube_auto/exports {\"recursive\":true}",
+    "progresso {\"step\":\"prepare\",\"percent\":10,\"message\":\"Preparando imagens...\"}",
+    "progresso {\"step\":\"system_prepare\",\"percent\":10,\"message\":\"Preparando a IA do Nova (Veo)...\"}",
+    "genai {\"apiKey\":\"gemini-falso\"}",
+    "https GET generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=gemini-falso {} ",
+    "progresso {\"step\":\"veo_submit\",\"percent\":20,\"message\":\"IA do Nova (veo-x): enviando a foto...\"}",
+    "veo envia {\"model\":\"veo-x\",\"prompt\":\"Cinematic dynamic camera motion, high detail\",\"image\":{\"imageBytes\":\"REFET1MtREEtRk9UTw==\",\"mimeType\":\"image/jpeg\"},\"config\":{\"aspectRatio\":\"16:9\",\"durationSeconds\":8,\"personGeneration\":\"allow_all\"}}",
+    "progresso {\"step\":\"veo_save\",\"percent\":95,\"message\":\"Salvando o vídeo gerado...\"}",
+    "grava <raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4 1500B BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcH",
+    "progresso {\"step\":\"complete\",\"percent\":100,\"message\":\"Geração de vídeo concluída!\"}",
+    "resultado {\"success\":true,\"videoPath\":\"<raiz>/app/youtube_auto/exports/kling_video_1700000000000.mp4\",\"fileName\":\"kling_video_1700000000000.mp4\",\"sizeBytes\":1500,\"duration\":8,\"engine\":\"IA do Sistema (Veo do Nova)\",\"aspectRatio\":\"16:9\"}"
   ],
   "veo: vídeo sem dados": [
     "ffmpeg ffmpeg",

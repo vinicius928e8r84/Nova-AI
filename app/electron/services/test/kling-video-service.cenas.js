@@ -163,6 +163,10 @@ const cenasDaKlingCloud = {
     palco.rota(KLING_CRIA, json({ code: 0, data: {} }));
     await pedirComFoto(palco, { apiKey: CHAVE_KLING });
   },
+  'kling: code diferente de 0 mesmo com task_id': async palco => {
+    palco.rota(KLING_CRIA, json({ code: 7, data: { task_id: 't1' } }));
+    await pedirComFoto(palco, { apiKey: CHAVE_KLING });
+  },
   'kling: criação sem data': async palco => {
     palco.rota(KLING_CRIA, json({ code: 0 }));
     await pedirComFoto(palco, { apiKey: CHAVE_KLING });
@@ -278,6 +282,11 @@ const cenasDoFal = {
     palco.rota(DOWNLOAD, { corpo: VIDEO_GRANDE });
     await palco.converter({ engine: 'fal', imagePath: comFoto(palco, '/fotos/a.JPEG'), prompt: null, onProgress: palco.progresso() });
   },
+  'fal: duração 10 no limite': async palco => {
+    falCompleta(palco, { video: { url: 'https://cdn.exemplo/video.mp4' } });
+    palco.rota(DOWNLOAD, { corpo: VIDEO_GRANDE });
+    await pedirComFoto(palco, { engine: 'fal', duration: 10 });
+  },
   'fal: resultado sem vídeo': async palco => {
     falCompleta(palco, { videos: [] });
     await pedirComFoto(palco, { engine: 'fal' });
@@ -374,6 +383,10 @@ const cenasDoVeo = {
     palco.rota(VEO_LISTA, json({ models: [] }));
     palco.veo.envios.push({ operacao: { done: true, response: {} } });
     await pedirComFoto(palco, { engine: 'system' });
+  },
+  'veo: duração 10 no limite': async palco => {
+    veoAceitaDeCara(palco, embutido(1500));
+    await pedirComFoto(palco, { engine: 'system', duration: 10 });
   },
   'veo: vídeo sem dados': async palco => {
     veoAceitaDeCara(palco, { inlineData: {} });
