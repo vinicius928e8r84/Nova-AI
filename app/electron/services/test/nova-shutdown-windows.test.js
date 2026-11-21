@@ -88,7 +88,7 @@ test('tabela com um unico processo vem como objeto e ainda e lida', () => {
 test('pid do Nova reaproveitado: processo antigo cujo pai morto tinha o mesmo PID nao morre', async () => {
   const estado = { vivos: [
     linha(NOVA, 4, `"${EXE}"`, 2000),
-    linha(500, NOVA, '"C:\\Program Files\\Obsidian\\Obsidian.exe"', 1000),
+    linha(500, NOVA, 'python.exe outro_app.py', 1000),
   ] };
   const { limpeza, mortos } = criar(estado);
   await limpeza.terminate();
@@ -159,4 +159,15 @@ test('continua matando as ferramentas que o Nova inicia, inclusive o Chrome com 
   const { limpeza, mortos } = criar(estado);
   await limpeza.terminate();
   assert.deepStrictEqual(mortos.sort(), [102, 103, 104, 105, 106, 107]);
+});
+
+test('mata a ferramenta que desce de um helper do Electron e poupa o helper', async () => {
+  const estado = { vivos: [
+    linha(NOVA, 4, `"${EXE}"`),
+    linha(101, NOVA, `"${EXE}" --type=utility`),
+    linha(120, 101, 'ffmpeg.exe -i x'),
+  ] };
+  const { limpeza, mortos } = criar(estado);
+  await limpeza.terminate();
+  assert.deepStrictEqual(mortos, [120]);
 });

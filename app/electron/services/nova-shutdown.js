@@ -154,12 +154,17 @@ function windowsProcessTable() {
   return parseWindowsProcessTable(output);
 }
 
+function linhaDeProcessoValida(row) {
+  if (!row) return false;
+  return Number.isInteger(row.ProcessId) && row.ProcessId !== 0;
+}
+
 function parseWindowsProcessTable(output) {
   const parsed = JSON.parse(output);
   const rows = Array.isArray(parsed) ? parsed : [parsed];
   const entries = new Map();
   for (const row of rows) {
-    if (!row || !Number.isInteger(row.ProcessId) || row.ProcessId === 0) continue;
+    if (!linhaDeProcessoValida(row)) continue;
     const command = row.CommandLine || '';
     entries.set(row.ProcessId, {
       parent: row.ParentProcessId,
@@ -169,6 +174,24 @@ function parseWindowsProcessTable(output) {
     });
   }
   return entries;
+}
+
+const PAPEL_ALHEIO = 'alheio';
+const PAPEL_HELPER = 'helper';
+const PAPEL_FERRAMENTA = 'ferramenta';
+
+function filhosPorPai(entries) {
+  const children = new Map();
+  for (const [pid, entry] of entries) {
+    if (!children.has(entry.parent)) children.set(entry.parent, []);
+    children.get(entry.parent).push(pid);
+  }
+  return children;
+}
+
+function nasceuAntesDoPai(entry, parentStarted) {
+  if (!entry.started || !parentStarted) return false;
+  return entry.started < parentStarted;
 }
 
 function windowsKillTree(pid) {
@@ -197,35 +220,48 @@ function createWindowsProcessCleanup({
     return command.includes('Get-CimInstance Win32_Process');
   }
 
-  function collect() {
-    const entries = readTable();
-    lastEntries = entries;
-    const children = new Map();
-    for (const [pid, entry] of entries) {
-      if (!children.has(entry.parent)) children.set(entry.parent, []);
-      children.get(entry.parent).push(pid);
-    }
+  function papelDoFilho(entry, parent, parentStarted) {
+    if (nasceuAntesDoPai(entry, parentStarted)) return PAPEL_ALHEIO;
+    if (isTableReader(entry.command)) return PAPEL_ALHEIO;
+    if (isElectronHelper(entry.command)) return PAPEL_HELPER;
+    if (owned.has(parent) || isNovaWindowsTool(entry.command)) return PAPEL_FERRAMENTA;
+    return PAPEL_ALHEIO;
+  }
 
+  function esquecerPidsReaproveitados(entries) {
     for (const [pid, identity] of owned) {
       if (entries.get(pid)?.identity !== identity) owned.delete(pid);
     }
+  }
 
+  function percorrerArvoreDoNova(entries) {
+    const children = filhosPorPai(entries);
     const pending = [ownPid, ...owned.keys()];
     const visited = new Set(pending);
-    for (const parent of pending) {
+
+    function adotar(pid, papel) {
+      visited.add(pid);
+      pending.push(pid);
+      if (papel === PAPEL_FERRAMENTA) owned.set(pid, entries.get(pid).identity);
+    }
+
+    function visitarFilhosDe(parent) {
       const parentStarted = entries.get(parent)?.started ?? 0;
-      for (const pid of children.get(parent) ?? []) {
-        if (visited.has(pid)) continue;
-        const entry = entries.get(pid);
-        if (entry.started && parentStarted && entry.started < parentStarted) continue;
-        if (isTableReader(entry.command)) continue;
-        const helper = isElectronHelper(entry.command);
-        if (!helper && !owned.has(parent) && !isNovaWindowsTool(entry.command)) continue;
-        visited.add(pid);
-        pending.push(pid);
-        if (!helper) owned.set(pid, entry.identity);
+      const naoVistos = (children.get(parent) ?? []).filter(pid => !visited.has(pid));
+      for (const pid of naoVistos) {
+        const papel = papelDoFilho(entries.get(pid), parent, parentStarted);
+        if (papel !== PAPEL_ALHEIO) adotar(pid, papel);
       }
     }
+
+    for (const parent of pending) visitarFilhosDe(parent);
+  }
+
+  function collect() {
+    const entries = readTable();
+    lastEntries = entries;
+    esquecerPidsReaproveitados(entries);
+    percorrerArvoreDoNova(entries);
   }
 
   function rootsOwned() {
