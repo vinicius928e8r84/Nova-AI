@@ -23,6 +23,13 @@
 - **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
 - **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
 
+## GPS do iPhone no Windows (P2 da paridade) — 19/11/2026
+
+- **O que mudou:** `idevicesetlocation` e `pymobiledevice3` passam por `tool-paths.gpsTool()`. No Windows procura `.exe` em `resources\ios-tools\bin`, `resources\bin`, `%APPDATA%\Python\Python3*\Scripts` e `PATH`. No Mac a lista é exatamente a de antes (teste de igualdade em `tool-paths.test.cjs`). A decisão fica em funções pequenas de `tool-paths.js` (`pastasGpsMac`, `pastasGpsWindows`, `caminhoForcadoGps`, `pastasDoPath`); `gpsTool` só junta e procura. A mensagem "idevicesetlocation não encontrado neste computador." agora chega à tela (a chave era `error`, os chamadores leem `err`). Os dois `execFile` do GPS passam a usar `windowsHide: true` (sem janela de console no Windows; sem efeito no Mac). Teste: `app/test/gps-iphone.test.js`.
+- **Removido:** as duas listas de caminhos soltas em `physicalMobileService.js` (o arquivo encolheu de 2479 para 2460 linhas; linha de base atualizada).
+- **Arquivos do app instalado no Mac que mudam** (guarde o anterior em `reservas/` antes): `Contents/Resources/app/electron/services/tool-paths.js` e `Contents/Resources/app/electron/services/physicalMobileService.js`. Reaplicar: `cp app/electron/services/{tool-paths,physicalMobileService}.js` para essa pasta, `node --check` e reiniciar o Nova.
+- **Sem testar:** prova real com Windows + iPhone (aplicar e resetar o GPS); depende de P1 (os `.exe`).
+
 ## Últimas cópias soltas apagadas (Onda 1g) — 20/11/2026
 
 - **O que mudou:** apagadas seis cópias de arquivos que hoje vivem em `app/`: `MAC/integracao-kling/kling-video-service.js`, `MAC/encerramento-nova/{ios-bridge.js,iphone-ssh.js,nova-shutdown.js}` (a pasta sai do git), `MAC/traducao-interface/cam-live.js` e `MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. `reservas/` e `backup-*` ficaram. O git guarda a história.
