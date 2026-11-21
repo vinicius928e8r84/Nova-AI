@@ -582,7 +582,7 @@ Generate ONE PowerShell command to accomplish this.
                 if (specificVideo) pythonArgs.push(specificVideo);
                 
                 const { spawn } = require('child_process');
-                const pyProcess = spawn(process.platform === 'darwin' ? require('./mac-native').python() : 'python', pythonArgs, { cwd: path.join(__dirname, '..', '..') });
+                const pyProcess = spawn(require('./python-runtime').python(), pythonArgs, { cwd: path.join(__dirname, '..', '..'), windowsHide: true });
                 
                 pyProcess.stdout.on('data', (data) => {
                     const lines = data.toString().split('\n').filter(l => l.trim());
