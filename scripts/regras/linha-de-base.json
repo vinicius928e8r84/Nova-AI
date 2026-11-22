@@ -1,13 +1,9 @@
 {
   "arquivos": {
     "app/electron/main.js": 4290,
-    "app/electron/pwa/admin.html": 1523,
-    "app/electron/services/browser-manager.js": 2744,
     "app/electron/services/browserFarmService.js": 2133,
     "app/electron/services/global-spoof-service.js": 1787,
-    "app/electron/services/inventory-manager.js": 1815,
-    "app/electron/services/live-cam-bridge.js": 1024,
-    "app/electron/services/physicalMobileService.js": 2479,
+    "app/electron/services/physicalMobileService.js": 2460,
     "MAC/integracao-camlive/cam-live.js": 1215,
     "MAC/integracao-iphone/bridge/Tweak.x": 1587,
     "prototype-cam-live/index.html": 1670
@@ -22,7 +18,6 @@
     "app/electron/services/agent-swarm-controller.js": 140,
     "app/electron/services/android-tools-mac.js": 10,
     "app/electron/services/antigravity-controller.js": 12,
-    "app/electron/services/browser-manager.js": 371,
     "app/electron/services/browserFarmService.js": 1040,
     "app/electron/services/cam-live-iphone.js": 81,
     "app/electron/services/cam-live-service.js": 82,
@@ -33,7 +28,6 @@
     "app/electron/services/geo-proxy.js": 7,
     "app/electron/services/global-spoof-service.js": 1584,
     "app/electron/services/idioma-ipc.js": 62,
-    "app/electron/services/inventory-manager.js": 1720,
     "app/electron/services/ios-bridge.js": 12,
     "app/electron/services/ios-camera.js": 16,
     "app/electron/services/ios-devices.js": 5,
@@ -41,7 +35,6 @@
     "app/electron/services/iphone-setup/setup.js": 129,
     "app/electron/services/iphone-ssh.js": 7,
     "app/electron/services/kling-video-service.js": 172,
-    "app/electron/services/live-cam-bridge.js": 348,
     "app/electron/services/mac-native.js": 5,
     "app/electron/services/nova-human-controller.js": 40,
     "app/electron/services/nova-shutdown.js": 33,

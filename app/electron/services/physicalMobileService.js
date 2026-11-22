@@ -264,7 +264,7 @@ class PhysicalMobileService {
             const args = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', command];
-            execFile(require('./tool-paths').ssh(), args, { timeout: 12000 }, (err, stdout, stderr) => {
+            require('./tool-paths').execSsh(args, { timeout: 12000 }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
             });
         });
@@ -283,7 +283,7 @@ class PhysicalMobileService {
             const sshArgs = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', cmd];
-            execFile(require('./tool-paths').ssh(), sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
+            require('./tool-paths').execSsh(sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || '').trim(), error: err ? (String(stderr || '').trim() || err.message) : null });
             });
         });
@@ -394,7 +394,7 @@ class PhysicalMobileService {
 
     iosRun(args) {
         return new Promise((resolve) => {
-            execFile(require('./ios-tools').tool('ideviceinstaller'), args, { timeout: 25000 }, (err, stdout, stderr) => {
+            execFile(require('./ios-tools').tool('ideviceinstaller'), args, { timeout: 25000, windowsHide: true }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
             });
         });
@@ -1568,45 +1568,26 @@ exit 0
     }
 
     idevicesetlocationPath() {
-        const roots = [
-            process.resourcesPath ? path.join(process.resourcesPath, 'bin') : null,
-            '/opt/homebrew/bin',
-            '/usr/local/bin',
-            '/usr/bin'
-        ].filter(Boolean);
-        for (const root of roots) {
-            const file = path.join(root, 'idevicesetlocation');
-            try { fs.accessSync(file, fs.constants.X_OK); return file; } catch (_) {}
-        }
-        return null;
+        return require('./tool-paths').gpsTool('idevicesetlocation');
     }
 
     pymobiledevice3Path() {
-        const candidates = [
-            process.env.NOVA_PYMOBILEDEVICE3,
-            path.join(os.homedir(), '.local', 'bin', 'pymobiledevice3'),
-            '/opt/homebrew/bin/pymobiledevice3',
-            '/usr/local/bin/pymobiledevice3'
-        ].filter(Boolean);
-        for (const c of candidates) {
-            try { fs.accessSync(c, fs.constants.X_OK); return c; } catch (_) {}
-        }
-        return null;
+        return require('./tool-paths').gpsTool('pymobiledevice3');
     }
 
     mountDeveloperImage(udid) {
         return new Promise((resolve) => {
             const bin = this.pymobiledevice3Path();
             if (!bin) return resolve(false);
-            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000 }, (err) => resolve(!err));
+            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000, windowsHide: true }, (err) => resolve(!err));
         });
     }
 
     runIdevicesetlocation(udid, args, timeout = 30000) {
         return new Promise((resolve) => {
             const bin = this.idevicesetlocationPath();
-            if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado neste computador.' });
-            execFile(bin, ['--udid', udid, ...args], { timeout }, (err, stdout, stderr) => {
+            if (!bin) return resolve({ ok: false, err: 'idevicesetlocation não encontrado neste computador.' });
+            execFile(bin, ['--udid', udid, ...args], { timeout, windowsHide: true }, (err, stdout, stderr) => {
                 // idevicesetlocation imprime os erros no STDOUT (não no stderr); junta os dois
                 const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
                 resolve({ ok: !err, out: String(stdout || ''), err: saida || (err && err.message) || '' });
@@ -1663,7 +1644,7 @@ exit 0
 
     iosScp(args) {
         return new Promise((resolve, reject) => {
-            execFile(require('./tool-paths').scp(), args, { timeout: 30000 }, (err, stdout, stderr) => {
+            execFile(require('./tool-paths').scp(), args, { timeout: 30000, windowsHide: true }, (err, stdout, stderr) => {
                 if (err) return reject(new Error(String(stderr || err.message).slice(0, 200)));
                 resolve(true);
             });
