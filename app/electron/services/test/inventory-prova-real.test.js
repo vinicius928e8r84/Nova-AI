@@ -59,17 +59,26 @@ function criarDublesLocais(raiz) {
   };
 }
 
-function carregarGerente(raiz) {
-  for (const chave of Object.keys(require.cache)) {
-    if (path.dirname(chave) === PASTA_DOS_SERVICOS) delete require.cache[chave];
-  }
-  const dubles = criarDublesLocais(raiz);
-  const original = Module._load;
-  Module._load = function carregar(pedido, pai, ...resto) {
-    const doServico = pai && pai.filename && path.dirname(pai.filename) === PASTA_DOS_SERVICOS;
-    if (doServico && pedido in dubles) return dubles[pedido];
-    return original.call(this, pedido, pai, ...resto);
+function limparCacheDosServicos() {
+  const chaves = Object.keys(require.cache);
+  chaves.filter(chave => path.dirname(chave) === PASTA_DOS_SERVICOS).forEach(chave => delete require.cache[chave]);
+}
+
+function pedidoVemDoServico(pai) {
+  return Boolean(pai && pai.filename) && path.dirname(pai.filename) === PASTA_DOS_SERVICOS;
+}
+
+function criarCarregadorComDubles(dubles, original) {
+  return function carregar(pedido, pai, ...resto) {
+    const substituir = pedidoVemDoServico(pai) && Object.hasOwn(dubles, pedido);
+    return substituir ? dubles[pedido] : original.call(this, pedido, pai, ...resto);
   };
+}
+
+function carregarGerente(raiz) {
+  limparCacheDosServicos();
+  const original = Module._load;
+  Module._load = criarCarregadorComDubles(criarDublesLocais(raiz), original);
   const desfazer = () => { Module._load = original; };
   try {
     const { inventoryManager } = require(path.join(PASTA_DOS_SERVICOS, 'inventory-manager.js'));
@@ -91,43 +100,54 @@ function instalarPowershellLocal(pasta) {
   fs.writeFileSync(alvo, corpo, { mode: 0o755 });
 }
 
+function instalarPowershellNoPath(raiz) {
+  if (process.platform !== 'linux') return;
+  const bin = path.join(raiz, 'bin');
+  fs.mkdirSync(bin);
+  instalarPowershellLocal(bin);
+  process.env.PATH = bin + path.delimiter + process.env.PATH;
+}
+
+function iniciarGerente(raiz, pastaAtual, vault) {
+  instalarPowershellNoPath(raiz);
+  const carregado = carregarGerente(raiz);
+  vault.desfazer = carregado.desfazer;
+  vault.gerente = carregado.inventoryManager;
+  vault.gerente.init(() => pastaAtual.whatsapp);
+}
+
+function encerrarVault(vault) {
+  vault.desfazer();
+  process.env.PATH = vault.pathOriginal;
+  vault.gerente?.db?.close();
+  fs.rmSync(vault.raiz, { recursive: true, force: true });
+}
+
 function prepararVault(pastaAtual) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-prova-real-'));
-  const pathOriginal = process.env.PATH;
-  let desfazer = () => {};
-  let gerente = null;
-  const encerrar = () => {
-    desfazer();
-    process.env.PATH = pathOriginal;
-    if (gerente && gerente.db) gerente.db.close();
-    fs.rmSync(raiz, { recursive: true, force: true });
-  };
+  const imagens = path.join(raiz, 'documents', 'Nova_Vault', 'inventory', 'product_images');
+  const vault = { raiz, imagens, gerente: null, desfazer: () => {}, pathOriginal: process.env.PATH };
+  vault.encerrar = () => encerrarVault(vault);
   try {
-    if (process.platform === 'linux') {
-      const bin = path.join(raiz, 'bin');
-      fs.mkdirSync(bin);
-      instalarPowershellLocal(bin);
-      process.env.PATH = bin + path.delimiter + pathOriginal;
-    }
-    const carregado = carregarGerente(raiz);
-    desfazer = carregado.desfazer;
-    gerente = carregado.inventoryManager;
-    gerente.init(() => pastaAtual.whatsapp);
+    iniciarGerente(raiz, pastaAtual, vault);
   } catch (erro) {
-    encerrar();
+    vault.encerrar();
     throw erro;
   }
-  const imagens = path.join(raiz, 'documents', 'Nova_Vault', 'inventory', 'product_images');
-  return { raiz, imagens, gerente, encerrar };
+  return vault;
 }
 
 function gravarAjuste(gerente, chave, valor) {
   gerente.db.prepare('INSERT OR REPLACE INTO inventory_settings (key, value) VALUES (?, ?)').run(chave, String(valor));
 }
 
+function gravarAjustes(gerente, ajustes) {
+  Object.entries(ajustes).forEach(([chave, valor]) => gravarAjuste(gerente, chave, valor));
+}
+
 function lerValor(gerente, chave) {
   const linha = gerente.db.prepare('SELECT value FROM inventory_settings WHERE key = ?').get(chave);
-  return linha && linha.value;
+  return linha?.value;
 }
 
 async function nomesNoZip(zip) {
@@ -246,7 +266,7 @@ test('backup automático chega por SMTP local com o zip do vault anexado', async
       smtp_port: smtp.porta,
       smtp_receiver: 'dono@example.test',
     };
-    for (const [chave, valor] of Object.entries(ajustes)) gravarAjuste(vault.gerente, chave, valor);
+    gravarAjustes(vault.gerente, ajustes);
 
     await vault.gerente.runAutoEmailBackup();
 
