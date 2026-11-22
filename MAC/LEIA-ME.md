@@ -31,6 +31,14 @@
 - **Arquivos do app instalado no Mac que mudam:** nenhum. `app/` não muda. Nada a reaplicar.
 - **Sem testar:** `teste-geo.cjs` com proxy (precisa de proxy real e de `socks-proxy-agent`; só o `byIp` rodou); empacotamento real e Mac e Windows reais. `traducao-interface/preparar.py` ainda grava `cam-live.js` na pasta quando roda (copia de `integracao-camlive/cam-live.js`), e o arquivo gerado aparece como não versionado.
 
+## Filhos de console escondidos e OpenSSH ausente (P3 da paridade) — 19/11/2026
+
+`windowsHide: true` em todo `spawn`/`execFile` de `iproxy`, `ssh`, `scp`, `ssh-keygen` das ferramentas `idevice*` e do `ffmpeg` do CAM LIVE/HIJACK: sem isso, no Windows cada filho abre uma janela preta. No Mac a opção não faz nada. `tool-paths.js` ganhou `exigirOpenssh(nome)` e `execSsh()`; o Conectar (`setup.js`) e o CAM LIVE (`_readState`) chamam a verificação antes de qualquer outra coisa, para a mensagem chegar à tela: no Windows, se `System32\OpenSSH\ssh.exe` não existir, o erro passa a ser "O Cliente OpenSSH do Windows não está ativo. Ative-o em Configurações > Aplicativos > Recursos opcionais." (antes era um ENOENT cru). No Mac o caminho continua `/usr/bin/ssh`. Nada foi removido: o item só pede opção nos filhos que já existem.
+
+Arquivos do app instalado a trocar (guardar o anterior em `reservas/`), todos em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`: `tool-paths.js`, `ios-bridge.js`, `ios-camera.js`, `ios-devices.js`, `cam-live-iphone.js`, `idioma-ipc.js`, `physicalMobileService.js`, `iphone-setup/setup.js`. Reaplicar com `cp` de `app/electron/services/<arquivo>`. Depois `node --check` e reiniciar o Nova.
+
+**Testado:** `MAC/integracao-iphone/conexao-usb/windows-hide.test.cjs` (`execFile` simulado recebe `windowsHide`; Windows sem OpenSSH dá a mensagem e não executa nada; Mac mantém `/usr/bin/ssh`). **Sem teste real:** Windows com iPhone (ver que nenhuma janela abre), Mac com iPhone (regressão).
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
