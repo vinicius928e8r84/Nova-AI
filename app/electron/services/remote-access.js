@@ -7,6 +7,8 @@ const QRCode = require('qrcode');
 const { spawn } = require('child_process');
 const cloudflared = require('cloudflared');
 
+const SALA_AUTENTICADOS = 'autenticados';
+
 class RemoteAccessService {
     constructor(app) {
         this.app = app;
@@ -322,7 +324,7 @@ hone par ye file automatically update ho jayegi.
                         connectedAt: Date.now()
                     });
 
-                    socket.emit('authenticated', { success: true });
+                    this.confirmarAutenticacao(socket);
                     console.log(`[RemoteAccess] Client authenticated: ${tokenData.deviceName}`);
 
                     // Notify desktop app about new connection
@@ -413,6 +415,11 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
+    confirmarAutenticacao(socket) {
+        socket.join(SALA_AUTENTICADOS);
+        socket.emit('authenticated', { success: true });
+    }
+
     // Send response back to mobile client
     sendToMobile(socketId, event, data) {
         if (this.io) {
@@ -423,7 +430,7 @@ hone par ye file automatically update ho jayegi.
     // Broadcast event to all connected mobile clients
     broadcastToMobile(event, data) {
         if (this.io) {
-            this.io.emit(event, data);
+            this.io.to(SALA_AUTENTICADOS).emit(event, data);
         }
     }
 
