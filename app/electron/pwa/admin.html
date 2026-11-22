@@ -213,6 +213,15 @@
         };
 
         // Firebase Configuration Management
+        function cabecalhoDoToken() {
+            try {
+                const token = JSON.parse(localStorage.getItem('nova_token')).token;
+                return token ? { Authorization: `Bearer ${token}` } : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
         async function loadSavedConfig() {
             let localConfig = localStorage.getItem('fb_license_config');
             if (!localConfig) {
@@ -230,7 +239,7 @@
             }
 
             try {
-                const response = await fetch('/api/get-firebase-config');
+                const response = await fetch('/api/get-firebase-config', { headers: cabecalhoDoToken() });
                 if (response.ok) {
                     const parsed = await response.json();
                     if (parsed.apiKey && parsed.projectId && parsed.appId) {
@@ -268,7 +277,7 @@
             try {
                 await fetch('/api/save-firebase-config', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...cabecalhoDoToken() },
                     body: JSON.stringify(config)
                 });
             } catch (e) {
