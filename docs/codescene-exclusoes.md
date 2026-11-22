@@ -9,7 +9,6 @@ Nova-AI/app/dist/assets/face_mesh-*.js
 Nova-AI/**/marked.min.js
 Nova-AI/MAC/**/reservas/**
 Nova-AI/MAC/**/backup-*/**
-Nova-AI/backup-antes-traducao/**
 ```
 
 | Linha | O que tira da análise | Por quê |
@@ -17,10 +16,9 @@ Nova-AI/backup-antes-traducao/**
 | `**/index-Dun7lr2S*.js` | O bundle da interface (`app/dist/assets/`) e as cópias dele em `MAC/` | Código gerado e minificado, sem fonte no repositório |
 | `app/dist/assets/face-api.esm-*.js` | face-api | Biblioteca de terceiros embarcada pronta |
 | `app/dist/assets/face_mesh-*.js` | MediaPipe Face Mesh | Biblioteca de terceiros embarcada pronta |
-| `**/marked.min.js` | marked, em `app/electron/pwa/` e na cópia de `backup-antes-traducao/` | Biblioteca de terceiros minificada |
+| `**/marked.min.js` | marked, em `app/electron/pwa/` | Biblioteca de terceiros minificada |
 | `MAC/**/reservas/**` | Cópias do arquivo anterior do app instalado | `AGENTS.md` seção 5 manda guardá-las; nenhum código as usa |
 | `MAC/**/backup-*/**` | Cópias de segurança da tradução | Nenhum código as usa |
-| `backup-antes-traducao/**` | Cópia de segurança anterior à tradução | Nenhum código a usa; a linha sai junto com a pasta |
 
 `app/dist/` inteira **não** sai: `app/dist/cam-live.js` e `app/dist/cam-live-audio.js` são código do CAM LIVE escrito à mão, carregado por `<script>` no `index.html`.
 
