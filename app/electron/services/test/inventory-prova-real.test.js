@@ -19,6 +19,8 @@ const RESPOSTAS_DO_SMTP = [
   ['DATA', '354 go'],
   ['QUIT', '221 bye'],
 ];
+const FIM_DA_LINHA = '\r\n';
+const FIM_DOS_DADOS = '\r\n.\r\n';
 
 class BancoDeArquivo {
   constructor(caminho) {
@@ -47,30 +49,35 @@ class BancoDeArquivo {
   }
 }
 
-function criarDublesLocais(raiz, zipEscolhido) {
+function criarDublesLocais(raiz) {
   return {
     electron: {
       app: { isPackaged: true, getAppPath: () => path.join(raiz, 'app'), getPath: nome => path.join(raiz, nome) },
       ipcMain: { handle: () => {} },
-      dialog: { showOpenDialog: async () => ({ canceled: false, filePaths: [zipEscolhido()] }) },
     },
     'better-sqlite3': BancoDeArquivo,
   };
 }
 
-function carregarGerente(raiz, zipEscolhido) {
+function carregarGerente(raiz) {
   for (const chave of Object.keys(require.cache)) {
     if (path.dirname(chave) === PASTA_DOS_SERVICOS) delete require.cache[chave];
   }
-  const dubles = criarDublesLocais(raiz, zipEscolhido);
+  const dubles = criarDublesLocais(raiz);
   const original = Module._load;
   Module._load = function carregar(pedido, pai, ...resto) {
     const doServico = pai && pai.filename && path.dirname(pai.filename) === PASTA_DOS_SERVICOS;
     if (doServico && pedido in dubles) return dubles[pedido];
     return original.call(this, pedido, pai, ...resto);
   };
-  const { inventoryManager } = require(path.join(PASTA_DOS_SERVICOS, 'inventory-manager.js'));
-  return { inventoryManager, desfazer: () => { Module._load = original; } };
+  const desfazer = () => { Module._load = original; };
+  try {
+    const { inventoryManager } = require(path.join(PASTA_DOS_SERVICOS, 'inventory-manager.js'));
+    return { inventoryManager, desfazer };
+  } catch (erro) {
+    desfazer();
+    throw erro;
+  }
 }
 
 function instalarPowershellLocal(pasta) {
@@ -86,29 +93,32 @@ function instalarPowershellLocal(pasta) {
 
 function prepararVault(pastaAtual) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-prova-real-'));
-  const bin = path.join(raiz, 'bin');
-  fs.mkdirSync(bin);
   const pathOriginal = process.env.PATH;
-  if (process.platform === 'linux') {
-    instalarPowershellLocal(bin);
-    process.env.PATH = bin + path.delimiter + pathOriginal;
-  }
-  const estado = { zip: null };
-  const { inventoryManager, desfazer } = carregarGerente(raiz, () => estado.zip);
-  inventoryManager.init(() => pastaAtual.whatsapp);
-  const imagens = path.join(raiz, 'documents', 'Nova_Vault', 'inventory', 'product_images');
-  return {
-    raiz,
-    estado,
-    imagens,
-    gerente: inventoryManager,
-    encerrar() {
-      desfazer();
-      process.env.PATH = pathOriginal;
-      if (inventoryManager.db) inventoryManager.db.close();
-      fs.rmSync(raiz, { recursive: true, force: true });
-    },
+  let desfazer = () => {};
+  let gerente = null;
+  const encerrar = () => {
+    desfazer();
+    process.env.PATH = pathOriginal;
+    if (gerente && gerente.db) gerente.db.close();
+    fs.rmSync(raiz, { recursive: true, force: true });
   };
+  try {
+    if (process.platform === 'linux') {
+      const bin = path.join(raiz, 'bin');
+      fs.mkdirSync(bin);
+      instalarPowershellLocal(bin);
+      process.env.PATH = bin + path.delimiter + pathOriginal;
+    }
+    const carregado = carregarGerente(raiz);
+    desfazer = carregado.desfazer;
+    gerente = carregado.inventoryManager;
+    gerente.init(() => pastaAtual.whatsapp);
+  } catch (erro) {
+    encerrar();
+    throw erro;
+  }
+  const imagens = path.join(raiz, 'documents', 'Nova_Vault', 'inventory', 'product_images');
+  return { raiz, imagens, gerente, encerrar };
 }
 
 function gravarAjuste(gerente, chave, valor) {
@@ -126,31 +136,58 @@ async function nomesNoZip(zip) {
   return diretorio.files.filter(arquivo => arquivo.type === 'File').map(arquivo => arquivo.path).sort();
 }
 
+function respostaAoComando(linha) {
+  const resposta = RESPOSTAS_DO_SMTP.find(([comando]) => linha.startsWith(comando));
+  return resposta ? resposta[1] : '502 no';
+}
+
+function separadorDaSessao(sessao) {
+  return sessao.nosDados ? FIM_DOS_DADOS : FIM_DA_LINHA;
+}
+
+function cortarAteSeparador(buffer, separador) {
+  const fim = buffer.indexOf(separador);
+  if (fim < 0) return null;
+  return { trecho: buffer.slice(0, fim), resto: buffer.slice(fim + separador.length) };
+}
+
+function receberDados(sessao, trecho) {
+  sessao.mensagens.push(trecho);
+  sessao.nosDados = false;
+  sessao.responder('250 ok');
+}
+
+function receberComando(sessao, linha) {
+  sessao.responder(respostaAoComando(linha));
+  if (linha.startsWith('DATA')) sessao.nosDados = true;
+  if (linha.startsWith('QUIT')) sessao.socket.end();
+}
+
+function tratarTrecho(sessao, trecho) {
+  if (sessao.nosDados) receberDados(sessao, trecho);
+  else receberComando(sessao, trecho);
+}
+
+function consumirBuffer(sessao) {
+  const parte = cortarAteSeparador(sessao.buffer, separadorDaSessao(sessao));
+  if (!parte) return;
+  sessao.buffer = parte.resto;
+  tratarTrecho(sessao, parte.trecho);
+  consumirBuffer(sessao);
+}
+
 function atenderSmtp(socket, mensagens) {
-  let buffer = '';
-  let nosDados = false;
-  const responder = texto => socket.write(texto + '\r\n');
-  const tratarComando = linha => {
-    const resposta = RESPOSTAS_DO_SMTP.find(([comando]) => linha.startsWith(comando));
-    responder(resposta ? resposta[1] : '502 no');
-    if (linha.startsWith('DATA')) nosDados = true;
-    if (linha.startsWith('QUIT')) socket.end();
+  const sessao = {
+    socket,
+    mensagens,
+    buffer: '',
+    nosDados: false,
+    responder: texto => socket.write(texto + FIM_DA_LINHA),
   };
-  responder('220 local ESMTP');
+  sessao.responder('220 local ESMTP');
   socket.on('data', pedaco => {
-    buffer += pedaco.toString('latin1');
-    while (nosDados ? buffer.includes('\r\n.\r\n') : buffer.includes('\r\n')) {
-      const fim = nosDados ? buffer.indexOf('\r\n.\r\n') : buffer.indexOf('\r\n');
-      const trecho = buffer.slice(0, fim);
-      buffer = buffer.slice(fim + (nosDados ? 5 : 2));
-      if (nosDados) {
-        mensagens.push(trecho);
-        nosDados = false;
-        responder('250 ok');
-      } else {
-        tratarComando(trecho);
-      }
-    }
+    sessao.buffer += pedaco.toString('latin1');
+    consumirBuffer(sessao);
   });
 }
 
@@ -168,15 +205,15 @@ function anexoDaMensagem(mensagem) {
   return { nome, conteudo: Buffer.from(base64, 'base64') };
 }
 
-function semarImagem(vault) {
+function semearImagem(vault) {
   fs.mkdirSync(vault.imagens, { recursive: true });
   fs.writeFileSync(path.join(vault.imagens, 'foto.png'), 'imagem-de-verdade');
 }
 
-test('backup em zip de verdade e restauração pela ferramenta do sistema', async () => {
+test('backup em zip de verdade e restauração a partir dele', async () => {
   const vault = prepararVault({});
   try {
-    semarImagem(vault);
+    semearImagem(vault);
     gravarAjuste(vault.gerente, 'marcador', 'antes');
     const backup = await vault.gerente.criarBackupZip();
     assert.strictEqual(backup.success, true, backup.error);
@@ -185,7 +222,6 @@ test('backup em zip de verdade e restauração pela ferramenta do sistema', asyn
 
     gravarAjuste(vault.gerente, 'marcador', 'depois');
     fs.rmSync(path.join(vault.imagens, 'foto.png'));
-    vault.estado.zip = backup.zipPath;
     const restauracao = await vault.gerente.restaurarDoZip(backup.zipPath);
 
     assert.deepStrictEqual(restauracao, { success: true });
@@ -201,7 +237,7 @@ test('backup automático chega por SMTP local com o zip do vault anexado', async
   const smtp = await abrirServidorSmtp();
   const vault = prepararVault({});
   try {
-    semarImagem(vault);
+    semearImagem(vault);
     const ajustes = {
       auto_backup: 'true',
       smtp_sender: 'loja@example.test',
@@ -239,6 +275,7 @@ test('recibo do WhatsApp sai com o número, a loja e os itens da venda', async (
   const vault = prepararVault({ whatsapp });
   try {
     const vendas = require(path.join(PASTA_DOS_SERVICOS, 'inventory-vendas.js'));
+    vault.gerente.gravarPerfil({ name: 'Mercearia Prova', type: 'Mercado', details: '', contact: '' });
     const resposta = await vendas.enviarRecibo(vault.gerente, {
       invoiceId: 77,
       items: [{ name: 'Chai', quantity: 2, price: 12.5 }],
@@ -253,6 +290,7 @@ test('recibo do WhatsApp sai com o número, a loja e os itens da venda', async (
     const [jid, texto, citar] = enviados[0];
     assert.strictEqual(jid, '923001234567@c.us');
     assert.strictEqual(citar, true);
+    assert.match(texto, /^🧾 \*RECEIPT: MERCEARIA PROVA\*$/m);
     assert.match(texto, /\*Invoice ID:\* #77/);
     assert.match(texto, /\*Chai\* \(x2\) — Rs\. 25\.00/);
     assert.match(texto, /\*Grand Total:\* \*Rs\. 25\.00\*/);
