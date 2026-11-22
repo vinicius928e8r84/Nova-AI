@@ -7,6 +7,7 @@ const { ErroDeUso, lerArquivo, lerMudancas, resolverBase, tentar } = require('./
 const { classificar, resumo } = require('./risco');
 const { extensaoDe } = require('./globs');
 const caminhosSensiveis = require('./caminhos-sensiveis.json');
+const { atualizarLinhasDeBase, criarLinhasDeBase, regrasDaLinhaDeBase } = require('./linha-de-base');
 const linhas = require('./regra-linhas');
 
 const REGRAS = [
@@ -17,6 +18,7 @@ const REGRAS = [
   require('./regra-debug'),
   require('./regra-sintaxe'),
   require('./regra-eslint'),
+  require('./regra-saude'),
 ];
 
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
@@ -28,8 +30,10 @@ Confere o que a mudança (merge-base com a base até a árvore de trabalho) acre
   --raiz <pasta>               outro repositório (os testes usam)
   --regra <id>                 roda só esta regra (pode repetir)
   --lista                      lista as regras e sai
-  --criar-linha-de-base        cria scripts/regras/linha-de-base.json com os arquivos que já passam do limite
-  --atualizar-linha-de-base    baixa a linha de base depois de encolher um arquivo (nunca sobe)
+  --criar-linha-de-base        cria em scripts/regras/linha-de-base.json a linha de base que ainda falta
+                               (com --regra, só a dessa regra: limite-de-linhas ou saude-do-codigo)
+  --atualizar-linha-de-base    baixa a linha de base depois de melhorar ou mover um arquivo (nunca sobe;
+                               com --regra, só a dessa regra)
   --help                       esta ajuda
 
 Sai com 0 se tudo passa, 1 se alguma regra falha, 2 em erro de uso.`;
@@ -109,24 +113,8 @@ function main(argv, env = process.env) {
   const avisos = [];
   const ctx = contexto(raiz, base, env, avisos);
 
-  if (opcoes.criar) {
-    const alvo = path.join(raiz, linhas.ARQUIVO_DA_LINHA_DE_BASE);
-    if (fs.existsSync(alvo)) throw new ErroDeUso(`${linhas.ARQUIVO_DA_LINHA_DE_BASE} já existe; ela só encolhe (--atualizar-linha-de-base)`);
-    const arquivos = linhas.calcularLinhaDeBase(ctx);
-    linhas.gravar(raiz, arquivos);
-    console.log(`linha de base criada com ${Object.keys(arquivos).length} arquivo(s) acima do limite`);
-    return 0;
-  }
-  if (opcoes.atualizar) {
-    const { nova, erros } = linhas.atualizarLinhaDeBase(ctx);
-    if (erros.length) {
-      console.log(`${erros.map(e => `✗ ${e}`).join('\n')}\nnada foi atualizado: a linha de base só encolhe`);
-      return 1;
-    }
-    linhas.gravar(raiz, nova);
-    console.log(`linha de base atualizada: ${Object.keys(nova).length} arquivo(s)`);
-    return 0;
-  }
+  if (opcoes.criar) return criarLinhasDeBase(ctx, regrasDaLinhaDeBase(REGRAS, opcoes.regras));
+  if (opcoes.atualizar) return atualizarLinhasDeBase(ctx, regrasDaLinhaDeBase(REGRAS, opcoes.regras));
 
   const escolhidas = REGRAS.filter(regra => !opcoes.regras.length || opcoes.regras.includes(regra.id));
   const falhas = [];
