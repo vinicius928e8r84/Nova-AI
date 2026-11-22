@@ -6,8 +6,11 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const { spawn } = require('child_process');
 const cloudflared = require('cloudflared');
+const { LimiteDeTentativas, clienteDaConexao } = require('./limite-tentativas');
 
 const SALA_AUTENTICADOS = 'autenticados';
+const BYTES_DO_TOKEN = 16;
+const TAMANHO_MINIMO_DO_TOKEN = BYTES_DO_TOKEN * 2;
 
 class RemoteAccessService {
     constructor(app) {
@@ -19,6 +22,7 @@ class RemoteAccessService {
         this.tokens = new Map(); // Store active tokens
         this.connectedClients = new Map(); // Track connected mobile clients
         this.cloudflaredProcess = null;
+        this.limiteDeTentativas = new LimiteDeTentativas();
         this.publicUrl = null;
         this.isRunning = false;
 
@@ -34,8 +38,13 @@ class RemoteAccessService {
         try {
             if (fs.existsSync(this.tokensPath)) {
                 const data = JSON.parse(fs.readFileSync(this.tokensPath, 'utf8'));
-                this.tokens = new Map(Object.entries(data.tokens || {}));
+                const salvos = Object.entries(data.tokens || {});
+                this.tokens = new Map(salvos.filter(([token]) => token.length >= TAMANHO_MINIMO_DO_TOKEN));
                 console.log(`[RemoteAccess] Loaded ${this.tokens.size} saved tokens`);
+                if (this.tokens.size < salvos.length) {
+                    console.warn(`[RemoteAccess] ${salvos.length - this.tokens.size} tokens fracos (menos de ${TAMANHO_MINIMO_DO_TOKEN} caracteres) descartados; leia o QR novo.`);
+                    this.saveTokens();
+                }
             }
 
             // Automatically generate a default token if none exist
@@ -63,7 +72,7 @@ class RemoteAccessService {
 
     // Generate a new authentication token
     generateToken(deviceName = 'Mobile Device') {
-        const token = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 characters, e.g., 'A1B2C3D4'
+        const token = crypto.randomBytes(BYTES_DO_TOKEN).toString('hex').toUpperCase();
         const tokenData = {
             token,
             deviceName,
@@ -162,7 +171,13 @@ hone par ye file automatically update ho jayegi.
 
     tokenDaRequisicaoValido(req) {
         const token = /^Bearer (\S+)$/.exec(req.headers.authorization || '')?.[1];
-        return this.tokens.get(token)?.active === true;
+        if (!token) return false;
+        const cliente = clienteDaConexao(req.socket?.remoteAddress, req.headers);
+        if (this.limiteDeTentativas.bloqueado(cliente)) return false;
+        const valido = this.tokens.get(token)?.active === true;
+        if (valido) this.limiteDeTentativas.registrarSucesso(cliente);
+        else this.limiteDeTentativas.registrarFalha(cliente);
+        return valido;
     }
 
     atenderConfigFirebase(req, res) {
@@ -321,7 +336,14 @@ hone par ye file automatically update ho jayegi.
 
             // Authentication required
             socket.on('authenticate', (carga) => {
+                const cliente = clienteDaConexao(socket.handshake.address, socket.handshake.headers);
+                if (this.limiteDeTentativas.bloqueado(cliente)) {
+                    socket.emit('authenticated', { success: false, error: 'Muitas tentativas. Aguarde e tente de novo.' });
+                    socket.disconnect();
+                    return;
+                }
                 if (this.validateToken(carga?.token)) {
+                    this.limiteDeTentativas.registrarSucesso(cliente);
                     const tokenData = this.tokens.get(carga.token);
                     this.connectedClients.set(socket.id, {
                         token: carga.token,
@@ -341,6 +363,7 @@ hone par ye file automatically update ho jayegi.
                     // Send Groq key for voice support
                     this.sendGroqKeyToClient(socket);
                 } else {
+                    this.limiteDeTentativas.registrarFalha(cliente);
                     socket.emit('authenticated', { success: false, error: 'Invalid token' });
                     socket.disconnect();
                 }
