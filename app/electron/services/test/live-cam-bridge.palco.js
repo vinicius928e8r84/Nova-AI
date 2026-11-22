@@ -15,7 +15,7 @@ function criarDiario(raizDoApp, completo) {
   const entradas = [];
   const limpar = valor => {
     if (typeof valor !== 'string') return valor;
-    const texto = valor.split(raizDoApp).join('<app>');
+    const texto = valor.startsWith(raizDoApp) ? '<app>' + valor.slice(raizDoApp.length).split(path.sep).join('/') : valor.split(raizDoApp).join('<app>');
     const longo = texto.length > LIMITE_DE_TEXTO;
     return longo && !completo ? resumoDoTexto(texto) : texto;
   };
@@ -223,7 +223,7 @@ function montarPalco(caminhoDoModulo, cenario = {}, { completo = false } = {}) {
   const raizDoApp = path.resolve(path.dirname(caminhoDoModulo), '../..');
   const diario = criarDiario(raizDoApp, completo);
   const palco = { cenario, servidores: [], processos: [], wss: null, anotar: diario.anotar, raizDoApp };
-  palco.existentes = new Set((cenario.existentes ?? []).map(caminho => caminho.split('<app>').join(raizDoApp)));
+  palco.existentes = new Set((cenario.existentes ?? []).map(caminho => (caminho.startsWith('<app>') ? path.join(raizDoApp, caminho.slice('<app>'.length)) : caminho)));
   const restaurar = trocarAmbiente(palco);
   try {
     palco.LiveCamBridgeService = carregarModulo(palco, caminhoDoModulo);
