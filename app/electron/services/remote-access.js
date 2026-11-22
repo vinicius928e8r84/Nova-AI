@@ -152,6 +152,72 @@ hone par ye file automatically update ho jayegi.
         return false;
     }
 
+    revogarTodosOsTokens() {
+        this.tokens.clear();
+        this.connectedClients.forEach((client, socketId) => {
+            this.io?.to(socketId).emit('token-revoked');
+            this.io?.sockets.sockets.get(socketId)?.disconnect();
+        });
+    }
+
+    tokenDaRequisicaoValido(req) {
+        const token = /^Bearer (\S+)$/.exec(req.headers.authorization || '')?.[1];
+        return this.tokens.get(token)?.active === true;
+    }
+
+    atenderConfigFirebase(req, res) {
+        const rotas = {
+            '/api/save-firebase-config': { metodo: 'POST', tratar: (...args) => this.salvarConfigFirebase(...args) },
+            '/api/get-firebase-config': { metodo: 'GET', tratar: (...args) => this.lerConfigFirebase(...args) }
+        };
+        const rota = rotas[req.url];
+        if (!rota || ![rota.metodo, 'OPTIONS'].includes(req.method)) return false;
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204, {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            });
+            res.end();
+        } else if (!this.tokenDaRequisicaoValido(req)) {
+            this.responderJson(res, 401, { error: 'Não autenticado' });
+        } else {
+            rota.tratar(req, res);
+        }
+        return true;
+    }
+
+    responderJson(res, status, corpo) {
+        res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify(corpo));
+    }
+
+    caminhoConfigFirebase() {
+        return path.join(this.app.getPath('userData'), 'firebase_config.json');
+    }
+
+    salvarConfigFirebase(req, res) {
+        let corpo = '';
+        req.on('data', (pedaco) => { corpo += pedaco; });
+        req.on('end', () => {
+            try {
+                fs.writeFileSync(this.caminhoConfigFirebase(), JSON.stringify(JSON.parse(corpo), null, 2));
+                this.responderJson(res, 200, { success: true });
+            } catch (e) {
+                this.responderJson(res, 500, { error: e.message });
+            }
+        });
+    }
+
+    lerConfigFirebase(req, res) {
+        try {
+            const caminho = this.caminhoConfigFirebase();
+            this.responderJson(res, 200, fs.existsSync(caminho) ? JSON.parse(fs.readFileSync(caminho, 'utf8')) : {});
+        } catch (e) {
+            this.responderJson(res, 500, { error: e.message });
+        }
+    }
+
     // Get all tokens
     getAllTokens() {
         return Array.from(this.tokens.values()).map(t => ({
@@ -182,68 +248,7 @@ hone par ye file automatically update ho jayegi.
         try {
             // Create HTTP server for Socket.IO
             this.httpServer = http.createServer((req, res) => {
-                if (req.url === '/api/save-firebase-config' && (req.method === 'POST' || req.method === 'OPTIONS')) {
-                    if (req.method === 'OPTIONS') {
-                        res.writeHead(204, {
-                            'Access-Control-Allow-Origin': '*',
-                            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                            'Access-Control-Allow-Headers': 'Content-Type'
-                        });
-                        res.end();
-                        return;
-                    }
-                    let body = '';
-                    req.on('data', chunk => { body += chunk; });
-                    req.on('end', () => {
-                        try {
-                            const config = JSON.parse(body);
-                            const configPath = path.join(this.app.getPath('userData'), 'firebase_config.json');
-                            fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-                            res.writeHead(200, { 
-                                'Content-Type': 'application/json', 
-                                'Access-Control-Allow-Origin': '*' 
-                            });
-                            res.end(JSON.stringify({ success: true }));
-                        } catch (e) {
-                            res.writeHead(500, { 
-                                'Content-Type': 'application/json', 
-                                'Access-Control-Allow-Origin': '*' 
-                            });
-                            res.end(JSON.stringify({ error: e.message }));
-                        }
-                    });
-                    return;
-                }
-                if (req.url === '/api/get-firebase-config' && (req.method === 'GET' || req.method === 'OPTIONS')) {
-                    if (req.method === 'OPTIONS') {
-                        res.writeHead(204, {
-                            'Access-Control-Allow-Origin': '*',
-                            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-                            'Access-Control-Allow-Headers': 'Content-Type'
-                        });
-                        res.end();
-                        return;
-                    }
-                    try {
-                        const configPath = path.join(this.app.getPath('userData'), 'firebase_config.json');
-                        let config = {};
-                        if (fs.existsSync(configPath)) {
-                            config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                        }
-                        res.writeHead(200, { 
-                            'Content-Type': 'application/json', 
-                            'Access-Control-Allow-Origin': '*' 
-                        });
-                        res.end(JSON.stringify(config));
-                    } catch (e) {
-                        res.writeHead(500, { 
-                            'Content-Type': 'application/json', 
-                            'Access-Control-Allow-Origin': '*' 
-                        });
-                        res.end(JSON.stringify({ error: e.message }));
-                    }
-                    return;
-                }
+                if (this.atenderConfigFirebase(req, res)) return;
 
                 // Serve the mobile PWA
                 this.servePWA(req, res);
@@ -315,11 +320,11 @@ hone par ye file automatically update ho jayegi.
             console.log(`[RemoteAccess] New connection attempt: ${socket.id}`);
 
             // Authentication required
-            socket.on('authenticate', ({ token }) => {
-                if (this.validateToken(token)) {
-                    const tokenData = this.tokens.get(token);
+            socket.on('authenticate', (carga) => {
+                if (this.validateToken(carga?.token)) {
+                    const tokenData = this.tokens.get(carga.token);
                     this.connectedClients.set(socket.id, {
-                        token,
+                        token: carga.token,
                         deviceName: tokenData.deviceName,
                         connectedAt: Date.now()
                     });
@@ -397,6 +402,7 @@ hone par ye file automatically update ho jayegi.
 
     // Send Groq key to a specific socket
     sendGroqKeyToClient(socket) {
+        if (!this.connectedClients.has(socket.id)) return;
         const groqKeyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
         try {
             if (fs.existsSync(groqKeyPath)) {
@@ -427,7 +433,6 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
-    // Broadcast event to all connected mobile clients
     broadcastToMobile(event, data) {
         if (this.io) {
             this.io.to(SALA_AUTENTICADOS).emit(event, data);
