@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## live-cam-bridge.js refatorado com saída idêntica (Onda 4) — 21/11/2026
+
+- **O que mudou:** `app/electron/services/live-cam-bridge.js` passa de 1.024 para cerca de 600 linhas, sem mudar canal IPC, argumento nem resposta. As quatro páginas HTML servidas aos celulares foram para o módulo novo `app/electron/services/live-cam-paginas.js`. A central e a da webcam do PC estão byte a byte iguais. Nas outras duas só mudou o script: na do spoof, os comandos que chegam pelo WebSocket viraram um `Map`; na da câmera do celular, a condição de envio virou `podeEnviarQuadro`. O que o celular faz é o mesmo. A pontuação dos IPs virou uma tabela por faixa. O `startServer` foi separado em certificado, servidor e um papel por tipo de celular. As rotas HTTP viraram um mapa. O caminho do scrcpy embutido escolhe entre os mesmos dois caminhos de antes. `linha-de-base.json` perde a entrada do arquivo.
+- **Testes:** `node --test app/electron/services/test/live-cam-bridge.test.js` (32 cenas gravadas no código antigo, com dublês de `http`, `https`, `ws`, `os`, `fs`, `child_process`, `qrcode` e `selfsigned`) e `node --test app/electron/services/test/live-cam-paginas.test.js` (7 roteiros que rodam o script de cada página num `vm`, com DOM, câmera e WebSocket falsos).
+- **Arquivos do app instalado no Mac que mudam:** `services/live-cam-bridge.js` e **`services/live-cam-paginas.js` (arquivo novo)**. O primeiro faz `require('./live-cam-paginas')` no topo: copiar só ele impede o CAM spoof de abrir (MODULE_NOT_FOUND). Guardar o anterior em `reservas/`, copiar os dois para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, rodar `node --check` e reiniciar o Nova. O bundle não muda.
+- **Sem testar:** QR, câmera do celular no painel, webcam do PC no celular, vídeo spoof no celular e câmera do Android por scrcpy, em Mac e Windows reais. Fica para a prova real.
+
 ## Lote Nova 2: inventory-manager.js, browser-manager.js e admin.html refatorados sem mudar o comportamento (Onda 3) — 21/11/2026
 
 - **O que mudou:** `inventory-manager.js` (1815 → 403 linhas) ficou com o gerente e os 33 `ipcMain.handle('inventory:…')`, com o canal literal; o resto foi por área para `inventory-banco.js` (vault, tabelas, migrações), `inventory-nuvem.js` (Supabase), `inventory-produtos.js` (categorias, produtos, contagem, busca) e `inventory-vendas.js` (caixa, relatórios, despesa, recibo, khata). O que se repetia virou tabela ou função (`trazerDaNuvem`, `copiaDaLinha`, `reabrirBanco`, `compactarVault`). `browser-manager.js` (2744 → 513 linhas) ficou com a vida do navegador, a recuperação e os 46 `ipcMain.handle`; perfil e porta CDP foram para `browser-perfil.js`, as respostas para `browser-respostas.js` (`sucesso`, `falhou`, `semElemento`, com as mesmas chaves na mesma ordem) e as 46 ferramentas para `browser-ferramentas-pagina.js`, `browser-ferramentas-elemento.js` e `browser-ferramentas-contexto.js`. Os métodos públicos de `browserService` não mudam. O `<style>` de `pwa/admin.html` (1523 → 680 linhas) foi para `pwa/admin.css`, com as mesmas regras na mesma ordem e um `<link>` no mesmo lugar do `<head>`; o script da página não foi mexido. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que escreve no mesmo stdout. Os três saem de `scripts/regras/linha-de-base.json`. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o `ditto`/`Expand-Archive` da restauração do estoque e o Chrome do sistema no Mac já existiam e só foram movidos).
@@ -37,6 +44,14 @@
 - **Achado:** o `geo-proxy.js` apagado era mais novo que o de `app/`. O commit `011395f` (08/11) trocou o `parseProxy` (aceita http/https, a ordem invertida `host:porta@usuario:senha`, `host:porta:usuario:senha` sem esquema, aspas e barra no fim, e adivinha o esquema pela porta), mas o app instalado copiado para `app/` em 09/11 não tinha essa troca. Em 14 entradas, as duas versões só dão o mesmo resultado em 2. Para recuperar: `git show 011395f:MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. Levar isso para `app/` fica para outra PR.
 - **Arquivos do app instalado no Mac que mudam:** nenhum. `app/` não muda. Nada a reaplicar.
 - **Sem testar:** `teste-geo.cjs` com proxy (precisa de proxy real e de `socks-proxy-agent`; só o `byIp` rodou); empacotamento real e Mac e Windows reais. `traducao-interface/preparar.py` ainda grava `cam-live.js` na pasta quando roda (copia de `integracao-camlive/cam-live.js`), e o arquivo gerado aparece como não versionado.
+
+## Filhos de console escondidos e OpenSSH ausente (P3 da paridade) — 19/11/2026
+
+`windowsHide: true` em todo `spawn`/`execFile` de `iproxy`, `ssh`, `scp`, `ssh-keygen` das ferramentas `idevice*` e do `ffmpeg` do CAM LIVE/HIJACK: sem isso, no Windows cada filho abre uma janela preta. No Mac a opção não faz nada. `tool-paths.js` ganhou `exigirOpenssh(nome)` e `execSsh()`; o Conectar (`setup.js`) e o CAM LIVE (`_readState`) chamam a verificação antes de qualquer outra coisa, para a mensagem chegar à tela: no Windows, se `System32\OpenSSH\ssh.exe` não existir, o erro passa a ser "O Cliente OpenSSH do Windows não está ativo. Ative-o em Configurações > Aplicativos > Recursos opcionais." (antes era um ENOENT cru). No Mac o caminho continua `/usr/bin/ssh`. Nada foi removido: o item só pede opção nos filhos que já existem.
+
+Arquivos do app instalado a trocar (guardar o anterior em `reservas/`), todos em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`: `tool-paths.js`, `ios-bridge.js`, `ios-camera.js`, `ios-devices.js`, `cam-live-iphone.js`, `idioma-ipc.js`, `physicalMobileService.js`, `iphone-setup/setup.js`. Reaplicar com `cp` de `app/electron/services/<arquivo>`. Depois `node --check` e reiniciar o Nova.
+
+**Testado:** `MAC/integracao-iphone/conexao-usb/windows-hide.test.cjs` (`execFile` simulado recebe `windowsHide`; Windows sem OpenSSH dá a mensagem e não executa nada; Mac mantém `/usr/bin/ssh`). **Sem teste real:** Windows com iPhone (ver que nenhuma janela abre), Mac com iPhone (regressão).
 
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
@@ -605,6 +620,13 @@ Arquivos do app instalado no Mac que mudam: `Resources/app/electron/main.js`, `R
   - O bundle da interface não muda (ignora a resposta do IPC). Reiniciar o Nova.
 - **Teste:** `node --test app/electron/services/test/camera-acesso.test.js` (estados × Mac/Windows, com mocks).
 - **Sem testar:** Mac e Windows reais. Prova pendente: no Mac, negar a câmera ao Nova em Ajustes, abrir a câmera no Nova e ver os Ajustes abrirem; no Windows, desligar "apps da área de trabalho" e repetir.
+
+## 2026-11-19 — D1 de paridade: `adb reverse` do RTMP com o `adb` do app
+
+- **O que mudou:** `rtmp:start-broadcast` passa `app.physicalMobileService.adbPath` para `startBroadcast()`, que roda `adb reverse tcp:1935 tcp:11935` com esse binário (`execFile`, argumentos separados) em vez do `adb` do PATH. Sem caminho, ou com caminho que não existe no disco, cai no `adb` do PATH como antes. Vale para Mac e Windows, sem ramo por sistema; `windowsHide` evita a janela de console no Windows.
+- **Arquivos do app instalado no Mac que mudam:** `Contents/Resources/app/electron/main.js` e `Contents/Resources/app/electron/services/rtmp-server.js` (guarde os anteriores em `reservas/` antes de trocar; depois `node --check` e reinicie o Nova). O bundle da interface não muda.
+- **Teste:** `app/test/rtmp-adb.test.js` (`node --test`).
+- **Sem testar:** aparelho Android real recebendo o RTMP; Mac e Windows reais.
 
 ## 2026-11-19 — P1 de paridade: ferramentas do iPhone no Windows
 
