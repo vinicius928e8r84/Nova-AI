@@ -52,6 +52,11 @@ function getChromiumCandidateSubpaths() {
     ];
 }
 
+function revisaoDoChromium(nomeDaPasta) {
+    const revisao = Number(nomeDaPasta.slice('chromium-'.length));
+    return Number.isInteger(revisao) ? revisao : -1;
+}
+
 /**
  * Scan the given browsers/ directories for a chromium-<rev> folder that
  * contains this platform's executable. Returns the absolute executable
@@ -65,8 +70,7 @@ function findBundledChromiumExecutable(searchDirs) {
         try {
             entries = fs.readdirSync(browsersDir)
                 .filter((e) => e.startsWith('chromium-'))
-                .sort()
-                .reverse(); // prefer the newest revision when several exist
+                .sort((a, b) => revisaoDoChromium(b) - revisaoDoChromium(a));
         } catch {
             continue;
         }
@@ -78,6 +82,10 @@ function findBundledChromiumExecutable(searchDirs) {
         }
     }
     return null;
+}
+
+function primeiroCaminhoExistente(caminhos) {
+    return caminhos.filter(Boolean).find((caminho) => fs.existsSync(caminho)) ?? null;
 }
 
 /**
@@ -276,6 +284,7 @@ module.exports = {
     execPromise,
     getChromiumCandidateSubpaths,
     findBundledChromiumExecutable,
+    primeiroCaminhoExistente,
     findBundledBinDir,
     getDefaultUserAgent,
     macOpenApplication,
