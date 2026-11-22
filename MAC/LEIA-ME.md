@@ -1,10 +1,60 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## telegram-manager.js refatorado sem mudar o comportamento (Onda 4) — 21/11/2026
+
+- **O que mudou:** `registerTelegramEvents` (136 linhas, complexidade 33) virou um tratador por tipo de mensagem (privada, grupo), uma tabela de comandos do chat próprio (`COMANDOS_DO_CHEFE`) e uma ação por comando. `getClientOptions` passou a ler o perfil do aparelho de uma tabela (`PERFIS_DE_APARELHO`) e a montar o proxy em funções puras (MTProto e SOCKS). O fim de login repetido 4 vezes (nome do dono, sessão gravada, eventos) virou `concluirLogin`; o login por QR ganhou um método por etapa. Mesmos canais, mesmas respostas, mesmos textos e a mesma ordem de efeitos; os `console.log` das linhas movidas viraram `console.info`, que no Node e no Electron escreve no mesmo stdout. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo (o do bloqueio de tela já existia e só foi movido).
+- **Arquivos do app instalado no Mac que mudam:** `services/telegram-manager.js`. Guardar o anterior em `reservas/`, copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`, `node --check` e reiniciar o Nova.
+- **Testes:** `node --test app/electron/services/test/telegram-manager.test.js` (30 casos com dublês de `telegram`, `qrcode`, `electron`, `os`, `child_process` e `mac-native`).
+- **Sem testar:** conta real do Telegram no Mac e no Windows (login por código, senha e QR, receber e responder mensagem, comandos `!lock`, `!browser`, `!sysinfo`, `!busy`, aviso de grupo monitorado).
+
+## Catraca de saúde do código (Onda 0.2 do plano nota 10) — 20/11/2026
+
+- **O que mudou:** nova regra `saude-do-codigo` em `scripts/regras/` (`regra-saude.js`, analisador em `scripts/regras/analisador/` com acorn 8.19.0 para JS e `ast` do Python), portada da https://github.com/vinicius928e8r84/PerpetualMiner/pull/641. Cada arquivo `.js`/`.mjs`/`.cjs`/`.py` que a PR toca é medido inteiro e não pode ter mais pontos que a sua entrada na chave `saude-do-codigo` de `scripts/regras/linha-de-base.json`; arquivo novo nasce em 0. O job "Regras de revisão" instala o analisador (`npm ci --prefix …/analisador`). Vale a partir da PR seguinte à que a cria, porque o job roda as regras da base. `--criar-linha-de-base` e `--atualizar-linha-de-base` aceitam `--regra`.
+- **Arquivos:** `scripts/regras/regra-saude.js`, `scripts/regras/linha-de-base.js`, `scripts/regras/analisador/*`, `scripts/regras/verificar.js`, `scripts/regras/regra-linhas.js`, `scripts/regras/linha-de-base.json`, `scripts/regras/test/saude.test.js`, `scripts/regras/test/auxiliar.js`, `.github/workflows/regras.yml`, `CONTRIBUTING.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Só regras e CI.
+- **Testado:** `node --test "scripts/regras/test/*.test.js"` e `node scripts/regras/verificar.js --base origin/main` no Linux.
+- **Mac e Windows:** a mesma regra e o mesmo código nos dois, sem ramo por sistema. O medidor de Python lê o stdin em UTF-8 em qualquer sistema (no Windows até o Python 3.14 a página de código local quebrava em `Á`, `Í` e emojis), e um Python que sai com erro sem rodar o medidor (alias da Microsoft Store, stub do `xcode-select`) vira aviso e pula, como a falta de acorn. Cada um tem teste. A folga de `main.js` (4153) já soma as PRs abertas que tocam o mesmo arquivo; `whatsapp-manager.js` (305) não tem mais PR aberta que o toque.
+- **Sem testar:** a calibração contra o painel do CodeScene nos 16 arquivos com nota (o painel roda na máquina do dono); a regra foi conferida contra os checks do CodeScene publicados nas PRs do GitHub.
+
+## identidade-ipc.js removido; idioma-ipc registrado direto (AC3I) — 19/11/2026
+
+- **O que mudou:** apagado `app/electron/services/identidade-ipc.js` (420 linhas, 11 handlers `spoofer:*` sem consumidor no bundle `app/dist/assets/index-Dun7lr2S.js` nem no `preload.js`). Esse módulo também registrava os IPCs de idioma (`spoofer:get/apply/revert-language`), que a interface usa; por isso o `main.js` agora chama `services/idioma-ipc` direto, na mesma posição (depois do `createWindow`), e as duas linhas de comentário sobre `physicalMobileService` saíram. `main.js` 4292 → 4290 linhas.
+- **Arquivos:** `app/electron/services/identidade-ipc.js` (apagado), `app/electron/main.js`, `scripts/regras/linha-de-base.json`, teste novo `app/tests/idioma-registro.test.js`. Apagada também a pasta `MAC/integracao-iphone/identidade-iphone/` (cópia idêntica do módulo, `aplicar-ipc-identidade.py` que o recolocaria no app e seu teste): o instalador registraria o idioma em dobro. Também apagado `physicalMobileService.languageForCountry` (19 linhas, sem chamador depois da remoção); `registro.test.js` passa a citar `idioma-ipc.js`. `app/test/mapa-ipc.json` regravado sem os 11 canais de `identidade-ipc.js`.
+- **Arquivos do app instalado no Mac a trocar** (guardar o anterior em `reservas/`): `Contents/Resources/app/electron/main.js` (`cp` do `app/electron/main.js`) e apagar `Contents/Resources/app/electron/services/identidade-ipc.js` se existir. Depois `node --check` e reiniciar o Nova.
+- **Sem testar:** abrir o Electron e ler/aplicar idioma num iPhone real.
+
+## Últimas cópias soltas apagadas (Onda 1g) — 20/11/2026
+
+- **O que mudou:** apagadas seis cópias de arquivos que hoje vivem em `app/`: `MAC/integracao-kling/kling-video-service.js`, `MAC/encerramento-nova/{ios-bridge.js,iphone-ssh.js,nova-shutdown.js}` (a pasta sai do git), `MAC/traducao-interface/cam-live.js` e `MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. `reservas/` e `backup-*` ficaram. O git guarda a história.
+- **Teste:** `geo-proxy/teste-geo.cjs` passou a carregar `app/electron/services/geo-proxy.js`. `linha-de-base.json` perdeu a entrada de `traducao-interface/cam-live.js`.
+- **Achado:** o `geo-proxy.js` apagado era mais novo que o de `app/`. O commit `011395f` (08/11) trocou o `parseProxy` (aceita http/https, a ordem invertida `host:porta@usuario:senha`, `host:porta:usuario:senha` sem esquema, aspas e barra no fim, e adivinha o esquema pela porta), mas o app instalado copiado para `app/` em 09/11 não tinha essa troca. Em 14 entradas, as duas versões só dão o mesmo resultado em 2. Para recuperar: `git show 011395f:MAC/controle-celular-plataformas/geo-proxy/geo-proxy.js`. Levar isso para `app/` fica para outra PR.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. `app/` não muda. Nada a reaplicar.
+- **Sem testar:** `teste-geo.cjs` com proxy (precisa de proxy real e de `socks-proxy-agent`; só o `byIp` rodou); empacotamento real e Mac e Windows reais. `traducao-interface/preparar.py` ainda grava `cam-live.js` na pasta quando roda (copia de `integracao-camlive/cam-live.js`), e o arquivo gerado aparece como não versionado.
+
 ## Passo "CodeScene na refatoração" no job "Regras de revisão" — 20/11/2026
 
 - **O que mudou:** o job passa a exigir o CodeScene em success no head de toda PR de número 38 ou maior, ou com "refatora" no título, ou com o rótulo `refatoracao`; as PRs 1 a 37 ficam isentas. Vale cada check do CodeScene que existir no head: o do servidor antigo (`CodeScene Code Health Review (main)`, obrigatório) e o da nuvem (qualquer check cujo nome ou app comece com "CodeScene"; só reprova se aparecer reprovado, não trava a PR se não apareceu). Espera até 10 min (`PM_PRAZO_CODESCENE_S`) e falha dizendo o motivo. É código de CI, igual para Mac e Windows.
 - **Arquivos:** `.github/workflows/regras.yml` (`checks: read`, timeout 15 min, passo novo, gatilhos `labeled`/`unlabeled`), `scripts/ci/codescene-na-refatoracao.js` (a mensagem de falta de resposta nomeia o check pendente), `scripts/regras/caminhos-sensiveis.json` (`scripts/ci/**` passa a ser ALTA, para um PR comum não desligar o gate), `scripts/regras/test/codescene.test.js`, `registro.test.js`, `endurecimento.test.js`.
 - **Sem testar:** o nome exato do check da nuvem (nos commits recentes só aparece o do servidor antigo, app `codescene-perpetualminer-vinicius`).
+
+## Chromium de qualquer revisão no Windows (P6 da paridade) — 19/11/2026
+
+`browserFarmService.js` (`getChromeExecutablePath`) e `global-spoof-service.js` (`_findChrome`, os dois pontos que listavam `chromium-1208`) passam a usar `findBundledChromiumExecutable` de `platform-utils.js`, como `browser-manager.js` e `whatsapp-manager.js` já faziam. Uma pasta `browsers\chromium-<qualquer revisão>\chrome-win64\chrome.exe` agora é achada; a ordem de busca (Chrome do sistema antes do empacotado) não mudou.
+
+`findBundledChromiumExecutable` passa a ordenar as pastas `chromium-<n>` pela revisão **numérica**, da maior para a menor (`chromium-1300` antes de `chromium-999`); antes era `.sort().reverse()`, ordem de texto, que punha `999` na frente. Pastas cujo sufixo não é um número inteiro (`chromium-tip`, `chromium-1208.bak`) vão para o fim. O helper também é usado no Mac (`mac-native.browser('chrome')`) e por `browser-manager.js` e `whatsapp-manager.js`, então a ordem nova vale nesses caminhos também. Com uma só revisão empacotada (hoje `chromium-1208`) a saída é idêntica; muda só quando há várias pastas `chromium-*`, e aí ganha a revisão maior.
+
+Os laços que procuravam o primeiro caminho existente nessas duas funções viram `primeiroCaminhoExistente` (novo em `platform-utils.js`), que descarta o `null` do helper antes de consultar o disco: `fs.existsSync(null)` emite `DEP0187` no Node 24, e a guarda dentro de `_findChrome` piorava a complexidade dele no CodeScene.
+
+Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js`, `app/electron/services/global-spoof-service.js` e `app/electron/services/platform-utils.js` (no Mac o comportamento é idêntico com uma só revisão `chromium-*` empacotada, mas os três arquivos mudam e precisam ir juntos; guardar os anteriores em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). Depois: `node --check` nos três e reiniciar o Nova.
+
+**Testado:** `node --test app/test/chromium-revisao-windows.test.js`, 6 testes (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; o `existsSync` falso recusa caminho que não é texto; `chromium-1300` vence `chromium-999`; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac com várias pastas `chromium-*`.
+
+## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
+
+- **O que mudou:** o ssh da câmera do iPhone (`ios-camera.js` e `cam-live-iphone.js`) usava `StrictHostKeyChecking=yes`; passou a `accept-new`, igual aos outros 5 pontos (mesmo `BatchMode=yes` e `ConnectTimeout`). `accept-new` grava a chave quando o `known_hosts` do app ainda não tem o aparelho, como os outros 5 pontos. Chave trocada (reset do jailbreak) continua recusada até o Conectar gravar a nova, igual a antes. Nenhuma linha nova de código além do teste.
+- **Arquivos:** `app/electron/services/ios-camera.js`, `app/electron/services/cam-live-iphone.js` e as cópias do Mac `integracao-iphone/ios-camera.js`, `integracao-camlive/cam-live-iphone.js`, `integracao-sequestro-cam/ios-camera.patched.js`, `integracao-sequestro-cam/cam-live-iphone.patched.js`; teste novo `integracao-iphone/tests/chave-de-host.cjs` (`node --test`), que também trava `ios-bridge.js`, `idioma-ipc.js` e `physicalMobileService.js`.
+- **App instalado no Mac que muda:** `Contents/Resources/app/electron/services/ios-camera.js` e `.../cam-live-iphone.js` (guardar os anteriores em `reservas/`, copiar de `app/electron/services/ios-camera.js` e `app/electron/services/cam-live-iphone.js`, nunca das cópias em `MAC/`, que são mais velhas; reiniciar o Nova).
+- **Sem testar:** iPhone, Mac e Windows reais; o teste só confere as opções nos arquivos.
 
 ## Cópias congeladas apagadas (C2, passos 1, 3 e 4 parciais) — 19/11/2026
 
@@ -484,6 +534,12 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** com as ferramentas empacotadas, o comportamento é o mesmo. Só num Mac sem `ios-tools` o item da bandeja some.
 - **Sem testar:** Mac, Windows e iPhone reais; `getStatus()` foi testado com o `getConnectedDevices` real e um `adb` falso que lista um aparelho Android.
 
+## 2026-11-19 — M3 de paridade: navegador no Mac procura nos mesmos lugares do Windows
+
+- **O que mudou:** `mac-native.browser(tipo)` também procura o `.app` embutido em `<resources>/browsers/<tipo>/<Nome>.app` e na pasta `browsers` do projeto (Brave, Vivaldi, Firefox, Edge e Chrome), como o Windows. O WhatsApp no Mac respeita `PUPPETEER_EXECUTABLE_PATH` (se o arquivo existir), depois o Chromium de `<userData>/browsers` (como o Windows), depois Chrome e por fim o Edge. A limpeza do navegador órfão do perfil do WhatsApp (`MAC_BROWSER_KILL_PATTERN`) agora também mata o Microsoft Edge da sessão, como o Windows já faz com `msedge.exe`. `userData/browsers` vale só para o Chromium do WhatsApp, nos dois sistemas; a fazenda, o CAM spoof e o navegador do app não o usam em nenhum. Removido: a pasta `userData/browsers` da busca geral de navegadores do Mac (a rodada anterior do próprio PR a tinha posto).
+- **Arquivos do app instalado que mudam:** `app/electron/services/mac-native.js`, `app/electron/services/whatsapp-manager.js` e `app/electron/services/paridade-utils.js` (em `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`; guarde os anteriores em `reservas/` e rode `node --check` nos três). Não muda `main.js`, `preload.js` nem o bundle da interface. Teste novo: `MAC/navegador-mac/tests/navegador.cjs` (`node --test`, isola `/Applications` e `playwright`, então passa em Mac com navegadores instalados); o teste do `pkill` em `app/test/paridade-b.test.js` ganhou o Edge. `navegador.cjs` também testa o ramo do Windows do WhatsApp (Chromium de `userData/browsers`) e zera o cache do `platform-utils` ao trocar a plataforma.
+- **Sem testar:** Mac real; navegador `.app` real embutido ou em `userData`; só pastas falsas em Linux.
+
 ## 2026-11-19 — ISS14: aviso quando o WhatsApp falha 8 vezes ao iniciar
 
 - **O que mudou:** ao atingir o limite de 8 tentativas (`reconnect-limit-reached`), o app abre um aviso com a permissão a conferir (Mac: Gerenciamento de apps e Microfone; Windows: firewall, antivírus e pasta de dados; outros: aviso genérico) e o texto vai também no campo `hint` do evento de status. Mesma detecção nos dois sistemas; só o texto muda.
@@ -519,3 +575,32 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Mac:** mesma ordem de pastas (`resources/bin`, Homebrew, PATH); comportamento igual. O túnel segue desligado por padrão (`NOVA_REMOTE_TUNNEL=1`).
 - **Teste:** `app/electron/services/testes/cloudflared-caminho.test.js` (`node --test`, com `exists` falso).
 - **Sem testar:** Windows e Mac reais, túnel real da Cloudflare.
+
+## Varredura de processos órfãos ao sair, no Windows (P7 da paridade) — 19/11/2026
+
+No Windows, **durante a saída**, o Nova agora faz o que o Mac já fazia com os filhos: `createWindowsProcessCleanup` (em `app/electron/services/nova-shutdown.js`) lê a tabela de processos por `Get-CimInstance Win32_Process` (`ProcessId`, `ParentProcessId`, `CommandLine` e a hora de criação) uma vez antes de parar os serviços e de novo em cada rodada de `terminate` (até 3), e encerra com `taskkill /T /F /PID` só as árvores cuja raiz é uma ferramenta que o próprio Nova inicia (`ffmpeg`, `ffprobe`, `scrcpy`, `adb`, `iproxy`, `ssh`, `python`, `cmd`, `powershell`, `node`, `yt-dlp`, `cloudflared`, e `chrome`/`msedge` só com `--remote-debugging`). Navegador aberto por `shell.openExternal`, app aberto por `shell.openPath`, instalador da atualização e o Antigravity sobrevivem, como no Mac, onde esses processos nascem do `launchd`. Não há varredura periódica (um PowerShell síncrono a cada 75 ms congelaria o processo principal). Ficam de fora os helpers do Electron (`--type=`), o PowerShell da varredura e os filhos dele. A hora de criação do pai e do filho evita matar um processo alheio cujo `ParentProcessId` aponta para um PID reaproveitado. No `main.js` o Windows passa a usar `registerShutdown` com essa limpeza, no lugar de `guardBeforeQuit`; Linux segue com `guardBeforeQuit`.
+
+**Limites:** só pega o que ainda é descendente do Nova na saída. Órfão anterior à saída (por exemplo o daemon do `adb`, que o Mac mata pelo marcador `NOVA_PROCESS_OWNER`) não é coberto no Windows. Ferramenta do Nova que não esteja na lista acima fica órfã (comportamento anterior).
+
+Arquivos: `app/electron/main.js`, `app/electron/services/nova-shutdown.js`, `app/electron/services/test/nova-shutdown-windows.test.js` e `nova-shutdown-mac.test.js` (novos; `node --test app/electron/services/test/*.test.js`).
+
+Arquivos do app instalado no Mac que mudam: `Resources/app/electron/main.js`, `Resources/app/electron/services/nova-shutdown.js` (só o ramo do Windows muda). Guardar os anteriores em `reservas/`, copiar, `node --check` em cada, reiniciar o Nova. No Mac o comportamento é o mesmo; copiar é opcional.
+
+**Sem testar:** Windows real (PowerShell, `taskkill`, a lista de ferramentas contra os `spawn` reais, Gerenciador de Tarefas, tempo de saída), Mac e iPhone. Testado no Linux só com tabela simulada.
+
+## 2026-11-19 — E2: permissão de câmera no lugar do PnP
+
+- **O que mudou:** o IPC `enable-physical-cameras` deixou de rodar PowerShell/`Get-PnpDevice` (só Windows, exigia administrador) e passou a conferir a permissão de câmera do sistema (`systemPreferences.getMediaAccessStatus`). Negada ou restrita: abre os Ajustes de privacidade de câmera (Mac: `Privacy_Camera`; Windows: `ms-settings:privacy-webcam`). Mac com permissão ainda não decidida: pede a permissão ao sistema. Removidos o `disableAllPhysicalCams()` do `hijack` e os dois métodos vazios `disableAllPhysicalCams`/`enableAllPhysicalCams` do `global-spoof-service.js`. Saldo: `main.js` −39 linhas, `global-spoof-service.js` −2.
+- **Arquivos do app instalado no Mac que mudam** (reaplicar com `cp` dentro de `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/`; guarde os antigos em `reservas/`):
+  - `main.js` ← `app/electron/main.js`
+  - `services/global-spoof-service.js` ← `app/electron/services/global-spoof-service.js`
+  - `services/camera-acesso.js` (novo) ← `app/electron/services/camera-acesso.js`
+  - O bundle da interface não muda (ignora a resposta do IPC). Reiniciar o Nova.
+- **Teste:** `node --test app/electron/services/test/camera-acesso.test.js` (estados × Mac/Windows, com mocks).
+- **Sem testar:** Mac e Windows reais. Prova pendente: no Mac, negar a câmera ao Nova em Ajustes, abrir a câmera no Nova e ver os Ajustes abrirem; no Windows, desligar "apps da área de trabalho" e repetir.
+
+## 2026-11-19 — P1 de paridade: ferramentas do iPhone no Windows
+
+- **O que mudou:** receita nova `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (shell MSYS2 UCRT64: instala `libimobiledevice`, `libusbmuxd` e `ideviceinstaller` com `pacman`, limpa `app/resources/ios-tools/bin/`, copia `iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller` `.exe` e as DLLs de `/ucrt64/bin` e grava `manifest.sha256`; falha de `ldd`, `cp` ou DLL `not found` aborta). `docs/windows.md` §4 e `app/README.md` deixaram de dizer "só Mac" e avisam que o driver USB da Apple (Apple Devices ou iTunes) precisa estar instalado no PC. Nenhum código do app mudou.
+- **Arquivos do app instalado no Mac que mudam:** nenhum.
+- **Sem testar:** a receita num MSYS2 real, Windows com iPhone e Apple Devices reais, Mac real.
