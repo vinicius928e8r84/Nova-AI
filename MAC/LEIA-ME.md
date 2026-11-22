@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Foto ➔ Vídeo: `kling-video-service.js` refatorado com saída idêntica (Onda 4, alvo 6) — 21/11/2026
+
+- **O que mudou:** `convertPictureToVideo` deixa de ser uma cascata de 127 linhas: o motor escolhido sai de uma tabela (`fal`, `system`), a Kling Cloud é tentada com `temChaveDaKling` e o motor local fica por último. fal.ai e Veo dividem a mesma regra "tenta os modelos em ordem e pula o indisponível" (`primeiroModeloQueAceita`); proporção e movimento do FFmpeg viraram tabelas (`TAMANHO_POR_PROPORCAO`, `MOVIMENTOS`). Mesmo canal (`kling:convert-picture-to-video`, `kling:progress`), mesmo pedido, mesma resposta, mesmos argumentos do `ffmpeg` e mesmas chamadas HTTP. Igual no Mac e no Windows: nenhum ramo por sistema novo, o `.exe` continua vindo de `tool-paths.exe`.
+- **Teste:** `node --test app/electron/services/test/kling-video-service.test.js` (72 cenas com `fs`, `https`, `http`, `child_process`, `os` e `@google/genai` falsos), gravado com o módulo antigo. A classe mantém `_resolveFfmpegPath()` e `_getExportDir()`, que `MAC/integracao-kling/test/teste-motor-local.cjs` chama.
+- **Arquivos do app instalado no Mac que mudam:** `services/kling-video-service.js`. Guardar o anterior em `reservas/` antes de trocar; validar com `node --check` e reiniciar o Nova.
+- **Sem testar:** gerar vídeo de verdade pelos quatro motores (local, Kling Cloud, fal.ai e Veo) no Mac e no Windows; fica para a prova real.
+
 ## live-cam-bridge.js refatorado com saída idêntica (Onda 4) — 21/11/2026
 
 - **O que mudou:** `app/electron/services/live-cam-bridge.js` passa de 1.024 para cerca de 600 linhas, sem mudar canal IPC, argumento nem resposta. As quatro páginas HTML servidas aos celulares foram para o módulo novo `app/electron/services/live-cam-paginas.js`. A central e a da webcam do PC estão byte a byte iguais. Nas outras duas só mudou o script: na do spoof, os comandos que chegam pelo WebSocket viraram um `Map`; na da câmera do celular, a condição de envio virou `podeEnviarQuadro`. O que o celular faz é o mesmo. A pontuação dos IPs virou uma tabela por faixa. O `startServer` foi separado em certificado, servidor e um papel por tipo de celular. As rotas HTTP viraram um mapa. O caminho do scrcpy embutido escolhe entre os mesmos dois caminhos de antes. `linha-de-base.json` perde a entrada do arquivo.
