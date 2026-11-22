@@ -47,6 +47,18 @@
 - **Testado:** `node --check`; `node --test app/tests/android-tools.test.js app/tests/physical-mobile-axios.test.js` (27 testes: 26 do downloader e 1 do `axios`; rede e extração simuladas).
 - **Sem testar:** extração real com PowerShell, execução de adb/scrcpy, espelhar e câmera num Windows com Android; Mac real.
 
+## Chromium de qualquer revisão no Windows (P6 da paridade) — 19/11/2026
+
+`browserFarmService.js` (`getChromeExecutablePath`) e `global-spoof-service.js` (`_findChrome`, os dois pontos que listavam `chromium-1208`) passam a usar `findBundledChromiumExecutable` de `platform-utils.js`, como `browser-manager.js` e `whatsapp-manager.js` já faziam. Uma pasta `browsers\chromium-<qualquer revisão>\chrome-win64\chrome.exe` agora é achada; a ordem de busca (Chrome do sistema antes do empacotado) não mudou.
+
+`findBundledChromiumExecutable` passa a ordenar as pastas `chromium-<n>` pela revisão **numérica**, da maior para a menor (`chromium-1300` antes de `chromium-999`); antes era `.sort().reverse()`, ordem de texto, que punha `999` na frente. Pastas cujo sufixo não é um número inteiro (`chromium-tip`, `chromium-1208.bak`) vão para o fim. O helper também é usado no Mac (`mac-native.browser('chrome')`) e por `browser-manager.js` e `whatsapp-manager.js`, então a ordem nova vale nesses caminhos também. Com uma só revisão empacotada (hoje `chromium-1208`) a saída é idêntica; muda só quando há várias pastas `chromium-*`, e aí ganha a revisão maior.
+
+Os laços que procuravam o primeiro caminho existente nessas duas funções viram `primeiroCaminhoExistente` (novo em `platform-utils.js`), que descarta o `null` do helper antes de consultar o disco: `fs.existsSync(null)` emite `DEP0187` no Node 24, e a guarda dentro de `_findChrome` piorava a complexidade dele no CodeScene.
+
+Arquivos do app instalado no Mac que mudam: `app/electron/services/browserFarmService.js`, `app/electron/services/global-spoof-service.js` e `app/electron/services/platform-utils.js` (no Mac o comportamento é idêntico com uma só revisão `chromium-*` empacotada, mas os três arquivos mudam e precisam ir juntos; guardar os anteriores em `reservas/` e copiar para `/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/`). Depois: `node --check` nos três e reiniciar o Nova.
+
+**Testado:** `node --test app/test/chromium-revisao-windows.test.js`, 6 testes (win32 simulado, pasta falsa `chromium-1248\chrome-win64\chrome.exe`; o `existsSync` falso recusa caminho que não é texto; `chromium-1300` vence `chromium-999`; falha antes da mudança, passa depois). **Sem teste real:** Windows com Chromium empacotado de revisão diferente de 1208, Mac com várias pastas `chromium-*`.
+
 ## Chave de host do iPhone: accept-new em todo lugar (SSH5) — 19/11/2026
 
 - **O que mudou:** o ssh da câmera do iPhone (`ios-camera.js` e `cam-live-iphone.js`) usava `StrictHostKeyChecking=yes`; passou a `accept-new`, igual aos outros 5 pontos (mesmo `BatchMode=yes` e `ConnectTimeout`). `accept-new` grava a chave quando o `known_hosts` do app ainda não tem o aparelho, como os outros 5 pontos. Chave trocada (reset do jailbreak) continua recusada até o Conectar gravar a nova, igual a antes. Nenhuma linha nova de código além do teste.
@@ -574,6 +586,18 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
 - **Teste:** `app/electron/services/testes/cloudflared-caminho.test.js` (`node --test`, com `exists` falso).
 - **Sem testar:** Windows e Mac reais, túnel real da Cloudflare.
 
+## Varredura de processos órfãos ao sair, no Windows (P7 da paridade) — 19/11/2026
+
+No Windows, **durante a saída**, o Nova agora faz o que o Mac já fazia com os filhos: `createWindowsProcessCleanup` (em `app/electron/services/nova-shutdown.js`) lê a tabela de processos por `Get-CimInstance Win32_Process` (`ProcessId`, `ParentProcessId`, `CommandLine` e a hora de criação) uma vez antes de parar os serviços e de novo em cada rodada de `terminate` (até 3), e encerra com `taskkill /T /F /PID` só as árvores cuja raiz é uma ferramenta que o próprio Nova inicia (`ffmpeg`, `ffprobe`, `scrcpy`, `adb`, `iproxy`, `ssh`, `python`, `cmd`, `powershell`, `node`, `yt-dlp`, `cloudflared`, e `chrome`/`msedge` só com `--remote-debugging`). Navegador aberto por `shell.openExternal`, app aberto por `shell.openPath`, instalador da atualização e o Antigravity sobrevivem, como no Mac, onde esses processos nascem do `launchd`. Não há varredura periódica (um PowerShell síncrono a cada 75 ms congelaria o processo principal). Ficam de fora os helpers do Electron (`--type=`), o PowerShell da varredura e os filhos dele. A hora de criação do pai e do filho evita matar um processo alheio cujo `ParentProcessId` aponta para um PID reaproveitado. No `main.js` o Windows passa a usar `registerShutdown` com essa limpeza, no lugar de `guardBeforeQuit`; Linux segue com `guardBeforeQuit`.
+
+**Limites:** só pega o que ainda é descendente do Nova na saída. Órfão anterior à saída (por exemplo o daemon do `adb`, que o Mac mata pelo marcador `NOVA_PROCESS_OWNER`) não é coberto no Windows. Ferramenta do Nova que não esteja na lista acima fica órfã (comportamento anterior).
+
+Arquivos: `app/electron/main.js`, `app/electron/services/nova-shutdown.js`, `app/electron/services/test/nova-shutdown-windows.test.js` e `nova-shutdown-mac.test.js` (novos; `node --test app/electron/services/test/*.test.js`).
+
+Arquivos do app instalado no Mac que mudam: `Resources/app/electron/main.js`, `Resources/app/electron/services/nova-shutdown.js` (só o ramo do Windows muda). Guardar os anteriores em `reservas/`, copiar, `node --check` em cada, reiniciar o Nova. No Mac o comportamento é o mesmo; copiar é opcional.
+
+**Sem testar:** Windows real (PowerShell, `taskkill`, a lista de ferramentas contra os `spawn` reais, Gerenciador de Tarefas, tempo de saída), Mac e iPhone. Testado no Linux só com tabela simulada.
+
 ## 2026-11-19 — E2: permissão de câmera no lugar do PnP
 
 - **O que mudou:** o IPC `enable-physical-cameras` deixou de rodar PowerShell/`Get-PnpDevice` (só Windows, exigia administrador) e passou a conferir a permissão de câmera do sistema (`systemPreferences.getMediaAccessStatus`). Negada ou restrita: abre os Ajustes de privacidade de câmera (Mac: `Privacy_Camera`; Windows: `ms-settings:privacy-webcam`). Mac com permissão ainda não decidida: pede a permissão ao sistema. Removidos o `disableAllPhysicalCams()` do `hijack` e os dois métodos vazios `disableAllPhysicalCams`/`enableAllPhysicalCams` do `global-spoof-service.js`. Saldo: `main.js` −39 linhas, `global-spoof-service.js` −2.
@@ -584,3 +608,9 @@ Arquivos: `conexao-usb/setup.js` (blocos novos), `nova-locale.sh` (PATH) no help
   - O bundle da interface não muda (ignora a resposta do IPC). Reiniciar o Nova.
 - **Teste:** `node --test app/electron/services/test/camera-acesso.test.js` (estados × Mac/Windows, com mocks).
 - **Sem testar:** Mac e Windows reais. Prova pendente: no Mac, negar a câmera ao Nova em Ajustes, abrir a câmera no Nova e ver os Ajustes abrirem; no Windows, desligar "apps da área de trabalho" e repetir.
+
+## 2026-11-19 — P1 de paridade: ferramentas do iPhone no Windows
+
+- **O que mudou:** receita nova `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (shell MSYS2 UCRT64: instala `libimobiledevice`, `libusbmuxd` e `ideviceinstaller` com `pacman`, limpa `app/resources/ios-tools/bin/`, copia `iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller` `.exe` e as DLLs de `/ucrt64/bin` e grava `manifest.sha256`; falha de `ldd`, `cp` ou DLL `not found` aborta). `docs/windows.md` §4 e `app/README.md` deixaram de dizer "só Mac" e avisam que o driver USB da Apple (Apple Devices ou iTunes) precisa estar instalado no PC. Nenhum código do app mudou.
+- **Arquivos do app instalado no Mac que mudam:** nenhum.
+- **Sem testar:** a receita num MSYS2 real, Windows com iPhone e Apple Devices reais, Mac real.
