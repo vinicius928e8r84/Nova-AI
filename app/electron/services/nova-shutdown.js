@@ -2,6 +2,7 @@
 
 const { randomUUID } = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 
 function processTable() {
@@ -119,6 +120,179 @@ function createProcessCleanup(electronHelpersPath) {
   };
 }
 
+const WINDOWS_NOVA_TOOLS = new Set([
+  'ffmpeg', 'ffprobe', 'scrcpy', 'adb', 'iproxy', 'ssh', 'python', 'pythonw', 'py',
+  'cmd', 'powershell', 'pwsh', 'node', 'yt-dlp', 'cloudflared',
+]);
+const WINDOWS_AUTOMATED_BROWSERS = new Set(['chrome', 'msedge']);
+
+function windowsExecutableName(command) {
+  const first = command.match(/^\s*(?:"([^"]+)"|(\S+))/);
+  const file = first ? (first[1] || first[2]) : '';
+  return path.win32.basename(file).toLowerCase().replace(/\.exe$/, '');
+}
+
+function isNovaWindowsTool(command) {
+  const name = windowsExecutableName(command);
+  if (WINDOWS_AUTOMATED_BROWSERS.has(name)) return command.includes('--remote-debugging');
+  return WINDOWS_NOVA_TOOLS.has(name);
+}
+
+const WINDOWS_TABLE_SCRIPT = [
+  '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+  "$tabela = @(Get-CimInstance Win32_Process | ForEach-Object { [pscustomobject]@{ ProcessId = $_.ProcessId; ParentProcessId = $_.ParentProcessId; CommandLine = $_.CommandLine; Started = $(if ($_.CreationDate) { $_.CreationDate.ToFileTimeUtc() } else { 0 }) } })",
+  'ConvertTo-Json -InputObject $tabela -Compress',
+].join('; ');
+
+function windowsProcessTable() {
+  const output = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', WINDOWS_TABLE_SCRIPT], {
+    encoding: 'utf8',
+    timeout: 3000,
+    windowsHide: true,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  return parseWindowsProcessTable(output);
+}
+
+function linhaDeProcessoValida(row) {
+  if (!row) return false;
+  return Number.isInteger(row.ProcessId) && row.ProcessId !== 0;
+}
+
+function parseWindowsProcessTable(output) {
+  const parsed = JSON.parse(output);
+  const rows = Array.isArray(parsed) ? parsed : [parsed];
+  const entries = new Map();
+  for (const row of rows) {
+    if (!linhaDeProcessoValida(row)) continue;
+    const command = row.CommandLine || '';
+    entries.set(row.ProcessId, {
+      parent: row.ParentProcessId,
+      started: Number(row.Started) || 0,
+      identity: row.Started + ' ' + command,
+      command,
+    });
+  }
+  return entries;
+}
+
+const PAPEL_ALHEIO = 'alheio';
+const PAPEL_HELPER = 'helper';
+const PAPEL_FERRAMENTA = 'ferramenta';
+
+function filhosPorPai(entries) {
+  const children = new Map();
+  for (const [pid, entry] of entries) {
+    if (!children.has(entry.parent)) children.set(entry.parent, []);
+    children.get(entry.parent).push(pid);
+  }
+  return children;
+}
+
+function nasceuAntesDoPai(entry, parentStarted) {
+  if (!entry.started || !parentStarted) return false;
+  return entry.started < parentStarted;
+}
+
+function windowsKillTree(pid) {
+  try {
+    execFileSync('taskkill', ['/T', '/F', '/PID', String(pid)], { timeout: 5000, windowsHide: true, stdio: 'ignore' });
+  } catch (error) {
+    if (error.status !== 128) console.error('[Shutdown] taskkill', pid, error.status ?? error.code);
+  }
+}
+
+function createWindowsProcessCleanup({
+  readTable = windowsProcessTable,
+  killTree = windowsKillTree,
+  ownPid = process.pid,
+  execPath = process.execPath,
+} = {}) {
+  const owned = new Map();
+  let lastEntries = new Map();
+  const executable = path.win32.basename(execPath).toLowerCase();
+
+  function isElectronHelper(command) {
+    return command.includes(' --type=') && command.toLowerCase().includes(executable);
+  }
+
+  function isTableReader(command) {
+    return command.includes('Get-CimInstance Win32_Process');
+  }
+
+  function papelDoFilho(entry, parent, parentStarted) {
+    if (nasceuAntesDoPai(entry, parentStarted)) return PAPEL_ALHEIO;
+    if (isTableReader(entry.command)) return PAPEL_ALHEIO;
+    if (isElectronHelper(entry.command)) return PAPEL_HELPER;
+    if (owned.has(parent) || isNovaWindowsTool(entry.command)) return PAPEL_FERRAMENTA;
+    return PAPEL_ALHEIO;
+  }
+
+  function esquecerPidsReaproveitados(entries) {
+    for (const [pid, identity] of owned) {
+      if (entries.get(pid)?.identity !== identity) owned.delete(pid);
+    }
+  }
+
+  function percorrerArvoreDoNova(entries) {
+    const children = filhosPorPai(entries);
+    const pending = [ownPid, ...owned.keys()];
+    const visited = new Set(pending);
+
+    function adotar(pid, papel) {
+      visited.add(pid);
+      pending.push(pid);
+      if (papel === PAPEL_FERRAMENTA) owned.set(pid, entries.get(pid).identity);
+    }
+
+    function visitarFilhosDe(parent) {
+      const parentStarted = entries.get(parent)?.started ?? 0;
+      const naoVistos = (children.get(parent) ?? []).filter(pid => !visited.has(pid));
+      for (const pid of naoVistos) {
+        const papel = papelDoFilho(entries.get(pid), parent, parentStarted);
+        if (papel !== PAPEL_ALHEIO) adotar(pid, papel);
+      }
+    }
+
+    for (const parent of pending) visitarFilhosDe(parent);
+  }
+
+  function collect() {
+    const entries = readTable();
+    lastEntries = entries;
+    esquecerPidsReaproveitados(entries);
+    percorrerArvoreDoNova(entries);
+  }
+
+  function rootsOwned() {
+    return [...owned.keys()].filter(pid => {
+      const seen = new Set([pid]);
+      let current = lastEntries.get(pid)?.parent;
+      while (current !== undefined && !seen.has(current)) {
+        if (owned.has(current)) return false;
+        seen.add(current);
+        current = lastEntries.get(current)?.parent;
+      }
+      return true;
+    });
+  }
+
+  return {
+    collect,
+    scanEveryMs: 0,
+    async terminate() {
+      for (let round = 0; round < 3; round++) {
+        collect();
+        if (owned.size === 0) return;
+        for (const pid of rootsOwned()) killTree(pid);
+        await delay(100);
+      }
+      collect();
+      if (owned.size) console.error('[Shutdown] Processes still present:', [...owned.keys()]);
+    },
+  };
+}
+
 function registerShutdown(app, stopServices, processCleanup) {
   let state = 'running';
   app.on('before-quit', event => {
@@ -134,7 +308,7 @@ function registerShutdown(app, stopServices, processCleanup) {
       };
 
       collect();
-      const scans = setInterval(collect, 75);
+      const scans = processCleanup.scanEveryMs === 0 ? null : setInterval(collect, processCleanup.scanEveryMs ?? 75);
       let timeout;
       try {
         await Promise.race([
@@ -166,4 +340,4 @@ function registerShutdown(app, stopServices, processCleanup) {
   return () => state !== 'running';
 }
 
-module.exports = { createProcessCleanup, registerShutdown };
+module.exports = { createProcessCleanup, createWindowsProcessCleanup, parseWindowsProcessTable, registerShutdown };
