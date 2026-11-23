@@ -95,6 +95,7 @@ function criarSandbox() {
 }
 
 function testeGuardaSleepETrim(sb) {
+  if (!sb) return;
   // Antes: err e log enormes (2 MB) e out pequeno. O serviço sobe sem sleep no PATH.
   fs.writeFileSync(sb.t('nova-locale.err'), Buffer.alloc(2 * 1048576, 65));
   fs.writeFileSync(sb.t('nova-locale.log'), Buffer.alloc(2 * 1048576, 66));
@@ -122,6 +123,7 @@ function testeGuardaSleepETrim(sb) {
 }
 
 async function testeSleepSomeComServicoRodando(sb) {
+  if (!sb) return;
   for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
   const filho = spawn('/bin/bash', [sb.scriptComSleep], { env: { PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
@@ -143,6 +145,7 @@ async function testeSleepSomeComServicoRodando(sb) {
 }
 
 async function testeRecusasDoHelperRoot(sb) {
+  if (!sb) return;
   for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
   // Arquivo de OUTRO dono (2 MiB) e um plist "secreto" fora de /var/tmp, ambos fora da pasta tmp do helper.
   const vitima = path.join(sb.root, 'vitima.bin');
@@ -179,6 +182,7 @@ async function testeRecusasDoHelperRoot(sb) {
 }
 
 async function testeFluxoNormal(sb) {
+  if (!sb) return;
   for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
   const versao = /^HELPER_VERSION=(\d+)/m.exec(src)[1];
   const filho = spawn('/bin/bash', [sb.scriptComSleep], { env: { PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'ignore', 'pipe'] });
@@ -294,18 +298,15 @@ async function testeHandshake() {
 
 (async () => {
   testeEstatico();
-  if (NO_WINDOWS) {
-    console.log('PULADO no Windows: testes de comportamento do sandbox (exigem /bin/bash, ferramentas POSIX em /usr/bin e links simbólicos)');
-  } else {
-    const sb = criarSandbox();
-    try {
-      testeGuardaSleepETrim(sb);
-      await testeFluxoNormal(sb);
-      await testeRecusasDoHelperRoot(sb);
-      await testeSleepSomeComServicoRodando(sb); // por último: remove o sleep da pasta de PATH do sandbox
-    } finally {
-      fs.rmSync(sb.root, { recursive: true, force: true });
-    }
+  if (NO_WINDOWS) console.log('PULADO no Windows: testes de comportamento do sandbox (exigem /bin/bash, ferramentas POSIX em /usr/bin e links simbólicos)');
+  const sb = NO_WINDOWS ? null : criarSandbox();
+  try {
+    testeGuardaSleepETrim(sb);
+    await testeFluxoNormal(sb);
+    await testeRecusasDoHelperRoot(sb);
+    await testeSleepSomeComServicoRodando(sb); // por último: remove o sleep da pasta de PATH do sandbox
+  } finally {
+    if (sb) fs.rmSync(sb.root, { recursive: true, force: true });
   }
   await testeHandshake();
   console.log('TODOS OS TESTES DO HELPER NOVA-LOCALE PASSARAM');
