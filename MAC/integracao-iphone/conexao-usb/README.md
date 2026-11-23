@@ -49,8 +49,8 @@ Cópia aplicada em `dist/index-Dun7lr2S.patched.js`.
 
 | Arquivo | Papel |
 |---|---|
-| `inapp.js` | modal + console embutido; roda no preload (mundo isolado), fora do bundle React |
-| `setup.js` | valida a senha, instala a chave SSH e a ponte de câmera; `prompt()` manda o modal abrir |
+| `app/electron/services/iphone-setup/inapp.js` | modal + console embutido; roda no preload (mundo isolado), fora do bundle React |
+| `app/electron/services/iphone-setup/setup.js` | valida a senha, instala a chave SSH e a ponte de câmera; `prompt()` manda o modal abrir |
 | `setup.test.cjs` | testes de limite do serviço (senha, aparelho único, janela ausente) |
 | `aplicar-botao-iphone.py` | patch do botão "Abrir controle" no bundle compilado |
 | `botao.test.cjs` | valida o trecho do botão no bundle patcheado |

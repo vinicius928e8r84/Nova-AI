@@ -44,6 +44,23 @@ const LEITURA_DO_PEDIDO = {
 const RESPOSTAS_QUE_SUBSTITUEM = new Set(['haan', 'yes']);
 const RESPOSTAS_QUE_MANTEM = new Set(['nahi', 'no']);
 
+function matarSemFalhar(processo) {
+    try { processo.kill(); } catch (e) {}
+}
+
+function encerrarArvoreNoWindows(processo) {
+    const taskkill = spawn('taskkill', ['/PID', String(processo.pid), '/T', '/F'], { windowsHide: true });
+    taskkill.on('error', () => matarSemFalhar(processo));
+}
+
+const ENCERRAR_ARVORE_POR_SISTEMA = { win32: encerrarArvoreNoWindows };
+
+function encerrarArvoreDoProcesso(processo) {
+    const encerrarArvore = ENCERRAR_ARVORE_POR_SISTEMA[process.platform];
+    if (encerrarArvore && processo.pid) return encerrarArvore(processo);
+    matarSemFalhar(processo);
+}
+
 function primeiroGrupo(texto, expressoes) {
     for (const expressao of expressoes) {
         const achado = texto.match(expressao);
@@ -267,7 +284,7 @@ class YtDlpManager {
 
     encerrarProcessoAtivo() {
         if (!this.activeProcess) return false;
-        try { this.activeProcess.kill(); } catch (e) {}
+        try { encerrarArvoreDoProcesso(this.activeProcess); } catch (e) {}
         this.activeProcess = null;
         return true;
     }
