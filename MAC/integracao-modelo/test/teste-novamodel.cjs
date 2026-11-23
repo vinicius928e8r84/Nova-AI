@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-// Testes do spoofing de modelo do iPhone (com.aquiles.novamodel).
-// Roda no Mac, sem aparelho: valida JSON do banco, contrato do control file
-// e o whitelist de chaves MobileGestalt no Tweak.x.
 //
-// Uso: node test/teste-novamodel.cjs
 
 'use strict';
 
@@ -21,7 +17,6 @@ function ok(msg) {
   console.log('✅ ' + msg);
 }
 
-// --- 1. Banco de modelos (models.json) -------------------------------
 function testModels() {
   const p = path.join(ROOT, 'models.json');
   const raw = fs.readFileSync(p, 'utf8');
@@ -50,7 +45,6 @@ function testModels() {
   ok(`models.json: ${db.models.length} modelos, productTypes únicos e válidos`);
 }
 
-// --- 2. Cópia instalada no aparelho idêntica à fonte -----------------
 function testLayoutCopy() {
   const a = fs.readFileSync(path.join(ROOT, 'models.json'));
   const b = fs.readFileSync(path.join(ROOT, 'layout/usr/share/novamodel/models.json'));
@@ -58,9 +52,7 @@ function testLayoutCopy() {
   else fail('layout/usr/share/novamodel/models.json difere de models.json');
 }
 
-// --- 3. Contrato do control file -------------------------------------
 function testControlContract() {
-  // Mesmo formato que a spec e que o CLI grava.
   const sample = { enabled: true, productType: 'iPhone14,5', name: 'iPhone 13' };
   const keys = Object.keys(sample).sort();
   const expected = ['enabled', 'name', 'productType'].sort();
@@ -73,10 +65,8 @@ function testControlContract() {
   ok('control file: contrato { enabled, productType, name } correto');
 }
 
-// --- 4. Whitelist de chaves MG no Tweak.x -----------------------------
 function testMGWhitelist() {
   const src = fs.readFileSync(path.join(ROOT, 'Tweak.x'), 'utf8');
-  // Extrai o conteúdo do setWithObjects(...) do g_mgKeys.
   const m = src.match(/g_mgKeys = \[NSSet setWithObjects:([^\]]*)\]/s);
   if (!m) { fail('Tweak.x: não encontrei o whitelist g_mgKeys'); return; }
   const keys = [...m[1].matchAll(/@"([A-Za-z]+)"/g)].map(x => x[1]);
@@ -90,7 +80,6 @@ function testMGWhitelist() {
   if (!process.exitCode) ok(`Tweak.x: whitelist MG = ${keys.join(', ')}`);
 }
 
-// --- 5. ProductTypes da spec presentes no banco -----------------------
 function testSpecReference() {
   const db = JSON.parse(fs.readFileSync(path.join(ROOT, 'models.json'), 'utf8'));
   const set = new Set(db.models.map(m => m.productType));
