@@ -1,7 +1,4 @@
 'use strict';
-// Preparação do iPhone por USB: valida a senha SSH do jailbreak, instala a
-// chave de acesso neste Mac e a ponte de câmera (quando o modelo é compatível).
-// A interface dessa conversa é o modal dentro do Nova (services/iphone-setup/inapp.js).
 const {Client}=require('./node_modules/ssh2');
 const fs=require('fs'),path=require('path'),os=require('os'),net=require('net');
 const {execFile,spawn}=require('child_process');
@@ -11,8 +8,6 @@ const run=(file,args)=>new Promise((resolve,reject)=>execFile(file,args,{timeout
 const portOpen=()=>new Promise(resolve=>{const s=net.connect({host:'127.0.0.1',port:2222});s.setTimeout(1000);s.once('connect',()=>{s.destroy();resolve(true)});s.once('error',()=>resolve(false));s.once('timeout',()=>{s.destroy();resolve(false)});});
 function command(client,cmd,input){return new Promise((resolve,reject)=>client.exec(cmd,(error,stream)=>{if(error)return reject(error);let stdout='',stderr='';const timer=setTimeout(()=>{stream.close();reject(new Error('O iPhone demorou demais para responder.'));},90000);stream.on('data',data=>stdout+=data);stream.stderr.on('data',data=>stderr+=data);stream.on('close',code=>{clearTimeout(timer);code===0?resolve(stdout):reject(new Error(stderr.includes('password')?'Senha administrativa recusada pelo iPhone.':stderr.trim()||'Comando não concluído no iPhone.'));});stream.end(input||'');}));}
 
-// Garante o túnel USB (127.0.0.1:2222) antes de autenticar. Sem isto, o ssh2
-// recebia "Connection lost before handshake" quando o iproxy ainda não tinha subido.
 async function ensureTunnel(){
  const net=require('net');
  const open=()=>new Promise(res=>{const s=net.connect({host:'127.0.0.1',port:2222,timeout:800});const done=v=>{try{s.destroy();}catch(_){}res(v);};s.once('connect',()=>done(true));s.once('error',()=>done(false));s.once('timeout',()=>done(false));});
@@ -21,12 +16,7 @@ async function ensureTunnel(){
  for(let i=0;i<12;i++){await new Promise(r=>setTimeout(r,700));if(await open())return true;}
  return false;
 }
-// Versão do helper nova-locale = linha HELPER_VERSION=<n> do nova-locale.sh que vai para o
-// aparelho (o número fica só no script; o Conectar lê dele). Sem a linha: null.
 function localeHelperVersion(file){try{const m=/^HELPER_VERSION=(\d+)[ \t]*$/m.exec(fs.readFileSync(file,'utf8'));return m?m[1]:null;}catch(_){return null;}}
-// Depois de reiniciar o serviço, o helper novo grava {"ok":true,"message":"pronto v<versão>"} no
-// status. Espera até ~10 s por essa versão (leitura simples, sem sudo). Sem a versão, o processo
-// antigo ainda roda o texto velho do script. Script sem versão: não há o que conferir (aceita).
 async function waitLocaleHandshake(client,version,opts){
  if(!version)return true;
  const tries=(opts&&opts.tries)||20,delay=(opts&&opts.delayMs)||500,want=new RegExp('"message":"pronto v'+version+'"');
@@ -56,8 +46,6 @@ async function prepare(id,password,service){
  await new Promise((resolve,reject)=>{
   let settled=false;
   const done=(fn,arg)=>{if(settled)return;settled=true;fn(arg);};
-  // `on` (não `once`): o ssh2 emite mais de um erro (handshake, socket) e um erro
-  // sem listener derrubava o processo principal do Nova com a caixa de diálogo.
   client.on('error',()=>done(reject,new Error('Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo.')));
   client.on('close',()=>done(reject,new Error('A conexão SSH caiu antes de terminar. Reconecte o iPhone em PHONE CONTROL e tente de novo.')));
   client.on('ready',()=>done(resolve));
@@ -70,7 +58,6 @@ async function prepare(id,password,service){
  const pub=fs.readFileSync(key+'.pub','utf8').trim();
  if(!/^ssh-(ed25519|rsa) [A-Za-z0-9+/=]+(?: .*)?$/.test(pub))throw new Error('Formato de chave pública não suportado.');
  await command(client,'umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF '+quote(pub)+' ~/.ssh/authorized_keys || printf "%s\\n" '+quote(pub)+' >> ~/.ssh/authorized_keys');
- // Pin the exact server key for existing OpenSSH consumers without replacing existing entries.
  const serverKey=await command(client,"cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub");
  const fields=serverKey.trim().split(/\s+/);if(fields[0]!=='ssh-ed25519'||!fields[1])throw new Error('Não foi possível verificar a chave pública SSH do aparelho.');
  const crypto=require('crypto');if(crypto.createHash('sha256').update(Buffer.from(fields[1],'base64')).digest('hex')!==fingerprint)throw new Error('A chave pública não corresponde ao servidor USB autenticado.');
@@ -93,8 +80,6 @@ async function prepare(id,password,service){
    await command(client,"sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",password+'\n');
    camera='Ponte de câmera '+TARGET+' instalada.';
   }
-  // O dylib novo só entra em memória quando o mediaserverd reinicia; sem isso a
-  // ponte continua reportando a versão antiga e a câmera fica "não pronta".
   try {
    await command(client,"sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",password+'\n');
    camera+=' Serviço de mídia reiniciado — a ponte já está carregada.';
@@ -102,8 +87,6 @@ async function prepare(id,password,service){
    camera+=' Não consegui reiniciar o mediaserverd: '+String(e&&e.message||e).slice(0,120);
   }
  }
- // Spoofing de modelo (novamodel): instala o .deb quando o pacote já estiver junto do
- // app. Se o pacote não existe, o Conectar segue normalmente (este passo é ignorado).
  const modelDebPath=path.join(__dirname,'novamodel.deb');
  if(fs.existsSync(modelDebPath)){
   const nmCurrent=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true")).trim();
@@ -114,9 +97,6 @@ async function prepare(id,password,service){
    camera+=' Spoofing de modelo (novamodel) instalado.';
   }
  }
- // Idioma do aparelho (novalanguage): grava AppleLanguages/AppleLocale pelo store
- // de preferências. Só instala quando o .deb está junto do app; sem ele o Conectar
- // segue normalmente (o resto do fluxo não depende do idioma).
  const langDebPath=path.join(__dirname,'com.aquiles.novalanguage_0.2-3.deb');
  if(fs.existsSync(langDebPath)){
   const nlCurrent=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true")).trim();
@@ -131,7 +111,6 @@ async function prepare(id,password,service){
    }
   }
  }
- // GPS/fuso (nova-locale): helper root instalado/atualizado a cada Conectar, com a senha.
  try{
   const locSh=path.join(__dirname,'nova-locale.sh'),locPl=path.join(__dirname,'com.aquiles.novalocale.plist');
   if(!fs.existsSync(locSh)||!fs.existsSync(locPl))camera+=' Helper nova-locale ausente no Nova.';
@@ -142,12 +121,10 @@ async function prepare(id,password,service){
    await command(client,"sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",password+'\n'+password+'\n');
    await command(client,"sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",password+'\n'+password+'\n');
    await command(client,"sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",password+'\n'+password+'\n');
-   // Confere o reinício antes de dizer "atualizado": os erros acima são engolidos (|| true).
    const locVer=localeHelperVersion(locSh);
    camera+=(await waitLocaleHandshake(client,locVer))?' Fuso/idioma (nova-locale'+(locVer?' v'+locVer:'')+') atualizado.':' nova-locale: arquivos enviados, mas o serviço não confirmou a versão v'+locVer+'. Rode o Conectar de novo.';
   }
  }catch(e){camera+=' nova-locale não atualizado: '+String(e&&e.message||e).slice(0,120);}
- // Proxy do iPhone (novaproxy): instalado uma vez, com a senha do Conectar.
  try{
   const nxCurrent=(await command(client,"/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true")).trim();
   if(nxCurrent)camera+=' Proxy do iPhone (novaproxy '+nxCurrent+') já instalado.';
@@ -165,7 +142,6 @@ async function prepare(id,password,service){
  return {success:true,message:'Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\n'+camera+'\n\n'+(/catvnc/i.test(vnc)?'CatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.':'Para tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.')+'\n\nAs funções disponíveis dependem do suporte a iOS de cada aba.'};
  }finally{password='';if(client)client.end();busy=false;}
 }
-// Abre o modal de senha dentro da janela principal (nada de janela externa).
 function prompt(win,payload){
  if(!win||win.isDestroyed())return {success:false,error:'A janela do Nova não está disponível.'};
  const data={id:String(payload&&payload.id||''),name:String(payload&&payload.name||'')};

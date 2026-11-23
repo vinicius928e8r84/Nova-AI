@@ -1,22 +1,6 @@
 'use strict';
-// Idioma do aparelho pelo app: lê e grava o idioma do iPhone pelo helper
-// `nova-locale` (que por sua vez usa CFPreferences — o store que manda).
 //
-// Regras de segurança deste módulo:
-//  * Nunca usa sudo. O caminho provado (CFPreferences como `mobile`) não
-//    precisa de root, e o respring é `kill -9` no SpringBoard.
-//  * Idioma no domínio GLOBAL muda o Accept-Language que os sites recebem —
-//    com IP dos EUA isso é incoerência. Por isso aplicar global exige
-//    `confirmGlobal: true`; sem isso o módulo NÃO executa nada e devolve o
-//    motivo. Nada é aplicado em silêncio.
-//  * Nada de shell: os argumentos vão como lista para o ssh/execFile. O tag e o
-//    domínio são validados antes, para não virar argumento estranho.
-//  * Toda resposta devolve o que o APARELHO confirmou (leitura de volta no
-//    store), não o que foi pedido.
 
-// O helper no aparelho está em /var/jb/usr/libexec/nova-locale.sh, executado pelo
-// /var/jb/bin/bash (é o que o launchd faz). A rota /var/jb/usr/bin/nova-locale é
-// tentada como reserva, para o caso de o instalador criar um atalho.
 const HELPER_BASH = '/var/jb/bin/bash';
 const HELPER_SCRIPT = '/var/jb/usr/libexec/nova-locale.sh';
 const HELPER_ATALHO = '/var/jb/usr/bin/nova-locale';
@@ -45,7 +29,6 @@ function dominioValido(domain) {
     return domain === 'global' || BUNDLE_RE.test(String(domain || ''));
 }
 
-/** Lê o formato `chave=valor` que o helper imprime e junta os avisos repetidos. */
 function lerSaida(texto) {
     const out = { warnings: [] };
     for (const linha of String(texto || '').split(/\r?\n/)) {
@@ -64,7 +47,6 @@ function comando(sub, args) {
     return [HELPER_BASH, HELPER_SCRIPT, 'language', sub, ...args, '--format', 'lines'];
 }
 
-/** Mensagens que o usuário entende, no lugar do erro cru do shell. */
 function traduzirErro(bruto) {
     const e = String(bruto || '');
     if (/no such file or directory.*nova-locale|nova-locale: No such file/i.test(e)) {
@@ -82,19 +64,12 @@ function traduzirErro(bruto) {
 function createHandlers({ exec, deviceId = 'ios-1' }) {
     if (typeof exec !== 'function') throw new Error('exec obrigatório');
 
-    // cache da checagem: o helper só aceita subcomando a partir da v3 (v4 no
-    // aparelho). Com a v2 instalada, chamar "language …" entra no laço do daemon
-    // e o processo fica girando — por isso a checagem vem antes.
     let helperOk = null;
     let helperOkEm = 0;
 
     async function verificarHelper(timeoutMs = 8000) {
         const agora = Date.now();
         if (helperOk !== null && agora - helperOkEm < 60000) return helperOk;
-        // Não basta procurar uma frase: o texto do script muda entre versões.
-        // Aqui: se existe a função `cmd_language` OU a versão declarada é >= 3,
-        // o helper aceita subcomando. (Mandei v4 e alguém recolocou v2 no
-        // aparelho em 08/11 14:36 — a checagem tem de pegar isso.)
         const cmd = [HELPER_BASH, '-c',
             `F=${HELPER_SCRIPT}; test -f $F || { echo FALTA; exit 0; }; `
             + `grep -q 'cmd_language' $F && { echo OK; exit 0; }; `
@@ -112,10 +87,8 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         return helperOk;
     }
 
-    // exec(cmd: string[], timeoutMs: number) -> Promise<{ code, stdout, stderr }>
     async function rodar(cmd, timeoutMs) {
         let r = await exec(cmd, timeoutMs);
-        // Reserva: se o caminho com bash+script não existe, tenta o atalho.
         if (r && r.code !== 0 && /nova-locale\.sh: No such file|no such file.*nova-locale\.sh/i.test(String(r.stderr || ''))) {
             r = await exec([HELPER_ATALHO, ...cmd.slice(2)], timeoutMs);
         }
@@ -160,14 +133,11 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
 
     async function applyLanguage({ tag, language, domain = 'global', respring = false, locale = null,
         confirmGlobal = false, limparApps = true } = {}) {
-        // O Frontend manda `language`; o contrato do helper chama isso de `tag`.
-        // Aceitar os dois nomes evita recusar um pedido válido (“idioma inválido”).
         if (!tag) tag = language;
         if (!TAG_RE.test(String(tag || ''))) {
             return { success: false, error: 'idioma inválido: informe algo como pt-BR ou en-US' };
         }
         if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
-        // Global muda o que os sites recebem: exige confirmação explícita.
         if (domain === 'global' && confirmGlobal !== true) {
             return {
                 success: false,
@@ -182,9 +152,6 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         if (locale && !LOCALE_RE.test(String(locale))) {
             return { success: false, error: 'locale inválido: informe algo como pt_BR' };
         }
-        // "Aparelho inteiro": o global precisa de duas coisas para alcançar todos
-        // os apps — derivar o AppleLocale do idioma (senão fica texto em pt com
-        // data americana) e limpar o idioma próprio de quem tiver um.
         const args = ['--domain', domain];
         if (locale) args.push('--locale', String(locale));
         else if (domain === 'global') args.push('--locale', 'auto');
@@ -203,7 +170,6 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
         }
 
         const confirmado = s.confirmed === 'yes';
-        // A mensagem semântica vale mais que "o helper saiu com código N".
         if (!confirmado) {
             return {
                 success: false,
@@ -285,13 +251,11 @@ function createHandlers({ exec, deviceId = 'ios-1' }) {
     return { getLanguage, applyLanguage, revertLanguage, listarApps, respring, verificarHelper, deviceId };
 }
 
-/** Registra os handlers no app. `app` só é usado para o canal de log. */
 function register(app, ipcMain, options = {}) {
     const exec = options.exec || executarNoAparelho;
     const h = createHandlers({ exec });
 
     ipcMain.handle('spoofer:get-language', async (_e, args) => h.getLanguage(args || {}));
-    // `set-language` é alias: o Frontend pediu esse nome antes do contrato fechar.
     ipcMain.handle('spoofer:apply-language', async (_e, args) => h.applyLanguage(args || {}));
     ipcMain.handle('spoofer:set-language', async (_e, args) => h.applyLanguage(args || {}));
     ipcMain.handle('spoofer:revert-language', async (_e, args) => h.revertLanguage(args || {}));
@@ -301,19 +265,12 @@ function register(app, ipcMain, options = {}) {
     return h;
 }
 
-/**
- * Execução real: ssh para o túnel do app, como `mobile`, sem sudo.
- * Cada argumento vai entre aspas simples individualmente e argumento com aspas
- * é recusado — o ssh remoto é uma string, então nada de interpolar valor solto.
- */
 function executarNoAparelho(cmd, timeoutMs = 25000) {
     return new Promise((resolve) => {
-        // Cada argumento vai entre aspas simples, com aspas internas escapadas
-        // pelo idioma padrão do shell (' -> '\''). Sem interpolar nada solto.
         const cita = (c) => "'" + String(c).replace(/'/g, "'\\''") + "'";
         const seguro = cmd.map((c) => String(c));
         let sshOptions = [];
-        try { sshOptions = require('./iphone-ssh').sshOptions(); } catch { /* usa o padrão */ }
+        try { sshOptions = require('./iphone-ssh').sshOptions(); } catch { }
         const args = ['-p', '2222', ...sshOptions,
             '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
             'mobile@127.0.0.1', seguro.map(cita).join(' ')];

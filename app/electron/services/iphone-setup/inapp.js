@@ -1,11 +1,6 @@
 'use strict';
 
-// Janela "Conectar iPhone por USB" desenhada dentro da própria janela do Nova.
 //
-// Este módulo roda no preload (mundo isolado): ele compartilha o DOM da página
-// com o renderer, mas não as variáveis JavaScript dele. Por isso o modal não
-// depende do bundle React e continua funcionando depois de uma atualização do
-// app — o renderer só precisa disparar o canal 'physical-mobile:start-stream'.
 
 const STYLE_ID = 'nova-iphone-setup-style';
 const HOST_ATTR = 'data-nova-iphone-setup';
@@ -218,8 +213,6 @@ function open(payload, invoke) {
     }
   }
 
-  // Traduz falhas do dpkg/travamento do aparelho: quem ve so o dump do dpkg
-  // acha que errou a senha. Aqui o texto explica o que houve e o que NAO fazer.
   function explicarFalha(text) {
     const t = String(text || '');
     if (/dpkg:|Segmentation fault|signal \(?11\)?|was killed by signal/i.test(t)) {
@@ -260,9 +253,6 @@ function open(payload, invoke) {
       showError('Informe a senha SSH do usuário mobile.');
       return;
     }
-    // Guarda a senha nesta sessão do modal: se o Conectar falhar, "Tentar
-    // novamente" reaproveita o que a pessoa já digitou (nada é persistido; o
-    // campo e a variável são limpos quando o modal fecha).
     const tentativa = password;
     input.value = '';
     input.disabled = true;
@@ -283,7 +273,6 @@ function open(payload, invoke) {
       showSuccess(result.message);
       consoleOpenBtn.focus();
     } else {
-      // Devolve a senha para o campo: tentar de novo não exige digitar outra vez.
       input.value = tentativa;
       showError((result && (result.error || result.message)) || 'Não foi possível concluir. Verifique o cabo e tente novamente.');
       input.focus();
@@ -293,12 +282,12 @@ function open(payload, invoke) {
 
   function close() {
     if (state.running) return;
-    try { input.value = ''; } catch (e) { /* ignora */ }
+    try { input.value = ''; } catch (e) { }
     doc.removeEventListener('keydown', onKeydown, true);
     host.remove();
     if (state.timer) clearInterval(state.timer);
     active = null;
-    try { if (previousFocus && previousFocus.focus) previousFocus.focus(); } catch (e) { /* ignora */ }
+    try { if (previousFocus && previousFocus.focus) previousFocus.focus(); } catch (e) { }
   }
 
   function onKeydown(event) {
@@ -395,7 +384,6 @@ function open(payload, invoke) {
   setTimeout(() => input.focus(), 30);
 }
 
-// Console aberto direto pelo cartão do aparelho ("Abrir controle"): sem senha.
 function openConsoleOnly(payload, invoke) {
   if (!payload || !payload.id) return;
   if (activeConsole) { activeConsole.focus(); return; }
@@ -418,7 +406,7 @@ function openConsoleOnly(payload, invoke) {
     doc.removeEventListener('keydown', onKeydown, true);
     host.remove();
     activeConsole = null;
-    try { if (previousFocus && previousFocus.focus) previousFocus.focus(); } catch (e) { /* ignora */ }
+    try { if (previousFocus && previousFocus.focus) previousFocus.focus(); } catch (e) { }
   }
 
   function onKeydown(event) {
@@ -479,10 +467,9 @@ function openConsoleOnly(payload, invoke) {
   });
 
   retryBtn.addEventListener('click', async () => {
-    // Fecha o controle e reabre o quadro de senha do Conectar.
     retryBtn.disabled = true;
     close();
-    try { await invoke(START_CHANNEL, id); } catch (e) { /* o main abre o modal */ }
+    try { await invoke(START_CHANNEL, id); } catch (e) { }
   });
 
   activeConsole = { focus() { closeBtn.focus(); } };
@@ -490,8 +477,6 @@ function openConsoleOnly(payload, invoke) {
   carregar();
 }
 
-// Chamado uma única vez pelo preload. `invoke` existe para os testes em
-// navegador/Electron trocarem o IPC por uma função de mentira.
 function attach({ ipcRenderer, invoke }) {
   const run = invoke || ((channel, ...args) => ipcRenderer.invoke(channel, ...args));
   ipcRenderer.on(OPEN_CHANNEL, (_event, payload) => open(payload, run));
