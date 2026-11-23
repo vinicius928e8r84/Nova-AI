@@ -694,7 +694,7 @@ function registerHandlers() {
 
   ipcMain.handle('rtmp:start-broadcast', async () => {
     try {
-      await RtmpServerService.startBroadcast();
+      await RtmpServerService.startBroadcast(app.physicalMobileService?.adbPath);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -3640,7 +3640,7 @@ function registerHandlers() {
 
   ipcMain.handle('remote-access-regenerate', async () => {
     if (remoteAccessService) {
-      remoteAccessService.tokens.clear();
+      remoteAccessService.revogarTodosOsTokens();
       const tokenData = remoteAccessService.generateToken('Default Mobile');
       const status = remoteAccessService.getStatus();
       const qrResult = await remoteAccessService.generateQRCode(tokenData.token);
@@ -4094,18 +4094,18 @@ const shutdownExtras = () => extraShutdownTasks({
 });
 
 let isShuttingDown = () => false;
-if (process.platform === 'darwin') {
-  const { createProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
-  const helpersPath = path.join(process.resourcesPath, '..', 'Frameworks') + path.sep;
-  const processCleanup = createProcessCleanup(helpersPath);
+if (process.platform === 'darwin' || process.platform === 'win32') {
+  const { createProcessCleanup, createWindowsProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
+  const processCleanup = process.platform === 'win32' ? createWindowsProcessCleanup()
+    : createProcessCleanup(path.join(process.resourcesPath, '..', 'Frameworks') + path.sep);
   isShuttingDown = registerShutdown(app, async () => {
     await runShutdownTasks([stopWindowServices, ...shutdownExtras()]);
   }, processCleanup);
-  process.on('SIGTERM', () => app.quit());
-  process.on('SIGINT', () => app.quit());
-}
-
-if (process.platform !== 'darwin') {
+  if (process.platform === 'darwin') {
+    process.on('SIGTERM', () => app.quit());
+    process.on('SIGINT', () => app.quit());
+  }
+} else {
   guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
 }
 

@@ -3,23 +3,32 @@
 const { casaAlgum, extensaoDe } = require('./globs');
 const configuracaoPadrao = require('./caminhos-sensiveis.json');
 
+const DIFF_AUSENTE = { id: 'diff-ausente', motivo: 'o GitHub não devolveu o diff deste arquivo, então o conteúdo sensível não pôde ser conferido' };
+
+const motivoDe = (arquivo, regra, tipo) => ({ arquivo, id: regra.id, motivo: regra.motivo, tipo });
+
+function motivosDoCaminho(caminho, regrasDeCaminho) {
+  return regrasDeCaminho
+    .filter(regra => casaAlgum(regra.globs, caminho))
+    .map(regra => motivoDe(caminho, regra, 'caminho'));
+}
+
+function motivosDoConteudo(caminho, adicionadas, padroes) {
+  if (adicionadas === null) return [motivoDe(caminho, DIFF_AUSENTE, 'conteudo')];
+  return padroes
+    .filter(regra => adicionadas.some(texto => regra.regex.test(texto)))
+    .map(regra => motivoDe(caminho, regra, 'conteudo'));
+}
+
+function motivosDoArquivo({ caminho, adicionadas = [] }, configuracao, padroes) {
+  const doCaminho = motivosDoCaminho(caminho, configuracao.caminhos);
+  if (!configuracao.extensoesDoConteudo.includes(extensaoDe(caminho))) return doCaminho;
+  return [...doCaminho, ...motivosDoConteudo(caminho, adicionadas, padroes)];
+}
+
 function classificar(arquivos, configuracao = configuracaoPadrao) {
-  const motivos = [];
   const padroes = configuracao.conteudo.map(regra => ({ ...regra, regex: new RegExp(regra.padrao, 'i') }));
-  for (const { caminho, adicionadas = [] } of arquivos) {
-    for (const regra of configuracao.caminhos) {
-      if (casaAlgum(regra.globs, caminho)) motivos.push({ arquivo: caminho, id: regra.id, motivo: regra.motivo, tipo: 'caminho' });
-    }
-    if (!configuracao.extensoesDoConteudo.includes(extensaoDe(caminho))) continue;
-    if (adicionadas === null) {
-      motivos.push({ arquivo: caminho, id: 'diff-ausente', motivo: 'o GitHub não devolveu o diff deste arquivo, então o conteúdo sensível não pôde ser conferido', tipo: 'conteudo' });
-      continue;
-    }
-    for (const regra of padroes) {
-      const linha = adicionadas.findIndex(texto => regra.regex.test(texto));
-      if (linha >= 0) motivos.push({ arquivo: caminho, id: regra.id, motivo: regra.motivo, tipo: 'conteudo' });
-    }
-  }
+  const motivos = arquivos.flatMap(arquivo => motivosDoArquivo(arquivo, configuracao, padroes));
   return { alta: motivos.length > 0, motivos };
 }
 

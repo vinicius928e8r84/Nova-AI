@@ -162,9 +162,9 @@ preservada); pausa do CAM LIVE com ponte simulada (sessão viva, sem erro).
 - `reservas/antes-20261103-204008/` — originais do renderer + ios-camera.
 - `reservas/antes-transmissao-*/` — originais dos 4 arquivos de serviço antes
   do ajuste da transmissão.
-- `index-Dun7lr2S.patched.js`, `ios-camera.patched.js`,
-  `cam-live-service.patched.js`,
-  `cam-live-iphone.patched.js` — versões aplicadas no app.
+- `index-Dun7lr2S.patched.js` — versão do bundle aplicada no app.
+- `controles-independentes.test.cjs` — testa `ios-camera.js` e
+  `cam-live-iphone.js` de `app/electron/services/`, a fonte do app.
 - `patch_bundle.py`, `patch_transmissao.py` — cirurgias (rodam sobre as reservas).
 
 ## Para restaurar
