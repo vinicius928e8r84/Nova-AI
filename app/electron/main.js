@@ -694,7 +694,7 @@ function registerHandlers() {
 
   ipcMain.handle('rtmp:start-broadcast', async () => {
     try {
-      await RtmpServerService.startBroadcast();
+      await RtmpServerService.startBroadcast(app.physicalMobileService?.adbPath);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -3640,7 +3640,7 @@ function registerHandlers() {
 
   ipcMain.handle('remote-access-regenerate', async () => {
     if (remoteAccessService) {
-      remoteAccessService.tokens.clear();
+      remoteAccessService.revogarTodosOsTokens();
       const tokenData = remoteAccessService.generateToken('Default Mobile');
       const status = remoteAccessService.getStatus();
       const qrResult = await remoteAccessService.generateQRCode(tokenData.token);

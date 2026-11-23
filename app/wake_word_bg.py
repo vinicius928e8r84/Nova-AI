@@ -30,72 +30,82 @@ except (ImportError, OSError):
     sd = None
 
 
-def listen_for_nova():
-    r = sr.Recognizer()
-    r.energy_threshold = 300
-    r.dynamic_energy_threshold = True
-    
-    try:
-        source = sr.Microphone()
-        if sd is not None and isinstance(source, sr.AudioSource) and type(source).__name__ == 'MacMicrophone':
-            sd.query_devices(kind='input')
-    except Exception as e:
-        print(json.dumps({"type": "INFO", "msg": f"Microphone listener in background disabled (PyAudio not installed). Web/App voice mode active."}))
-        sys.stdout.flush()
-        return
+SEM_PYAUDIO = "Microphone listener in background disabled (PyAudio not installed). Web/App voice mode active."
+SEM_ENTRADA = "Microphone listener in background disabled (no usable input device). Web/App voice mode active."
 
-    stack = contextlib.ExitStack()
+
+def anunciar(registro):
+    print(json.dumps(registro))
+    sys.stdout.flush()
+
+
+def informar(mensagem):
+    anunciar({"type": "INFO", "msg": mensagem})
+
+
+def conferir_entrada_do_mac(fonte):
+    if sd is None or type(fonte).__name__ != 'MacMicrophone':
+        return
+    if isinstance(fonte, sr.AudioSource):
+        sd.query_devices(kind='input')
+
+
+def criar_microfone():
     try:
-        stack.enter_context(source)
+        fonte = sr.Microphone()
+        conferir_entrada_do_mac(fonte)
     except Exception:
-        print(json.dumps({"type": "INFO", "msg": "Microphone listener in background disabled (no usable input device). Web/App voice mode active."}))
-        sys.stdout.flush()
+        informar(SEM_PYAUDIO)
+        return None
+    return fonte
+
+
+def abrir_microfone(fonte):
+    pilha = contextlib.ExitStack()
+    try:
+        pilha.enter_context(fonte)
+    except Exception:
+        informar(SEM_ENTRADA)
+        return None
+    return pilha
+
+
+def tratar_fala(texto):
+    gatilho = next((palavra for palavra in texto.split() if palavra.endswith("nic")), None)
+    if gatilho:
+        anunciar({"type": "WAKE_WORD", "text": texto, "command": texto.replace(gatilho, "", 1).strip()})
+    else:
+        informar(f"Heard: {texto}")
+
+
+def ouvir_uma_vez(reconhecedor, fonte):
+    try:
+        audio = reconhecedor.listen(fonte, phrase_time_limit=10)
+        tratar_fala(reconhecedor.recognize_google(audio).lower())
+    except sr.UnknownValueError:
+        pass
+    except sr.RequestError:
+        anunciar({"type": "ERROR", "msg": "Google Speech API Connection Issue"})
+    except Exception as erro:
+        anunciar({"type": "ERROR", "msg": str(erro)})
+
+
+def listen_for_nova():
+    reconhecedor = sr.Recognizer()
+    reconhecedor.energy_threshold = 300
+    reconhecedor.dynamic_energy_threshold = True
+    fonte = criar_microfone()
+    if fonte is None:
         return
-
-    with stack:
-        print(json.dumps({"type": "INFO", "msg": "Microphone initialized. Tuning ambient noise..."}))
-        sys.stdout.flush()
-        
-        r.adjust_for_ambient_noise(source, duration=0.5)
-        
-        print(json.dumps({"type": "INFO", "msg": "NOVA Engine Active. Listening in background..."}))
-        sys.stdout.flush()
-        
+    pilha = abrir_microfone(fonte)
+    if pilha is None:
+        return
+    with pilha:
+        informar("Microphone initialized. Tuning ambient noise...")
+        reconhecedor.adjust_for_ambient_noise(fonte, duration=0.5)
+        informar("NOVA Engine Active. Listening in background...")
         while True:
-            try:
-                audio = r.listen(source, phrase_time_limit=10)
-                
-                # Processing start log
-                # print(json.dumps({"type": "INFO", "msg": "Voice detected, recognizing..."}))
-                # sys.stdout.flush()
-
-                text = r.recognize_google(audio).lower()
-                words = text.split()
-                trigger_word = next((w for w in words if w.endswith("nic")), None)
-                
-                if trigger_word:
-                    # If we found a word ending in 'nic', trigger the AI
-                    result = {
-                        "type": "WAKE_WORD",
-                        "text": text,
-                        "command": text.replace(trigger_word, "", 1).strip()
-                    }
-                    print(json.dumps(result))
-                    sys.stdout.flush()
-                else:
-                    # Log what was heard even if it wasn't a trigger word
-                    print(json.dumps({"type": "INFO", "msg": f"Heard: {text}"}))
-                    sys.stdout.flush()
-                
-            except sr.UnknownValueError:
-                pass
-            except sr.RequestError:
-                print(json.dumps({"type": "ERROR", "msg": "Google Speech API Connection Issue"}))
-                sys.stdout.flush()
-            except Exception as e:
-                # Critical error logger
-                print(json.dumps({"type": "ERROR", "msg": str(e)}))
-                sys.stdout.flush()
+            ouvir_uma_vez(reconhecedor, fonte)
 
 if __name__ == "__main__":
     try:
