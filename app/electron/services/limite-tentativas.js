@@ -21,7 +21,7 @@ class LimiteDeTentativas {
 
     registrarFalha(cliente) {
         const agora = this.agora();
-        const registro = this.clientes.get(cliente) || { falhas: 0, bloqueadoAte: 0 };
+        const registro = this.registroVigente(cliente, agora);
         registro.falhas += 1;
         registro.ultimaFalha = agora;
         if (registro.falhas > FALHAS_LIVRES) {
@@ -31,6 +31,12 @@ class LimiteDeTentativas {
         this.clientes.delete(cliente);
         this.clientes.set(cliente, registro);
         this.podar(agora);
+    }
+
+    registroVigente(cliente, agora) {
+        const registro = this.clientes.get(cliente);
+        const envelhecido = !registro || agora - registro.ultimaFalha > ESQUECER_APOS_MS;
+        return envelhecido ? { falhas: 0, bloqueadoAte: 0 } : registro;
     }
 
     registrarSucesso(cliente) {
@@ -55,8 +61,8 @@ class LimiteDeTentativas {
     }
 }
 
-function clienteDaConexao(enderecoDoPar, cabecalhos = {}) {
-    const doTunel = ENDERECOS_LOCAIS.has(enderecoDoPar) ? cabecalhos['cf-connecting-ip'] : null;
+function clienteDaConexao(enderecoDoPar, cabecalhos = {}, tunelAtivo = false) {
+    const doTunel = tunelAtivo && ENDERECOS_LOCAIS.has(enderecoDoPar) ? cabecalhos['cf-connecting-ip'] : null;
     return String(doTunel || enderecoDoPar || 'desconhecido').trim();
 }
 

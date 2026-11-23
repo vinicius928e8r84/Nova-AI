@@ -34,14 +34,19 @@ const tentarHttp = async (porta, token, cliente) => (await fetch(`http://127.0.0
   headers: { Authorization: `Bearer ${token}`, 'cf-connecting-ip': cliente }
 })).status;
 
-async function subirServico(tokensSalvos) {
+async function subirServico(tokensSalvos, { tunel = true } = {}) {
   const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'forca-token-'));
   if (tokensSalvos) fs.writeFileSync(path.join(pasta, 'remote_tokens.json'), JSON.stringify({ tokens: tokensSalvos }));
   const servico = new RemoteAccessService({ getPath: () => pasta });
   servico.port = 0;
   await servico.start();
+  if (tunel) {
+    servico.cloudflaredProcess = {};
+    servico.publicUrl = 'https://exemplo.trycloudflare.com';
+  }
   const porta = servico.httpServer.address().port;
   const encerrar = () => {
+    servico.cloudflaredProcess = null;
     servico.io.close();
     fs.rmSync(pasta, { recursive: true, force: true });
   };
@@ -51,7 +56,7 @@ async function subirServico(tokensSalvos) {
 const chutes = Array.from({ length: FALHAS_LIVRES + 20 }, (_, i) => `CHUTE${String(i).padStart(27, '0')}`);
 
 test('token novo tem 128 bits e o formato é aceito pelo cliente do celular', async () => {
-  const { servico, porta, encerrar } = await subirServico();
+  const { servico, porta, encerrar } = await subirServico(undefined, { tunel: false });
   try {
     const { token } = servico.generateToken('Celular');
     assert.match(token, /^[0-9A-F]{32}$/);
@@ -94,7 +99,7 @@ test('força bruta no socket para depois das falhas livres e o usuário certo de
     for (const chute of chutes) respostas.push(await tentarSocket(porta, chute, '198.51.100.1'));
     assert.ok(respostas.every((r) => r.success === false));
     assert.equal(respostas.filter((r) => r.error === 'Invalid token').length, FALHAS_LIVRES + 1);
-    assert.ok(respostas.slice(FALHAS_LIVRES + 1).every((r) => /Muitas tentativas/.test(r.error)));
+    assert.ok(respostas.slice(FALHAS_LIVRES + 1).every((r) => r.bloqueado === true && /Muitas tentativas/.test(r.error)));
     assert.equal((await tentarSocket(porta, token, '198.51.100.1')).success, false);
     assert.deepEqual(await tentarSocket(porta, token, '198.51.100.2'), { success: true });
     assert.equal(servico.limiteDeTentativas.clientes.has('198.51.100.2'), false);
@@ -145,9 +150,86 @@ test('a espera cresce a cada falha, tem teto e acaba com o tempo', () => {
   assert.equal(limite.bloqueado('b'), false);
 });
 
-test('o endereço do túnel só vale quando a conexão vem da própria máquina', () => {
-  assert.equal(clienteDaConexao('127.0.0.1', { 'cf-connecting-ip': '203.0.113.9' }), '203.0.113.9');
-  assert.equal(clienteDaConexao('::ffff:127.0.0.1', { 'cf-connecting-ip': '203.0.113.9' }), '203.0.113.9');
-  assert.equal(clienteDaConexao('192.0.2.50', { 'cf-connecting-ip': '203.0.113.9' }), '192.0.2.50');
-  assert.equal(clienteDaConexao('127.0.0.1', {}), '127.0.0.1');
+test('o endereço do túnel só vale com o túnel ativo e a conexão vindo da própria máquina', () => {
+  const falsificado = { 'cf-connecting-ip': '203.0.113.9' };
+  assert.equal(clienteDaConexao('127.0.0.1', falsificado, true), '203.0.113.9');
+  assert.equal(clienteDaConexao('::ffff:127.0.0.1', falsificado, true), '203.0.113.9');
+  assert.equal(clienteDaConexao('192.0.2.50', falsificado, true), '192.0.2.50');
+  assert.equal(clienteDaConexao('127.0.0.1', {}, true), '127.0.0.1');
+  assert.equal(clienteDaConexao('127.0.0.1', falsificado, false), '127.0.0.1');
+  assert.equal(clienteDaConexao('127.0.0.1', falsificado), '127.0.0.1');
+});
+
+test('com o túnel desligado, cabeçalho falsificado não escolhe a chave: vale o par da conexão', async () => {
+  const { servico, porta, encerrar } = await subirServico(undefined, { tunel: false });
+  const { token } = servico.tokens.values().next().value;
+  try {
+    for (let i = 0; i < 40; i++) await tentarHttp(porta, chutes[i % chutes.length], `203.0.113.${i}`);
+    assert.deepEqual([...servico.limiteDeTentativas.clientes.keys()], ['127.0.0.1']);
+    assert.equal(servico.limiteDeTentativas.bloqueado('127.0.0.1'), true);
+    assert.equal(await tentarHttp(porta, token, '203.0.113.200'), 401);
+    for (let i = 0; i < 40; i++) await tentarSocket(porta, chutes[i % chutes.length], `203.0.113.${i}`);
+    assert.deepEqual([...servico.limiteDeTentativas.clientes.keys()], ['127.0.0.1']);
+  } finally { encerrar(); }
+});
+
+test('com o túnel ativo a chave é o cabeçalho do cloudflared: bloquear um cliente não trava outro', async () => {
+  const { servico, porta, encerrar } = await subirServico();
+  const { token } = servico.tokens.values().next().value;
+  try {
+    for (let i = 0; i < 10; i++) await tentarHttp(porta, chutes[i], '192.0.2.77');
+    assert.equal(await tentarHttp(porta, token, '192.0.2.77'), 401);
+    assert.equal(await tentarHttp(porta, token, '192.0.2.78'), 200);
+  } finally { encerrar(); }
+});
+
+test('túnel que não é o cloudflared não habilita o cabeçalho', async () => {
+  const { servico, porta, encerrar } = await subirServico(undefined, { tunel: false });
+  servico.publicUrl = 'https://exemplo.loca.lt';
+  try {
+    await tentarHttp(porta, chutes[0], '203.0.113.1');
+    assert.deepEqual([...servico.limiteDeTentativas.clientes.keys()], ['127.0.0.1']);
+  } finally { servico.publicUrl = null; encerrar(); }
+});
+
+test('página de outra origem não passa no Socket.IO nem no polling, e as origens do próprio PWA passam', async () => {
+  const { porta, encerrar } = await subirServico();
+  try {
+    const sondar = (origem, extra = {}) => fetch(`http://127.0.0.1:${porta}/socket.io/?EIO=4&transport=polling`, { headers: { ...(origem && { Origin: origem }), ...extra } });
+    const alheia = await sondar('http://127.0.0.1:1', { 'cf-connecting-ip': '192.0.2.77' });
+    assert.equal(alheia.status, 403);
+    assert.equal(alheia.headers.get('access-control-allow-origin'), null);
+    const preflightAlheio = await fetch(`http://127.0.0.1:${porta}/socket.io/?EIO=4&transport=polling`, {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://site-qualquer.example', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'cf-connecting-ip' }
+    });
+    assert.equal(preflightAlheio.headers.get('access-control-allow-origin'), null);
+    assert.equal((await sondar(`http://127.0.0.1:${porta}`)).status, 200);
+    assert.equal((await sondar(`http://localhost:${porta}`)).status, 200);
+    assert.equal((await sondar('https://exemplo.trycloudflare.com')).status, 200);
+    assert.equal((await sondar(null)).status, 200);
+    const erro = await new Promise((resolve) => {
+      const ws = new WebSocket(`ws://127.0.0.1:${porta}/socket.io/?EIO=4&transport=websocket`, { headers: { Origin: 'https://site-qualquer.example' } });
+      ws.on('open', () => { ws.close(); resolve(null); });
+      ws.on('unexpected-response', (_req, res) => resolve(res.statusCode));
+      ws.on('error', () => {});
+    });
+    assert.ok(erro >= 400);
+  } finally { encerrar(); }
+});
+
+test('as falhas envelhecem depois de 1 h e o erro de digitação seguinte não bloqueia', () => {
+  let agora = 0;
+  const limite = new LimiteDeTentativas({ agora: () => agora });
+  for (let i = 0; i < FALHAS_LIVRES + 1; i++) limite.registrarFalha('a');
+  assert.equal(limite.bloqueado('a'), true);
+  agora = 60 * 60 * 1000 + 1;
+  limite.registrarFalha('a');
+  assert.equal(limite.bloqueado('a'), false);
+  assert.equal(limite.clientes.get('a').falhas, 1);
+});
+
+test('o cliente do celular mostra a mensagem de bloqueio e não "token inválido"', () => {
+  const origem = fs.readFileSync(path.join(__dirname, '../electron/pwa/app.js'), 'utf8');
+  assert.match(origem, /showError\(data\.bloqueado \? data\.error : 'Token inválido/);
 });

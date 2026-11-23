@@ -11,6 +11,13 @@ const { LimiteDeTentativas, clienteDaConexao } = require('./limite-tentativas');
 const SALA_AUTENTICADOS = 'autenticados';
 const BYTES_DO_TOKEN = 16;
 const TAMANHO_MINIMO_DO_TOKEN = BYTES_DO_TOKEN * 2;
+const RESULTADO_VALIDO = 'valido';
+const RESULTADO_INVALIDO = 'invalido';
+const RESULTADO_BLOQUEADO = 'bloqueado';
+const RECUSAS_DO_SOCKET = {
+    [RESULTADO_INVALIDO]: { success: false, error: 'Invalid token' },
+    [RESULTADO_BLOQUEADO]: { success: false, bloqueado: true, error: 'Muitas tentativas. Aguarde e tente de novo.' }
+};
 
 class RemoteAccessService {
     constructor(app) {
@@ -169,15 +176,36 @@ hone par ye file automatically update ho jayegi.
         });
     }
 
+    tunelCloudflaredAtivo() {
+        return Boolean(this.cloudflaredProcess && this.publicUrl);
+    }
+
+    clienteDaConexao(enderecoDoPar, cabecalhos) {
+        return clienteDaConexao(enderecoDoPar, cabecalhos, this.tunelCloudflaredAtivo());
+    }
+
+    conferirCliente(cliente, validar) {
+        if (this.limiteDeTentativas.bloqueado(cliente)) return RESULTADO_BLOQUEADO;
+        if (!validar()) {
+            this.limiteDeTentativas.registrarFalha(cliente);
+            return RESULTADO_INVALIDO;
+        }
+        this.limiteDeTentativas.registrarSucesso(cliente);
+        return RESULTADO_VALIDO;
+    }
+
     tokenDaRequisicaoValido(req) {
         const token = /^Bearer (\S+)$/.exec(req.headers.authorization || '')?.[1];
         if (!token) return false;
-        const cliente = clienteDaConexao(req.socket?.remoteAddress, req.headers);
-        if (this.limiteDeTentativas.bloqueado(cliente)) return false;
-        const valido = this.tokens.get(token)?.active === true;
-        if (valido) this.limiteDeTentativas.registrarSucesso(cliente);
-        else this.limiteDeTentativas.registrarFalha(cliente);
-        return valido;
+        const cliente = this.clienteDaConexao(req.socket?.remoteAddress, req.headers);
+        return this.conferirCliente(cliente, () => this.tokens.get(token)?.active === true) === RESULTADO_VALIDO;
+    }
+
+    origemPermitida(origem) {
+        if (!origem) return true;
+        const porta = this.httpServer?.address()?.port ?? this.port;
+        const proprias = [this.publicUrl, `http://localhost:${porta}`, `http://127.0.0.1:${porta}`, `http://${this.getLocalIpAddress()}:${porta}`];
+        return proprias.filter(Boolean).map((url) => url.replace(/\/$/, '')).includes(origem);
     }
 
     atenderConfigFirebase(req, res) {
@@ -272,9 +300,10 @@ hone par ye file automatically update ho jayegi.
             // Initialize Socket.IO
             this.io = new Server(this.httpServer, {
                 cors: {
-                    origin: '*',
+                    origin: (origem, responder) => responder(null, this.origemPermitida(origem)),
                     methods: ['GET', 'POST']
                 },
+                allowRequest: (req, responder) => responder(null, this.origemPermitida(req.headers.origin)),
                 transports: ['websocket', 'polling']
             });
 
@@ -329,45 +358,39 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
+    autenticarSocket(socket, carga) {
+        const cliente = this.clienteDaConexao(socket.handshake.address, socket.handshake.headers);
+        const resultado = this.conferirCliente(cliente, () => this.validateToken(carga?.token));
+        if (resultado === RESULTADO_VALIDO) return this.aceitarSocket(socket, carga.token);
+        socket.emit('authenticated', RECUSAS_DO_SOCKET[resultado]);
+        socket.disconnect();
+    }
+
+    aceitarSocket(socket, token) {
+        const tokenData = this.tokens.get(token);
+        this.connectedClients.set(socket.id, {
+            token,
+            deviceName: tokenData.deviceName,
+            connectedAt: Date.now()
+        });
+
+        this.confirmarAutenticacao(socket);
+        console.info(`[RemoteAccess] Client authenticated: ${tokenData.deviceName}`);
+
+        this.notifyDesktop('client-connected', {
+            deviceName: tokenData.deviceName,
+            socketId: socket.id
+        });
+
+        this.sendGroqKeyToClient(socket);
+    }
+
     // Setup Socket.IO event handlers
     setupSocketHandlers() {
         this.io.on('connection', (socket) => {
             console.log(`[RemoteAccess] New connection attempt: ${socket.id}`);
 
-            // Authentication required
-            socket.on('authenticate', (carga) => {
-                const cliente = clienteDaConexao(socket.handshake.address, socket.handshake.headers);
-                if (this.limiteDeTentativas.bloqueado(cliente)) {
-                    socket.emit('authenticated', { success: false, error: 'Muitas tentativas. Aguarde e tente de novo.' });
-                    socket.disconnect();
-                    return;
-                }
-                if (this.validateToken(carga?.token)) {
-                    this.limiteDeTentativas.registrarSucesso(cliente);
-                    const tokenData = this.tokens.get(carga.token);
-                    this.connectedClients.set(socket.id, {
-                        token: carga.token,
-                        deviceName: tokenData.deviceName,
-                        connectedAt: Date.now()
-                    });
-
-                    this.confirmarAutenticacao(socket);
-                    console.log(`[RemoteAccess] Client authenticated: ${tokenData.deviceName}`);
-
-                    // Notify desktop app about new connection
-                    this.notifyDesktop('client-connected', {
-                        deviceName: tokenData.deviceName,
-                        socketId: socket.id
-                    });
-
-                    // Send Groq key for voice support
-                    this.sendGroqKeyToClient(socket);
-                } else {
-                    this.limiteDeTentativas.registrarFalha(cliente);
-                    socket.emit('authenticated', { success: false, error: 'Invalid token' });
-                    socket.disconnect();
-                }
-            });
+            socket.on('authenticate', (carga) => this.autenticarSocket(socket, carga));
 
             // Handle chat messages from mobile
             socket.on('chat-message', async (data) => {
