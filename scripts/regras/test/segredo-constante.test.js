@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { criar } = require('./auxiliar');
-const { acharNaLinha } = require('../regra-segredo');
+const { constanteDeSegredoNaLinha: acharNaLinha } = require('../constante-de-segredo');
 
 function tentar(arquivos, base = {}) {
   const repo = criar(base);

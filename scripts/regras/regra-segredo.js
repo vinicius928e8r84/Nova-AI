@@ -2,6 +2,7 @@
 
 const { bytesDaBase } = require('./git');
 const { casaAlgum } = require('./globs');
+const { constanteDeSegredoNoArquivo } = require('./constante-de-segredo');
 
 const id = 'sem-segredo';
 const titulo = 'Nenhum segredo, chave, token ou arquivo de credencial no diff';
@@ -24,8 +25,6 @@ const HOST_DE_EXEMPLO = /^(?:[\w-]+\.)*(?:exemplo|example)\.(?:com|net|org)(?::\
 const SENHA_DE_EXEMPLO = /^(?:senha|password|passwd|pass|pwd|secret|segredo|usuario|user|username|usr|xxx+|\*+|porta|port|host|s3nh[a0-9]*|<[^>]*>|\{[^}]*\}|\$\{?\w*\}?|%\w*|\.\.\.)$/i;
 
 const ATRIBUICAO = /(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]{0,60}['"]?\s{0,5}[:=]\s{0,5}['"]([^'"\s]{16,512})/i;
-const CONSTANTE_DE_SEGREDO = /\b[A-Z0-9_]{0,40}(?:SECRET|PASSWORD|PASSWD|PASSCODE|SENHA|SEGREDO)[A-Z0-9_]{0,40}\s{0,5}[:=]\s{0,5}['"]([^'"\s]{6,512})['"]/;
-const CAMINHO_DE_TESTE = /(?:^|\/)(?:test|testes|__tests__)\/|\.test\.[cm]?[jt]s$/;
 const TAMANHO_DA_JANELA = 2000;
 const SOBRA_ENTRE_JANELAS = 200;
 const PLACEHOLDER = /x{4,}|\*{3,}|example|exemplo|sample|your|seu[_-]|changeme|placeholder|dummy|fake|falso|<[^>]*>|\$\{|%\(|\{\{|process\.env|os\.environ|\.\.\./i;
@@ -36,13 +35,6 @@ const pareceSegredo = valor => {
   if (/^[0-9a-f]{32,}$/i.test(valor)) return true;
   return classes >= 3 && new Set(valor).size >= 8;
 };
-
-const valorEscrito = valor => !PLACEHOLDER.test(valor) && !SENHA_DE_EXEMPLO.test(valor);
-
-function constanteDeSegredoNaLinha(texto) {
-  const constante = CONSTANTE_DE_SEGREDO.exec(texto);
-  return constante && valorEscrito(constante[1]) ? 'constante de segredo com valor escrito' : null;
-}
 
 function acharNaJanela(texto) {
   for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
@@ -59,13 +51,7 @@ function acharNaJanela(texto) {
   return null;
 }
 
-function acharNaLinha(texto, emTeste = false) {
-  const achado = acharPorJanelas(texto);
-  if (achado || emTeste) return achado;
-  return constanteDeSegredoNaLinha(texto);
-}
-
-function acharPorJanelas(texto) {
+function acharNaLinha(texto) {
   if (texto.length <= TAMANHO_DA_JANELA) return acharNaJanela(texto);
   const passo = TAMANHO_DA_JANELA - SOBRA_ENTRE_JANELAS;
   for (let inicio = 0; inicio < texto.length; inicio += passo) {
@@ -103,6 +89,8 @@ function segredoNovoNoBinario(ctx, item, arquivo) {
   return antes && segredoNoBinario(antes) ? null : nome;
 }
 
+const segredoNaLinhaDoArquivo = (linha, caminho) => acharNaLinha(linha) || constanteDeSegredoNoArquivo(linha, caminho);
+
 function verificar(ctx) {
   const achados = [];
   for (const item of ctx.arquivos) {
@@ -122,7 +110,7 @@ function verificar(ctx) {
     if (!arquivo) continue;
     const linhas = arquivo.texto.split('\n');
     for (const numero of [...novas].sort((a, b) => a - b)) {
-      const nome = acharNaLinha(linhas[numero - 1] || '', CAMINHO_DE_TESTE.test(caminho));
+      const nome = segredoNaLinhaDoArquivo(linhas[numero - 1] || '', caminho);
       if (nome) achados.push({ arquivo: caminho, linha: numero, detalhe: `parece ${nome} (o valor não é mostrado)` });
     }
   }
