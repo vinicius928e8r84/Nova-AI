@@ -2,7 +2,7 @@ import ast
 import json
 import sys
 
-fonte = sys.stdin.read()
+fonte = sys.stdin.buffer.read().decode("utf-8")
 try:
     arvore = ast.parse(fonte)
 except SyntaxError:
