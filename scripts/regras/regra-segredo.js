@@ -24,6 +24,8 @@ const HOST_DE_EXEMPLO = /^(?:[\w-]+\.)*(?:exemplo|example)\.(?:com|net|org)(?::\
 const SENHA_DE_EXEMPLO = /^(?:senha|password|passwd|pass|pwd|secret|segredo|usuario|user|username|usr|xxx+|\*+|porta|port|host|s3nh[a0-9]*|<[^>]*>|\{[^}]*\}|\$\{?\w*\}?|%\w*|\.\.\.)$/i;
 
 const ATRIBUICAO = /(?:secret|passwd|password|senha|api[_-]?key|apikey|token|private[_-]?key|auth[_-]?key|access[_-]?key)[\w.-]{0,60}['"]?\s{0,5}[:=]\s{0,5}['"]([^'"\s]{16,512})/i;
+const CONSTANTE_DE_SEGREDO = /\b[A-Z0-9_]{0,40}(?:SECRET|PASSWORD|PASSWD|PASSCODE|SENHA|SEGREDO)[A-Z0-9_]{0,40}\s{0,5}[:=]\s{0,5}['"]([^'"\s]{6,512})['"]/;
+const CAMINHO_DE_TESTE = /(?:^|\/)(?:test|testes|__tests__)\/|\.test\.[cm]?[jt]s$/;
 const TAMANHO_DA_JANELA = 2000;
 const SOBRA_ENTRE_JANELAS = 200;
 const PLACEHOLDER = /x{4,}|\*{3,}|example|exemplo|sample|your|seu[_-]|changeme|placeholder|dummy|fake|falso|<[^>]*>|\$\{|%\(|\{\{|process\.env|os\.environ|\.\.\./i;
@@ -35,7 +37,7 @@ const pareceSegredo = valor => {
   return classes >= 3 && new Set(valor).size >= 8;
 };
 
-function acharNaJanela(texto) {
+function acharNaJanela(texto, emTeste) {
   for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
   for (const url of texto.matchAll(URL_COM_SENHA)) {
     const resto = url[0].slice(url[0].indexOf('@') + 1).split(/[/?#]/)[0];
@@ -47,14 +49,16 @@ function acharNaJanela(texto) {
   }
   const m = ATRIBUICAO.exec(texto);
   if (m && pareceSegredo(m[1])) return 'valor literal em campo de segredo';
+  const constante = emTeste ? null : CONSTANTE_DE_SEGREDO.exec(texto);
+  if (constante && !PLACEHOLDER.test(constante[1]) && !SENHA_DE_EXEMPLO.test(constante[1])) return 'constante de segredo com valor escrito';
   return null;
 }
 
-function acharNaLinha(texto) {
-  if (texto.length <= TAMANHO_DA_JANELA) return acharNaJanela(texto);
+function acharNaLinha(texto, emTeste = false) {
+  if (texto.length <= TAMANHO_DA_JANELA) return acharNaJanela(texto, emTeste);
   const passo = TAMANHO_DA_JANELA - SOBRA_ENTRE_JANELAS;
   for (let inicio = 0; inicio < texto.length; inicio += passo) {
-    const nome = acharNaJanela(texto.slice(inicio, inicio + TAMANHO_DA_JANELA));
+    const nome = acharNaJanela(texto.slice(inicio, inicio + TAMANHO_DA_JANELA), emTeste);
     if (nome) return nome;
   }
   return null;
@@ -107,7 +111,7 @@ function verificar(ctx) {
     if (!arquivo) continue;
     const linhas = arquivo.texto.split('\n');
     for (const numero of [...novas].sort((a, b) => a - b)) {
-      const nome = acharNaLinha(linhas[numero - 1] || '');
+      const nome = acharNaLinha(linhas[numero - 1] || '', CAMINHO_DE_TESTE.test(caminho));
       if (nome) achados.push({ arquivo: caminho, linha: numero, detalhe: `parece ${nome} (o valor não é mostrado)` });
     }
   }
