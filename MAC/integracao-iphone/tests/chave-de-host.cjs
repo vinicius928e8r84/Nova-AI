@@ -8,8 +8,6 @@ const arquivos=[
  'app/electron/services/idioma-ipc.js',
  'app/electron/services/physicalMobileService.js',
  'MAC/integracao-camlive/cam-live-iphone.js',
- 'MAC/integracao-sequestro-cam/ios-camera.patched.js',
- 'MAC/integracao-sequestro-cam/cam-live-iphone.patched.js',
 ];
 for(const rel of arquivos){
  test('ssh do iPhone usa accept-new com BatchMode e ConnectTimeout: '+rel,()=>{
