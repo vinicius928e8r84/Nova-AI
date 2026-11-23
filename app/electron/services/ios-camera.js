@@ -1,16 +1,6 @@
 'use strict';
-// Bridge da câmera nativa do iPhone (jailbreak OBSGraphBridge).
 //
-// Dois papéis separados neste arquivo:
-//  1. TRANSMISSÃO (fluxo antigo, intacto): start(videoPath)/stop() sobem o
-//     servidor MJPEG + túnel e alimentam a câmera com o vídeo do Mac.
-//  2. SEQUESTRO (item 3 da aba): startCamSpoof()/stopCamSpoof() apenas trocam
-//     a fonte da câmera (injetada <-> real) e NUNCA derrubam uma transmissão
-//     em andamento — nem o servidor/túnel local, nem o CAM LIVE.
 //
-// Transporte camuflado (bridge 0.1-39): caminho com token de 32 hex, socket
-// Unix no iPhone quando possível e porta TCP aleatória como reserva. A rota
-// antiga /frame.jpg e a porta 18999 não são mais usadas.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -48,7 +38,6 @@ class IosCamera {
   return {platform:'ios',success:false,error:state.error||'Atualize o bridge por USB em PHONE CONTROL (Conectar).'};
  }
  async writeControl(config) {
-  // Atomic replacement of this bridge's own configuration. Never deletes media or tweaks.
   await this.ssh('umask 077; printf %s '+quote(JSON.stringify(config))+' > '+CONTROL+'.nova-next && mv '+CONTROL+'.nova-next '+CONTROL);
  }
  pushFrame(base64) {
@@ -68,7 +57,6 @@ class IosCamera {
     if(!fresh) {res.writeHead(503,{'Cache-Control':'no-store'});res.end('Indisponível');return;}
     res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'no-store','Content-Length':this.frame.length});res.end(this.frame);
    } else if(req.url==='/live.mjpg' || req.url==='/stream') {
-    // Prévia do próprio app (loopback do Mac); não é o que o iPhone lê.
     res.writeHead(200,{'Content-Type':'multipart/x-mixed-replace; boundary=nova','Cache-Control':'no-store'});
     this.clients.add(res);req.on('close',()=>this.clients.delete(res));
    } else {res.writeHead(404,{'Cache-Control':'no-store'});res.end('Não encontrado');}
@@ -92,7 +80,6 @@ class IosCamera {
   });
  }
  async tunnel(localPort) {
-  // 1º: socket Unix no iPhone (nenhuma porta TCP escutando). 2º: porta aleatória.
   const socketPath=`/var/tmp/.nbi-${crypto.randomBytes(4).toString('hex')}.sock`;
   try {
    await this._openForward(this._forwardArgs(`${socketPath}:127.0.0.1:${localPort}`));
@@ -168,22 +155,18 @@ class IosCamera {
   this.stopping=false;
   return {success:true,platform:'ios',message:'Injeção desligada. Feche e reabra a Câmera para voltar ao sensor real.'};
  }
- // ── SEQUESTRO (item 3): só troca a fonte da câmera; não mexe na transmissão ──
  transmissaoLocalAtiva() { return !!(this.server && this.tunnelProcess); }
  camLive() {
   const camlive=this.service && this.service.camLiveIphone;
   return (camlive && typeof camlive.running==='boolean') ? camlive : null;
  }
  suspenderHeartbeatLocal() {
-  // O renovador da transmissão local reescreveria o controle a cada 20 s;
-  // a partir daqui quem decide a fonte da câmera é o sequestro.
   clearInterval(this.heartbeat); this.heartbeat=null;
  }
  async liberarPortaCamera() {
-  // Obsoleto: o túnel agora usa socket Unix ou porta aleatória, nunca 18999.
  }
  async startCamSpoof(videoPath) {
-  if (videoPath) return this.start(videoPath); // transmissão de vídeo local (fluxo antigo)
+  if (videoPath) return this.start(videoPath);
   return this.ligarInjecao();
  }
  async ligarInjecao() {
@@ -200,7 +183,6 @@ class IosCamera {
    if (!state.ready) throw new Error(state.error || 'A ponte de câmera do iPhone não está pronta.');
    const write=async () => {
     if (!enabled) return this.writeControl({mode:'observe'});
-    // Local: o servidor do próprio ios-camera. Caso contrário: o transporte do CAM LIVE.
     const endpoint=this.transmissaoLocalAtiva()
      ? {url:this.url, socket:this.transport && this.transport.type==='unix' ? this.transport.path : null}
      : (typeof camlive.mediaEndpoint==='function' ? camlive.mediaEndpoint() : null);

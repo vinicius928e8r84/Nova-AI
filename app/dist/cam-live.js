@@ -1,10 +1,3 @@
-/* CAM LIVE — motor + janela (reconstrução em JS do MiniOBS Studio).
- * Roda no renderer do Nova (script clássico, sem React). Isolado em Shadow DOM.
- *  - Itens da lista "Cenas": foto, vídeo, áudio (arquivos do computador), captura de tela, câmera (só vídeo), cor, padrão de teste
- *  - Mixer de áudio só com o áudio dos vídeos/áudios da lista (window.CamLiveAudio) — nunca microfone nem áudio do computador
- *  - Formato de tela (computador/celular, proporção, HD/Full HD, deitado/em pé), compositor em canvas, preview com arrastar/redimensionar
- *  - Encoder H.264 (WebCodecs) + AAC (CamLiveAudio) -> pacotes -> serviço do processo principal (cliente RTMP, fila, DBR, reconexão)
- */
 (function () {
   'use strict';
   if (window.__camLive) return;
@@ -15,7 +8,6 @@
   const ipcLog = (m) => { try { hasIpc && bridge.send('camlive:log', m); } catch (_) {} };
   const audio = () => window.CamLiveAudio || null;
 
-  /* ───────────── ícones (estilo Lucide) ───────────── */
   const IC = {
     video: '<path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
     monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
@@ -50,7 +42,6 @@
   const ic = (n, s = 14) => `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  /* ───────────── modelo (lista única de itens) ───────────── */
   const KINDS = {
     image: { label: 'Foto', icon: 'image', file: true, accept: 'image/*' },
     video: { label: 'Vídeo', icon: 'film', file: true, accept: 'video/*', av: true },
@@ -60,7 +51,6 @@
     color: { label: 'Cor', icon: 'palette' },
     test: { label: 'Padrão de teste', icon: 'test', nat: [1280, 720] },
   };
-  // razões no sentido deitado (lado maior / lado menor)
   const RATIOS = {
     pc: [['16:9', 16 / 9, '16:9'], ['16:10', 16 / 10, '16:10'], ['4:3', 4 / 3, '4:3']],
     phone: [['16:9', 16 / 9, '16:9 (celular comum)'], ['19.5:9', 19.5 / 9, '19.5:9 (iPhone/Android atuais)'], ['4:5', 5 / 4, '4:5 (feed)'], ['1:1', 1, '1:1']],
@@ -102,7 +92,6 @@
   const findItem = (id) => scene().items.find((i) => i.id === id);
   const kindLabel = (it) => KINDS[it.kind].label;
 
-  /* ───────────── persistência: studio.json + IndexedDB (arquivos de mídia) ───────────── */
   let saveT = 0;
   const serialize = () => JSON.parse(JSON.stringify(P));
   function save() {
@@ -139,7 +128,6 @@
   const idbKeys = () => idbDo('readonly', (st) => st.getAllKeys());
 
   function normalizeDoc(doc) {
-    // lista única: junta os itens de eventuais cenas antigas
     const items = []; doc.scenes.forEach((s) => (s.items || []).forEach((i) => items.push(i)));
     const sid = doc.scenes[0].id;
     doc.scenes = [{ id: sid, name: 'Cena 1', items }]; doc.active = sid;
@@ -177,12 +165,10 @@
       const blob = await idbGet(it.id);
       if (blob) { delete R.missing[it.id]; mountFile(it, blob, false); } else R.missing[it.id] = true;
     }));
-    // limpa blobs órfãos
     try { const keys = await idbKeys(); (keys || []).forEach((k) => { if (!items.some((i) => i.id === k)) idbDel(k); }); } catch (_) {}
   }
 
-  /* ───────────── mídia: arquivos e captura ───────────── */
-  const rt = new Map();          // id -> {video, img, media, stream, url}
+  const rt = new Map();
   const shouldPlay = () => R.open || R.streaming;
   const nativeOf = (it) => {
     const r = rt.get(it.id);
@@ -191,7 +177,6 @@
     if (it.kind === 'color') return [P.video.w, P.video.h];
     return KINDS[it.kind].nat || [P.video.w, P.video.h];
   };
-  /** mode: 'fit' (ajustar, sem cortar) | 'cover' (preencher, corta) | 'stretch' (esticar) */
   function fitItem(it, mode) {
     if (KINDS[it.kind].noFrame) return;
     const W = P.video.w, H = P.video.h;
@@ -200,8 +185,6 @@
     const [nw, nh] = nativeOf(it), s = (mode === 'cover' ? Math.max : Math.min)(W / nw, H / nh), w = nw * s, h = nh * s;
     it.frame = { x: (W - w) / 2, y: (H - h) / 2, w, h };
   }
-  /* Tamanho "relativo": quanto o item ocupa em relação ao seu encaixe (Ajustar) no canvas, mais o centro em frações.
-     Não depende do formato; por isso trocar de formato e voltar não encolhe nada (antes cada troca multiplicava o tamanho por <1). */
   const containSize = (it, W, H) => { const [nw, nh] = nativeOf(it), s = Math.min(W / nw, H / nh); return [nw * s, nh * s]; };
   function captureRel(it, W, H) {
     if (!it.frame || KINDS[it.kind].noFrame) return;
@@ -215,12 +198,11 @@
     if (w <= W) x = Math.max(0, Math.min(x, W - w)); if (h <= H) y = Math.max(0, Math.min(y, H - h));
     it.frame = { x, y, w, h };
   }
-  /** Chamado depois que P.video já tem o tamanho novo; oW/oH é o tamanho antigo. */
   function rescaleItems(items, oW, oH, nW, nH) {
     items.forEach((it) => {
       if (!it.frame || KINDS[it.kind].noFrame) return;
       const mode = it.fitMode;
-      if (mode === 'fit' || mode === 'cover' || mode === 'stretch') { fitItem(it, mode); return; }   // continua encaixado em qualquer formato
+      if (mode === 'fit' || mode === 'cover' || mode === 'stretch') { fitItem(it, mode); return; }
       if (!it.rel) captureRel(it, oW, oH);
       applyRel(it, nW, nH);
     });
@@ -244,7 +226,6 @@
     if (r.url) { try { URL.revokeObjectURL(r.url); } catch (_) {} }
     rt.delete(id);
   }
-  /** Cria o elemento de mídia para um item de arquivo (foto/vídeo/áudio). */
   function mountFile(it, blob, fit) {
     unmount(it.id);
     const url = URL.createObjectURL(blob);
@@ -252,7 +233,7 @@
       const img = new Image(); img.onload = () => { if (fit) fitItem(it, 'fit'); paintDocks(); }; img.src = url; rt.set(it.id, { img, url });
     } else {
       const el = document.createElement(it.kind === 'audio' ? 'audio' : 'video');
-      el.loop = it.loop !== false; el.preload = 'auto'; if (it.kind === 'video') el.playsInline = true;   // NÃO usar muted: o áudio vai pelo grafo
+      el.loop = it.loop !== false; el.preload = 'auto'; if (it.kind === 'video') el.playsInline = true;
       const r = { media: el, video: it.kind === 'video' ? el : null, url }; rt.set(it.id, r);
       el.onloadedmetadata = () => { if (fit && it.kind === 'video') fitItem(it, 'fit'); paintDocks(); };
       el.src = url;
@@ -277,7 +258,7 @@
         if (!sid) throw new Error('nenhuma tela encontrada');
         stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: sid, maxFrameRate: P.video.fps } } });
       }
-      if (rt.get(it.id) !== slot) { stream.getTracks().forEach((t) => t.stop()); return; }   // removida enquanto abria
+      if (rt.get(it.id) !== slot) { stream.getTracks().forEach((t) => t.stop()); return; }
       slot.stream = stream; slot.video.srcObject = stream; await slot.video.play();
       delete R.srcErr[it.id];
       if (!it.frame) fitItem(it, 'fit');
@@ -290,7 +271,6 @@
     }
     slot.starting = false;
   }
-  /** Captura só o que está visível (como o OBS desativa fontes fora de cena). */
   function reconcile() {
     const need = new Set();
     scene().items.forEach((it) => { if (it.visible && (it.kind === 'screen' || it.kind === 'camera')) need.add(it.id); });
@@ -298,7 +278,6 @@
     scene().items.forEach((it) => { if (need.has(it.id) && !rt.has(it.id) && !R.srcErr[it.id] && (R.open || R.streaming)) startCapture(it); });
   }
 
-  /* ───────────── itens (a lista "Cenas") ───────────── */
   const uniqueName = (base) => { const names = new Set(scene().items.map((i) => i.name)); if (!names.has(base)) return base; let n = 2; while (names.has(base + ' ' + n)) n++; return base + ' ' + n; };
   const baseName = (f) => f.name.replace(/\.[^.]+$/, '') || f.name;
   function kindOfFile(f, hint) {
@@ -347,7 +326,6 @@
   function toggleVisible(it) { it.visible = !it.visible; applyAudio(it); save(); reconcile(); paintDocks(); }
   function toggleLock(it) { it.locked = !it.locked; save(); paintDocks(); }
 
-  /* ───────────── formato de tela ───────────── */
   function setFormat(patch) {
     if (R.streaming) { toast('Pare a transmissão para mudar o formato.'); return false; }
     const v = P.video, oW = v.w, oH = v.h, prev = v.fmt;
@@ -360,8 +338,7 @@
     return true;
   }
 
-  /* ───────────── compositor ───────────── */
-  const OUT = document.createElement('canvas');          // saída do programa (é daqui que o encoder lê)
+  const OUT = document.createElement('canvas');
   let loopTimer = 0, nextAt = 0, frameIdx = 0, t0 = 0, previewCanvas = null;
   function cover(g, v, x, y, w, h) { const vw = v.videoWidth || v.naturalWidth, vh = v.videoHeight || v.naturalHeight; if (!vw) return false; const s = Math.max(w / vw, h / vh); g.drawImage(v, x + (w - vw * s) / 2, y + (h - vh * s) / 2, vw * s, vh * s); return true; }
   function placeholder(g, it, x, y, w, h, text) {
@@ -397,15 +374,13 @@
   }
   let fitBox = '';
   function fitPreview(c) {
-    // ocupa o máximo possível da caixa mantendo a proporção do formato (centralizado por margin:auto)
     const box = c.parentElement, bw = box.clientWidth, bh = box.clientHeight; if (!bw || !bh) return;
     const key = bw + 'x' + bh + '/' + c.width + 'x' + c.height; if (key === fitBox && c.style.width) return; fitBox = key;
     const s = Math.min(bw / c.width, bh / c.height);
     c.style.width = Math.max(1, Math.floor(c.width * s)) + 'px'; c.style.height = Math.max(1, Math.floor(c.height * s)) + 'px';
   }
-  /* alças de transformação (cantos e meios) + botão de girar */
   const HANDLES = [{ id: 'nw', sx: -1, sy: -1 }, { id: 'ne', sx: 1, sy: -1 }, { id: 'se', sx: 1, sy: 1 }, { id: 'sw', sx: -1, sy: 1 }, { id: 'n', sx: 0, sy: -1 }, { id: 'e', sx: 1, sy: 0 }, { id: 's', sx: 0, sy: 1 }, { id: 'w', sx: -1, sy: 0 }];
-  const ROT_OFF = 30;                                    // distância (px da tela) do botão de girar até a borda de cima
+  const ROT_OFF = 30;
   const ROT_ARC = new Path2D('M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8'), ROT_HEAD = new Path2D('M21 3v5h-5');
   const rad = (it) => ((it.rot || 0) * Math.PI) / 180;
   const centerOf = (f) => ({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
@@ -437,7 +412,6 @@
       if (!it.locked) {
         g.fillStyle = col; g.strokeStyle = '#fff'; g.lineWidth = 1.5 * k;
         HANDLES.forEach((h) => { const hx = (h.sx * f.w) / 2, hy = (h.sy * f.h) / 2; g.fillRect(hx - 5 * k, hy - 5 * k, 10 * k, 10 * k); g.strokeRect(hx - 5 * k, hy - 5 * k, 10 * k, 10 * k); });
-        // botão de girar: círculo com seta em arco, acima do centro do lado de cima
         const ry = -f.h / 2 - ROT_OFF * k;
         g.strokeStyle = col; g.lineWidth = 1.5 * k; g.beginPath(); g.moveTo(0, -f.h / 2); g.lineTo(0, ry + 11 * k); g.stroke();
         g.fillStyle = col; g.beginPath(); g.arc(0, ry, 11 * k, 0, Math.PI * 2); g.fill();
@@ -447,7 +421,6 @@
       g.restore();
     }
   }
-  /* medidores de áudio: atualizados direto no DOM, sem repintar o dock */
   let mt = { master: null, db: null, ch: {} };
   function cacheMeters() {
     mt = { master: null, db: null, ch: {} }; if (!shadow) return;
@@ -467,10 +440,10 @@
   }
   function loop() {
     loopTimer = 0;
-    if (!R.open && !R.streaming) return;           // ocioso: nada para mostrar nem enviar
+    if (!R.open && !R.streaming) return;
     const interval = 1000 / (P.stream.target === 'iphone' && R.streaming ? Math.min(30, P.video.fps) : P.video.fps), now = performance.now();
     if (!nextAt) nextAt = now;
-    if (now > nextAt + interval) { R.lagged += Math.floor((now - nextAt) / interval); nextAt = now; }   // quadros atrasados
+    if (now > nextAt + interval) { R.lagged += Math.floor((now - nextAt) / interval); nextAt = now; }
     nextAt += interval;
     renderFrame();
     if (R.open && !R.min) { drawPreview(); updateMeters(); }
@@ -481,7 +454,6 @@
   }
   function ensureLoop() { if (!loopTimer && (R.open || R.streaming)) { nextAt = 0; loopTimer = setTimeout(loop, 0); } }
 
-  /* ───────────── encoder H.264 (WebCodecs) ───────────── */
   const LEVELS = [[0x1f, 3600, 108000], [0x20, 5120, 216000], [0x28, 8192, 245760], [0x2a, 8704, 522240], [0x32, 22080, 589824], [0x33, 36864, 983040], [0x34, 36864, 2073600]];
   const levelFor = (w, h, fps) => { const mbs = Math.ceil(w / 16) * Math.ceil(h / 16); return (LEVELS.find((l) => mbs <= l[1] && mbs * fps <= l[2]) || LEVELS[LEVELS.length - 1])[0]; };
   class Encoder {
@@ -522,7 +494,6 @@
     }
     async stop() { if (!this.enc) return; try { await this.enc.flush(); } catch (_) {} try { this.enc.close(); } catch (_) {} this.enc = null; }
   }
-  // USB uses the bridge's native JPEG input. At most one frame is in flight.
   class JpegEncoder {
     constructor(onError) { this.onError = onError; this.frames = 0; this.live = true; this.pending = false; }
     async start() {}
@@ -588,7 +559,6 @@
 
   let enc = null;
 
-  /* ───────────── transmissão ───────────── */
   const u8 = (d) => (d instanceof Uint8Array ? d : new Uint8Array(d.buffer ? d.buffer.slice(d.byteOffset, d.byteOffset + d.byteLength) : d));
   async function startStreaming() {
     if (R.streaming || R.starting || R.stopping) return;
@@ -649,7 +619,6 @@
     bridge.on('camlive:keyframe', () => { if (enc) enc.requestKey(); });
   }
 
-  /* ───────────── interface (Shadow DOM) ───────────── */
   const CSS = `
 :host{all:initial}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -742,7 +711,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
     shadow.innerHTML = `<style>${CSS}</style><div class="root"></div>`;
   }
 
-  /* ── barra de formato ── */
   function formatHTML() {
     const v = P.video, lk = R.streaming;
     const seg = (m, cur, opts) => `<span class="seg">${opts.map((o) => `<b data-m="${m}" data-v="${o[0]}" class="${String(o[0]) === String(cur) ? 'on' : ''}">${o[2] || ''}${o[1]}</b>`).join('')}</span>`;
@@ -759,7 +727,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
     e.innerHTML = formatHTML();
   }
 
-  /* ── docks ── */
   const dock = (t, icon, body) => `<div class="dock"><div class="dhead">${ic(icon, 14)}${t}</div>${body}</div>`;
   function itemRow(it) {
     const sel = it.id === R.sel, editing = R.editing === it.id;
@@ -835,7 +802,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
   }
   function paintDocks() {
     const e = q('#docks'); if (!e) return;
-    // preserva o campo de renomear durante repinturas
     const old = R.editing && q('[data-edit]'), keep = old ? { v: old.value, s: old.selectionStart, e: old.selectionEnd } : null;
     R.painting = true; e.innerHTML = docksHTML(); R.painting = false;
     if (R.editing) { const i = q('[data-edit]'); if (i) { if (keep) { i.value = keep.v; i.focus(); try { i.setSelectionRange(keep.s, keep.e); } catch (_) {} } } }
@@ -844,7 +810,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
   function paintModal() { const e = q('#modal'); if (!e) return; e.innerHTML = modalHTML(); const i = e.querySelector('input[autofocus]'); if (i) { i.focus(); i.select(); } }
   function paint() { paintDocks(); paintFormat(); paintModal(); updateStatusDom(); }
 
-  /* renomear na lista */
   function startEdit(id) { R.sel = id; R.editing = id; paintDocks(); const i = q('[data-edit]'); if (i) { i.focus(); i.select(); } }
   function commitEdit() {
     const id = R.editing; if (!id) return; const i = q('[data-edit]'), it = findItem(id); R.editing = null;
@@ -872,7 +837,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
   }
   function toast(msg) { const t = q('#toast'); if (!t) return; t.textContent = msg; t.style.opacity = 1; clearTimeout(toast.t); toast.t = setTimeout(() => { t.style.opacity = 0; }, 4500); }
 
-  /* menu de contexto */
   let ctxEl = null, ctxOff = null;
   function closeCtx() { if (ctxEl) { ctxEl.remove(); ctxEl = null; } if (ctxOff) { removeEventListener('pointerdown', ctxOff, true); ctxOff = null; } }
   function ctx(x, y, items) {
@@ -891,13 +855,12 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
     ]);
   }
 
-  /* canvas: selecionar, arrastar, redimensionar (itens bloqueados só são selecionados) */
   function bindCanvas(c) {
     let d = null; const pt = (e) => { const r = c.getBoundingClientRect(), k = c.width / r.width; return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k, k }; };
     c.addEventListener('pointerdown', (e) => {
       const p = pt(e), items = scene().items; let hit = null, mode = 'move', hh = null;
       const sel = R.sel && findItem(R.sel);
-      if (sel && sel.frame && sel.visible && !sel.locked && (hh = hitHandle(sel, p, p.k))) { hit = sel; mode = hh.type; }   // alças do item selecionado têm prioridade
+      if (sel && sel.frame && sel.visible && !sel.locked && (hh = hitHandle(sel, p, p.k))) { hit = sel; mode = hh.type; }
       else for (let i = items.length - 1; i >= 0; i--) { const it = items[i]; if (!it.visible || !it.frame) continue; if (insideItem(it, p)) { hit = it; break; } }
       R.sel = hit ? hit.id : null; paintDocks(); if (!hit || (hit.locked && mode === 'move')) { d = null; return; }
       d = { id: hit.id, mode, h: hh && hh.h, sx: p.x, sy: p.y, o: { ...hit.frame }, rot: hit.rot || 0, moved: false }; c.setPointerCapture(e.pointerId);
@@ -905,7 +868,7 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
     });
     c.addEventListener('pointermove', (e) => {
       const p = pt(e);
-      if (!d) {   // só passa o mouse: mostra o cursor certo
+      if (!d) {
         const sel = R.sel && findItem(R.sel); let cur = '';
         if (sel && sel.frame && sel.visible && !sel.locked) { const h = hitHandle(sel, p, p.k); cur = h ? cursorFor(h, sel) : (insideItem(sel, p) ? 'move' : ''); }
         c.style.cursor = cur; return;
@@ -917,17 +880,17 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
         const cc = centerOf(o); let ang = (Math.atan2(p.y - cc.y, p.x - cc.x) * 180) / Math.PI + 90;
         ang = ((ang + 180) % 360 + 360) % 360 - 180;
         if (e.shiftKey) ang = Math.round(ang / 15) * 15;
-        else { const n = Math.round(ang / 90) * 90; if (Math.abs(ang - n) < 3) ang = n; }       // gruda em 0°, 90°, 180°… (perto)
+        else { const n = Math.round(ang / 90) * 90; if (Math.abs(ang - n) < 3) ang = n; }
         it.rot = ang === -180 ? 180 : ang;
       } else {
         const h = d.h, l = toLocal(o, d.rot, p); let nw = o.w, nh = o.h;
         if (h.sx) nw = Math.max(16, h.sx > 0 ? l.x + o.w / 2 : o.w / 2 - l.x);
         if (h.sy) nh = Math.max(16, h.sy > 0 ? l.y + o.h / 2 : o.h / 2 - l.y);
-        if (h.sx && h.sy && !e.shiftKey && o.w > 0 && o.h > 0) {        // canto: mantém a proporção (Shift solta)
+        if (h.sx && h.sy && !e.shiftKey && o.w > 0 && o.h > 0) {
           let s = Math.max(nw / o.w, nh / o.h); s = Math.max(s, 16 / o.w, 16 / o.h); nw = o.w * s; nh = o.h * s;
         }
         const anchor = toWorld(o, d.rot, { x: (-h.sx * o.w) / 2, y: (-h.sy * o.h) / 2 }), a = (d.rot * Math.PI) / 180, vx = (h.sx * nw) / 2, vy = (h.sy * nh) / 2;
-        const cx = anchor.x + vx * Math.cos(a) - vy * Math.sin(a), cy = anchor.y + vx * Math.sin(a) + vy * Math.cos(a);   // o lado oposto fica parado
+        const cx = anchor.x + vx * Math.cos(a) - vy * Math.sin(a), cy = anchor.y + vx * Math.sin(a) + vy * Math.cos(a);
         it.frame = { x: cx - nw / 2, y: cy - nh / 2, w: nw, h: nh };
       }
     });
@@ -964,7 +927,7 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
           const nf = { x: num('f-x', 0, -99999, 99999), y: num('f-y', 0, -99999, 99999), w: num('f-pw', 16, 1, 99999), h: num('f-ph', 16, 1, 99999) }, of = it.frame || {};
           const nr = num('f-rot', 0, -360, 360), rotChanged = Math.abs(nr - Math.round(it.rot || 0)) > 0.5;
           if (rotChanged) it.rot = nr;
-          if (rotChanged || ['x', 'y', 'w', 'h'].some((k) => Math.abs((nf[k] || 0) - Math.round(of[k] || 0)) > 0.5)) { it.frame = nf; it.fitMode = 'free'; captureRel(it); }   // só vira "livre" se você mudou os números
+          if (rotChanged || ['x', 'y', 'w', 'h'].some((k) => Math.abs((nf[k] || 0) - Math.round(of[k] || 0)) > 0.5)) { it.frame = nf; it.fitMode = 'free'; captureRel(it); }
         }
       }
     }
@@ -1041,7 +1004,7 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
     ]);
   }
   function onClick(e) {
-    try { const a = audio(); a && a.resume(); } catch (_) {}      // gesto do usuário: libera o áudio do navegador
+    try { const a = audio(); a && a.resume(); } catch (_) {}
     if (R.needGesture) playAll();
     if (e.target.closest('[data-edit]')) return;
     const act = e.target.closest('[data-act]');
@@ -1114,7 +1077,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
     const fs = [...e.dataTransfer.files]; if (fs.length) addFiles(fs);
   }
 
-  /* ───────────── abrir/fechar + botão da barra ───────────── */
   let pairedPhoneControl = null;
   function syncPhoneControlPosition() {
     const header = document.querySelector('.pm-drag');

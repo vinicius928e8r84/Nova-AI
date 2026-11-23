@@ -1,9 +1,5 @@
 'use strict';
-// CAM LIVE → iPhone USB: JPEG + AAC-LC over an app-owned loopback HTTP server.
 //
-// Transporte camuflado (bridge 0.1-39): o servidor só responde em
-// /s/<token de 32 hex>/… e o túnel tenta primeiro um socket Unix no iPhone;
-// se o sshd não aceitar, cai para uma porta TCP aleatória. Nada de 18999.
 const http = require('http');
 const crypto = require('crypto');
 const path = require('path');
@@ -122,7 +118,6 @@ class UsbMedia {
   }
 }
 
-// A ponte relata "0.1-<revisão>"; 0.1-39 é a primeira com o transporte camuflado.
 function bridgePatch(state) {
   const match = /^0\.1-(\d+)/.exec(String((state && state.version) || ''));
   return match ? Number(match[1]) : 0;
@@ -140,8 +135,6 @@ class CamLiveIphone {
   _emit(extra = {}) { this.send('camlive:status', { status: this.status, error: this.error, destination: 'iphone', ...extra }); }
   _assert(token) { if (token !== this.generation) throw new Error('Preparação do CAM LIVE cancelada.'); }
   async _readState() {
-    // `this.mobile` só era preenchido no _activate; o status podia ser pedido antes
-    // e estourava "Cannot read properties of undefined (reading 'iosSsh')".
     if (!this.mobile && typeof this.getMobileService === 'function') this.mobile = this.getMobileService();
     if (!this.mobile) throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de transmitir.');
     require('./tool-paths').exigirOpenssh('ssh');
@@ -154,8 +147,6 @@ class CamLiveIphone {
     this.transportQueue = task.catch(() => {});
     return task;
   }
-  // Endereço que a ponte deve ler. O sequestro (ios-camera.js) usa isto ao
-  // escrever o control, em vez de repetir 18999/frame.jpg.
   mediaEndpoint() {
     return { url: this.frameUrl, socket: this.transport?.type === 'unix' ? this.transport.path : null };
   }
@@ -163,8 +154,6 @@ class CamLiveIphone {
     if (this.tunnel && this.media) return;
     const camera = this.getMobileService()?.iosCamera?.();
     await camera?.liberarPortaCamera();
-    // Limpa qualquer injeção anterior (sequestro/vídeo local) antes de assumir a
-    // câmera: controle velho apontando para um túnel morto deixava o CAM LIVE preto.
     try { camera?.suspenderHeartbeatLocal?.(); } catch (_) {}
     try { await camera?.writeControl?.({ mode: 'observe' }); } catch (_) {}
     await this.closeTransport();
@@ -276,7 +265,6 @@ class CamLiveIphone {
       ? `http://127.0.0.1${this.media.framePath}`
       : `http://127.0.0.1:${this.transport.port}${this.media.framePath}`;
   }
-  // 1º: socket Unix no iPhone (nenhuma porta TCP escutando). 2º: porta aleatória.
   async _camouflagedForward(localPort) {
     const socketPath = `/var/tmp/.nb-${crypto.randomBytes(4).toString('hex')}.sock`;
     this.socketPath = socketPath;
@@ -365,8 +353,6 @@ class CamLiveIphone {
   }
   async _cleanup() {
     clearInterval(this.sourceWatch); this.sourceWatch = null;
-    // Sem isto, um CAM LIVE que morre deixa o controle em "inject" apontando para
-    // um túnel morto: a Câmera do iPhone fica preta e a próxima transmissão não entra.
     try { await this.getMobileService?.()?.iosCamera?.().writeControl?.({ mode: 'observe' }); } catch (_) {}
     const encoder = this.encoder;
     this.encoder = null; this.active = false;
