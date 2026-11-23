@@ -109,3 +109,10 @@ test('registro: o revisor que diz Risco: ALTA ainda exige a prova, mesmo com o a
   assert.equal(r.ok, false);
   assert.match(r.mensagem, /Prova real/);
 });
+
+test('JavaScript: bloco de várias linhas com asteriscos sai; a diretiva dentro dele não deixa sair', () => {
+  const prosa = ['/**', ' * Faz a conta.', ' * Soma os dois.', ' */', 'const a = 1;', ''].join('\n');
+  assert.equal(comparar('app/a.js', prosa, 'const a = 1;\n').ok, true);
+  const licenca = ['/**', ' * Faz a conta.', ' * @license MIT', ' */', 'const a = 1;', ''].join('\n');
+  assert.equal(comparar('app/a.js', licenca, 'const a = 1;\n').ok, false);
+});

@@ -9,9 +9,10 @@ const COMPARADOR_DE_PYTHON = path.join(__dirname, 'comparar_py.py');
 const EXTENSOES_DE_JS = ['js', 'mjs', 'cjs'];
 const PROTEGIDOS = ['.github/', 'scripts/regras/', 'scripts/ci/'];
 
-const DE_FERRAMENTA = /^(?:#!|[*!]|@ts-|@license|@preserve|@vite-ignore|@__PURE__|#__PURE__|@jsx|@flow|@refresh|@generated|@jest|@vitest|[#@]\s*sourceMappingURL|[#@]\s*sourceURL|webpack[A-Z]|eslint|istanbul|c8\s|prettier-ignore|noqa|type:|pylint|mypy|pyright|fmt:|isort|coding[:=]|-\*-|SPDX-|Copyright|<reference)/i;
+const DE_FERRAMENTA = /^(?:#!|!|@ts-|@license|@preserve|@vite-ignore|@__PURE__|#__PURE__|@jsx|@flow|@refresh|@generated|@jest|@vitest|[#@]\s*sourceMappingURL|[#@]\s*sourceURL|webpack[A-Z]|eslint|istanbul|c8\s|prettier-ignore|noqa|type:|pylint|mypy|pyright|fmt:|isort|coding[:=]|-\*-|SPDX-|Copyright|<reference)/i;
 
-const ehDeFerramenta = texto => DE_FERRAMENTA.test(texto.replace(/^(?:\/\/+|\/\*+|#+)\s*/, '').replace(/\s*\*\/\s*$/, '').trim());
+const semMarcas = linha => linha.replace(/^\s*(?:\/\/+|\/\*+|\*+|#+)\s*/, '').replace(/\s*\*\/\s*$/, '').trim();
+const ehDeFerramenta = texto => texto.split('\n').map(semMarcas).some(linha => DE_FERRAMENTA.test(linha));
 const protegido = caminho => PROTEGIDOS.some(pasta => caminho.startsWith(pasta));
 const ehPython = caminho => extensaoDe(caminho) === 'py';
 const ehJs = caminho => EXTENSOES_DE_JS.includes(extensaoDe(caminho));
