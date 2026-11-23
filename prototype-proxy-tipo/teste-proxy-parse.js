@@ -3,10 +3,16 @@
 const P = require("../MAC/integracao-iphone/conexao-usb/proxy-parse.js");
 const PASS = "segredoFalso_country-US_mode-quality_session-AAAABBBB_lifetime-1440";
 let falhas = 0;
+function relatoDaFalha(nome, real, esperado) {
+  return "FALHA  " + nome + "\n        veio: " + JSON.stringify(real) + "\n        quer: " + JSON.stringify(esperado);
+}
 function eq(nome, real, esperado) {
-  const ok = JSON.stringify(real) === JSON.stringify(esperado);
-  if (!ok) falhas++;
-  console.log((ok ? "ok   " : "FALHA") + "  " + nome + (ok ? "" : "\n        veio: " + JSON.stringify(real) + "\n        quer: " + JSON.stringify(esperado)));
+  if (JSON.stringify(real) === JSON.stringify(esperado)) {
+    console.info("ok     " + nome);
+    return;
+  }
+  falhas++;
+  console.info(relatoDaFalha(nome, real, esperado));
 }
 
 // 1. a string exata que o usuario colou (ordem da Evomi, com @)

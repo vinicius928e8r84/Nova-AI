@@ -2,33 +2,38 @@
 
 const escapar = texto => texto.replace(/[.+^$()|\\]/g, '\\$&');
 
+const CURINGAS = [
+  { inicio: '**/', regex: '(?:.*/)?' },
+  { inicio: '**', regex: '.*' },
+  { inicio: '*', regex: '[^/]*' },
+  { inicio: '?', regex: '[^/]' },
+];
+
+function alternativas(glob, i) {
+  const fim = glob.indexOf('}', i);
+  return { regex: `(?:${glob.slice(i + 1, fim).split(',').map(escapar).join('|')})`, fim };
+}
+
+function classeDeCaracteres(glob, i) {
+  const fim = glob.indexOf(']', i);
+  return { regex: glob.slice(i, fim + 1), fim };
+}
+
+const GRUPOS = new Map([['{', alternativas], ['[', classeDeCaracteres]]);
+
+function pedacoEm(glob, i) {
+  const curinga = CURINGAS.find(({ inicio }) => glob.startsWith(inicio, i));
+  if (curinga) return { regex: curinga.regex, fim: i + curinga.inicio.length - 1 };
+  const grupo = GRUPOS.get(glob[i]);
+  return grupo ? grupo(glob, i) : { regex: escapar(glob[i]), fim: i };
+}
+
 function traduzir(glob) {
   let saida = '';
   for (let i = 0; i < glob.length; i++) {
-    const c = glob[i];
-    if (c === '*' && glob[i + 1] === '*') {
-      if (glob[i + 2] === '/') {
-        saida += '(?:.*/)?';
-        i += 2;
-      } else {
-        saida += '.*';
-        i += 1;
-      }
-    } else if (c === '*') {
-      saida += '[^/]*';
-    } else if (c === '?') {
-      saida += '[^/]';
-    } else if (c === '{') {
-      const fim = glob.indexOf('}', i);
-      saida += `(?:${glob.slice(i + 1, fim).split(',').map(escapar).join('|')})`;
-      i = fim;
-    } else if (c === '[') {
-      const fim = glob.indexOf(']', i);
-      saida += glob.slice(i, fim + 1);
-      i = fim;
-    } else {
-      saida += escapar(c);
-    }
+    const pedaco = pedacoEm(glob, i);
+    saida += pedaco.regex;
+    i = pedaco.fim;
   }
   return saida;
 }
@@ -38,8 +43,9 @@ const cache = new Map();
 function compilar(glob) {
   if (!cache.has(glob)) {
     const diretorio = glob.endsWith('/');
-    const corpo = traduzir(diretorio ? glob.slice(0, -1) : glob);
-    const comCaminho = (diretorio ? glob.slice(0, -1) : glob).includes('/');
+    const semBarraFinal = diretorio ? glob.slice(0, -1) : glob;
+    const corpo = traduzir(semBarraFinal);
+    const comCaminho = semBarraFinal.includes('/');
     let expressao;
     if (comCaminho) expressao = diretorio ? `^${corpo}/` : `^${corpo}$`;
     else if (diretorio) expressao = `(?:^|/)${corpo}/`;
