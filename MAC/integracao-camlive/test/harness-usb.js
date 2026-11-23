@@ -35,14 +35,14 @@ window.electronAPI={isMobile:false,
  send:(c,p)=>{ if(p&&p.data) p={...p,data:Array.from(p.data)}; else if(p instanceof Uint8Array) p={__u8:Array.from(p)}; fetch('/ipc/send/'+c,{method:'POST',body:JSON.stringify(p===undefined?null:p)}); },
  on:(c,cb)=>{(window.__on=window.__on||{})[c]=cb;return()=>{}}};
 const es=new EventSource('/events'); es.onmessage=e=>{const {ch,p}=JSON.parse(e.data); window.__on&&window.__on[ch]&&window.__on[ch](p)};
-</script><script src="/cam-live-audio.js"></script><script src="/cam-live.js"></script>`;
+</script><script src="/cam-live-audio.js"></script><script src="/cam-live-dados.js"></script><script src="/cam-live-modelo.js"></script><script src="/cam-live.js"></script>`;
 
 http.createServer((req, res) => {
   const u = req.url.split('?')[0];
   if (u === '/') { res.setHeader('content-type', 'text/html'); return res.end(PAGE); }
   if (u === '/cam-live-audio.js') { res.setHeader('content-type', 'application/javascript'); try { return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist/cam-live-audio.js'))); } catch (e) { return res.end('/* cam-live-audio.js ainda não existe */'); } }
   if (u.startsWith('/fixtures/')) { const f = path.join(__dirname, 'fixtures', path.basename(u)); if (fs.existsSync(f)) { res.setHeader('content-type', f.endsWith('.png') ? 'image/png' : f.endsWith('.mp4') ? 'video/mp4' : 'audio/wav'); return res.end(fs.readFileSync(f)); } res.statusCode = 404; return res.end(); }
-  if (u === '/cam-live.js') { res.setHeader('content-type', 'application/javascript'); return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist/cam-live.js'))); }
+  if (/^\/cam-live(-dados|-modelo)?\.js$/.test(u)) { res.setHeader('content-type', 'application/javascript'); return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist', u))); }
   if (u === '/counts') { res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify(globalThis.__counts)); }
   if (u === '/events') { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' }); res.write(': ok\n\n'); sse.add(res); req.on('close', () => sse.delete(res)); return; }
   if (u === '/listen') { if (listener) { try { listener.kill('SIGKILL'); } catch (_) {} } startListener(); return res.end('listening'); }
