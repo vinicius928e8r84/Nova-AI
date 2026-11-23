@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const path = require('node:path');
 const Module = require('node:module');
 const original = Module._load;
 let calls = [], fail = false;
@@ -11,7 +12,7 @@ Module._load = function(name, parent, main) {
  }, exec(){throw new Error('Shell/ADB must not run for iPhone');}};
  return original.call(this, name, parent, main);
 };
-const Service = require(process.argv[2] || '/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/physicalMobileService.js');
+const Service = require(process.argv[2] || path.join(__dirname, '..', '..', '..', 'app', 'electron', 'services', 'physicalMobileService.js'));
 const s = Object.create(Service.prototype);
 s.resolveAdbPath = () => { calls.push('resolveAdb'); return process.execPath; };
 (async()=>{

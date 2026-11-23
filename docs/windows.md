@@ -53,10 +53,12 @@ Coloque dentro de `app\resources\` (crie a pasta; ela é ignorada pelo git e ent
 | `yt-dlp.exe` | `resources\bin\yt-dlp.exe` | github.com/yt-dlp/yt-dlp/releases |
 | `adb.exe` (+ DLLs) | `resources\bin\` ou `resources\platform-tools\` | developer.android.com/tools/releases/platform-tools |
 | `scrcpy.exe` (+ DLLs, `scrcpy-server`) | `resources\bin\` ou `resources\scrcpy\` | github.com/Genymobile/scrcpy/releases |
+| `iproxy.exe`, `idevice_id.exe`, `ideviceinfo.exe`, `ideviceinstaller.exe` (+ DLLs) | `resources\ios-tools\bin\` | shell MSYS2 UCRT64: `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (copia dos pacotes `libimobiledevice`, `libusbmuxd` e `ideviceinstaller` do MSYS2, repositório ucrt64) |
 | `cloudflared.exe` | `resources\cloudflared.exe` | github.com/cloudflare/cloudflared/releases |
 | `nova-cam-spoofer.apk` | `resources\nova-cam-spoofer.apk` | copie do app instalado (`...\Nova AI\resources\`) |
 
 Os `.exe` de acesso remoto/Android só são necessários se for usar essas funções.
+Para listar o iPhone por USB o PC também precisa do driver da Apple (Apple Devices, na Microsoft Store, ou o iTunes); ele não vai no instalador.
 Para ter o Chromium embutido: `npm run browsers` (baixa para `app\browsers\`).
 Python do assistente de voz: `pip install -r requirements.txt`.
 Python embutido (opcional): descompacte a distribuição "embeddable package" oficial do Python 3.12 (python.org/downloads/windows) em `resources\python\` (tem de ficar `resources\python\python.exe`), habilite `import site` no `python312._pth` e instale os pacotes com `resources\python\python.exe -m pip install -r requirements.txt` (rode antes o `get-pip.py` oficial). Sem essa pasta o Nova usa o `python` do PATH. O Nova também põe `resources\bin` na frente do PATH do processo.
@@ -95,7 +97,7 @@ foi comparado, arquivo por arquivo, com `app/` (fora `node_modules`):
        Cloudflare fica desligado, a menos que `NOVA_REMOTE_TUNNEL=1`. Acesso remoto/pelo celular na rede local
        **não funciona** com esses padrões.
      - `electron/main.js`: blocos novos do iPhone/CAM LIVE e as variáveis `NOVA_SMOKE_TEST`/`NOVA_TEST_PORT`/
-       `NOVA_TEST_INSTANCE` (inofensivas). A atualização automática só é desligada no Mac.
+       `NOVA_TEST_INSTANCE` (inofensivas).
   5. `package.json`: scripts, `electron-builder` e `build` (este trabalho); `@novnc/novnc` só existe na versão do repositório.
 - Fora do `app.asar`, o Windows ainda traz `resources\bin\vcam.dll` (câmera virtual), `scrcpy\`, `platform-tools\`, `browsers\`
   (Chromium 1208, `vivaldi`, `aloha`), `.env.example`, `app-update.yml` (feed de atualização do fornecedor) e `stt_test.py`.

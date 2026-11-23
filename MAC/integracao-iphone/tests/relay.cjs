@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const Camera=require('../ios-camera');
+const Camera=require('../../../app/electron/services/ios-camera');
 (async()=>{
  const camera=new Camera({});
  camera.ssh=async()=>'';

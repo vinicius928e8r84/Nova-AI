@@ -2,7 +2,7 @@
 // uso: node harness.js   -> http://localhost:8765   (RTMP de destino: ffmpeg -listen na 19351)
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
-const { register } = require('../cam-live-service.js');
+const { register } = require('../../../app/electron/services/cam-live-service.js');
 
 const PORT = parseInt(process.env.PORT || '8765', 10), RTMP_PORT = parseInt(process.env.RTMP_PORT || '19351', 10);
 const sse = new Set();
@@ -31,9 +31,9 @@ const es=new EventSource('/events'); es.onmessage=e=>{const {ch,p}=JSON.parse(e.
 http.createServer((req, res) => {
   const u = req.url.split('?')[0];
   if (u === '/') { res.setHeader('content-type', 'text/html'); return res.end(PAGE); }
-  if (u === '/cam-live-audio.js') { res.setHeader('content-type', 'application/javascript'); try { return res.end(fs.readFileSync(path.join(__dirname, '../cam-live-audio.js'))); } catch (e) { return res.end('/* cam-live-audio.js ainda não existe */'); } }
+  if (u === '/cam-live-audio.js') { res.setHeader('content-type', 'application/javascript'); try { return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist/cam-live-audio.js'))); } catch (e) { return res.end('/* cam-live-audio.js ainda não existe */'); } }
   if (u.startsWith('/fixtures/')) { const f = path.join(__dirname, 'fixtures', path.basename(u)); if (fs.existsSync(f)) { res.setHeader('content-type', f.endsWith('.png') ? 'image/png' : f.endsWith('.mp4') ? 'video/mp4' : 'audio/wav'); return res.end(fs.readFileSync(f)); } res.statusCode = 404; return res.end(); }
-  if (u === '/cam-live.js') { res.setHeader('content-type', 'application/javascript'); return res.end(fs.readFileSync(path.join(__dirname, '../cam-live.js'))); }
+  if (u === '/cam-live.js') { res.setHeader('content-type', 'application/javascript'); return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist/cam-live.js'))); }
   if (u === '/events') { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' }); res.write(': ok\n\n'); sse.add(res); req.on('close', () => sse.delete(res)); return; }
   if (u === '/listen') { if (listener) { try { listener.kill('SIGKILL'); } catch (_) {} } startListener(); return res.end('listening'); }
   if (u === '/kill') { if (listener) { try { listener.kill('SIGKILL'); } catch (_) {} } return res.end('killed'); }

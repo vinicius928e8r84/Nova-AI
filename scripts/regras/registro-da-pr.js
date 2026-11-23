@@ -6,6 +6,8 @@ const ATENCOES = ['BAIXA', 'MÉDIA', 'ALTA'];
 const ROTULO_DE_RISCO_ALTO = 'risco:alto';
 const SECAO_DA_PROVA = 'Prova real';
 const FRASE = 'PROVADO 100% REAL';
+const BLOQUEADA = 'BLOQUEADA-iPhone';
+const MARCAS_DE_PROVA_PARCIAL = /\b(nao[\s-]+cobert[oa]s?|bloquead[oa]s?)\b/;
 const VEREDITO_LIMPO = 'CLEAN';
 const QUEM_REGISTRA = ['OWNER', 'MEMBER', 'COLLABORATOR'];
 const MODELO = '.github/PULL_REQUEST_TEMPLATE.md';
@@ -39,28 +41,41 @@ function aparar(texto, doInicio, doFim) {
 const semMarcacao = texto => aparar(texto.replace(/[*_`]/g, ''), '-', '.!');
 const semCaixaNemAcento = texto => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const igual = (a, b) => semCaixaNemAcento(a) === semCaixaNemAcento(b);
+const atencaoValida = valor => ATENCOES.find(atencao => igual(atencao, valor));
+const maiorAtencao = (...atencoes) => ATENCOES[Math.max(...atencoes.map(atencao => ATENCOES.indexOf(atencao)))];
 
-function linhasQueValem(markdown) {
-  const saida = [];
-  let cerca = null;
-  for (const linha of String(markdown || '').replace(/<!--[^]*?(?:-->|$)/g, '').split(/\r?\n/)) {
-    const abre = CERCA.exec(linha);
-    if (abre && !cerca) cerca = abre[1];
-    else if (abre && abre[1][0] === cerca[0] && abre[1].length >= cerca.length && linha.trim() === abre[1]) cerca = null;
-    else if (!cerca && !CITACAO.test(linha)) {
-      const titulo = tituloDe(linha);
-      saida.push({ texto: semMarcacao(titulo ? titulo.texto : linha), nivel: titulo ? titulo.nivel : 0 });
-    }
-  }
-  return saida;
+function marcaDeProvaParcial(texto) {
+  const achada = MARCAS_DE_PROVA_PARCIAL.exec(semCaixaNemAcento(String(texto || '').replace(/[*_`]/g, '')));
+  return achada && achada[1].replace(/[\s-]+/g, ' ').toUpperCase();
 }
 
-function secao(linhas, nome) {
+const linhasSemComentario = markdown => String(markdown || '').replace(/<!--[^]*?(?:-->|$)/g, '').split(/\r?\n/);
+const fechaACerca = (marca, cerca, linha) => marca[0] === cerca[0] && marca.length >= cerca.length && linha.trim() === marca;
+
+function linhaQueVale(crua) {
+  const titulo = tituloDe(crua);
+  return { texto: semMarcacao(titulo ? titulo.texto : crua), nivel: titulo ? titulo.nivel : 0 };
+}
+
+function linhasDoCorpo(markdown) {
+  let cerca = null;
+  return linhasSemComentario(markdown).map(crua => {
+    const abre = CERCA.exec(crua);
+    const vale = !abre && !cerca && !CITACAO.test(crua);
+    if (abre && !cerca) cerca = abre[1];
+    else if (abre && fechaACerca(abre[1], cerca, crua)) cerca = null;
+    return { crua, vale, ...(vale ? linhaQueVale(crua) : { nivel: 0 }) };
+  });
+}
+
+const linhasQueValem = markdown => linhasDoCorpo(markdown).filter(linha => linha.vale).map(({ texto, nivel }) => ({ texto, nivel }));
+
+function trechoDaSecao(linhas, nome) {
   const inicio = linhas.findIndex(linha => linha.nivel && igual(linha.texto, nome));
   if (inicio < 0) return null;
   const resto = linhas.slice(inicio + 1);
   const fim = resto.findIndex(linha => linha.nivel && linha.nivel <= linhas[inicio].nivel);
-  return (fim < 0 ? resto : resto.slice(0, fim)).map(linha => linha.texto);
+  return fim < 0 ? resto : resto.slice(0, fim);
 }
 
 const valoresDe = (textos, campo) => textos.filter(texto => texto.includes(':'))
@@ -81,7 +96,7 @@ function faltaDoHead(textos, head, oQue) {
 }
 
 function atencaoDe(textos) {
-  const ditas = [...new Set(valoresDe(textos, 'Atenção').map(valor => ATENCOES.find(atencao => igual(atencao, valor)) || valor))];
+  const ditas = [...new Set(valoresDe(textos, 'Atenção').map(valor => atencaoValida(valor) || valor))];
   if (ditas.length === 1 && ATENCOES.includes(ditas[0])) return { atencao: ditas[0] };
   if (!ditas.length) return { falta: `o corpo não tem a linha de atenção (uma linha "Atenção: ${ATENCOES.join('", "Atenção: ')}")` };
   if (ditas.length > 1) return { falta: `o corpo diz mais de uma atenção (${ditas.join(' e ')})` };
@@ -101,15 +116,25 @@ function faltaDoRegistro(textos, autorDaPr) {
   if (!autor || !revisor) return 'o registro de revisão não diz quem é o autor e quem é o revisor (linhas "Autor:" e "Revisor:")';
   if (igual(autor, revisor)) return `o revisor do registro é o próprio autor (${autor})`;
   if (autorDaPr && igual(revisor, autorDaPr)) return `o revisor do registro (${revisor}) é quem abriu a PR`;
+  const riscos = valoresDe(textos, 'Risco');
+  if (riscos.length !== 1 || !atencaoValida(riscos[0])) return `o registro de revisão não diz o risco que o revisor viu (uma linha "Risco: ${ATENCOES.join('", "Risco: ')}")`;
   return null;
 }
 
+const comVeredito = registros => registros.map(linhasQueValem).map(linhas => linhas.map(linha => linha.texto)).filter(textos => valoresDe(textos, 'Veredito').length);
+const doHeadDe = (todos, head) => todos.filter(textos => !faltaDoHead(textos, head));
+
+function riscoDoRevisor(registros, head) {
+  const riscos = doHeadDe(comVeredito(registros), head).flatMap(textos => valoresDe(textos, 'Risco')).map(atencaoValida).filter(Boolean);
+  return riscos.length ? maiorAtencao(...riscos) : null;
+}
+
 function faltaDaRevisao(registros, head, autorDaPr) {
-  const todos = registros.map(linhasQueValem).map(linhas => linhas.map(linha => linha.texto)).filter(textos => valoresDe(textos, 'Veredito').length);
-  const doHead = todos.filter(textos => !faltaDoHead(textos, head));
+  const todos = comVeredito(registros);
+  const doHead = doHeadDe(todos, head);
   if (!doHead.length) {
     return todos.length ? faltaDoHead(todos[todos.length - 1], head, 'o registro de revisão mais recente')
-      : 'nenhum comentário ou revisão da PR é o registro de revisão independente (linhas "Veredito: CLEAN", "Head: <SHA>", "Autor:" e "Revisor:")';
+      : 'nenhum comentário ou revisão da PR é o registro de revisão independente (linhas "Veredito: CLEAN", "Head: <SHA>", "Autor:", "Revisor:" e "Risco:")';
   }
   const citaOHead = textos => hexasDe(valoresDe(textos, 'Head')).includes(head);
   const reprovado = todos.filter(citaOHead).map(textos => valoresDe(textos, 'Veredito')).flat().find(veredito => veredito !== VEREDITO_LIMPO);
@@ -118,9 +143,12 @@ function faltaDaRevisao(registros, head, autorDaPr) {
   return faltas.includes(null) ? null : faltas[faltas.length - 1];
 }
 
-function faltaDaProva(linhas, head) {
-  const prova = secao(linhas, SECAO_DA_PROVA);
-  if (!prova) return `atenção ALTA: o corpo não tem a seção "${SECAO_DA_PROVA}"`;
+function faltaDaProva(corpo, head) {
+  const trecho = trechoDaSecao(linhasDoCorpo(corpo), SECAO_DA_PROVA);
+  if (!trecho) return `atenção ALTA: o corpo não tem a seção "${SECAO_DA_PROVA}"`;
+  const parcial = marcaDeProvaParcial(trecho.map(linha => linha.crua).join('\n'));
+  const prova = trecho.filter(linha => linha.vale).map(linha => linha.texto);
+  if (parcial) return `atenção ALTA: a seção "${SECAO_DA_PROVA}" diz ${parcial}: prova parcial não vale como ${FRASE}; prove o que falta e escreva a nota sem NÃO COBERTO nem BLOQUEADA`;
   if (!prova.includes(FRASE)) return `atenção ALTA: a seção "${SECAO_DA_PROVA}" não tem a linha ${FRASE} (a frase sozinha na linha)`;
   const semHead = faltaDoHead(prova, head, `a seção "${SECAO_DA_PROVA}"`);
   if (semHead) return `atenção ALTA: ${semHead}`;
@@ -129,21 +157,37 @@ function faltaDaProva(linhas, head) {
     : `atenção ALTA: a seção "${SECAO_DA_PROVA}" não explica o que foi provado no app (escreva ao menos ${MINIMO_DA_PROVA} caracteres sobre o que rodou e o que apareceu)`;
 }
 
-function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
-  const linhas = linhasQueValem(corpo);
-  const textos = linhas.map(linha => linha.texto);
-  const { atencao, falta: semAtencao } = atencaoDe(textos);
+function atencaoDaPr(textos, { rotulos, registros, head, arquivos }) {
+  const { atencao: doCorpo, falta } = atencaoDe(textos);
+  const doRevisor = riscoDoRevisor(registros, head) || doCorpo;
   const risco = classificar(arquivos);
   const rotulado = rotulos.some(rotulo => igual(String(rotulo), ROTULO_DE_RISCO_ALTO));
-  const alta = atencao === 'ALTA' || rotulado || risco.alta;
-  const subestimada = risco.alta && atencao && atencao !== 'ALTA'
-    && `a PR mexe em caminho sensível, e isso conta como ALTA, mas o corpo diz ${atencao}: ${resumo(risco.motivos, 5).join('; ')}`;
+  const atencao = maiorAtencao(doCorpo || doRevisor, doRevisor);
+  const subiuPeloRevisor = doRevisor === 'ALTA' && doCorpo !== 'ALTA';
+  return { doCorpo, falta, risco, atencao, subiuPeloRevisor, alta: atencao === 'ALTA' || rotulado || risco.alta };
+}
+
+function faltaDoCaminhoSensivel({ risco, doCorpo }) {
+  if (!risco.alta || !ATENCOES.slice(0, -1).includes(doCorpo)) return null;
+  return `a PR mexe em caminho sensível, e isso conta como ALTA, mas o corpo diz ${doCorpo}: ${resumo(risco.motivos, 5).join('; ')}`;
+}
+
+function faltaDaProvaDaPr(corpo, head, { alta, doCorpo, subiuPeloRevisor }) {
+  const falta = alta && faltaDaProva(corpo, head);
+  if (!subiuPeloRevisor) return falta;
+  return falta && falta.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`);
+}
+
+function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
+  const linhas = linhasQueValem(corpo);
+  const quadro = atencaoDaPr(linhas.map(linha => linha.texto), { rotulos, registros, head, arquivos });
+  const { atencao, alta } = quadro;
   const faltas = [
     faltaDaDescricao(linhas),
-    semAtencao,
-    subestimada,
+    quadro.falta,
+    faltaDoCaminhoSensivel(quadro),
     faltaDaRevisao(registros, head, autor),
-    alta && faltaDaProva(linhas, head),
+    faltaDaProvaDaPr(corpo, head, quadro),
   ].filter(Boolean);
   if (!faltas.length) return { ok: true, mensagem: `registro da PR ok no head ${head}: atenção ${atencao}, revisão ${VEREDITO_LIMPO}${alta ? `, ${FRASE}` : ''}` };
   return {
@@ -151,7 +195,7 @@ function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], au
     mensagem: [
       `✗ O registro da PR não vale para o head ${head}:`,
       ...faltas.map(falta => `    - ${falta}`),
-      `  Conserto: o formato de cada parte está em ${MODELO} e no CONTRIBUTING.md. O que está em comentário de HTML, em bloco de código ou em citação não conta.`,
+      `  Conserto: o formato de cada parte está em ${MODELO} e no CONTRIBUTING.md. O que está em comentário de HTML, em bloco de código ou em citação não conta; na seção "${SECAO_DA_PROVA}", a parte não coberta ou bloqueada conta também no código e na citação.`,
       `  Registrar a revisão e a prova com o head lido do GitHub: node ${PUBLICADOR} --help`,
     ].join('\n'),
   };
@@ -216,4 +260,7 @@ async function main(env) {
 
 if (require.main === module) main(process.env).then(codigo => { process.exitCode = codigo; });
 
-module.exports = { FRASE, ROTULO_DE_RISCO_ALTO, SECAO_DA_PROVA, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, tituloDe };
+module.exports = {
+  ATENCOES, BLOQUEADA, FRASE, ROTULO_DE_RISCO_ALTO, SECAO_DA_PROVA,
+  atencaoValida, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, marcaDeProvaParcial, tituloDe,
+};

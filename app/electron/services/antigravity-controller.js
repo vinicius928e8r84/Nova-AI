@@ -1,5 +1,6 @@
 const { exec, spawn } = require('child_process');
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
 const { clipboard } = require('electron');
 
@@ -65,6 +66,53 @@ Start-Sleep -Milliseconds 500
 if ($SendEnter -eq 1) { [System.Windows.Forms.SendKeys]::SendWait("{ENTER}"); Write-Output "SUCCESS:Prompt pasted and Enter sent." } else { Write-Output "SUCCESS:Focused and pasted only." }
 `;
 
+const SO_FOCAR = '__JUST_FOCUS__';
+const COMANDO_ANTIGRAVITY_RODANDO = comandoPowerShell("Get-Process -Name 'Antigravity' -ErrorAction SilentlyContinue");
+
+function comandoPowerShell(script) {
+    return `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${script.replace(/\n/g, ' ')}"`;
+}
+
+function saidaDoPowerShell(comando) {
+    return new Promise((resolve) => {
+        exec(comando, (err, stdout) => resolve(String(stdout || '').trim()));
+    });
+}
+
+function esperar(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+function caminhosDoAntigravity() {
+    const userProfile = process.env.USERPROFILE || os.homedir();
+    return [
+        path.join(userProfile, 'AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'),
+        path.join(process.env.LOCALAPPDATA || '', 'Programs\\Antigravity\\Antigravity.exe'),
+        'C:\\Program Files\\Antigravity\\Antigravity.exe'
+    ];
+}
+
+function estatisticasDaSaida(output) {
+    if (output === 'NOT_RUNNING' || !output.includes('PID:')) {
+        return null;
+    }
+    const stats = camposDaSaida(output);
+    return { pid: inteiroOuZero(stats.pid), cpu: inteiroOuZero(stats.cpu), memory: inteiroOuZero(stats.mem), responding: stats.resp === 'True', title: stats.title || '' };
+}
+
+function camposDaSaida(output) {
+    const stats = {};
+    output.split('|').forEach(p => {
+        const idx = p.indexOf(':');
+        if (idx !== -1) { stats[p.substring(0, idx).toLowerCase()] = p.substring(idx + 1); }
+    });
+    return stats;
+}
+
+function inteiroOuZero(valor) {
+    return parseInt(valor || '0');
+}
+
 class AntigravityController {
     constructor(mainWindow, app) {
         this.mainWindow = mainWindow;
@@ -78,7 +126,7 @@ class AntigravityController {
     /** Write PS1 script to a temp file once at startup */
     _initScript() {
         try {
-            const tmpDir = require('os').tmpdir();
+            const tmpDir = os.tmpdir();
             this.scriptPath = path.join(tmpDir, 'nova_ag_automate.ps1');
             fs.writeFileSync(this.scriptPath, PS_SCRIPT_CONTENT, 'utf8');
         } catch (e) {
@@ -101,42 +149,53 @@ class AntigravityController {
      */
     async runPowerShellAutomation(promptText, sendEnter = true) {
         if (process.platform === "darwin") {
-            try {
-                const mac=require('./mac-native');
-                if (!await this.launchAntigravity()) return {success:false,error:'Antigravity not installed.'};
-                await new Promise(r=>setTimeout(r,700));
-                await mac.pressKey('cmd+l');
-                await mac.typeText(promptText,sendEnter);
-                return {success:true,output:'Prompt sent through macOS Accessibility.'};
-            } catch(e) {return {success:false,error:e.message};}
+            return this._colarNoMac(promptText, sendEnter);
         }
-        // Step 1: Set clipboard from Electron (this always works)
         clipboard.writeText(promptText);
         this.log('Clipboard set. Launching PowerShell STA automation...');
+        this._garantirScript();
+        const { output, stderr } = await this._rodarAutomacao(sendEnter);
+        return this._resultadoDaAutomacao(output, stderr);
+    }
 
-        // Step 2: Ensure script exists
+    async _colarNoMac(promptText, sendEnter) {
+        try {
+            const mac=require('./mac-native');
+            if (!await this.launchAntigravity()) return {success:false,error:'Antigravity not installed.'};
+            await esperar(700);
+            await mac.pressKey('cmd+l');
+            await mac.typeText(promptText,sendEnter);
+            return {success:true,output:'Prompt sent through macOS Accessibility.'};
+        } catch(e) {return {success:false,error:e.message};}
+    }
+
+    _garantirScript() {
         if (!this.scriptPath || !fs.existsSync(this.scriptPath)) {
             this._initScript();
         }
+    }
 
+    _rodarAutomacao(sendEnter) {
         const enterFlag = sendEnter ? '1' : '0';
         const cmd = `powershell -STA -NoProfile -ExecutionPolicy Bypass -File "${this.scriptPath}" -SendEnter ${enterFlag}`;
-
         return new Promise((resolve) => {
             exec(cmd, { timeout: 15000 }, (err, stdout, stderr) => {
-                const output = String(stdout || '').trim();
-                this.log(`PS automation result: ${output}`);
-                if (output.includes('SUCCESS')) {
-                    resolve({ success: true, output });
-                } else if (output.includes('ERROR')) {
-                    this.log(`PS automation error: ${output}`);
-                    resolve({ success: false, error: output });
-                } else {
-                    this.log(`PS automation unexpected: ${output} | stderr: ${stderr}`);
-                    resolve({ success: false, error: output || stderr });
-                }
+                resolve({ output: String(stdout || '').trim(), stderr });
             });
         });
+    }
+
+    _resultadoDaAutomacao(output, stderr) {
+        this.log(`PS automation result: ${output}`);
+        if (output.includes('SUCCESS')) {
+            return { success: true, output };
+        }
+        if (output.includes('ERROR')) {
+            this.log(`PS automation error: ${output}`);
+            return { success: false, error: output };
+        }
+        this.log(`PS automation unexpected: ${output} | stderr: ${stderr}`);
+        return { success: false, error: output || stderr };
     }
 
     /**
@@ -146,33 +205,30 @@ class AntigravityController {
         if (process.platform === "darwin") {
             return await this.launchAntigravity();
         }
-        return new Promise((resolve) => {
-            this.log('Checking if Antigravity is running...');
-            exec(`powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-Process -Name 'Antigravity' -ErrorAction SilentlyContinue"`, async (err, stdout) => {
-                const isRunning = String(stdout || '').trim().length > 0;
-                if (isRunning) {
-                    this.log('Antigravity is already running.');
-                    resolve(true);
-                } else {
-                    this.log('Antigravity is not running. Attempting to launch...');
-                    const launched = await this.launchAntigravity();
-                    if (launched) {
-                        this.log('Antigravity launched. Waiting for window...');
-                        for (let i = 0; i < 16; i++) {
-                            await new Promise(r => setTimeout(r, 500));
-                            const stats = await this.getProcessStats();
-                            if (stats && stats.title) {
-                                this.log(`Antigravity window detected: "${stats.title}"`);
-                                break;
-                            }
-                        }
-                        resolve(true);
-                    } else {
-                        resolve(false);
-                    }
-                }
-            });
-        });
+        this.log('Checking if Antigravity is running...');
+        const isRunning = (await saidaDoPowerShell(COMANDO_ANTIGRAVITY_RODANDO)).length > 0;
+        if (isRunning) {
+            this.log('Antigravity is already running.');
+            return true;
+        }
+        this.log('Antigravity is not running. Attempting to launch...');
+        if (!await this.launchAntigravity()) {
+            return false;
+        }
+        this.log('Antigravity launched. Waiting for window...');
+        await this._esperarJanela();
+        return true;
+    }
+
+    async _esperarJanela() {
+        for (let i = 0; i < 16; i++) {
+            await esperar(500);
+            const stats = await this.getProcessStats();
+            if (stats && stats.title) {
+                this.log(`Antigravity window detected: "${stats.title}"`);
+                return;
+            }
+        }
     }
 
     /**
@@ -182,36 +238,25 @@ class AntigravityController {
         if (process.platform === "darwin") {
             try { await require('./mac-native').run('/usr/bin/open',['-a','Antigravity']);return true; } catch(e) {this.log(e.message);return false;}
         }
-        return new Promise((resolve) => {
-            const userProfile = process.env.USERPROFILE || os.homedir();
-            const possiblePaths = [
-                path.join(userProfile, 'AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'),
-                path.join(process.env.LOCALAPPDATA || '', 'Programs\\Antigravity\\Antigravity.exe'),
-                'C:\\Program Files\\Antigravity\\Antigravity.exe'
-            ];
-            
-            let exePath = null;
-            for (const p of possiblePaths) {
-                if (fs.existsSync(p)) { exePath = p; break; }
-            }
-            
-            if (!exePath) {
-                this.log('Error: Antigravity.exe not found in standard paths.');
-                resolve(false);
-                return;
-            }
-            
-            this.log(`Spawning Antigravity: "${exePath}"`);
-            try {
-                const child = spawn(exePath, [], { detached: true, stdio: 'ignore' });
-                child.unref();
-                this.log('Spawn completed.');
-                resolve(true);
-            } catch (e) {
-                this.log(`Spawn error: ${e.message}`);
-                resolve(false);
-            }
-        });
+        const exePath = caminhosDoAntigravity().find(p => fs.existsSync(p));
+        if (!exePath) {
+            this.log('Error: Antigravity.exe not found in standard paths.');
+            return false;
+        }
+        this.log(`Spawning Antigravity: "${exePath}"`);
+        return this._abrirExecutavel(exePath);
+    }
+
+    _abrirExecutavel(exePath) {
+        try {
+            const child = spawn(exePath, [], { detached: true, stdio: 'ignore' });
+            child.unref();
+            this.log('Spawn completed.');
+            return true;
+        } catch (e) {
+            this.log(`Spawn error: ${e.message}`);
+            return false;
+        }
     }
 
     /**
@@ -241,8 +286,7 @@ class AntigravityController {
                 return await require('./paridade-utils').macAntigravityStats(require('./mac-native'));
             } catch {return null;}
         }
-        return new Promise((resolve) => {
-            const psCommand = `
+        const psCommand = `
                 $ErrorActionPreference = 'SilentlyContinue';
                 $procs = Get-Process -Name 'Antigravity' -ErrorAction SilentlyContinue;
                 $proc = $null;
@@ -258,20 +302,7 @@ class AntigravityController {
                 } else { Write-Output "NOT_RUNNING"; };
             `.trim();
 
-            exec(`powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${psCommand.replace(/\n/g, ' ')}"`, (err, stdout) => {
-                const output = String(stdout || '').trim();
-                if (output === 'NOT_RUNNING' || !output.includes('PID:')) { resolve(null); return; }
-                try {
-                    const parts = output.split('|');
-                    const stats = {};
-                    parts.forEach(p => {
-                        const idx = p.indexOf(':');
-                        if (idx !== -1) { stats[p.substring(0, idx).toLowerCase()] = p.substring(idx + 1); }
-                    });
-                    resolve({ pid: parseInt(stats.pid || '0'), cpu: parseInt(stats.cpu || '0'), memory: parseInt(stats.mem || '0'), responding: stats.resp === 'True', title: stats.title || '' });
-                } catch (e) { resolve(null); }
-            });
-        });
+        return estatisticasDaSaida(await saidaDoPowerShell(comandoPowerShell(psCommand)));
     }
 
     /**
@@ -338,22 +369,31 @@ class AntigravityController {
      */
     async preparePrompt(promptText) {
         if (process.platform === "darwin") {
-            if (promptText==='__JUST_FOCUS__') return {success:await this.focusEditor()};
-            const result=await this.runPowerShellAutomation(promptText,true);
-            if(result.success)this.startMonitoring();
-            return result;
+            return this._prepararNoMac(promptText);
         }
         this.pendingPrompt = promptText;
         this.log(`Preparing prompt: "${promptText.substring(0, 60)}"`);
+        if (promptText === SO_FOCAR) {
+            return this._soFocar();
+        }
+        return this._colarPedido(promptText);
+    }
 
-        // Just focus/open, no paste
-        if (promptText === '__JUST_FOCUS__') {
-            this.log('Focus-only request.');
-            const running = await this.ensureAntigravityRunning();
-            if (!running) { this.pendingPrompt = null; return { success: false }; }
+    async _prepararNoMac(promptText) {
+        if (promptText===SO_FOCAR) return {success:await this.focusEditor()};
+        const result=await this.runPowerShellAutomation(promptText,true);
+        if(result.success)this.startMonitoring();
+        return result;
+    }
 
-            // PowerShell to just focus
-            const psCmd = `
+    async _soFocar() {
+        this.log('Focus-only request.');
+        const running = await this.ensureAntigravityRunning();
+        if (!running) {
+            this.pendingPrompt = null;
+            return { success: false };
+        }
+        const psCmd = `
                 $ErrorActionPreference = 'SilentlyContinue';
                 Add-Type -AssemblyName System.Windows.Forms;
                 $sig = '[DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd); [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);';
@@ -372,29 +412,21 @@ class AntigravityController {
                     Write-Output "SUCCESS";
                 } else { Write-Output "NOT_FOUND"; }
             `.trim();
+        const out = await saidaDoPowerShell(comandoPowerShell(psCmd));
+        this.pendingPrompt = null;
+        this.log(`Focus-only result: ${out}`);
+        return { success: out.includes('SUCCESS') };
+    }
 
-            return new Promise((resolve) => {
-                exec(`powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${psCmd.replace(/\n/g, ' ')}"`, (err, stdout) => {
-                    const out = String(stdout || '').trim();
-                    this.pendingPrompt = null;
-                    this.log(`Focus-only result: ${out}`);
-                    resolve({ success: out.includes('SUCCESS') });
-                });
-            });
-        }
-
-        // Ensure running
+    async _colarPedido(promptText) {
         const running = await this.ensureAntigravityRunning();
         if (!running) {
             this.log('Antigravity could not be started.');
             return { success: false, error: 'Could not start Antigravity' };
         }
-        await new Promise(r => setTimeout(r, 500));
-
-        // Run full automation: focus + Ctrl+L + Ctrl+V + Enter (all in ONE PowerShell STA session)
+        await esperar(500);
         this.log('Running PowerShell STA automation (focus + paste + Enter in one shot)...');
         const result = await this.runPowerShellAutomation(promptText, true);
-        
         if (result.success) {
             this.log('Automation complete. Prompt pasted and Enter sent to Antigravity.');
             this.startMonitoring();

@@ -1,7 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
-const https = require('https');
 
 function hasUpdateConfig(resourcesPath = process.resourcesPath) {
   try {
@@ -16,58 +14,19 @@ function edgeTtsBinary(platform, python) {
   return 'edge-tts';
 }
 
-function downloadFile(url, outPath, { onProgress, onRequest, maxRedirects = 8 } = {}) {
-  return new Promise((resolve, reject) => {
-    const fetch = (target, left) => {
-      let client;
-      try {
-        const protocol = new URL(target).protocol;
-        if (protocol !== 'https:' && protocol !== 'http:') throw new Error(`Protocolo nao suportado: ${protocol}`);
-        client = protocol === 'https:' ? https : http;
-      } catch (e) {
-        return reject(e);
-      }
-      let req;
-      try {
-        req = client.get(target, { headers: { 'User-Agent': 'Mozilla/5.0 NovaAI' } }, res => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          res.resume();
-          if (left <= 0) return reject(new Error('Muitos redirecionamentos'));
-          let next;
-          try {
-            next = new URL(res.headers.location, target);
-          } catch (e) {
-            return reject(e);
-          }
-          return fetch(next.toString(), left - 1);
-        }
-        if (res.statusCode !== 200) {
-          res.resume();
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
-        const total = parseInt(res.headers['content-length'] || '0', 10);
-        let received = 0;
-        const out = fs.createWriteStream(outPath);
-        res.on('data', chunk => {
-          received += chunk.length;
-          if (total && onProgress) onProgress(Math.floor((received / total) * 100));
-        });
-        res.on('error', err => { out.destroy(); reject(err); });
-        out.on('error', reject);
-        out.on('finish', () => resolve(outPath));
-        res.pipe(out);
-        });
-      } catch (e) {
-        return reject(e);
-      }
-      req.on('error', reject);
-      if (onRequest) onRequest(req);
-    };
-    fetch(url, maxRedirects);
-  });
-}
-
 const MAC_BROWSER_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium|Microsoft Edge)[^/]* (.* )?--user-data-dir=[^=]*/\\.wwebjs_auth/session-nova-desktop-client( |$)';
+
+const AVISO_DE_PARENTESES = ' Rename ARQ first if its name has parentheses: the Action parser stops at the first closing parenthesis.';
+
+function instalacaoPorSistema(platform) {
+  if (platform === 'darwin') {
+    return 'INSTALL (macOS, runs in background because execute_shell kills after 15 s): .dmg = { hdiutil attach -nobrowse -readonly -mountpoint "TMP" "ARQ" && ditto "TMP/X.app" "/Applications/X.app"; hdiutil detach "TMP"; } >/dev/null 2>&1 & (check with ls /Applications afterwards) | .pkg = osascript -e \'do shell script "installer -pkg " & quoted form of "ARQ" & " -target /" with administrator privileges\' >/dev/null 2>&1 & (asks the Mac password once; ARQ without single quotes; check with pkgutil --pkgs afterwards).' + AVISO_DE_PARENTESES;
+  }
+  if (platform === 'win32') {
+    return 'INSTALL (Windows, keeps running in background after execute_shell\'s 15 s limit): .exe = "ARQ" /S; .msi = msiexec /i "ARQ" /qn /norestart (asks UAC when needed; check the installed program afterwards).' + AVISO_DE_PARENTESES;
+  }
+  return '';
+}
 
 async function macAntigravityStats(mac) {
   const pid = Number((await mac.run('/usr/bin/pgrep', ['-x', 'Antigravity'])).split('\n')[0]);
@@ -85,4 +44,4 @@ async function macAntigravityStats(mac) {
 
 const MAC_CAM_SPOOF_KILL_PATTERN = '^/.*/Contents/MacOS/(Google Chrome|Chromium)[^/]* (.* )?--use-file-for-fake-video-capture=[^=]*/nova_webcam_hijack/';
 
-module.exports = { hasUpdateConfig, edgeTtsBinary, downloadFile, macAntigravityStats, MAC_BROWSER_KILL_PATTERN, MAC_CAM_SPOOF_KILL_PATTERN };
+module.exports = { hasUpdateConfig, edgeTtsBinary, macAntigravityStats, MAC_BROWSER_KILL_PATTERN, MAC_CAM_SPOOF_KILL_PATTERN, instalacaoPorSistema };

@@ -104,11 +104,6 @@ const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-// Disable signature verification for unsigned builds
-autoUpdater.verifySourceSignature = false;
-autoUpdater.verifyUpdaterSignature = false;
-console.log('Auto-Updater logic: Signature verification disabled.');
-
 // FORCE DEV UPDATE CONFIG (For testing without building)
 if (process.env.NODE_ENV === 'development') {
   autoUpdater.forceDevUpdateConfig = true;
@@ -694,7 +689,7 @@ function registerHandlers() {
 
   ipcMain.handle('rtmp:start-broadcast', async () => {
     try {
-      await RtmpServerService.startBroadcast();
+      await RtmpServerService.startBroadcast(app.physicalMobileService?.adbPath);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -3640,7 +3635,7 @@ function registerHandlers() {
 
   ipcMain.handle('remote-access-regenerate', async () => {
     if (remoteAccessService) {
-      remoteAccessService.tokens.clear();
+      remoteAccessService.revogarTodosOsTokens();
       const tokenData = remoteAccessService.generateToken('Default Mobile');
       const status = remoteAccessService.getStatus();
       const qrResult = await remoteAccessService.generateQRCode(tokenData.token);
@@ -3899,7 +3894,6 @@ function registerHandlers() {
 
 
   ipcMain.handle('check-for-update', async () => {
-    if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
     if (!app.isPackaged) {
       return { success: false, message: 'Bypassed in dev mode' };
     }
@@ -3913,7 +3907,6 @@ function registerHandlers() {
   });
 
   ipcMain.handle('download-update', async () => {
-    if (process.platform === 'darwin') return {success:false,message:'Este port local para macOS não tem feed de atualização.'};
     if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
     try {
       await autoUpdater.downloadUpdate();
@@ -4094,18 +4087,18 @@ const shutdownExtras = () => extraShutdownTasks({
 });
 
 let isShuttingDown = () => false;
-if (process.platform === 'darwin') {
-  const { createProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
-  const helpersPath = path.join(process.resourcesPath, '..', 'Frameworks') + path.sep;
-  const processCleanup = createProcessCleanup(helpersPath);
+if (process.platform === 'darwin' || process.platform === 'win32') {
+  const { createProcessCleanup, createWindowsProcessCleanup, registerShutdown } = require('./services/nova-shutdown');
+  const processCleanup = process.platform === 'win32' ? createWindowsProcessCleanup()
+    : createProcessCleanup(path.join(process.resourcesPath, '..', 'Frameworks') + path.sep);
   isShuttingDown = registerShutdown(app, async () => {
     await runShutdownTasks([stopWindowServices, ...shutdownExtras()]);
   }, processCleanup);
-  process.on('SIGTERM', () => app.quit());
-  process.on('SIGINT', () => app.quit());
-}
-
-if (process.platform !== 'darwin') {
+  if (process.platform === 'darwin') {
+    process.on('SIGTERM', () => app.quit());
+    process.on('SIGINT', () => app.quit());
+  }
+} else {
   guardBeforeQuit(app, () => runShutdownTasks([stopWindowServices, ...shutdownExtras()]));
 }
 
@@ -4263,7 +4256,7 @@ if (!gotTheLock) {
 
     if (app.isPackaged) {
       setTimeout(() => {
-        if (process.platform !== 'darwin' && hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
+        if (hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
           console.log('[AutoUpdater] Production check failed:', err.message);
         });
       }, 5000);

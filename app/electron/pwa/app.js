@@ -178,7 +178,7 @@ class NovaRemoteApp {
             if (data.success) {
                 this.onAuthenticated();
             } else {
-                this.showError('Token inválido. Pegue o token correto em Ajustes do Nova → aba Link Móvel.');
+                this.showError(data.bloqueado ? data.error : 'Token inválido. Pegue o token correto em Ajustes do Nova → aba Link Móvel.');
                 this.setConnecting(false);
             }
         });

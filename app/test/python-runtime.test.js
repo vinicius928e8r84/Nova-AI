@@ -4,11 +4,12 @@ const assert = require('node:assert');
 const path = require('path');
 const { python, pathComBin } = require('../electron/services/python-runtime');
 
-const antigoMac = (roots, existe, ferramenta) => {
-  for (const root of roots) { const p = path.join(root, 'python-runtime-portable/run-python'); if (existe(p)) return p; }
-  for (const root of roots) { const p = path.join(root, 'python-env/bin/python3'); if (existe(p)) return p; }
-  return ferramenta('python3') || '/usr/bin/python3';
-};
+const primeiroQueExiste = (roots, relativo, existe) => roots.map(root => path.join(root, relativo)).find(p => existe(p));
+
+const antigoMac = (roots, existe, ferramenta) => primeiroQueExiste(roots, 'python-runtime-portable/run-python', existe)
+  || primeiroQueExiste(roots, 'python-env/bin/python3', existe)
+  || ferramenta('python3')
+  || '/usr/bin/python3';
 
 test('Mac: mesmo resultado do resolvedor anterior em todas as combinacoes', () => {
   const roots = ['/R/res', '/R/dev'];

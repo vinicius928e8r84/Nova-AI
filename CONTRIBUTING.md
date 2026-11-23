@@ -39,6 +39,8 @@ Use `.github/PULL_REQUEST_TEMPLATE.md`. O check confere, no commit exato (`head`
    <o que você rodou no app e o que apareceu>
    ```
 
+   A seção não vale se diz `NÃO COBERTO` (ou `NAO COBERTO`) ou `BLOQUEADA`: prova parcial não é `PROVADO 100% REAL`. O `registrar-na-pr.js prova` pede `--cobertura total|parcial`; `parcial` escreve `BLOQUEADA-iPhone` no lugar da frase, e o check fica vermelho enquanto a atenção for ALTA.
+
 4. **Revisão independente**: alguém que não escreveu a mudança registra uma revisão (comentário de revisão) na PR no head exato. `Autor` e `Revisor` precisam ser diferentes:
 
    ```
@@ -46,7 +48,10 @@ Use `.github/PULL_REQUEST_TEMPLATE.md`. O check confere, no commit exato (`head`
    Head: <SHA de 40 caracteres>
    Autor: <quem escreveu>
    Revisor: <quem revisou>
+   Risco: <BAIXA, MÉDIA ou ALTA, o risco que o revisor viu>
    ```
+
+   A atenção que vale é a maior entre a linha `Atenção:` do corpo e o `Risco:` das revisões do head: corpo `MÉDIA` com revisor `ALTA` exige a prova real; corpo `ALTA` com revisor `BAIXA` continua ALTA.
 
    Só vale o registro de quem o GitHub marca como dono, membro ou colaborador do repositório (o check não sabe se essa pessoa tem escrita, então só convide colaborador em quem pode revisar). O `Revisor` não pode ser quem abriu a PR nem o `Autor`. Um `Veredito` diferente de `CLEAN` no head não se desfaz com outro registro: conserte e faça um commit novo. Um commit novo muda o head: revisão e prova do commit anterior deixam de valer. Para escrever tudo isso sem errar o SHA: `node scripts/regras/registrar-na-pr.js --help`. O `revisao --publicar` publica o registro como revisão da PR (evento que roda o check sozinho); um comentário comum não dispara o check.
 
