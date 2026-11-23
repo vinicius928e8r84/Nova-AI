@@ -1,8 +1,4 @@
 #!/bin/bash
-# Roda TODOS os testes do idioma no Mac. Não toca no iPhone nem no app instalado:
-#  - novalanguage  : compila o main.m do .deb e faz ida-e-volta num domínio descartável
-#  - helper v3     : subcomandos language/respring com binário e killall FALSOS
-#  - IPC           : createHandlers com exec falso (nada de ssh)
 set -u
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 falhas=0
