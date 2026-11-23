@@ -329,7 +329,7 @@ function resposta() {
     };
 }
 
-function atenderComPwaEspiado(servidor, servico, url, method, token = [...servico.tokens.keys()][0]) {
+function atenderComPwaEspiado(servidor, servico, { url, method, token = [...servico.tokens.keys()][0] }) {
     const pwa = [];
     servico.servePWA = (req, res) => pwa.push([req.url, req.method, res]);
     const res = resposta();
@@ -341,7 +341,7 @@ function atenderComPwaEspiado(servidor, servico, url, method, token = [...servic
 test('rotas de config do Firebase respondem ao preflight OPTIONS com CORS', async () => {
     const { servico, servidor } = await servicoIniciado();
     for (const url of ['/api/save-firebase-config', '/api/get-firebase-config']) {
-        const { res, pwa } = atenderComPwaEspiado(servidor, servico, url, 'OPTIONS');
+        const { res, pwa } = atenderComPwaEspiado(servidor, servico, { url, method: 'OPTIONS' });
         assert.deepStrictEqual(res.cabecalhos, [[204, CORS_PREFLIGHT]]);
         assert.deepStrictEqual(res.fins, [[]]);
         assert.deepStrictEqual(pwa, []);
@@ -350,7 +350,7 @@ test('rotas de config do Firebase respondem ao preflight OPTIONS com CORS', asyn
 
 test('POST /api/save-firebase-config grava o corpo formatado e responde success', async () => {
     const { servico, servidor } = await servicoIniciado();
-    const { req, res, pwa } = atenderComPwaEspiado(servidor, servico, '/api/save-firebase-config', 'POST');
+    const { req, res, pwa } = atenderComPwaEspiado(servidor, servico, { url: '/api/save-firebase-config', method: 'POST' });
     req.emit('data', '{"projectId":');
     req.emit('data', Buffer.from(' "nova"}'));
     assert.deepStrictEqual(res.cabecalhos, []);
@@ -363,7 +363,7 @@ test('POST /api/save-firebase-config grava o corpo formatado e responde success'
 
 test('POST /api/save-firebase-config com JSON inválido responde 500 com a mensagem', async () => {
     const { servico, servidor } = await servicoIniciado();
-    const { req, res } = atenderComPwaEspiado(servidor, servico, '/api/save-firebase-config', 'POST');
+    const { req, res } = atenderComPwaEspiado(servidor, servico, { url: '/api/save-firebase-config', method: 'POST' });
     req.emit('data', '{x');
     req.emit('end');
     let mensagem;
@@ -376,7 +376,7 @@ test('POST /api/save-firebase-config com JSON inválido responde 500 com a mensa
 test('GET /api/get-firebase-config devolve {} sem arquivo, o arquivo salvo, ou 500 se corrompido', async () => {
     const { servico, servidor } = await servicoIniciado();
     const caminho = path.join(servico.dados, 'firebase_config.json');
-    const ler = () => atenderComPwaEspiado(servidor, servico, '/api/get-firebase-config', 'GET').res;
+    const ler = () => atenderComPwaEspiado(servidor, servico, { url: '/api/get-firebase-config', method: 'GET' }).res;
     let res = ler();
     assert.deepStrictEqual(res.cabecalhos, [[200, CABECALHO_JSON]]);
     assert.deepStrictEqual(res.fins, [['{}']]);
@@ -396,7 +396,7 @@ test('rotas de config do Firebase recusam requisição sem token ou com token fa
     fs.writeFileSync(caminho, '{"apiKey":"segredo"}');
     for (const token of [null, 'TOKENFALSO']) {
         for (const [url, method] of [['/api/get-firebase-config', 'GET'], ['/api/save-firebase-config', 'POST']]) {
-            const { req, res, pwa } = atenderComPwaEspiado(servidor, servico, url, method, token);
+            const { req, res, pwa } = atenderComPwaEspiado(servidor, servico, { url, method, token });
             req.emit('data', '{"apiKey":"invasor"}');
             req.emit('end');
             assert.deepStrictEqual(res.cabecalhos, [[401, CABECALHO_JSON]]);
@@ -411,10 +411,10 @@ test('rotas de config do Firebase passam pelo limite de tentativas: depois das f
     const { servico, servidor } = await servicoIniciado();
     const certo = [...servico.tokens.keys()][0];
     for (let i = 0; i < FALHAS_LIVRES + 20; i++) {
-        const { res } = atenderComPwaEspiado(servidor, servico, '/api/get-firebase-config', 'GET', `CHUTE${String(i).padStart(27, '0')}`);
+        const { res } = atenderComPwaEspiado(servidor, servico, { url: '/api/get-firebase-config', method: 'GET', token: `CHUTE${String(i).padStart(27, '0')}` });
         assert.strictEqual(res.cabecalhos[0][0], 401);
     }
-    const { res } = atenderComPwaEspiado(servidor, servico, '/api/get-firebase-config', 'GET', certo);
+    const { res } = atenderComPwaEspiado(servidor, servico, { url: '/api/get-firebase-config', method: 'GET', token: certo });
     assert.strictEqual(res.cabecalhos[0][0], 401);
 });
 
@@ -433,7 +433,7 @@ test('método ou caminho fora das rotas do Firebase vai para o PWA', async () =>
         ['__proto__', 'GET']
     ];
     for (const [url, method] of casos) {
-        const { res, pwa } = atenderComPwaEspiado(servidor, servico, url, method);
+        const { res, pwa } = atenderComPwaEspiado(servidor, servico, { url, method });
         assert.deepStrictEqual(pwa.map(([u, m]) => [u, m]), [[url, method]]);
         assert.strictEqual(pwa[0][2], res);
         assert.deepStrictEqual(res.cabecalhos, []);

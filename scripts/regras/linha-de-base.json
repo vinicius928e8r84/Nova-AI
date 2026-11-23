@@ -43,7 +43,6 @@
     "app/electron/services/physicalMobileService.js": 644,
     "app/electron/services/platform-utils.js": 2,
     "app/electron/services/python-runtime.js": 2,
-    "app/electron/services/remote-access.js": 132,
     "app/electron/services/tool-paths.js": 7,
     "app/electron/services/user-profile-manager.js": 39,
     "app/electron/services/whatsapp-manager.js": 305,
