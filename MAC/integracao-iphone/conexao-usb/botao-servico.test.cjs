@@ -2,10 +2,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const Module = require('node:module');
 
 // O getStatus marca o iPhone preparado como "streaming" para o cartão trocar de botão.
 process.env.NOVA_SMOKE_TEST = '1';
-const APP = process.env.NOVA_APP || '/Applications/Nova AI Mac.app/Contents/Resources/app';
+const APP = process.env.NOVA_APP || path.join(__dirname, '..', '..', '..', 'app');
+const carregarOriginal = Module._load;
+Module._load = function (name, parent, main) {
+  if (name === 'ws' || name === 'axios') return {};
+  return carregarOriginal.call(this, name, parent, main);
+};
 const PhysicalMobileService = require(path.join(APP, 'electron/services/physicalMobileService.js'));
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-pins-'));
