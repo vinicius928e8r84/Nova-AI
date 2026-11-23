@@ -1,7 +1,7 @@
 // Serviço + áudio: vídeo H.264 e áudio AAC reais (gerados pelo ffmpeg) publicados por RTMP; ffmpeg -listen recebe.
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
-const { CamLiveService } = require('../cam-live-service.js');
+const { CamLiveService } = require('../../../app/electron/services/cam-live-service.js');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'camlive-a-'));
 const W = 640, H = 360, FPS = 30, SECS = 4, PORT = 19360;
 const h264 = path.join(dir, 'in.h264'), adts = path.join(dir, 'in.aac'), out = path.join(dir, 'out.flv');

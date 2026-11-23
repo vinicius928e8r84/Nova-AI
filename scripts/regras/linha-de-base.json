@@ -4,7 +4,6 @@
     "app/electron/services/browserFarmService.js": 2133,
     "app/electron/services/global-spoof-service.js": 1787,
     "app/electron/services/physicalMobileService.js": 2383,
-    "MAC/integracao-camlive/cam-live.js": 1215,
     "MAC/integracao-iphone/bridge/Tweak.x": 1587,
     "prototype-cam-live/index.html": 1670
   },
@@ -40,10 +39,6 @@
     "app/electron/webview-bridge.js": 14,
     "MAC/controle-celular-plataformas/aplicar.py": 9,
     "MAC/controle-celular-plataformas/geo-proxy/aplicar-geo.py": 3,
-    "MAC/integracao-camlive/cam-live-audio.js": 39,
-    "MAC/integracao-camlive/cam-live-iphone.js": 76,
-    "MAC/integracao-camlive/cam-live-service.js": 79,
-    "MAC/integracao-camlive/cam-live.js": 356,
     "MAC/integracao-camlive/test/harness-usb.js": 23,
     "MAC/integracao-camlive/test/harness.js": 23,
     "MAC/integracao-camlive/test/rtmp-audio-e2e.js": 15,
