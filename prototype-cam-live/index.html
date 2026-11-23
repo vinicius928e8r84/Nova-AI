@@ -124,7 +124,6 @@
 })();
 </script>
 <script>
-/* cam-live-audio.js */
 /* CAM LIVE — mixer de áudio + captura AAC (renderer do Electron / Chromium, sem dependências).
  *
  * REGRA INEGOCIÁVEL: o áudio vem SOMENTE dos arquivos de vídeo/áudio colocados nas cenas
@@ -449,7 +448,6 @@
 
 </script>
 <script>
-/* cam-live-dados.js */
 window.CamLiveDados = {
   IC: {
     video: '<path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
@@ -586,7 +584,6 @@ svg.i{flex-shrink:0;vertical-align:-.18em}
 
 </script>
 <script>
-/* cam-live-modelo.js */
 window.CamLiveModelo = (function () {
   'use strict';
   const { RATIOS } = window.CamLiveDados;
@@ -640,7 +637,6 @@ window.CamLiveModelo = (function () {
 
 </script>
 <script>
-/* cam-live-geometria.js */
 window.CamLiveGeometria = (function () {
   'use strict';
   const HANDLES = [{ id: 'nw', sx: -1, sy: -1 }, { id: 'ne', sx: 1, sy: -1 }, { id: 'se', sx: 1, sy: 1 }, { id: 'sw', sx: -1, sy: 1 }, { id: 'n', sx: 0, sy: -1 }, { id: 'e', sx: 1, sy: 0 }, { id: 's', sx: 0, sy: 1 }, { id: 'w', sx: -1, sy: 0 }];
@@ -668,7 +664,6 @@ window.CamLiveGeometria = (function () {
 
 </script>
 <script>
-/* cam-live.js */
 (function () {
   'use strict';
   if (window.__camLive) return;
