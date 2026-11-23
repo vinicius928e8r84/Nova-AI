@@ -1,0 +1,5 @@
+# O `novaproxy` é setuid, e atualizar o pacote não limpa o proxy do Wi-Fi
+
+O `novaproxy` (`MAC/proxy-iphone/tool`) escreve o proxy do serviço Wi-Fi do iPhone, e o app o chama por SSH como `mobile`. Por isso o `postinst` o instala `4755 root:wheel`, o mesmo mecanismo do `sudo` do bootstrap, que também é setuid. É a superfície de risco do conjunto; o `novalanguage` e o `novamodel` seguem outro caminho (ver ADR 0040 e ADR 0092).
+
+O daemon do `launchd` é carregado no boot (`bootstrap`, com `load -w` como reserva). Numa atualização o daemon antigo continua rodando o binário antigo, então o `postinst` faz `kickstart -k` para trocá-lo e roda `novaproxy proxy reapply`, que devolve o proxy do Wi-Fi para `127.0.0.1` com a configuração salva caso ele tenha sido limpo no meio do caminho. O `prerm` não faz nada em `upgrade`, `failed-upgrade` e `abort-upgrade`: o proxy do Wi-Fi e a configuração continuam válidos e o `postinst` religa o daemon com o binário novo. Só na remoção de verdade o proxy é tirado do Wi-Fi, porque o `127.0.0.1` ficaria apontando para um forwarder que não existe mais e o iPhone ficaria sem internet.
