@@ -37,6 +37,13 @@ const pareceSegredo = valor => {
   return classes >= 3 && new Set(valor).size >= 8;
 };
 
+const valorEscrito = valor => !PLACEHOLDER.test(valor) && !SENHA_DE_EXEMPLO.test(valor);
+
+function constanteDeSegredoNaLinha(texto) {
+  const constante = CONSTANTE_DE_SEGREDO.exec(texto);
+  return constante && valorEscrito(constante[1]) ? 'constante de segredo com valor escrito' : null;
+}
+
 function acharNaJanela(texto, emTeste) {
   for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
   for (const url of texto.matchAll(URL_COM_SENHA)) {
@@ -49,9 +56,7 @@ function acharNaJanela(texto, emTeste) {
   }
   const m = ATRIBUICAO.exec(texto);
   if (m && pareceSegredo(m[1])) return 'valor literal em campo de segredo';
-  const constante = emTeste ? null : CONSTANTE_DE_SEGREDO.exec(texto);
-  if (constante && !PLACEHOLDER.test(constante[1]) && !SENHA_DE_EXEMPLO.test(constante[1])) return 'constante de segredo com valor escrito';
-  return null;
+  return emTeste ? null : constanteDeSegredoNaLinha(texto);
 }
 
 function acharNaLinha(texto, emTeste = false) {
