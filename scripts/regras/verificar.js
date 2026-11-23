@@ -13,7 +13,7 @@ const linhas = require('./regra-linhas');
 const REGRAS = [
   require('./regra-comentario'),
   linhas,
-  require('./regra-segredo'),
+  require('./regra-segredo-completa'),
   require('./regra-binario'),
   require('./regra-debug'),
   require('./regra-sintaxe'),

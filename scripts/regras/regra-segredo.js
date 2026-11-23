@@ -2,7 +2,6 @@
 
 const { bytesDaBase } = require('./git');
 const { casaAlgum } = require('./globs');
-const { constanteDeSegredoNoArquivo } = require('./constante-de-segredo');
 
 const id = 'sem-segredo';
 const titulo = 'Nenhum segredo, chave, token ou arquivo de credencial no diff';
@@ -89,8 +88,6 @@ function segredoNovoNoBinario(ctx, item, arquivo) {
   return antes && segredoNoBinario(antes) ? null : nome;
 }
 
-const segredoNaLinhaDoArquivo = (linha, caminho) => acharNaLinha(linha) || constanteDeSegredoNoArquivo(linha, caminho);
-
 function verificar(ctx) {
   const achados = [];
   for (const item of ctx.arquivos) {
@@ -110,7 +107,7 @@ function verificar(ctx) {
     if (!arquivo) continue;
     const linhas = arquivo.texto.split('\n');
     for (const numero of [...novas].sort((a, b) => a - b)) {
-      const nome = segredoNaLinhaDoArquivo(linhas[numero - 1] || '', caminho);
+      const nome = acharNaLinha(linhas[numero - 1] || '');
       if (nome) achados.push({ arquivo: caminho, linha: numero, detalhe: `parece ${nome} (o valor não é mostrado)` });
     }
   }
