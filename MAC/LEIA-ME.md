@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Gêmeos do iPhone apagados (Onda 1, PR 1f) — 20/11/2026
+
+- **O que mudou:** apagadas as cópias congeladas de `MAC/integracao-iphone/` que têm par em `app/electron/services/`: `conexao-usb/setup.js`, `conexao-usb/inapp.js`, `ios-camera.js`, `ios-modelo.js`, `iphone-ssh.js`, `ios-tools.js` e `idioma-iphone/idioma-ipc.js`. Apagados também os dois aplicadores que copiavam ou transplantavam essas cópias para o app instalado: `conexao-usb/aplicar-locale-v2.cjs` e `idioma-iphone/aplicar-ipc-idioma.py` (o `app/` já tem o handshake do nova-locale e o registro do idioma; rodar o segundo hoje gravaria o `idioma-ipc.js` antigo por cima do app). O bloco 4 de `idioma-iphone/teste/rodar.sh`, que testava esse aplicador, saiu junto.
+- **Testes:** `setup.test.cjs`, `locale-helper.test.cjs`, `tests/relay.cjs`, `idioma-iphone/teste/teste-ipc.js` e `MAC/integracao-modelo-app/novamodel.test.cjs` passam a carregar os arquivos de `app/`. `tests/chave-de-host.cjs` deixa de ler o `ios-camera.js` apagado (o de `app/` continua na lista). `tests/relay.cjs` já falhava antes (porta 18999 fixa e `/frame.jpg`, trocados por porta efêmera e `/s/<token>/frame.jpg` em 04/11) e falha igual contra `app/`. READMEs da área apontam para `app/`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum. Para atualizar o app, copie de `app/electron/services/` (`AGENTS.md` seção 5).
+- **Sem testar:** Mac e Windows reais; empacotamento com `electron-builder` (só a lista de `app/package.json`). Os atalhos `iphone-ssh.js` de `integracao-camlive/`, `integracao-sequestro-cam/` e `encerramento-nova/` reexportam o arquivo apagado e saem nas PRs 1d, 1e e 1g.
+
 ## Registro da PR: risco do revisor e prova parcial — 21/11/2026
 
 - **O que mudou:** o registro de revisão ganha a linha `Risco: BAIXA|MÉDIA|ALTA` (o `registrar-na-pr.js revisao` pede `--risco`), e o check `Registro da PR` usa a maior atenção entre o corpo e os registros do head: ALTA exige `PROVADO 100% REAL`. Uma revisão sem `Risco:` deixa de valer. A seção "Prova real" que diz `NÃO COBERTO` ou `BLOQUEADA` não vale como prova, e isso pega o feminino, o plural e o hífen (`NÃO COBERTA`, `não cobertos`, `NÃO-COBERTO`, `bloqueado`, `BLOQUEADAS`), com ou sem acento, em qualquer caixa, e também em bloco de código ou citação dentro da seção; o `registrar-na-pr.js prova` pede `--cobertura total|parcial`, e `parcial` escreve `BLOQUEADA-iPhone` no lugar da frase. Origem: a PM 692 foi mesclada como MÉDIA porque o corpo dizia MÉDIA e a revisão dizia ALTA.

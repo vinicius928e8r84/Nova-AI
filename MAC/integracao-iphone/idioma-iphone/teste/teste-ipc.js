@@ -3,7 +3,7 @@
 // O `exec` é falso e registra exatamente os argumentos recebidos, para provar
 // que nada é aplicado em silêncio e que não existe chamada com sudo.
 
-const idioma = require('../idioma-ipc.js');
+const idioma = require('../../../../app/electron/services/idioma-ipc.js');
 
 let fails = 0;
 function ok(nome, cond, extra) {
