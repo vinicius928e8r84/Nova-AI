@@ -1,8 +1,7 @@
 window.CamLiveGeometria = (function () {
   'use strict';
-  /* alças de transformação (cantos e meios) + botão de girar */
   const HANDLES = [{ id: 'nw', sx: -1, sy: -1 }, { id: 'ne', sx: 1, sy: -1 }, { id: 'se', sx: 1, sy: 1 }, { id: 'sw', sx: -1, sy: 1 }, { id: 'n', sx: 0, sy: -1 }, { id: 'e', sx: 1, sy: 0 }, { id: 's', sx: 0, sy: 1 }, { id: 'w', sx: -1, sy: 0 }];
-  const ROT_OFF = 30;                                    // distância (px da tela) do botão de girar até a borda de cima
+  const ROT_OFF = 30;
   const ROT_ARC = new Path2D('M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8'), ROT_HEAD = new Path2D('M21 3v5h-5');
   const rad = (it) => ((it.rot || 0) * Math.PI) / 180;
   const centerOf = (f) => ({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
