@@ -3,6 +3,7 @@ const APP = process.env.NOVA_APP || '/Applications/Nova AI Mac.app/Contents/Reso
 const { attach } = require(path.join(APP, 'electron/services/iphone-setup/inapp.js'));
 
 const STATE = process.env.TEST_STATE || 'idle';
+const ESTADOS_QUE_ENVIAM_A_SENHA = new Set(['running', 'success', 'error']);
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const invoke = async (channel) => {
@@ -32,7 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.nvios-submit').click();
   };
 
-  if (STATE === 'running' || STATE === 'success' || STATE === 'error') setTimeout(submit, 350);
+  if (ESTADOS_QUE_ENVIAM_A_SENHA.has(STATE)) setTimeout(submit, 350);
   if (STATE === 'console') {
     setTimeout(submit, 350);
     setTimeout(() => document.querySelector('.nvios-console-open').click(), 2200);
