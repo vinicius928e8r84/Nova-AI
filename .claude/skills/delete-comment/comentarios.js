@@ -22,13 +22,14 @@ const lerTexto = arquivo => fs.readFileSync(path.join(RAIZ, arquivo), 'utf8');
 const resumir = texto => (texto.length > 150 ? `${texto.slice(0, 147)}...` : texto);
 const intervalo = bloco => (bloco.ate > bloco.de ? `${bloco.de}-${bloco.ate}` : String(bloco.de));
 
+function imprimirBlocos({ arquivo, blocos }) {
+  for (const bloco of blocos) imprimir(`${arquivo}:${intervalo(bloco)}\t${bloco.tipo}\t${resumir(bloco.texto)}`);
+}
+
 function listar(arquivos, json) {
   const saida = arquivos.map(arquivo => ({ arquivo, blocos: blocosDe(arquivo, lerTexto(arquivo), python()).map(({ id, de, ate, tipo, inteira, texto }) => ({ id, de, ate, tipo, inteira, texto })) }));
-  if (json) return imprimir(JSON.stringify(saida, null, 2));
-  for (const { arquivo, blocos } of saida) {
-    for (const bloco of blocos) imprimir(`${arquivo}:${intervalo(bloco)}\t${bloco.tipo}\t${resumir(bloco.texto)}`);
-  }
-  return undefined;
+  if (json) imprimir(JSON.stringify(saida, null, 2));
+  else saida.forEach(imprimirBlocos);
 }
 
 function lerAlvos(alvos) {
