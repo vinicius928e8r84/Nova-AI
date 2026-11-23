@@ -57,6 +57,23 @@ function revisaoDoChromium(nomeDaPasta) {
     return Number.isInteger(revisao) ? revisao : -1;
 }
 
+function revisoesDoChromiumDaMaiorParaMenor(browsersDir) {
+    try {
+        return fs.readdirSync(browsersDir)
+            .filter((e) => e.startsWith('chromium-'))
+            .sort((a, b) => revisaoDoChromium(b) - revisaoDoChromium(a));
+    } catch {
+        return [];
+    }
+}
+
+function executavelNaPastaDeNavegadores(browsersDir, candidates) {
+    if (!browsersDir || !fs.existsSync(browsersDir)) return null;
+    return revisoesDoChromiumDaMaiorParaMenor(browsersDir)
+        .flatMap((entry) => candidates.map((sub) => path.join(browsersDir, entry, sub)))
+        .find((exePath) => fs.existsSync(exePath)) ?? null;
+}
+
 /**
  * Scan the given browsers/ directories for a chromium-<rev> folder that
  * contains this platform's executable. Returns the absolute executable
@@ -65,21 +82,8 @@ function revisaoDoChromium(nomeDaPasta) {
 function findBundledChromiumExecutable(searchDirs) {
     const candidates = getChromiumCandidateSubpaths();
     for (const browsersDir of searchDirs) {
-        if (!browsersDir || !fs.existsSync(browsersDir)) continue;
-        let entries;
-        try {
-            entries = fs.readdirSync(browsersDir)
-                .filter((e) => e.startsWith('chromium-'))
-                .sort((a, b) => revisaoDoChromium(b) - revisaoDoChromium(a));
-        } catch {
-            continue;
-        }
-        for (const entry of entries) {
-            for (const sub of candidates) {
-                const exePath = path.join(browsersDir, entry, sub);
-                if (fs.existsSync(exePath)) return exePath;
-            }
-        }
+        const exePath = executavelNaPastaDeNavegadores(browsersDir, candidates);
+        if (exePath) return exePath;
     }
     return null;
 }
@@ -95,16 +99,10 @@ function primeiroCaminhoExistente(caminhos) {
  * child processes cannot exec.
  */
 function findBundledBinDir() {
-    const candidates = [
+    return primeiroCaminhoExistente([
         process.resourcesPath ? path.join(process.resourcesPath, 'bin') : null,
         path.join(__dirname, '..', '..', 'bin'),
-    ];
-    for (const dir of candidates) {
-        try {
-            if (dir && fs.existsSync(dir)) return dir;
-        } catch { /* unreadable — try the next candidate */ }
-    }
-    return null;
+    ]);
 }
 
 /**

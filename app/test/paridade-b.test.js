@@ -91,6 +91,26 @@ test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o te
   })();
 });
 
+test('main.js: atualizador sem ramo por sistema e sem linha em branco dupla na configuração', () => {
+  const fonte = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
+  const ipcs = ['check-for-update', 'download-update', 'install-update'];
+  for (const canal of ipcs) {
+    const inicio = fonte.indexOf(`ipcMain.handle('${canal}'`);
+    assert.ok(inicio > 0, canal);
+    const corpo = fonte.slice(inicio, fonte.indexOf('\n  });', inicio));
+    assert.ok(!corpo.includes('process.platform'), canal);
+  }
+  const chamadaDaAbertura = fonte.indexOf('autoUpdater.checkForUpdates().catch');
+  assert.ok(chamadaDaAbertura > 0);
+  assert.strictEqual(fonte.lastIndexOf('autoUpdater.checkForUpdates().catch'), chamadaDaAbertura);
+  const inicioDaAbertura = fonte.lastIndexOf('if (app.isPackaged) {', chamadaDaAbertura);
+  const fimDaAbertura = fonte.indexOf('}, 5000);', chamadaDaAbertura);
+  assert.ok(inicioDaAbertura > 0 && fimDaAbertura > chamadaDaAbertura);
+  assert.ok(!fonte.slice(inicioDaAbertura, fimDaAbertura).includes('process.platform'));
+  const marca = fonte.indexOf('autoUpdater.autoInstallOnAppQuit');
+  assert.ok(!fonte.slice(marca, marca + 200).includes('\n\n\n'));
+});
+
 test('macAntigravityStats: memória do ps, CPU 0 como no Windows; só o estouro de tempo vira não respondendo', async () => {
   const { macAntigravityStats } = require('../electron/services/paridade-utils');
   const falso = (osascript) => ({ run: async (file, args) => {

@@ -85,88 +85,119 @@ function saveModelPref(model) {
  * @returns {Promise<{success:boolean, email:string|null}>}
  */
 function openGoogleLoginWindow(parentWindow) {
-    return new Promise(async (resolve) => {
-        if (loginWindow) {
-            return resolve({ success: false, email: null });
-        }
-        loginWindow = true;
-
-        try {
-            const { browserService } = require('./browser-manager');
-            const { chromium } = require('playwright');
-            const geminiSession = session.fromPartition(SESSION_PARTITION);
-
-            if (!browserService.isInitialized) {
-                console.log('[NOVA] Playwright not running, launching...');
-                await browserService.launch();
-            }
-
-            const context = browserService.context;
-            if (!context) {
-                throw new Error('Playwright context not available');
-            }
-
-            const loginPage = await context.newPage();
-            let resolved = false;
-
-            const finish = async (success) => {
-                if (resolved) return;
-                resolved = true;
-                loginWindow = null;
-
-                if (success) {
-                    try {
-                        const cookies = await context.cookies();
-                        for (const c of cookies) {
-                            const domain = c.domain.startsWith('.') ? c.domain : c.domain;
-                            try {
-                                await geminiSession.cookies.set({
-                                    url: `https://${domain.replace(/^\./, '')}`,
-                                    name: c.name,
-                                    value: c.value,
-                                    domain: domain,
-                                    path: c.path || '/',
-                                    secure: c.secure || false,
-                                    httpOnly: c.httpOnly || false,
-                                    expirationDate: c.expires && c.expires > 0 ? c.expires : undefined
-                                });
-                            } catch (_) {}
-                        }
-                        console.log('[NOVA] ✅ Google Login SUCCESS — cookies transferred!');
-                        isLoggedIn = true;
-                        loggedInEmail = 'active_session';
-                        saveAuthState(true, loggedInEmail);
-                        resolve({ success: true, email: loggedInEmail, coreLinked: true });
-                        checkAutoLogin().then(() => startHeartbeat());
-                    } catch (err) {
-                        console.error('[NOVA] Cookie transfer error:', err);
-                        resolve({ success: false, email: null });
-                    }
-                } else {
-                    resolve({ success: false, email: null });
-                }
-
-                try { await loginPage.close(); } catch (_) {}
-            };
-
-            loginPage.on('framenavigated', async (frame) => {
-                if (frame !== loginPage.mainFrame()) return;
-                const url = frame.url();
-                if (url.startsWith('https://gemini.google.com')) {
-                    await finish(true);
-                }
-            });
-
-            loginPage.on('close', () => finish(false));
-
-            await loginPage.goto(GOOGLE_LOGIN_URL, { waitUntil: 'domcontentloaded' });
-
-        } catch (err) {
+    if (loginWindow) {
+        return Promise.resolve(semLogin());
+    }
+    loginWindow = true;
+    return new Promise((resolve) => {
+        abrirPaginaDeLogin(resolve).catch((err) => {
             console.error('[NOVA] openGoogleLoginWindow error:', err);
             loginWindow = null;
-            resolve({ success: false, email: null });
-        }
+            resolve(semLogin());
+        });
     });
+}
+
+function semLogin() {
+    return { success: false, email: null };
+}
+
+async function abrirPaginaDeLogin(resolve) {
+    const { browserService } = require('./browser-manager');
+    require('playwright');
+    const geminiSession = session.fromPartition(SESSION_PARTITION);
+    const context = await contextoDoNavegador(browserService);
+    const login = new LoginNoNavegador(context, geminiSession, await context.newPage(), resolve);
+    login.ouvir();
+    await login.pagina.goto(GOOGLE_LOGIN_URL, { waitUntil: 'domcontentloaded' });
+}
+
+async function contextoDoNavegador(browserService) {
+    if (!browserService.isInitialized) {
+        console.info('[NOVA] Playwright not running, launching...');
+        await browserService.launch();
+    }
+    const context = browserService.context;
+    if (!context) {
+        throw new Error('Playwright context not available');
+    }
+    return context;
+}
+
+class LoginNoNavegador {
+    constructor(contexto, sessao, pagina, resolve) {
+        this.contexto = contexto;
+        this.sessao = sessao;
+        this.pagina = pagina;
+        this.resolve = resolve;
+        this.terminado = false;
+    }
+
+    ouvir() {
+        this.pagina.on('framenavigated', async (frame) => {
+            if (chegouAoGemini(this.pagina, frame)) await this.terminar(true);
+        });
+        this.pagina.on('close', () => this.terminar(false));
+    }
+
+    async terminar(sucesso) {
+        if (this.terminado) return;
+        this.terminado = true;
+        loginWindow = null;
+        const resultado = sucesso ? await this.concluir() : semLogin();
+        this.resolve(resultado);
+        if (resultado.success) checkAutoLogin().then(() => startHeartbeat());
+        await fecharSemErro(this.pagina);
+    }
+
+    async concluir() {
+        try {
+            await transferirCookies(this.contexto, this.sessao);
+            console.info('[NOVA] ✅ Google Login SUCCESS — cookies transferred!');
+            marcarSessaoDoLogin();
+            return { success: true, email: loggedInEmail, coreLinked: true };
+        } catch (err) {
+            console.error('[NOVA] Cookie transfer error:', err);
+            return semLogin();
+        }
+    }
+}
+
+function chegouAoGemini(pagina, frame) {
+    return frame === pagina.mainFrame() && frame.url().startsWith(GEMINI_ORIGIN);
+}
+
+async function transferirCookies(contexto, sessao) {
+    const cookies = await contexto.cookies();
+    for (const c of cookies) {
+        const cookie = cookieDaSessao(c);
+        try {
+            await sessao.cookies.set(cookie);
+        } catch (_) {}
+    }
+}
+
+function cookieDaSessao(c) {
+    return {
+        url: `https://${c.domain.startsWith('.') ? c.domain.slice(1) : c.domain}`,
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path || '/',
+        secure: c.secure || false,
+        httpOnly: c.httpOnly || false,
+        expirationDate: c.expires && c.expires > 0 ? c.expires : undefined
+    };
+}
+
+function marcarSessaoDoLogin() {
+    isLoggedIn = true;
+    loggedInEmail = 'active_session';
+    saveAuthState(true, loggedInEmail);
+}
+
+async function fecharSemErro(pagina) {
+    try { await pagina.close(); } catch (_) {}
 }
 
 
@@ -202,88 +233,83 @@ async function sendMessage({ prompt, imageBase64 = null, model = null, history =
         return { success: false, error: 'NOT_LOGGED_IN: Please connect your Google Account first.' };
     }
 
-    const modelKey = model || selectedModel;
-    // For images, we want to prioritize the model that supports Imagen 3
-    const modelsToTry = [modelKey, 'gemini-3.8-flash', 'gemini-4-argon'];
-    const apiVersions = ['v1beta', 'v1'];
+    const tentativas = tentativasDeEnvio(model || selectedModel);
+    const parts = partesDoPedido(prompt, imageBase64, history);
     let lastError = null;
-
-    const parts = [];
-    if (history && history.length > 0) {
-        const histCtx = history.slice(-10).map(h => `${h.role === 'user' ? 'User' : 'Nova'}: ${h.text}`).join('\n');
-        parts.push({ text: `[Conversation Context]\n${histCtx}\n\n[Current Request]` });
-    }
-    parts.push({ text: prompt });
-    if (imageBase64) {
-        const mimeType = imageBase64.match(/^data:([a-z/]+);base64,/)?.[1] || 'image/png';
-        const rawB64   = imageBase64.replace(/^data:[a-z/]+;base64,/, '');
-        parts.push({ inlineData: { mimeType, data: rawB64 } });
-    }
-
-    for (const currentModel of modelsToTry) {
-        const apiModelId = MODEL_ID_MAP[currentModel] || currentModel;
-        for (const apiVer of apiVersions) {
-            try {
-                console.log(`[GeminiBrowserEngine] Attempting fetch: ${apiModelId} (${apiVer}) with key: ${apiKey ? 'PRESENT' : 'MISSING'}`);
-                const response = await performBrowserFetch(apiModelId, apiVer, parts, apiKey);
-                const parsed = JSON.parse(response);
-
-                if (parsed.error) {
-                    throw new Error(parsed.error?.message || JSON.stringify(parsed.error));
-                }
-
-                const responseParts = parsed?.candidates?.[0]?.content?.parts || [];
-                const text = responseParts.map(p => p.text || '').join('') || '';
-                const images = responseParts.filter(p => p.inlineData).map(p => ({
-                    mimeType: p.inlineData.mimeType,
-                    data: p.inlineData.data
-                }));
-
-                if (text || images.length > 0) {
-                    return { success: true, text, images, model: apiModelId };
-                }
-            } catch (err) {
-                lastError = err;
-                console.warn(`[GeminiBrowserEngine] ${apiModelId} (${apiVer}) failed: ${err.message}`);
-            }
+    for (const tentativa of tentativas) {
+        try {
+            const resposta = await tentarEnvio(tentativa, parts, apiKey);
+            if (resposta) return resposta;
+        } catch (err) {
+            lastError = err;
+            console.warn(`[GeminiBrowserEngine] ${tentativa.apiModelId} (${tentativa.apiVer}) failed: ${err.message}`);
         }
     }
 
     return { success: false, error: lastError?.message || 'All fallback models failed.' };
 }
 
-/**
- * Internal helper to perform Image Generation via Gemini Web UI Automation.
- * This is the 'True Pro Core' mode.
- */
-async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
-    const promptPart = parts.find(p => p.text)?.text || '';
-    
-    const geminiSess = session.fromPartition(SESSION_PARTITION);
-    return new Promise((resolve, reject) => {
-        const automationWin = new BrowserWindow({
-            show: false,
-            width: 1280, height: 800,
-            webPreferences: {
-                session: geminiSess,
-                nodeIntegration: false,
-                contextIsolation: false,
-                offscreen: true
-            },
-        });
+const MODELOS_DE_RESERVA = ['gemini-3.8-flash', 'gemini-4-argon'];
+const VERSOES_DA_API = ['v1beta', 'v1'];
 
-        automationWin.webContents.setAudioMuted(true);
+function tentativasDeEnvio(modelKey) {
+    return [modelKey, ...MODELOS_DE_RESERVA].flatMap((modelo) => {
+        const apiModelId = MODEL_ID_MAP[modelo] || modelo;
+        return VERSOES_DA_API.map(apiVer => ({ apiModelId, apiVer }));
+    });
+}
 
-        const timeout = setTimeout(() => {
-            if (!automationWin.isDestroyed()) automationWin.close();
-            reject(new Error('Gemini Web Automation Timed Out (120s)'));
-        }, 120000);
+function partesDoPedido(prompt, imageBase64, history) {
+    const parts = [];
+    if (history && history.length > 0) {
+        parts.push({ text: `[Conversation Context]\n${contextoDaConversa(history)}\n\n[Current Request]` });
+    }
+    parts.push({ text: prompt });
+    if (imageBase64) {
+        parts.push(parteDaImagem(imageBase64));
+    }
+    return parts;
+}
 
-        automationWin.loadURL('https://gemini.google.com/app');
-        
-        automationWin.webContents.once('did-finish-load', async () => {
-            try {
-                const result = await automationWin.webContents.executeJavaScript(`
+function contextoDaConversa(history) {
+    return history.slice(-10).map(h => `${h.role === 'user' ? 'User' : 'Nova'}: ${h.text}`).join('\n');
+}
+
+function parteDaImagem(imageBase64) {
+    const mimeType = imageBase64.match(/^data:([a-z/]+);base64,/)?.[1] || 'image/png';
+    const rawB64   = imageBase64.replace(/^data:[a-z/]+;base64,/, '');
+    return { inlineData: { mimeType, data: rawB64 } };
+}
+
+async function tentarEnvio({ apiModelId, apiVer }, parts, apiKey) {
+    console.info(`[GeminiBrowserEngine] Attempting fetch: ${apiModelId} (${apiVer}) with key: ${apiKey ? 'PRESENT' : 'MISSING'}`);
+    const response = await performBrowserFetch(apiModelId, apiVer, parts, apiKey);
+    return respostaDoGemini(response, apiModelId);
+}
+
+function respostaDoGemini(response, apiModelId) {
+    const responseParts = partesDaResposta(JSON.parse(response));
+    const text = responseParts.map(p => p.text || '').join('') || '';
+    const images = responseParts.filter(p => p.inlineData).map(imagemDaParte);
+    if (text || images.length > 0) {
+        return { success: true, text, images, model: apiModelId };
+    }
+    return null;
+}
+
+function partesDaResposta(parsed) {
+    if (parsed.error) {
+        throw new Error(parsed.error.message || JSON.stringify(parsed.error));
+    }
+    return parsed.candidates?.[0]?.content?.parts || [];
+}
+
+function imagemDaParte(p) {
+    return { mimeType: p.inlineData.mimeType, data: p.inlineData.data };
+}
+
+const MARCA_DO_PEDIDO = '__TEXTO_DO_PEDIDO__';
+const SCRIPT_DA_PAGINA = `
                     (async () => {
                         const sleep = (ms) => new Promise(r => setTimeout(r, ms));
                         
@@ -297,7 +323,7 @@ async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
                             
                             // 2. Type the prompt
                             inputArea.focus();
-                            document.execCommand('insertText', false, ${JSON.stringify(promptPart)});
+                            document.execCommand('insertText', false, __TEXTO_DO_PEDIDO__);
                             
                             // Dispatch input/change/keyup events to update page state
                             const evs = ['input', 'change', 'keyup'];
@@ -402,18 +428,57 @@ async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
                             return JSON.stringify({ error: { message: e.message } });
                         }
                     })()
-                `);
-                
-                clearTimeout(timeout);
-                if (!automationWin.isDestroyed()) automationWin.close();
+                `;
+
+function scriptDaPagina(promptPart) {
+    return SCRIPT_DA_PAGINA.replace(MARCA_DO_PEDIDO, () => JSON.stringify(promptPart));
+}
+
+async function performBrowserFetch(apiModelId, apiVer, parts, apiKey) {
+    const promptPart = parts.find(p => p.text)?.text || '';
+    const geminiSess = session.fromPartition(SESSION_PARTITION);
+    return new Promise((resolve, reject) => {
+        const automationWin = abrirJanelaDeAutomacao(geminiSess);
+        const timeout = setTimeout(() => {
+            fecharSeAberta(automationWin);
+            reject(new Error('Gemini Web Automation Timed Out (120s)'));
+        }, 120000);
+        const encerrar = () => {
+            clearTimeout(timeout);
+            fecharSeAberta(automationWin);
+        };
+
+        automationWin.loadURL('https://gemini.google.com/app');
+        automationWin.webContents.once('did-finish-load', async () => {
+            try {
+                const result = await automationWin.webContents.executeJavaScript(scriptDaPagina(promptPart));
+                encerrar();
                 resolve(result);
             } catch (e) {
-                clearTimeout(timeout);
-                if (!automationWin.isDestroyed()) automationWin.close();
+                encerrar();
                 reject(e);
             }
         });
     });
+}
+
+function abrirJanelaDeAutomacao(geminiSess) {
+    const automationWin = new BrowserWindow({
+        show: false,
+        width: 1280, height: 800,
+        webPreferences: {
+            session: geminiSess,
+            nodeIntegration: false,
+            contextIsolation: false,
+            offscreen: true
+        },
+    });
+    automationWin.webContents.setAudioMuted(true);
+    return automationWin;
+}
+
+function fecharSeAberta(automationWin) {
+    if (!automationWin.isDestroyed()) automationWin.close();
 }
 
 

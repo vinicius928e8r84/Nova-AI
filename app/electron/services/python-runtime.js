@@ -2,25 +2,28 @@
 const fs = require('fs');
 const path = require('path');
 
+const EMBUTIDOS_POR_SISTEMA = new Map([
+  ['darwin', ['python-runtime-portable/run-python', 'python-env/bin/python3']],
+  ['win32', ['python/python.exe']],
+]);
+
+const raizesPadrao = () => [process.resourcesPath, path.join(__dirname, '../../resources')].filter(Boolean);
+
 function pythonEmbutido(platform, roots, existe) {
-  const candidatos = platform === 'darwin'
-    ? ['python-runtime-portable/run-python', 'python-env/bin/python3']
-    : platform === 'win32' ? ['python/python.exe'] : [];
-  for (const candidato of candidatos) {
-    for (const raiz of roots) {
-      const arquivo = path.join(raiz, candidato);
-      if (existe(arquivo)) return arquivo;
-    }
-  }
-  return null;
+  const candidatos = EMBUTIDOS_POR_SISTEMA.get(platform) || [];
+  return candidatos
+    .flatMap(candidato => roots.map(raiz => path.join(raiz, candidato)))
+    .find(arquivo => existe(arquivo)) ?? null;
+}
+
+function pythonDoSistema(platform, ferramenta) {
+  if (platform !== 'darwin') return 'python';
+  const acharFerramenta = ferramenta || require('./mac-native').tool;
+  return acharFerramenta('python3') || '/usr/bin/python3';
 }
 
 function python({ platform = process.platform, roots, existe = fs.existsSync, ferramenta } = {}) {
-  const raizes = roots || [process.resourcesPath, path.join(__dirname, '../../resources')].filter(Boolean);
-  const embutido = pythonEmbutido(platform, raizes, existe);
-  if (embutido) return embutido;
-  if (platform === 'darwin') return (ferramenta || require('./mac-native').tool)('python3') || '/usr/bin/python3';
-  return 'python';
+  return pythonEmbutido(platform, roots || raizesPadrao(), existe) || pythonDoSistema(platform, ferramenta);
 }
 
 function pathComBin(platform, atual, resourcesPath) {
