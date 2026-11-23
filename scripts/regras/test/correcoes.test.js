@@ -41,7 +41,8 @@ test('.gitattributes e .gitmodules contam como caminho sensível', () => {
 });
 
 test('arquivo existente com espaço, aspas ou tab no nome não some das regras de linha', () => {
-  const nomes = ['app/com espaco.js', 'app/com"aspa.js', 'app/com\ttab.js', 'app/açaí.js'];
+  const nomes = ['app/com espaco.js', 'app/açaí.js'];
+  if (process.platform !== 'win32') nomes.push('app/com"aspa.js', 'app/com\ttab.js');
   const base = Object.fromEntries(nomes.map(nome => [nome, 'const a = 1;\n']));
   const novo = Object.fromEntries(nomes.map(nome => [nome, 'const a = 1;\nconst b = 2; // escondido\n']));
   const r = tentar('sem-comentario-novo', novo, base);
