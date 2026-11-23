@@ -1,6 +1,6 @@
 {
   "arquivos": {
-    "app/electron/main.js": 4290,
+    "app/electron/main.js": 4283,
     "app/electron/services/browserFarmService.js": 2133,
     "app/electron/services/global-spoof-service.js": 1787,
     "app/electron/services/physicalMobileService.js": 2383,
@@ -11,7 +11,7 @@
   "saude-do-codigo": {
     "app/dist/cam-live-audio.js": 39,
     "app/dist/cam-live.js": 356,
-    "app/electron/main.js": 4153,
+    "app/electron/main.js": 4149,
     "app/electron/nova-grab-extension/content.js": 166,
     "app/electron/pwa/app.js": 8,
     "app/electron/services/agent-swarm-controller.js": 102,
