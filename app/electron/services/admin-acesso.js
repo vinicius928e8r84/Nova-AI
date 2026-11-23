@@ -106,19 +106,32 @@ function responder(res, status, corpo) {
     res.end(JSON.stringify(corpo));
 }
 
-function lerCorpoJson(req, aoLer) {
-    let corpo = '';
-    let estourou = false;
+function recusarCorpoGrande(req, res) {
+    res.writeHead(413, { ...CABECALHOS_DA_RESPOSTA, Connection: 'close' });
+    res.end(JSON.stringify({ error: 'Corpo grande demais.' }), () => req.destroy());
+}
+
+function jsonOuVazio(texto) {
+    try {
+        return JSON.parse(texto || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+function lerCorpoJson(req, res, aoLer) {
+    const pedacos = [];
+    let tamanho = 0;
+    let recusado = false;
     req.on('data', pedaco => {
-        corpo += pedaco;
-        if (corpo.length > TAMANHO_MAXIMO_DO_CORPO) estourou = true;
+        if (recusado) return;
+        tamanho += pedaco.length;
+        recusado = tamanho > TAMANHO_MAXIMO_DO_CORPO;
+        if (recusado) recusarCorpoGrande(req, res);
+        else pedacos.push(pedaco);
     });
     req.on('end', () => {
-        try {
-            aoLer(estourou ? {} : JSON.parse(corpo || '{}'));
-        } catch (e) {
-            aoLer({});
-        }
+        if (!recusado) aoLer(jsonOuVazio(Buffer.concat(pedacos).toString()));
     });
 }
 
@@ -136,7 +149,7 @@ class AcessoDoAdmin {
     atender(req, res, cliente) {
         if (req.url === '/api/admin-sessao') this.responderSessao(req, res);
         else if (req.url === '/api/admin-logout') this.encerrarSessao(req, res);
-        else lerCorpoJson(req, corpo => this.entrar(res, cliente, corpo.codigo));
+        else lerCorpoJson(req, res, corpo => this.entrar(res, cliente, corpo.codigo));
     }
 
     sessaoDaRequisicao(req) {

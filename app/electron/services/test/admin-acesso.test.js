@@ -133,12 +133,42 @@ test('login sem código configurado responde 503 e nunca abre sessão', () => co
   assert.strictEqual((await entrar(endereco, 'qualquer')).status, 503);
 }));
 
-test('corpo que não é JSON, grande demais, sem código ou com objeto no lugar do código é recusado', () => comServidor({ pasta: pastaComCodigo(CODIGO_DE_TESTE) }, async endereco => {
-  const corpos = ['isto não é json', JSON.stringify({ codigo: 'x'.repeat(5000) }), '{}', JSON.stringify({ codigo: { ne: 1 } })];
+test('corpo que não é JSON, sem código ou com objeto no lugar do código é recusado', () => comServidor({ pasta: pastaComCodigo(CODIGO_DE_TESTE) }, async endereco => {
+  const corpos = ['isto não é json', '{}', JSON.stringify({ codigo: { ne: 1 } })];
   for (const corpo of corpos) {
     const resposta = await fetch(`${endereco}/api/admin-login`, { method: 'POST', body: corpo });
     assert.strictEqual(resposta.status, 401);
   }
+}));
+
+test('corpo grande demais recebe 413 sem passar pela conferência do código', () => comServidor({ pasta: pastaComCodigo(CODIGO_DE_TESTE) }, async endereco => {
+  const resposta = await fetch(`${endereco}/api/admin-login`, { method: 'POST', body: JSON.stringify({ codigo: 'x'.repeat(5000) }) });
+  assert.strictEqual(resposta.status, 413);
+  assert.strictEqual((await entrar(endereco, CODIGO_DE_TESTE)).status, 200);
+}));
+
+test('corpo enorme não é lido até o fim: o servidor fecha a conexão depois do limite', () => comServidor({ pasta: pastaComCodigo(CODIGO_DE_TESTE) }, async endereco => {
+  const pedaco = Buffer.alloc(1024 * 1024, 97);
+  const total = 64;
+  let enviados = 0;
+  const { status } = await new Promise(resolve => {
+    const pedido = http.request(`${endereco}/api/admin-login`, { method: 'POST', headers: { 'Content-Length': pedaco.length * total } });
+    let status = null;
+    const terminar = () => resolve({ status });
+    pedido.on('response', resposta => { status = resposta.statusCode; resposta.resume(); });
+    pedido.on('error', terminar);
+    pedido.on('close', terminar);
+    const enviar = () => {
+      while (enviados < total) {
+        enviados += 1;
+        if (!pedido.write(pedaco)) return pedido.once('drain', enviar);
+      }
+      pedido.end();
+    };
+    enviar();
+  });
+  assert.ok(status === 413 || status === null, `status ${status}`);
+  assert.ok(enviados < total, `o cliente conseguiu enviar os ${total} MB inteiros (${enviados})`);
 }));
 
 test('depois de várias tentativas erradas o cliente é bloqueado até com o código certo', () => comServidor({ pasta: pastaComCodigo(CODIGO_DE_TESTE) }, async endereco => {
