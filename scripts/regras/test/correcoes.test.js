@@ -41,7 +41,8 @@ test('.gitattributes e .gitmodules contam como caminho sensível', () => {
 });
 
 test('arquivo existente com espaço, aspas ou tab no nome não some das regras de linha', () => {
-  const nomes = ['app/com espaco.js', 'app/com"aspa.js', 'app/com\ttab.js', 'app/açaí.js'];
+  const nomes = ['app/com espaco.js', 'app/açaí.js'];
+  if (process.platform !== 'win32') nomes.push('app/com"aspa.js', 'app/com\ttab.js');
   const base = Object.fromEntries(nomes.map(nome => [nome, 'const a = 1;\n']));
   const novo = Object.fromEntries(nomes.map(nome => [nome, 'const a = 1;\nconst b = 2; // escondido\n']));
   const r = tentar('sem-comentario-novo', novo, base);
@@ -180,15 +181,16 @@ test('binário falha: .tar e .iso novos', () => {
   assert.equal(r.codigo, 1, r.saida);
 });
 
-test('lista de checks obrigatórios confere com os nomes dos jobs dos workflows', () => {
+test('lista de checks obrigatórios e opcionais confere com os nomes dos jobs dos workflows', () => {
   const raiz = path.join(__dirname, '..', '..', '..');
-  const { checks } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'checks-obrigatorios.json'), 'utf8'));
+  const { checks, opcionais = [] } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'checks-obrigatorios.json'), 'utf8'));
   const dosWorkflows = [];
   for (const arquivo of fs.readdirSync(path.join(raiz, '.github', 'workflows'))) {
     const texto = fs.readFileSync(path.join(raiz, '.github', 'workflows', arquivo), 'utf8');
     for (const m of texto.matchAll(/^ {4}name: (.+)$/gm)) dosWorkflows.push(m[1].trim());
   }
-  assert.deepEqual([...dosWorkflows].sort(), [...checks].sort());
+  assert.deepEqual([...dosWorkflows].sort(), [...checks, ...opcionais].sort());
+  assert.ok(!checks.some((nome) => opcionais.includes(nome)));
 });
 
 test('workflows: sem pull_request_target, ações presas por SHA e regras lidas da base', () => {
@@ -205,7 +207,7 @@ test('workflows: sem pull_request_target, ações presas por SHA e regras lidas 
 const HEAD = 'a'.repeat(40);
 const ANTIGA = 'b'.repeat(40);
 const DESCRICAO = 'Corrige o botão do iPhone que mostrava Parar transmissão em vez de Abrir controle depois do patch do bundle.';
-const registro = (veredito, autor = 'agente-a', revisor = 'agente-b', head = HEAD) => `Veredito: ${veredito}\nHead: ${head}\nAutor: ${autor}\nRevisor: ${revisor}\n`;
+const registro = (veredito, autor = 'agente-a', revisor = 'agente-b', head = HEAD) => `Veredito: ${veredito}\nHead: ${head}\nAutor: ${autor}\nRevisor: ${revisor}\nRisco: BAIXA\n`;
 const baseDoRegistro = { head: HEAD, arquivos: [{ caminho: 'README.md', adicionadas: [] }], corpo: `${DESCRICAO}\n\nAtenção: BAIXA\n` };
 
 test('registro: NOT CLEAN no head é definitivo, venha antes ou depois de um CLEAN', () => {

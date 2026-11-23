@@ -21,331 +21,110 @@
  * }
  */
 const { chromium } = require('playwright');
+const { getDefaultUserAgent } = require('./platform-utils');
+const {
+    BROWSER_DATA_DIR, DOWNLOAD_DIR, appendBrowserLog, quarantineBrowserProfile, resolveCdpPort, getCdpPort,
+    releaseCdpPortReservation, conferirPortaDoNavegador, ensureStandardDownloadPrefs, resolveDownloadFilename,
+    findMatchingDownloadPath, escolherExecutavel,
+} = require('./browser-perfil');
+const { ferramentasDePagina } = require('./browser-ferramentas-pagina');
+const { ferramentasDeElemento } = require('./browser-ferramentas-elemento');
+const { ferramentasDeContexto } = require('./browser-ferramentas-contexto');
 const path = require('path');
 const fs = require('fs');
-const net = require('net');
-const http = require('http');
-const { app, ipcMain } = require('electron');
-const { findBundledChromiumExecutable, getDefaultUserAgent } = require('./platform-utils');
+const { ipcMain } = require('electron');
 
-const BROWSER_DATA_DIR = path.join(app.getPath('userData'), 'browser-data');
-const DOWNLOAD_DIR = app.getPath('downloads');
+const MENSAGENS_DE_NAVEGADOR_MORTO = [
+    'Target closed',
+    'browser has been closed',
+    'Browser closed',
+    'Session closed',
+    'Target page, context or browser has been closed',
+    'Connection closed',
+    'Protocol error',
+    'Execution context was destroyed',
+    'context or browser has been closed',
+];
 
-//  Browser launch diagnostics log
-//
-//  In the packaged app console.log goes nowhere, which made every fresh-PC
-//  browser failure an unreproducible "CDP 503" with no cause attached. Every
-//  launch attempt and failure lands in this file so a user can just send it:
-//    %APPDATA%\<app>\logs\browser-launch.log
-const BROWSER_LOG_PATH = path.join(app.getPath('userData'), 'logs', 'browser-launch.log');
-let _browserLogDirReady = false;
-function appendBrowserLog(message) {
-    try {
-        if (!_browserLogDirReady) {
-            fs.mkdirSync(path.dirname(BROWSER_LOG_PATH), { recursive: true });
-            _browserLogDirReady = true;
-        }
-        try {
-            if (fs.statSync(BROWSER_LOG_PATH).size > 1024 * 1024) fs.unlinkSync(BROWSER_LOG_PATH);
-        } catch { /* no file yet */ }
-        fs.appendFileSync(BROWSER_LOG_PATH, `[${new Date().toISOString()}] ${message}\n`);
-    } catch { /* diagnostics must never break the launch itself */ }
+const LIMITE_DE_MENSAGENS = 500;
+const LIMITE_DE_ERROS = 200;
+
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+
+function opcoesDeLancamento(executablePath, cdpPort) {
+    return {
+        executablePath: executablePath,
+        headless: false,
+        viewport: null,
+        userAgent: getDefaultUserAgent(),
+        acceptDownloads: true,
+        timeout: 120000,
+        args: [
+            '--disable-blink-features=AutomationControlled',
+            '--no-first-run',
+            '--no-default-browser-check',
+            '--enable-logging',
+            `--remote-debugging-port=${cdpPort}`,
+        ],
+    };
 }
 
-//
-//  browser-data/ is written by whichever Chromium shipped at the time. After
-//  an update to a build with a different Chromium revision, that profile can
-//  become unreadable to the new binary: Chromium starts, prints "DevTools
-//  listening", then kills itself on a CHECK failure (exit 0x80000003) a
-//  couple of seconds later. Playwright reports that as "Target page, context
-//  or browser has been closed" and every Hermes browser tool ends in CDP 503
-//  — with a browser that visibly opens and instantly disappears.
-//
-//  The profile is moved aside, never deleted: it holds the user's logins and
-//  cookies, and this recovery runs on a guess. Only the newest quarantine is
-//  kept so a repeatedly failing machine can't accumulate profile copies.
-const QUARANTINE_PREFIX = 'browser-data.corrupt-';
-
-function quarantineBrowserProfile() {
-    if (!fs.existsSync(BROWSER_DATA_DIR)) return false;
-
-    const parent = path.dirname(BROWSER_DATA_DIR);
-    const destName = `${QUARANTINE_PREFIX}${new Date().toISOString().replace(/[:.]/g, '-')}`;
-    try {
-        fs.renameSync(BROWSER_DATA_DIR, path.join(parent, destName));
-        appendBrowserLog(`profile quarantined → ${destName}`);
-    } catch (err) {
-        // A surviving chrome.exe still holds the profile lock. Nothing can be
-        // recovered here; the caller reports the original launch failure.
-        appendBrowserLog(`profile quarantine FAILED (still locked?): ${err.message}`);
-        return false;
-    }
-
-    try {
-        for (const name of fs.readdirSync(parent)) {
-            if (!name.startsWith(QUARANTINE_PREFIX) || name === destName) continue;
-            fs.rmSync(path.join(parent, name), { recursive: true, force: true });
-        }
-    } catch { /* pruning is housekeeping — never fail a launch over it */ }
-    return true;
-}
-
-//
-//  Port 9222 is the conventional Chrome DevTools port, but OTHER apps
-//  also use it — Adobe Premiere Pro (Adobe UXP/CEF) binds 127.0.0.1:9222
-//  when running, which used to break the shared-browser flow with
-//  "CDP WebSocket connect failed: 400 Bad Request".
-//
-//  Strategy: scan 9222..9252 at app startup. A port is chosen when it is
-//  either FREE (we reserve it until Chromium launches) or already serving
-//  a Chrome-family CDP endpoint (a leftover Stonic Chromium we can share).
-//  Foreign CDP-lookalikes (Browser: "Adobe UXP" etc.) are skipped.
-//  The chosen port flows to every consumer of the shared Chromium.
-
-const CDP_PORT_SCAN_START = 9222;
-const CDP_PORT_SCAN_END = 9252;
-
-let resolvedCdpPort = null;
-let cdpPortReservation = null;
-let cdpPortPromise = null;
-
-function isChromeFamilyBrowser(browserField) {
-    const b = String(browserField || '').toLowerCase();
-    return b.includes('chrome') || b.includes('chromium') || b.includes('edg');
-}
-
-// Probe http://127.0.0.1:<port>/json/version → { reachable, chromeFamily, browser }
-function probeCdpEndpoint(port, timeoutMs = 1500) {
-    return new Promise((resolve) => {
-        const req = http.get(
-            { host: '127.0.0.1', port, path: '/json/version', timeout: timeoutMs },
-            (res) => {
-                let body = '';
-                res.on('data', (c) => { body += c; });
-                res.on('end', () => {
-                    try {
-                        const json = JSON.parse(body);
-                        resolve({
-                            reachable: true,
-                            chromeFamily: isChromeFamilyBrowser(json.Browser),
-                            browser: json.Browser || '(unknown)',
-                        });
-                    } catch {
-                        resolve({ reachable: true, chromeFamily: false, browser: '(non-CDP HTTP service)' });
-                    }
-                });
-            }
-        );
-        req.on('timeout', () => { req.destroy(); resolve({ reachable: false, chromeFamily: false, browser: null }); });
-        req.on('error', () => resolve({ reachable: false, chromeFamily: false, browser: null }));
-    });
-}
-
-// Try to bind a port. On success, KEEP the server listening (reservation)
-// so no other app can steal the port before Chromium launches.
-function tryReservePort(port) {
-    return new Promise((resolve) => {
-        const server = net.createServer();
-        server.once('error', () => resolve(null));
-        server.listen(port, '127.0.0.1', () => resolve(server));
-    });
-}
-
-async function resolveCdpPort() {
-    if (resolvedCdpPort !== null) return resolvedCdpPort;
-    if (cdpPortPromise) return cdpPortPromise;
-
-    cdpPortPromise = (async () => {
-        for (let port = CDP_PORT_SCAN_START; port <= CDP_PORT_SCAN_END; port++) {
-            const reservation = await tryReservePort(port);
-            if (reservation) {
-                // Port is free — hold it until Chromium launch.
-                resolvedCdpPort = port;
-                cdpPortReservation = reservation;
-                if (port !== CDP_PORT_SCAN_START) {
-                    console.warn(`[BrowserService] ⚠️ Default CDP port ${CDP_PORT_SCAN_START} unavailable — using port ${port} instead.`);
-                } else {
-                    console.log(`[BrowserService] CDP port ${port} reserved.`);
-                }
-                return port;
-            }
-
-            // Port occupied — check WHO owns it.
-            const probe = await probeCdpEndpoint(port);
-            if (probe.reachable && probe.chromeFamily) {
-                // A Chrome-family CDP already lives here (e.g. leftover Stonic
-                // Chromium from a previous session) — safe to share, same as
-                // the original single-port behavior.
-                console.log(`[BrowserService] Reusing existing Chrome-family CDP on port ${port} (Browser: ${probe.browser}).`);
-                resolvedCdpPort = port;
-                return port;
-            }
-            console.warn(`[BrowserService] ⚠️ Port ${port} is occupied by a non-Chrome app (${probe.browser || 'unknown — no CDP response'}). Skipping.`);
-        }
-        // Nothing free in the whole range (extremely unlikely) — fall back.
-        console.error(`[BrowserService] ❌ No free CDP port in ${CDP_PORT_SCAN_START}-${CDP_PORT_SCAN_END}; falling back to ${CDP_PORT_SCAN_START}.`);
-        resolvedCdpPort = CDP_PORT_SCAN_START;
-        return resolvedCdpPort;
-    })();
-
-    return cdpPortPromise;
-}
-
-// Sync getter for consumers that run after startup (bridge spawn paths).
-function getCdpPort() {
-    return resolvedCdpPort || CDP_PORT_SCAN_START;
-}
-
-function releaseCdpPortReservation() {
-    if (cdpPortReservation) {
-        try { cdpPortReservation.close(); } catch { }
-        cdpPortReservation = null;
+function acrescentarComLimite(lista, item, limite) {
+    lista.push(item);
+    if (lista.length > limite) {
+        lista.shift();
     }
 }
 
-function safeReadJson(filePath) {
-    try {
-        if (!fs.existsSync(filePath)) return null;
-        const raw = fs.readFileSync(filePath, 'utf8');
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-    } catch {
-        return null;
+function prepararPerfil() {
+    if (!fs.existsSync(DOWNLOAD_DIR)) {
+        fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
     }
-}
-
-function safeWriteJson(filePath, data) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
-
-function setDeep(obj, keys, value) {
-    let node = obj;
-    for (const key of keys.slice(0, -1)) {
-        const next = node[key];
-        if (!next || typeof next !== 'object' || Array.isArray(next)) {
-            node[key] = {};
-        }
-        node = node[key];
+    const isFirstRun = !fs.existsSync(BROWSER_DATA_DIR);
+    if (isFirstRun) {
+        console.info('[BrowserService] Creating persistent browser profile...');
+    } else {
+        console.info('[BrowserService] Loading saved browser profile...');
     }
-    node[keys[keys.length - 1]] = value;
+    ensureStandardDownloadPrefs(BROWSER_DATA_DIR, DOWNLOAD_DIR);
+    return isFirstRun;
 }
 
-function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function refDoTexto(raw) {
+    const eMatch = raw.match(/^(?:@|ref=)?(e\d+)$/i);
+    if (eMatch) return eMatch[1].toLowerCase();
+    const numMatch = raw.match(/^\[?(\d+)\]?$/);
+    return numMatch ? `e${numMatch[1]}` : null;
 }
 
-function sanitizeFilename(filename) {
-    return String(filename || '')
-        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
-        .trim();
+function localizarPorRef(page, info) {
+    if (!info) return null;
+    const locator = info.name
+        ? page.getByRole(info.role, { name: info.name, exact: true })
+        : page.getByRole(info.role);
+    return info.nth != null ? locator.nth(info.nth) : locator;
 }
 
-function extensionFromUrl(rawUrl) {
-    try {
-        const { pathname } = new URL(rawUrl);
-        const ext = path.extname(pathname || '');
-        return ext && ext.length <= 10 ? ext : '';
-    } catch {
-        return '';
-    }
+function morteNaRecuperacao(toolName, relaunchErr) {
+    return {
+        success: false,
+        toolName,
+        error: `Browser was closed and could not be restarted: ${relaunchErr.message}`,
+        errorCode: 'BROWSER_RELAUNCH_FAILED',
+        errorCategory: 'permanent',
+        retryable: false,
+    };
 }
 
-function resolveDownloadFilename(download) {
-    const suggested = sanitizeFilename(download.suggestedFilename());
-    const fallbackName = suggested || `download_${Date.now()}`;
-    const inferredExt = path.extname(fallbackName) ? '' : extensionFromUrl(download.url());
-    return inferredExt ? `${fallbackName}${inferredExt}` : fallbackName;
-}
-
-function ensureStandardDownloadPrefs(userDataDir, downloadDir) {
-    const preferencesPath = path.join(userDataDir, 'Default', 'Preferences');
-    const prefs = safeReadJson(preferencesPath) || {};
-
-    setDeep(prefs, ['download', 'default_directory'], downloadDir);
-    setDeep(prefs, ['download', 'directory_upgrade'], true);
-    setDeep(prefs, ['download', 'prompt_for_download'], false);
-    setDeep(prefs, ['savefile', 'default_directory'], downloadDir);
-    setDeep(prefs, ['profile', 'default_content_setting_values', 'automatic_downloads'], 1);
-
-    safeWriteJson(preferencesPath, prefs);
-}
-
-function findMatchingDownloadPath(filename, earliestMtimeMs = 0) {
-    if (!fs.existsSync(DOWNLOAD_DIR)) return null;
-
-    const parsed = path.parse(filename);
-    const matcher = new RegExp(
-        `^${escapeRegExp(parsed.name)}(?: \\((\\d+)\\))?${escapeRegExp(parsed.ext)}$`,
-        'i'
-    );
-
-    const matches = fs.readdirSync(DOWNLOAD_DIR, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && matcher.test(entry.name))
-        .map((entry) => {
-            const fullPath = path.join(DOWNLOAD_DIR, entry.name);
-            const stats = fs.statSync(fullPath);
-            return { fullPath, mtimeMs: stats.mtimeMs };
-        })
-        .filter((entry) => entry.mtimeMs >= earliestMtimeMs)
-        .sort((a, b) => b.mtimeMs - a.mtimeMs);
-
-    return matches[0]?.fullPath || null;
-}
-
-const KNOWN_DEVICES = {
-    'iPhone 12': { viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1' },
-    'iPhone 14': { viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1' },
-    'iPad Pro': { viewport: { width: 1024, height: 1366 }, userAgent: 'Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1' },
-    'Samsung Galaxy S20': { viewport: { width: 412, height: 915 }, userAgent: 'Mozilla/5.0 (Linux; Android 10; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Mobile Safari/537.36' },
-    'Pixel 5': { viewport: { width: 393, height: 851 }, userAgent: 'Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36' },
-    'Desktop 1280': { viewport: { width: 1280, height: 720 }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
-    'Desktop 1920': { viewport: { width: 1920, height: 1080 }, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
-};
-
-
-/** Roles that represent user-interactive elements — always get a ref. */
-const INTERACTIVE_ROLES = new Set([
-    'button', 'checkbox', 'combobox', 'link', 'listbox', 'menuitem',
-    'menuitemcheckbox', 'menuitemradio', 'option', 'radio', 'searchbox',
-    'slider', 'spinbutton', 'switch', 'tab', 'textbox', 'treeitem',
-]);
-
-/** Roles that carry meaningful content — get a ref when named. */
-const CONTENT_ROLES = new Set([
-    'article', 'cell', 'columnheader', 'gridcell', 'heading',
-    'listitem', 'main', 'navigation', 'region', 'rowheader',
-]);
-
-/** Structural/container roles — skipped in compact mode. */
-const STRUCTURAL_ROLES = new Set([
-    'application', 'directory', 'document', 'generic', 'grid', 'group',
-    'ignored', 'list', 'menu', 'menubar', 'none', 'presentation',
-    'row', 'rowgroup', 'table', 'tablist', 'toolbar', 'tree', 'treegrid',
-]);
-
-
-function toAIFriendlyError(error, selector) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    if (message.includes('strict mode violation')) {
-        const countMatch = message.match(/resolved to (\d+) elements/);
-        const count = countMatch ? countMatch[1] : 'multiple';
-        return `Element "${selector}" matched ${count} elements. Run browser_snapshot to get updated refs.`;
-    }
-
-    if ((message.includes('Timeout') || message.includes('waiting for')) &&
-        (message.includes('to be visible') || message.includes('not visible'))) {
-        return `Element "${selector}" not found or not visible. Run browser_snapshot to see current page elements.`;
-    }
-
-    if (message.includes('intercepts pointer events') ||
-        message.includes('not visible') ||
-        message.includes('not receive pointer events')) {
-        return `Element "${selector}" is not interactable (hidden or covered by overlay). Try browser_scroll_into_view first, or close any overlays, then re-snapshot.`;
-    }
-
-    return message;
+function recuperacaoEmAndamento(toolName) {
+    return {
+        success: false,
+        toolName,
+        error: 'Browser recovery in progress. Please try again in a few seconds.',
+        errorCode: 'BROWSER_RECOVERING',
+        errorCategory: 'transient',
+        retryable: true,
+    };
 }
 
 class BrowserManagerService {
@@ -361,17 +140,12 @@ class BrowserManagerService {
         this.consoleMessages = [];
         this.pageErrors = [];
         this._dialogHandler = null;
-        this._isRelaunching = false; // Prevents concurrent relaunch attempts
+        this._isRelaunching = false;
     }
 
     _isBrowserAlive() {
         try {
             if (!this.context) return false;
-            // Playwright's context.pages() returns a CACHED JS array even
-            // after the Chrome process has died (user closed the window
-            // manually), so it lies "alive=true" on dead browsers. The
-            // canonical Playwright probe is browser.isConnected(), which
-            // queries the actual underlying CDP/pipe connection state.
             if (this.browser && typeof this.browser.isConnected === 'function') {
                 if (!this.browser.isConnected()) return false;
             }
@@ -382,25 +156,25 @@ class BrowserManagerService {
         }
     }
 
-    // The CDP shim answers discovery requests from this: it must be able to
-    // report the browser's state without launching one.
     isRunning() {
         return this.isInitialized && this._isBrowserAlive();
     }
 
-    async _forceClose() {
-        console.log('[BrowserService] Force-closing browser (cleaning up dead/stale state)...');
-        this.isInitialized = false;
-        this.activePage = null;
-        this.consoleMessages = [];
-        this.pageErrors = [];
-
+    _esquecerPrazoDoSeletor() {
         if (this._pendingFileChooserTimeout) {
             clearTimeout(this._pendingFileChooserTimeout);
             this._pendingFileChooserTimeout = null;
         }
-        this._pendingFileChooser = null;
+    }
 
+    async _forceClose() {
+        console.info('[BrowserService] Force-closing browser (cleaning up dead/stale state)...');
+        this.isInitialized = false;
+        this.activePage = null;
+        this.consoleMessages = [];
+        this.pageErrors = [];
+        this._esquecerPrazoDoSeletor();
+        this._pendingFileChooser = null;
         if (this.context) {
             try {
                 await this.context.close();
@@ -412,79 +186,59 @@ class BrowserManagerService {
         this.browser = null;
     }
 
-    // Wraps every browser tool call. If the operation fails because the
-    // user closed the browser window, we:
-    //   1. Force-close the dead context
-    //   2. Relaunch a fresh browser
-    //   3. Retry the operation ONE time
+    _navegadorMorreu(firstError) {
+        const msg = String(firstError?.message || firstError || '');
+        return MENSAGENS_DE_NAVEGADOR_MORTO.some(trecho => msg.includes(trecho)) || !this._isBrowserAlive();
+    }
+
+    async _relancarParaRecuperar(toolName) {
+        try {
+            this._isRelaunching = true;
+            await this._forceClose();
+            await esperar(1000);
+            await this.launch();
+            console.info(`[BrowserService] ✅ Browser recovered! Retrying ${toolName}...`);
+            return null;
+        } catch (relaunchErr) {
+            console.error('[BrowserService] Relaunch failed:', relaunchErr.message);
+            return morteNaRecuperacao(toolName, relaunchErr);
+        } finally {
+            this._isRelaunching = false;
+        }
+    }
+
+    async _recuperar(toolName) {
+        if (this._isRelaunching) {
+            await esperar(3000);
+            if (!this._isBrowserAlive()) return recuperacaoEmAndamento(toolName);
+        }
+        return this._relancarParaRecuperar(toolName);
+    }
+
+    async _repetir(toolName, fn) {
+        try {
+            return await fn();
+        } catch (retryError) {
+            console.error(`[BrowserService] Retry of ${toolName} also failed:`, retryError.message);
+            throw retryError;
+        }
+    }
+
     async _withAutoRecovery(toolName, fn) {
         try {
             return await fn();
         } catch (firstError) {
-            const msg = String(firstError?.message || firstError || '');
-            const isBrowserDead =
-                msg.includes('Target closed') ||
-                msg.includes('browser has been closed') ||
-                msg.includes('Browser closed') ||
-                msg.includes('Session closed') ||
-                msg.includes('Target page, context or browser has been closed') ||
-                msg.includes('Connection closed') ||
-                msg.includes('Protocol error') ||
-                msg.includes('Execution context was destroyed') ||
-                msg.includes('context or browser has been closed') ||
-                !this._isBrowserAlive();
-
-            if (!isBrowserDead) throw firstError;
-
+            if (!this._navegadorMorreu(firstError)) throw firstError;
             console.warn(`[BrowserService] Browser died during ${toolName}. Auto-recovering...`);
-
-            if (this._isRelaunching) {
-                await new Promise(r => setTimeout(r, 3000));
-                if (!this._isBrowserAlive()) {
-                    return {
-                        success: false,
-                        toolName,
-                        error: 'Browser recovery in progress. Please try again in a few seconds.',
-                        errorCode: 'BROWSER_RECOVERING',
-                        errorCategory: 'transient',
-                        retryable: true,
-                    };
-                }
-            }
-
-            try {
-                this._isRelaunching = true;
-                await this._forceClose();
-                await new Promise(r => setTimeout(r, 1000));
-                await this.launch();
-                console.log(`[BrowserService] ✅ Browser recovered! Retrying ${toolName}...`);
-            } catch (relaunchErr) {
-                console.error('[BrowserService] Relaunch failed:', relaunchErr.message);
-                return {
-                    success: false,
-                    toolName,
-                    error: `Browser was closed and could not be restarted: ${relaunchErr.message}`,
-                    errorCode: 'BROWSER_RELAUNCH_FAILED',
-                    errorCategory: 'permanent',
-                    retryable: false,
-                };
-            } finally {
-                this._isRelaunching = false;
-            }
-
-            try {
-                return await fn();
-            } catch (retryError) {
-                console.error(`[BrowserService] Retry of ${toolName} also failed:`, retryError.message);
-                throw retryError;
-            }
+            const falhaNaRecuperacao = await this._recuperar(toolName);
+            if (falhaNaRecuperacao) return falhaNaRecuperacao;
+            return this._repetir(toolName, fn);
         }
     }
 
     async resolveBrowserDownloadPath(download, startedAt, timeoutMs = 10000) {
         const filename = resolveDownloadFilename(download);
         const deadline = Date.now() + timeoutMs;
-
         while (Date.now() < deadline) {
             const resolvedPath = findMatchingDownloadPath(filename, startedAt - 2000);
             if (resolvedPath) {
@@ -493,9 +247,8 @@ class BrowserManagerService {
                     path: resolvedPath,
                 };
             }
-            await new Promise((resolve) => setTimeout(resolve, 250));
+            await esperar(250);
         }
-
         const fallbackPath = path.join(DOWNLOAD_DIR, filename);
         return {
             filename: path.basename(fallbackPath),
@@ -503,2136 +256,148 @@ class BrowserManagerService {
         };
     }
 
-    async launch() {
+    async _jaEstaAberto() {
         if (this.isInitialized && this.context) {
-            if (this._isBrowserAlive()) {
-                return;
-            }
+            if (this._isBrowserAlive()) return true;
             console.warn('[BrowserService] Browser was marked as initialized but is dead. Cleaning up...');
             await this._forceClose();
         }
-
         if (this.context && !this._isBrowserAlive()) {
             console.warn('[BrowserService] Found stale context. Cleaning up before launch...');
             await this._forceClose();
         }
+        return false;
+    }
 
-        if (!fs.existsSync(DOWNLOAD_DIR)) {
-            fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
-        }
-
-        const isFirstRun = !fs.existsSync(BROWSER_DATA_DIR);
-        if (isFirstRun) {
-            console.log('[BrowserService] Creating persistent browser profile...');
-        } else {
-            console.log('[BrowserService] Loading saved browser profile...');
-        }
-
-        ensureStandardDownloadPrefs(BROWSER_DATA_DIR, DOWNLOAD_DIR);
-
-        let executablePath = process.platform === 'darwin' ? require('./mac-native').browser('chrome') : undefined;
-
-        const bundledBrowserPath = path.join(process.resourcesPath, 'browsers', 'chromium-1208', 'chrome-win64', 'chrome.exe');
-        if (fs.existsSync(bundledBrowserPath)) {
-            console.log('[BrowserService] Using BUNDLED browser binary:', bundledBrowserPath);
-            executablePath = bundledBrowserPath;
-        } else {
-            const devBrowserPath = path.join(__dirname, '../../browsers/chromium-1208/chrome-win64/chrome.exe');
-            if (fs.existsSync(devBrowserPath)) {
-                console.log('[BrowserService] Using LOCAL DEV browser binary:', devBrowserPath);
-                executablePath = devBrowserPath;
-            } else {
-                const scannedPath = findBundledChromiumExecutable([
-                    process.resourcesPath ? path.join(process.resourcesPath, 'browsers') : null,
-                    path.join(__dirname, '../../browsers'),
-                ]);
-                if (scannedPath) {
-                    console.log('[BrowserService] Using bundled browser binary (platform scan):', scannedPath);
-                    executablePath = scannedPath;
-                } else {
-                    console.log('[BrowserService] Using SYSTEM installed browser (fallback).');
-                }
-            }
-        }
-
-        const cdpPort = await resolveCdpPort();
-        releaseCdpPortReservation();
-        console.log(`[BrowserService] Launching Chromium with CDP port ${cdpPort}...`);
-
-        const launchStarted = Date.now();
-        appendBrowserLog(`launch: exe=${executablePath || 'playwright-default'} port=${cdpPort} firstRun=${isFirstRun}`);
-        const launchOptions = {
-            executablePath: executablePath,
-            headless: false,
-            viewport: null,
-            userAgent: getDefaultUserAgent(),
-            acceptDownloads: true,
-            // Playwright's default is 30s and it KILLS Chromium when it
-            // expires. A fresh PC's very first start is its slowest one —
-            // Defender scans the whole 260MB chrome.dll while the profile
-            // is being created — and on slow disks that overruns 30s,
-            // which looks like "the browser opened and instantly closed".
-            // The first tool call may still time out client-side, but the
-            // browser survives, finishes coming up, and the retry works.
-            timeout: 120000,
-            args: [
-                '--disable-blink-features=AutomationControlled',
-                '--no-first-run',
-                '--no-default-browser-check',
-                // Chromium writes its own startup/crash log into the profile
-                // (browser-data\chrome_debug.log) — when a launch dies, the
-                // browser-side reason is in there.
-                '--enable-logging',
-                `--remote-debugging-port=${cdpPort}`,
-            ],
-        };
+    async _abrirComNovaTentativa(launchOptions, launchStarted) {
         try {
-            try {
-                this.context = await chromium.launchPersistentContext(BROWSER_DATA_DIR, launchOptions);
-            } catch (firstErr) {
-                // The first-ever start is the slowest and flakiest one (AV
-                // scanning the binary, profile mid-creation). One immediate
-                // retry rescues those; a hard failure (missing DLL, crash
-                // loop) just fails the same way twice and both errors land in
-                // the log.
-                appendBrowserLog(`LAUNCH ATTEMPT 1 FAILED after ${Date.now() - launchStarted}ms: ${firstErr.message}`);
-                const retryStarted = Date.now();
-                this.context = await chromium.launchPersistentContext(BROWSER_DATA_DIR, launchOptions);
-                appendBrowserLog(`launch retry OK in ${Date.now() - retryStarted}ms`);
-            }
+            this.context = await chromium.launchPersistentContext(BROWSER_DATA_DIR, launchOptions);
+        } catch (firstErr) {
+            appendBrowserLog(`LAUNCH ATTEMPT 1 FAILED after ${Date.now() - launchStarted}ms: ${firstErr.message}`);
+            const retryStarted = Date.now();
+            this.context = await chromium.launchPersistentContext(BROWSER_DATA_DIR, launchOptions);
+            appendBrowserLog(`launch retry OK in ${Date.now() - retryStarted}ms`);
+        }
+    }
+
+    async _abrirComPerfilLimpo(launchOptions, launchStarted, err) {
+        appendBrowserLog(`launch failed twice — retrying with a fresh profile`);
+        const cleanStarted = Date.now();
+        try {
+            ensureStandardDownloadPrefs(BROWSER_DATA_DIR, DOWNLOAD_DIR);
+            this.context = await chromium.launchPersistentContext(BROWSER_DATA_DIR, launchOptions);
+        } catch (cleanErr) {
+            appendBrowserLog(`LAUNCH FAILED after ${Date.now() - launchStarted}ms (clean profile also failed: ${cleanErr.message}): ${err.message}`);
+            throw err;
+        }
+        appendBrowserLog(`clean-profile launch OK in ${Date.now() - cleanStarted}ms`);
+    }
+
+    async _abrirContexto(launchOptions, launchStarted, isFirstRun) {
+        try {
+            await this._abrirComNovaTentativa(launchOptions, launchStarted);
         } catch (err) {
-            // Two identical failures mean the retry rescued nothing, and the
-            // most common cause left is a profile this Chromium cannot read
-            // (see quarantineBrowserProfile). Move it aside and try once more
-            // from a clean one. A first run has no profile to blame.
             if (isFirstRun || !quarantineBrowserProfile()) {
-                // The full Playwright error names the real cause (missing DLL
-                // exit code, crash, timeout...) — persist it, console is
-                // invisible in the packaged app.
                 appendBrowserLog(`LAUNCH FAILED after ${Date.now() - launchStarted}ms: ${err.message}`);
                 throw err;
             }
-            appendBrowserLog(`launch failed twice — retrying with a fresh profile`);
-            const cleanStarted = Date.now();
-            try {
-                ensureStandardDownloadPrefs(BROWSER_DATA_DIR, DOWNLOAD_DIR);
-                this.context = await chromium.launchPersistentContext(BROWSER_DATA_DIR, launchOptions);
-            } catch (cleanErr) {
-                // Not the profile after all. Report the ORIGINAL error: it
-                // describes the real fault, while this one is now noise from a
-                // profile that no longer exists.
-                appendBrowserLog(`LAUNCH FAILED after ${Date.now() - launchStarted}ms (clean profile also failed: ${cleanErr.message}): ${err.message}`);
-                throw err;
-            }
-            appendBrowserLog(`clean-profile launch OK in ${Date.now() - cleanStarted}ms`);
+            await this._abrirComPerfilLimpo(launchOptions, launchStarted, err);
         }
         appendBrowserLog(`launch OK in ${Date.now() - launchStarted}ms`);
-        // Log every close with uptime — WHEN the browser went away (2s vs 2h)
-        // is the discriminator between a startup kill and a normal quit.
+    }
+
+    _registrarFechamento(launchStarted) {
         try {
             this.context.on('close', () => {
                 appendBrowserLog(`browser closed (uptime ${Math.round((Date.now() - launchStarted) / 1000)}s)`);
             });
         } catch { }
+    }
 
-        // Verify the DevTools server actually bound OUR port (it silently
-        // fails to bind when another app grabbed it during the race window).
-        probeCdpEndpoint(cdpPort, 3000).then((probe) => {
-            if (probe.reachable && probe.chromeFamily) {
-                console.log(`[BrowserService] ✅ CDP verified on port ${cdpPort} (Browser: ${probe.browser}).`);
-            } else {
-                console.error(`[BrowserService] ❌ CDP on port ${cdpPort} is NOT our Chromium (got: ${probe.browser || 'no response'}). Browser sharing may fail — restart the app.`);
-            }
-        });
+    async _escolherAbaDoContexto() {
+        const pages = this.context.pages();
+        this.activePage = pages.length > 0 ? pages[0] : await this.context.newPage();
+    }
 
+    async launch() {
+        if (await this._jaEstaAberto()) return;
+        const isFirstRun = prepararPerfil();
+        const executablePath = escolherExecutavel();
+        const cdpPort = await resolveCdpPort();
+        releaseCdpPortReservation();
+        console.info(`[BrowserService] Launching Chromium with CDP port ${cdpPort}...`);
+        const launchStarted = Date.now();
+        appendBrowserLog(`launch: exe=${executablePath || 'playwright-default'} port=${cdpPort} firstRun=${isFirstRun}`);
+        await this._abrirContexto(opcoesDeLancamento(executablePath, cdpPort), launchStarted, isFirstRun);
+        this._registrarFechamento(launchStarted);
+        conferirPortaDoNavegador(cdpPort);
         this.browser = this.context.browser();
+        await this._escolherAbaDoContexto();
+        this._attachPageListeners(this.activePage);
+        this.isInitialized = true;
+        console.info('[BrowserService] ✅ Browser launched successfully.');
+    }
 
+    _attachPageListeners(page) {
+        if (!page) return;
+        page.on('console', (msg) => {
+            acrescentarComLimite(this.consoleMessages, {
+                level: msg.type(),
+                text: msg.text(),
+                timestamp: new Date().toISOString()
+            }, LIMITE_DE_MENSAGENS);
+        });
+        page.on('pageerror', (error) => {
+            acrescentarComLimite(this.pageErrors, {
+                message: error.message,
+                stack: error.stack,
+                timestamp: new Date().toISOString()
+            }, LIMITE_DE_ERROS);
+        });
+    }
+
+    async _relancar() {
+        await this._forceClose();
+        await esperar(500);
+        await this.launch();
+    }
+
+    async _abaUtilizavel() {
+        if (this.activePage && !this.activePage.isClosed()) return;
         const pages = this.context.pages();
         if (pages.length > 0) {
             this.activePage = pages[0];
         } else {
             this.activePage = await this.context.newPage();
+            this._attachPageListeners(this.activePage);
         }
-
-        this._attachPageListeners(this.activePage);
-
-        this.isInitialized = true;
-        console.log('[BrowserService] ✅ Browser launched successfully.');
-    }
-
-    _attachPageListeners(page) {
-        if (!page) return;
-
-        page.on('console', (msg) => {
-            this.consoleMessages.push({
-                level: msg.type(),
-                text: msg.text(),
-                timestamp: new Date().toISOString()
-            });
-            if (this.consoleMessages.length > 500) {
-                this.consoleMessages.shift();
-            }
-        });
-
-        page.on('pageerror', (error) => {
-            this.pageErrors.push({
-                message: error.message,
-                stack: error.stack,
-                timestamp: new Date().toISOString()
-            });
-            if (this.pageErrors.length > 200) {
-                this.pageErrors.shift();
-            }
-        });
     }
 
     async getPage() {
         if (!this.context || !this._isBrowserAlive()) {
             console.warn('[BrowserService] Browser context is dead or missing. Relaunching...');
-            await this._forceClose();
-            await new Promise(r => setTimeout(r, 500));
-            await this.launch();
+            await this._relancar();
         }
-
         try {
-            if (!this.activePage || this.activePage.isClosed()) {
-                const pages = this.context.pages();
-                if (pages.length > 0) {
-                    this.activePage = pages[0];
-                } else {
-                    this.activePage = await this.context.newPage();
-                    this._attachPageListeners(this.activePage);
-                }
-            }
+            await this._abaUtilizavel();
         } catch (pageErr) {
             console.warn('[BrowserService] getPage() failed — browser likely closed. Relaunching...');
-            await this._forceClose();
-            await new Promise(r => setTimeout(r, 500));
-            await this.launch();
+            await this._relancar();
         }
-
         return this.activePage;
     }
 
-    // Supports ref formats: e1, e2, @e3, ref=e4, [5], 5, and CSS selectors
     resolveElement(page, selectorOrRef) {
         const raw = String(selectorOrRef).trim();
         if (!raw) return null;
-
-        const eMatch = raw.match(/^(?:@|ref=)?(e\d+)$/i);
-        const numMatch = !eMatch && raw.match(/^\[?(\d+)\]?$/);
-        const ref = eMatch ? eMatch[1].toLowerCase() : (numMatch ? `e${numMatch[1]}` : null);
-
-        if (ref) {
-            const info = this.elementMap.get(ref);
-            if (!info) return null;
-
-            const locator = info.name
-                ? page.getByRole(info.role, { name: info.name, exact: true })
-                : page.getByRole(info.role);
-
-            return (info.nth !== undefined && info.nth !== null) ? locator.nth(info.nth) : locator;
-        }
-
+        const ref = refDoTexto(raw);
+        if (ref) return localizarPorRef(page, this.elementMap.get(ref));
         try {
             return page.locator(raw).first();
         } catch (e) {
             return null;
         }
     }
-
-
-    async navigate(url) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        if (!url.startsWith('http')) url = 'https://' + url;
-
-        console.log(`[BrowserService] Navigating to ${url}`);
-
-        try {
-            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-            try { await page.waitForLoadState('networkidle', { timeout: 5000 }); } catch (e) { }
-
-            console.log('[BrowserService] Emitting sync signal for URL:', page.url());
-            app.emit('sync-stonic-neural-browser', page.url());
-
-            const title = await page.title();
-            return {
-                success: true,
-                toolName: 'browser_navigate',
-                result: `Navigated to: ${title} (${page.url()})`,
-                data: { title, url: page.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_navigate',
-                error: `Navigation failed: ${e.message}`,
-                errorCode: 'NAVIGATION_TIMEOUT',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'Check if the URL is correct. Also try adding https:// prefix.',
-                debugInfo: { executionTimeMs: Date.now() - startTime, url }
-            };
-        }
-    }
-
-    async goBack() {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.goBack({ waitUntil: 'domcontentloaded', timeout: 10000 });
-            
-            app.emit('sync-stonic-neural-browser', page.url());
-
-            const title = await page.title();
-            return {
-                success: true,
-                toolName: 'browser_go_back',
-                result: `Went back to: ${title} (${page.url()})`,
-                data: { title, url: page.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_go_back',
-                error: `Go back failed: ${e.message}`,
-                errorCode: 'NAVIGATION_TIMEOUT',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'There may be no previous page in history.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async goForward() {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.goForward({ waitUntil: 'domcontentloaded', timeout: 10000 });
-
-            app.emit('sync-stonic-neural-browser', page.url());
-
-            const title = await page.title();
-            return {
-                success: true,
-                toolName: 'browser_go_forward',
-                result: `Went forward to: ${title} (${page.url()})`,
-                data: { title, url: page.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_go_forward',
-                error: `Go forward failed: ${e.message}`,
-                errorCode: 'NAVIGATION_TIMEOUT',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'There may be no next page in history.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async reload() {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
-            try { await page.waitForLoadState('networkidle', { timeout: 5000 }); } catch (e) { }
-            
-            app.emit('sync-stonic-neural-browser', page.url());
-
-            const title = await page.title();
-            return {
-                success: true,
-                toolName: 'browser_reload',
-                result: `Page reloaded: ${title}`,
-                data: { title, url: page.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_reload',
-                error: `Reload failed: ${e.message}`,
-                errorCode: 'NAVIGATION_TIMEOUT',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-
-    async snapshot() {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        this.elementMap.clear();
-
-        try {
-            let ariaText;
-            try {
-                ariaText = await page.locator(':root').ariaSnapshot();
-            } catch (ariaErr) {
-                ariaText = await this._fallbackCdpSnapshot(page);
-            }
-
-            if (!ariaText || !ariaText.trim()) {
-                return {
-                    success: true,
-                    toolName: 'browser_snapshot',
-                    result: 'Page has no accessible elements. The page may still be loading.',
-                    data: { elementCount: 0 },
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-
-            const lines = ariaText.split('\n');
-            const resultLines = [];
-            let counter = 0;
-            const roleCounts = {};
-            let interactiveCount = 0;
-
-            for (const line of lines) {
-                const match = line.match(/^(\s*-\s*)(\w+)(?:\s+"([^"]*)")?(.*)$/);
-                if (!match) {
-                    resultLines.push(line);
-                    continue;
-                }
-
-                const [, prefix, roleRaw, name, suffix] = match;
-                if (roleRaw.startsWith('/')) {
-                    resultLines.push(line);
-                    continue;
-                }
-
-                const role = roleRaw.toLowerCase();
-                const isInteractive = INTERACTIVE_ROLES.has(role);
-                const isContent = CONTENT_ROLES.has(role);
-                const isStructural = STRUCTURAL_ROLES.has(role);
-
-                if (isStructural && !name) continue;
-
-                const shouldHaveRef = isInteractive || (isContent && name);
-                if (shouldHaveRef) {
-                    counter++;
-                    const ref = `e${counter}`;
-                    const key = `${role}:${name || ''}`;
-                    const nth = roleCounts[key] || 0;
-                    roleCounts[key] = nth + 1;
-
-                    this.elementMap.set(ref, {
-                        role,
-                        name: name || null,
-                        nth: nth > 0 ? nth : undefined,
-                    });
-
-                    if (isInteractive) interactiveCount++;
-
-                    let enhanced = `${prefix}${roleRaw}`;
-                    if (name) enhanced += ` "${name}"`;
-                    enhanced += ` [ref=${ref}]`;
-                    if (nth > 0) enhanced += ` [nth=${nth}]`;
-                    if (suffix && suffix.includes('[')) enhanced += suffix;
-                    resultLines.push(enhanced);
-                } else {
-                    resultLines.push(line);
-                }
-            }
-
-            const compactedLines = [];
-            for (let i = 0; i < resultLines.length; i++) {
-                const line = resultLines[i];
-                if (line.includes('[ref=')) {
-                    compactedLines.push(line);
-                    continue;
-                }
-                if (line.includes(':') && !line.trimEnd().endsWith(':')) {
-                    compactedLines.push(line);
-                    continue;
-                }
-                const currentIndent = Math.floor((line.match(/^(\s*)/)?.[1]?.length || 0) / 2);
-                let hasRelevantChildren = false;
-                for (let j = i + 1; j < resultLines.length; j++) {
-                    const childIndent = Math.floor((resultLines[j].match(/^(\s*)/)?.[1]?.length || 0) / 2);
-                    if (childIndent <= currentIndent) break;
-                    if (resultLines[j].includes('[ref=')) {
-                        hasRelevantChildren = true;
-                        break;
-                    }
-                }
-                if (hasRelevantChildren) compactedLines.push(line);
-            }
-
-            const title = await page.title();
-            const snapshotText = `SNAPSHOT — "${title}" (${page.url()})\n${compactedLines.join('\n')}\n\n${interactiveCount} interactive elements. Use [ref=eN] to interact (e.g. browser_click with ref "e3").`;
-
-            return {
-                success: true,
-                toolName: 'browser_snapshot',
-                result: snapshotText,
-                data: {
-                    title,
-                    url: page.url(),
-                    elementCount: counter,
-                    interactiveCount,
-                },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_snapshot',
-                error: `Snapshot failed: ${e.message}`,
-                errorCode: 'PAGE_CRASHED',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'The page may still be loading. Wait a moment and try again.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async _fallbackCdpSnapshot(page) {
-        try {
-            const cdpSession = await page.context().newCDPSession(page);
-            const { nodes } = await cdpSession.send('Accessibility.getFullAXTree');
-            await cdpSession.detach();
-            if (!nodes || nodes.length === 0) return '';
-
-            const lines = [];
-            for (const node of nodes) {
-                if (node.ignored) continue;
-                const role = String(node.role?.value || '').toLowerCase();
-                const name = String(node.name?.value || '').trim();
-                if (!role || role === 'none' || role === 'generic') continue;
-                if (!name && !INTERACTIVE_ROLES.has(role)) continue;
-
-                let line = `- ${role}`;
-                if (name) line += ` "${name.substring(0, 120)}"`;
-                lines.push(line);
-                if (lines.length >= 600) break;
-            }
-            return lines.join('\n');
-        } catch (e) {
-            return '';
-        }
-    }
-
-    async getHtml(selector, maxChars = 100000) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            let html;
-            if (selector) {
-                const locator = await this.resolveElement(page, selector);
-                if (!locator) {
-                    return {
-                        success: false,
-                        toolName: 'browser_get_html',
-                        error: `Element "${selector}" not found.`,
-                        errorCode: 'ELEMENT_NOT_FOUND',
-                        errorCategory: 'not_found',
-                        retryable: true,
-                        retrySuggestion: 'Take a browser_snapshot to find the correct element ref.',
-                        debugInfo: { executionTimeMs: Date.now() - startTime }
-                    };
-                }
-                html = await locator.innerHTML();
-            } else {
-                html = await page.evaluate(() => document.documentElement.outerHTML);
-            }
-            const truncated = html.substring(0, maxChars);
-            return {
-                success: true,
-                toolName: 'browser_get_html',
-                result: truncated,
-                data: { chars: truncated.length, truncated: html.length > maxChars },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_get_html',
-                error: `Get HTML failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async querySelector(selector, limit = 20, maxTextChars = 500) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const results = await page.evaluate(({ sel, lim, maxChars }) => {
-                const elements = Array.from(document.querySelectorAll(sel)).slice(0, lim);
-                return elements.map((el, i) => ({
-                    index: i,
-                    tag: el.tagName.toLowerCase(),
-                    text: (el.innerText || el.textContent || '').trim().substring(0, maxChars),
-                    value: el.value || '',
-                    href: el.href || '',
-                    id: el.id || '',
-                    className: el.className || '',
-                    type: el.type || '',
-                    placeholder: el.placeholder || '',
-                }));
-            }, { sel: selector, lim: limit, maxChars: maxTextChars });
-
-            return {
-                success: true,
-                toolName: 'browser_query_selector',
-                result: `Found ${results.length} element(s) matching "${selector}"`,
-                data: { matches: results, count: results.length },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_query_selector',
-                error: `Query selector failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'permanent',
-                retryable: false,
-                retrySuggestion: 'Check the CSS selector syntax.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async click(selector, opts = {}) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        const { doubleClick = false, button = 'left', modifiers = [], delayMs = 0 } = opts;
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_click',
-                    error: `Element "${selector}" not found on the page.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot first to find the correct element reference number, then retry with the right ref.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-                };
-            }
-
-            const clickOpts = { timeout: 5000, button, modifiers, delay: delayMs };
-
-            // Sites like Google Drive, YouTube, TikTok open native file dialogs
-            // on click. The filechooser event fires NOW, but browser_upload_file
-            // is called LATER. We capture it here so upload can use it.
-            this._pendingFileChooser = null;
-            if (this._pendingFileChooserTimeout) {
-                clearTimeout(this._pendingFileChooserTimeout);
-                this._pendingFileChooserTimeout = null;
-            }
-            const chooserPromise = page.waitForEvent('filechooser', { timeout: 2000 })
-                .then(chooser => {
-                    this._pendingFileChooser = chooser;
-                    console.log('[BrowserService] ✅ File chooser captured proactively');
-                    this._pendingFileChooserTimeout = setTimeout(() => {
-                        this._pendingFileChooser = null;
-                        this._pendingFileChooserTimeout = null;
-                    }, 60000);
-                })
-                .catch(() => { /* No file chooser triggered — normal for non-upload clicks */ });
-
-            if (doubleClick) {
-                await locator.dblclick(clickOpts);
-            } else {
-                await locator.click(clickOpts);
-            }
-
-            await Promise.race([chooserPromise, new Promise(r => setTimeout(r, 500))]);
-
-            return {
-                success: true,
-                toolName: 'browser_click',
-                result: `${doubleClick ? 'Double-clicked' : 'Clicked'} element "${selector}"${modifiers.length ? ` with ${modifiers.join('+')}` : ''}${this._pendingFileChooser ? ' (file chooser opened — use browser_upload_file next)' : ''}`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector, fileChooserCaptured: !!this._pendingFileChooser }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_click',
-                error: toAIFriendlyError(e, selector),
-                errorCode: e.message?.includes('timeout') ? 'ELEMENT_NOT_FOUND' : 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'Run browser_snapshot to get fresh refs, then retry with the correct ref.',
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-            };
-        }
-    }
-
-    async type(selector, text, clearFirst = true, slowly = false) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_type',
-                    error: `Input element "${selector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot to find the correct input element, then try again with the right ref number.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-                };
-            }
-
-            if (slowly) {
-                // Human-like typing with 75ms delay per character — avoids bot detection
-                await locator.click();
-                if (clearFirst) {
-                    await locator.selectText().catch(() => {});
-                    await page.keyboard.press('Delete');
-                }
-                await locator.pressSequentially(text, { delay: 75 });
-            } else if (clearFirst) {
-                await locator.fill(text);
-            } else {
-                await locator.click();
-                await locator.pressSequentially(text, { delay: 30 });
-            }
-
-            return {
-                success: true,
-                toolName: 'browser_type',
-                result: `Typed "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}" into "${selector}"${slowly ? ' (human-like)' : ''}${clearFirst ? ' (cleared first)' : ' (appended)'}`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector, textLength: text.length, slowly }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_type',
-                error: toAIFriendlyError(e, selector),
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'Run browser_snapshot to get fresh refs, then retry. Make sure the element is a text input.',
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-            };
-        }
-    }
-
-    async fillForm(fields, timeoutMs = 8000) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        const results = [];
-
-        for (const field of fields) {
-            const { selector, text, clearFirst = true } = field;
-            try {
-                const locator = await this.resolveElement(page, selector);
-                if (!locator) {
-                    results.push({ selector, ok: false, error: 'Element not found' });
-                    continue;
-                }
-                if (clearFirst) {
-                    await locator.fill(text, { timeout: timeoutMs });
-                } else {
-                    await locator.pressSequentially(text, { delay: 30 });
-                }
-                results.push({ selector, ok: true });
-            } catch (e) {
-                results.push({ selector, ok: false, error: e.message });
-            }
-        }
-
-        const successCount = results.filter(r => r.ok).length;
-        return {
-            success: successCount > 0,
-            toolName: 'browser_fill_form',
-            result: `Filled ${successCount}/${fields.length} form fields`,
-            data: { results },
-            debugInfo: { executionTimeMs: Date.now() - startTime }
-        };
-    }
-
-    async hover(selector) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_hover',
-                    error: `Element "${selector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot to verify the element exists.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-                };
-            }
-            await locator.hover();
-            return {
-                success: true,
-                toolName: 'browser_hover',
-                result: `Hovering over "${selector}"`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_hover',
-                error: toAIFriendlyError(e, selector),
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'Run browser_snapshot to get fresh refs.',
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-            };
-        }
-    }
-
-    async scrollIntoView(selector) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_scroll_into_view',
-                    error: `Element "${selector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot to find the correct element ref.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            await locator.scrollIntoViewIfNeeded({ timeout: 5000 });
-            return {
-                success: true,
-                toolName: 'browser_scroll_into_view',
-                result: `Scrolled element "${selector}" into view`,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_scroll_into_view',
-                error: `Scroll into view failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async highlight(selector) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_highlight',
-                    error: `Element "${selector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot to find the correct element ref.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            const handle = await locator.elementHandle();
-            if (handle) {
-                await handle.evaluate((el) => {
-                    const prev = el.style.outline;
-                    el.style.outline = '3px solid red';
-                    setTimeout(() => { el.style.outline = prev; }, 2000);
-                });
-            }
-            return {
-                success: true,
-                toolName: 'browser_highlight',
-                result: `Highlighted element "${selector}" with red outline (2 seconds)`,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_highlight',
-                error: `Highlight failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async select(selector, value) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_select',
-                    error: `Select element "${selector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot to find the select/dropdown element ref.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-                };
-            }
-            await locator.selectOption(value);
-            return {
-                success: true,
-                toolName: 'browser_select',
-                result: `Selected "${value}" in dropdown "${selector}"`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector, value }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_select',
-                error: `Select failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'The value might not match available options. Try using { label: "Option Text" } format.',
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-            };
-        }
-    }
-
-    async pressKey(key) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.keyboard.press(key);
-            return {
-                success: true,
-                toolName: 'browser_press_key',
-                result: `Pressed '${key}' in browser`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, key }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_press_key',
-                error: `Key press failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime, key }
-            };
-        }
-    }
-
-
-    async scroll(direction, amount) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            if (direction === 'top') {
-                await page.evaluate(() => window.scrollTo(0, 0));
-            } else if (direction === 'bottom') {
-                await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-            } else if (direction === 'left') {
-                await page.evaluate((val) => window.scrollBy(-val, 0), amount || 500);
-            } else if (direction === 'right') {
-                await page.evaluate((val) => window.scrollBy(val, 0), amount || 500);
-            } else {
-                const y = direction === 'down' ? (amount || 500) : -(amount || 500);
-                await page.evaluate((val) => window.scrollBy(0, val), y);
-            }
-            return {
-                success: true,
-                toolName: 'browser_scroll',
-                result: `Scrolled ${direction}${amount ? ` by ${amount}px` : ''}`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, direction, amount }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_scroll',
-                error: `Scroll failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async wait(opts) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        const {
-            selector, state, timeout,
-            text, textGone, url, loadState, jsFunction, timeMs
-        } = (typeof opts === 'object' && opts !== null) ? opts : { selector: opts };
-
-        try {
-            if (timeMs) {
-                const clampedMs = Math.min(timeMs, 30000);
-                await page.waitForTimeout(clampedMs);
-                return { success: true, toolName: 'browser_wait', result: `Waited ${clampedMs}ms`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (text) {
-                await page.waitForFunction(
-                    (t) => document.body.innerText.includes(t),
-                    text,
-                    { timeout: timeout || 20000 }
-                );
-                return { success: true, toolName: 'browser_wait', result: `Text "${text}" appeared`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (textGone) {
-                await page.waitForFunction(
-                    (t) => !document.body.innerText.includes(t),
-                    textGone,
-                    { timeout: timeout || 20000 }
-                );
-                return { success: true, toolName: 'browser_wait', result: `Text "${textGone}" disappeared`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (url) {
-                await page.waitForURL(url, { timeout: timeout || 20000 });
-                return { success: true, toolName: 'browser_wait', result: `URL matched: ${page.url()}`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (loadState) {
-                await page.waitForLoadState(loadState, { timeout: timeout || 20000 });
-                return { success: true, toolName: 'browser_wait', result: `Load state "${loadState}" reached`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (jsFunction) {
-                await page.waitForFunction(jsFunction, { timeout: timeout || 20000 });
-                return { success: true, toolName: 'browser_wait', result: `JS condition met`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (selector) {
-                const waitState = state || 'visible';
-                const locator = await this.resolveElement(page, selector);
-                if (locator) {
-                    await locator.waitFor({ state: waitState, timeout: timeout || 10000 });
-                } else {
-                    await page.waitForSelector(selector, { state: waitState, timeout: timeout || 10000 });
-                }
-                return { success: true, toolName: 'browser_wait', result: `Element "${selector}" is now ${waitState}`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            if (timeout) {
-                await page.waitForTimeout(timeout);
-                return { success: true, toolName: 'browser_wait', result: `Waited for ${timeout}ms`, debugInfo: { executionTimeMs: Date.now() - startTime } };
-            }
-
-            return {
-                success: false,
-                toolName: 'browser_wait',
-                error: 'No wait condition specified. Provide: selector, text, textGone, url, loadState, jsFunction, timeMs, or timeout.',
-                errorCode: 'INVALID_ARGS',
-                errorCategory: 'permanent',
-                retryable: false,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_wait',
-                error: `Wait failed: ${e.message}`,
-                errorCode: e.message.includes('Timeout') ? 'NAVIGATION_TIMEOUT' : 'UNKNOWN_ERROR',
-                errorCategory: 'timeout',
-                retryable: true,
-                retrySuggestion: 'The condition was not met within the timeout. Try increasing the timeout or check if the condition is correct.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async screenshot(opts) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        const fullPage = opts?.fullPage || false;
-        const selector = opts?.selector;
-
-        try {
-            let buffer;
-
-            if (selector) {
-                const locator = await this.resolveElement(page, selector);
-                if (locator) {
-                    buffer = await locator.screenshot();
-                }
-            }
-
-            if (!buffer) {
-                buffer = await page.screenshot({ fullPage });
-            }
-
-            try {
-                const { Jimp } = require('jimp');
-                const image = await Jimp.read(buffer);
-
-                if (image.bitmap.width > 1280) {
-                    image.resize({ w: 1280 });
-                }
-
-                const compressedBuffer = await image.getBuffer('image/jpeg', { quality: 60 });
-                return {
-                    success: true,
-                    toolName: 'browser_screenshot',
-                    result: `Screenshot captured (${image.bitmap.width}x${image.bitmap.height} JPEG)`,
-                    data: { image: compressedBuffer.toString('base64'), mimeType: 'image/jpeg' },
-                    debugInfo: { executionTimeMs: Date.now() - startTime, sizeKB: Math.round(compressedBuffer.length / 1024) }
-                };
-            } catch (err) {
-                return {
-                    success: true,
-                    toolName: 'browser_screenshot',
-                    result: 'Screenshot captured (uncompressed PNG)',
-                    data: { image: buffer.toString('base64'), mimeType: 'image/png' },
-                    debugInfo: { executionTimeMs: Date.now() - startTime, compressionFailed: true }
-                };
-            }
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_screenshot',
-                error: `Screenshot failed: ${e.message}`,
-                errorCode: 'PAGE_CRASHED',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async extract(selector) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            let text;
-            if (!selector) {
-                text = await page.evaluate(() => document.body.innerText.substring(0, 50000));
-            } else {
-                const locator = await this.resolveElement(page, selector);
-                if (!locator) {
-                    return {
-                        success: false,
-                        toolName: 'browser_extract_text',
-                        error: `Element "${selector}" not found.`,
-                        errorCode: 'ELEMENT_NOT_FOUND',
-                        errorCategory: 'not_found',
-                        retryable: true,
-                        retrySuggestion: 'Take a browser_snapshot to verify the element exists.',
-                        debugInfo: { executionTimeMs: Date.now() - startTime, selector }
-                    };
-                }
-                text = await locator.innerText();
-            }
-            return {
-                success: true,
-                toolName: 'browser_extract_text',
-                result: text,
-                data: { charCount: text.length },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_extract_text',
-                error: `Text extraction failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async executeScript(script) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const result = await page.evaluate(script);
-            const resultStr = JSON.stringify(result);
-            const truncated = resultStr ? resultStr.substring(0, 5000) : '';
-            return {
-                success: true,
-                toolName: 'browser_execute_script',
-                result: `Script executed. Result: ${truncated}`,
-                data: result,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_execute_script',
-                error: `Script error: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'permanent',
-                retryable: false,
-                retrySuggestion: 'Check the JavaScript code for syntax errors.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async uploadFile(selector, filePaths, timeoutMs = 30000) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-
-        const pathsArray = Array.isArray(filePaths) ? filePaths : [filePaths];
-
-        // Problem: AI often drops file extension (e.g. "final thumbnail" instead of "final thumbnail.png")
-        // Solution: If exact path not found, search directory for matching filename with any extension
-        const COMMON_EXTENSIONS = [
-            '.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico', '.tiff',
-            '.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v', '.wmv', '.flv', '.3gp',
-            '.mp3', '.wav', '.m4a', '.ogg', '.aac', '.flac',
-            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-            '.txt', '.csv', '.json', '.zip', '.rar', '.7z'
-        ];
-
-        const resolvedPaths = pathsArray.map(p => {
-            if (!p) return null;
-
-            if (fs.existsSync(p)) return p;
-
-            for (const ext of COMMON_EXTENSIONS) {
-                const withExt = p + ext;
-                if (fs.existsSync(withExt)) {
-                    console.log(`[BrowserService] Smart resolve: "${p}" → "${withExt}"`);
-                    return withExt;
-                }
-            }
-
-            try {
-                const dir = path.dirname(p);
-                const base = path.basename(p).toLowerCase();
-                if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
-                    const entries = fs.readdirSync(dir);
-                    const exactMatch = entries.find(e => e.toLowerCase() === base);
-                    if (exactMatch) {
-                        const resolved = path.join(dir, exactMatch);
-                        console.log(`[BrowserService] Smart resolve (case): "${p}" → "${resolved}"`);
-                        return resolved;
-                    }
-                    const startsMatch = entries.find(e => e.toLowerCase().startsWith(base + '.'));
-                    if (startsMatch) {
-                        const resolved = path.join(dir, startsMatch);
-                        console.log(`[BrowserService] Smart resolve (ext): "${p}" → "${resolved}"`);
-                        return resolved;
-                    }
-                }
-            } catch (e) { /* ignore directory read errors */ }
-
-            return null;
-        }).filter(Boolean);
-
-        const validPaths = resolvedPaths.filter(p => p && fs.existsSync(p));
-
-        if (validPaths.length === 0) {
-            let dirHint = '';
-            try {
-                const firstPath = pathsArray[0];
-                if (firstPath) {
-                    const dir = path.dirname(firstPath);
-                    if (fs.existsSync(dir)) {
-                        const files = fs.readdirSync(dir).slice(0, 10);
-                        dirHint = ` Files in ${dir}: [${files.join(', ')}]`;
-                    }
-                }
-            } catch (e) {}
-
-            return {
-                success: false,
-                toolName: 'browser_upload_file',
-                error: `File not found: "${pathsArray[0]}". Also tried adding common extensions (.png, .jpg, .mp4, etc.) — none matched.${dirHint}`,
-                errorCode: 'FILE_NOT_FOUND',
-                errorCategory: 'permanent',
-                retryable: false,
-                retrySuggestion: `Use the EXACT file path WITH extension. Example: C:\\Users\\USMAN\\Downloads\\final thumbnail.png (not "final thumbnail"). Use fs_read on the folder to get exact filename first.`,
-                debugInfo: { executionTimeMs: Date.now() - startTime, pathsArray }
-            };
-        }
-
-        const fileNames = validPaths.map(p => path.basename(p));
-
-        try {
-            if (selector) {
-                const locator = await this.resolveElement(page, selector);
-                if (locator) {
-                    await locator.setInputFiles(validPaths, { timeout: timeoutMs });
-
-                    try {
-                        const handle = await locator.elementHandle();
-                        if (handle) {
-                            await handle.evaluate((el) => {
-                                el.dispatchEvent(new Event('input', { bubbles: true }));
-                                el.dispatchEvent(new Event('change', { bubbles: true }));
-                            });
-                        }
-                    } catch (e) { }
-
-                    return {
-                        success: true,
-                        toolName: 'browser_upload_file',
-                        result: `Uploaded ${fileNames.length} file(s): ${fileNames.join(', ')}`,
-                        data: { fileNames, filePaths: validPaths },
-                        debugInfo: { executionTimeMs: Date.now() - startTime }
-                    };
-                }
-            }
-
-            // OpenClaw Pattern: Check if we already captured a filechooser during click
-            if (this._pendingFileChooser) {
-                console.log('[BrowserService] ✅ Using pre-captured file chooser from click');
-                const chooser = this._pendingFileChooser;
-                this._pendingFileChooser = null;
-                if (this._pendingFileChooserTimeout) {
-                    clearTimeout(this._pendingFileChooserTimeout);
-                    this._pendingFileChooserTimeout = null;
-                }
-                await chooser.setFiles(validPaths);
-                return {
-                    success: true,
-                    toolName: 'browser_upload_file',
-                    result: `Uploaded ${fileNames.length} file(s) via pre-captured file chooser: ${fileNames.join(', ')}`,
-                    data: { fileNames, filePaths: validPaths, method: 'file_chooser_precaptured' },
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-
-            const fileChooser = await page.waitForEvent('filechooser', { timeout: timeoutMs });
-            await fileChooser.setFiles(validPaths);
-
-            return {
-                success: true,
-                toolName: 'browser_upload_file',
-                result: `Uploaded ${fileNames.length} file(s) via file chooser: ${fileNames.join(', ')}`,
-                data: { fileNames, filePaths: validPaths, method: 'file_chooser' },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_upload_file',
-                error: `Upload failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                retrySuggestion: 'Click the upload button first (browser_click), then IMMEDIATELY call browser_upload_file. The file chooser is captured during the click.',
-                debugInfo: { executionTimeMs: Date.now() - startTime, selector, validPaths }
-            };
-        }
-    }
-
-
-    async waitDownload(timeoutMs = 30000) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const download = await page.waitForEvent('download', { timeout: timeoutMs });
-            const resolved = await this.resolveBrowserDownloadPath(download, startTime, timeoutMs);
-
-            return {
-                success: true,
-                toolName: 'browser_wait_download',
-                result: `Downloaded: ${resolved.filename} -> ${resolved.path}`,
-                data: { filename: resolved.filename, path: resolved.path, url: download.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_wait_download',
-                error: `Download wait failed: ${e.message}`,
-                errorCode: 'NAVIGATION_TIMEOUT',
-                errorCategory: 'timeout',
-                retryable: true,
-                retrySuggestion: 'Make sure a download was triggered before calling this. Click a download button first.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async downloadByClick(selector, timeoutMs = 30000) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const locator = await this.resolveElement(page, selector);
-            if (!locator) {
-                return {
-                    success: false,
-                    toolName: 'browser_download_by_click',
-                    error: `Element "${selector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    retrySuggestion: 'Take a browser_snapshot to find the download button ref.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-
-            const [download] = await Promise.all([
-                page.waitForEvent('download', { timeout: timeoutMs }),
-                locator.click()
-            ]);
-
-            const resolved = await this.resolveBrowserDownloadPath(download, startTime, timeoutMs);
-
-            return {
-                success: true,
-                toolName: 'browser_download_by_click',
-                result: `Clicked and downloaded: ${resolved.filename} -> ${resolved.path}`,
-                data: { filename: resolved.filename, path: resolved.path, url: download.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_download_by_click',
-                error: `Download by click failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async handleDialog(accept = true, promptText = null, timeoutMs = 10000) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const dialog = await page.waitForEvent('dialog', { timeout: timeoutMs });
-            const dialogType = dialog.type();
-            const dialogMessage = dialog.message();
-
-            if (accept) {
-                await dialog.accept(promptText || '');
-            } else {
-                await dialog.dismiss();
-            }
-
-            return {
-                success: true,
-                toolName: 'browser_handle_dialog',
-                result: `${accept ? 'Accepted' : 'Dismissed'} ${dialogType} dialog: "${dialogMessage}"`,
-                data: { type: dialogType, message: dialogMessage, accepted: accept },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_handle_dialog',
-                error: `Dialog handling failed: ${e.message}`,
-                errorCode: 'NAVIGATION_TIMEOUT',
-                errorCategory: 'timeout',
-                retryable: true,
-                retrySuggestion: 'No dialog appeared within timeout. Make sure a browser action triggers a dialog first.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async savePdf(savePath = null) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const filename = `page-${Date.now()}.pdf`;
-            const fullPath = savePath || path.join(DOWNLOAD_DIR, filename);
-            await page.pdf({ path: fullPath, format: 'A4' });
-            return {
-                success: true,
-                toolName: 'browser_save_pdf',
-                result: `Page saved as PDF: ${fullPath}`,
-                data: { path: fullPath },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_save_pdf',
-                error: `PDF save failed: ${e.message}. Note: PDF export requires headless browser mode.`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'permanent',
-                retryable: false,
-                retrySuggestion: 'PDF export only works in headless mode. Use browser_screenshot for a visual capture instead.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async getCookies() {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            const cookies = await this.context.cookies();
-            return {
-                success: true,
-                toolName: 'browser_get_cookies',
-                result: `Found ${cookies.length} cookies`,
-                data: { cookies, count: cookies.length },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_get_cookies',
-                error: `Get cookies failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async setCookie(cookie) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            if (!cookie.url && !cookie.domain) {
-                const page = await this.getPage();
-                cookie.url = page.url();
-            }
-            await this.context.addCookies([cookie]);
-            return {
-                success: true,
-                toolName: 'browser_set_cookie',
-                result: `Cookie "${cookie.name}" set`,
-                data: { name: cookie.name },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_set_cookie',
-                error: `Set cookie failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'permanent',
-                retryable: false,
-                retrySuggestion: 'Cookie must have name, value, and either url or domain.',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async clearCookies() {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            await this.context.clearCookies();
-            return {
-                success: true,
-                toolName: 'browser_clear_cookies',
-                result: 'All cookies cleared',
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_clear_cookies',
-                error: `Clear cookies failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async getStorage(kind = 'local', key = null) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const values = await page.evaluate(({ kind, key }) => {
-                const store = kind === 'session' ? sessionStorage : localStorage;
-                if (key) return { [key]: store.getItem(key) };
-                const result = {};
-                for (let i = 0; i < store.length; i++) {
-                    const k = store.key(i);
-                    result[k] = store.getItem(k);
-                }
-                return result;
-            }, { kind, key });
-
-            const count = Object.keys(values).length;
-            return {
-                success: true,
-                toolName: 'browser_get_storage',
-                result: `${kind}Storage: ${count} item(s)`,
-                data: { kind, values, count },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_get_storage',
-                error: `Get storage failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async setStorage(key, value, kind = 'local') {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.evaluate(({ kind, key, value }) => {
-                const store = kind === 'session' ? sessionStorage : localStorage;
-                store.setItem(key, value);
-            }, { kind, key, value });
-
-            return {
-                success: true,
-                toolName: 'browser_set_storage',
-                result: `Set ${kind}Storage["${key}"] = "${String(value).substring(0, 50)}"`,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_set_storage',
-                error: `Set storage failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async clearStorage(kind = 'local') {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.evaluate((kind) => {
-                const store = kind === 'session' ? sessionStorage : localStorage;
-                store.clear();
-            }, kind);
-
-            return {
-                success: true,
-                toolName: 'browser_clear_storage',
-                result: `${kind}Storage cleared`,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_clear_storage',
-                error: `Clear storage failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async resizeViewport(width, height) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.setViewportSize({ width, height });
-            return {
-                success: true,
-                toolName: 'browser_resize_viewport',
-                result: `Viewport resized to ${width}x${height}`,
-                data: { width, height },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_resize_viewport',
-                error: `Resize viewport failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async emulateDevice(deviceName) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const device = KNOWN_DEVICES[deviceName];
-            if (!device) {
-                const available = Object.keys(KNOWN_DEVICES).join(', ');
-                return {
-                    success: false,
-                    toolName: 'browser_emulate_device',
-                    error: `Unknown device "${deviceName}". Available: ${available}`,
-                    errorCode: 'INVALID_ARGS',
-                    errorCategory: 'permanent',
-                    retryable: false,
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            await page.setViewportSize(device.viewport);
-            await page.setExtraHTTPHeaders({ 'User-Agent': device.userAgent });
-            return {
-                success: true,
-                toolName: 'browser_emulate_device',
-                result: `Emulating ${deviceName}: ${device.viewport.width}x${device.viewport.height}`,
-                data: { device: deviceName, viewport: device.viewport },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_emulate_device',
-                error: `Device emulation failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async emulateColorScheme(scheme = 'dark') {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.emulateMedia({ colorScheme: scheme });
-            return {
-                success: true,
-                toolName: 'browser_emulate_color_scheme',
-                result: `Color scheme set to "${scheme}"`,
-                data: { colorScheme: scheme },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_emulate_color_scheme',
-                error: `Color scheme emulation failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async setOffline(offline = true) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            await this.context.setOffline(offline);
-            return {
-                success: true,
-                toolName: 'browser_set_offline',
-                result: `Browser is now ${offline ? 'OFFLINE' : 'ONLINE'}`,
-                data: { offline },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_set_offline',
-                error: `Set offline failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async setExtraHeaders(headers) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            await page.setExtraHTTPHeaders(headers);
-            return {
-                success: true,
-                toolName: 'browser_set_extra_headers',
-                result: `Extra headers set: ${Object.keys(headers).join(', ')}`,
-                data: { headers: Object.keys(headers) },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_set_extra_headers',
-                error: `Set headers failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async setHttpCredentials(username, password, clear = false) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            if (clear) {
-                await this.context.setHTTPCredentials(null);
-            } else {
-                await this.context.setHTTPCredentials({ username, password });
-            }
-            return {
-                success: true,
-                toolName: 'browser_set_http_credentials',
-                result: clear ? 'HTTP credentials cleared' : `HTTP credentials set for user "${username}"`,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_set_http_credentials',
-                error: `Set credentials failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async setGeolocation(latitude, longitude, accuracy = 100, clear = false) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            if (clear) {
-                await this.context.setGeolocation(null);
-            } else {
-                await this.context.setGeolocation({ latitude, longitude, accuracy });
-                await this.context.grantPermissions(['geolocation']);
-            }
-            return {
-                success: true,
-                toolName: 'browser_set_geolocation',
-                result: clear ? 'Geolocation cleared' : `Geolocation set: ${latitude}, ${longitude} (accuracy: ${accuracy}m)`,
-                data: clear ? {} : { latitude, longitude, accuracy },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_set_geolocation',
-                error: `Set geolocation failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async getConsoleMessages(level = null) {
-        const startTime = Date.now();
-        try {
-            const messages = level
-                ? this.consoleMessages.filter(m => m.level === level)
-                : this.consoleMessages;
-
-            return {
-                success: true,
-                toolName: 'browser_get_console',
-                result: `${messages.length} console message(s)${level ? ` of type "${level}"` : ''}`,
-                data: { messages, count: messages.length },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_get_console',
-                error: `Get console failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async getPageErrors() {
-        const startTime = Date.now();
-        try {
-            return {
-                success: true,
-                toolName: 'browser_get_errors',
-                result: `${this.pageErrors.length} JavaScript error(s) found`,
-                data: { errors: this.pageErrors, count: this.pageErrors.length },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_get_errors',
-                error: `Get errors failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async getTabs() {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            const pages = this.context.pages();
-            const tabs = [];
-            for (let i = 0; i < pages.length; i++) {
-                const p = pages[i];
-                tabs.push({
-                    index: i,
-                    title: await p.title().catch(() => 'Untitled'),
-                    url: p.url(),
-                    isActive: p === this.activePage
-                });
-            }
-            return {
-                success: true,
-                toolName: 'browser_get_tabs',
-                result: `${tabs.length} tabs open:\n${tabs.map(t => `${t.isActive ? '→ ' : '  '}[${t.index}] ${t.title} (${t.url})`).join('\n')}`,
-                data: tabs,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_get_tabs',
-                error: `Failed to list tabs: ${e.message}`,
-                errorCode: 'BROWSER_NOT_RUNNING',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async switchTab(index) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            const pages = this.context.pages();
-            if (index < 0 || index >= pages.length) {
-                return {
-                    success: false,
-                    toolName: 'browser_switch_tab',
-                    error: `Tab index ${index} out of range. Have ${pages.length} tabs (0-${pages.length - 1}).`,
-                    errorCode: 'INVALID_ARGS',
-                    errorCategory: 'permanent',
-                    retryable: false,
-                    retrySuggestion: 'Use browser_get_tabs to see available tab indices.',
-                    debugInfo: { executionTimeMs: Date.now() - startTime, tabCount: pages.length }
-                };
-            }
-            this.activePage = pages[index];
-            await this.activePage.bringToFront();
-            const title = await this.activePage.title();
-            return {
-                success: true,
-                toolName: 'browser_switch_tab',
-                result: `Switched to tab ${index}: "${title}"`,
-                data: { index, title, url: this.activePage.url() },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_switch_tab',
-                error: `Tab switch failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async newTab(url) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            const newPage = await this.context.newPage();
-            this.activePage = newPage;
-
-            newPage.on('console', (msg) => {
-                this.consoleMessages.push({ level: msg.type(), text: msg.text(), timestamp: new Date().toISOString() });
-                if (this.consoleMessages.length > 500) this.consoleMessages.shift();
-            });
-            newPage.on('pageerror', (error) => {
-                this.pageErrors.push({ message: error.message, stack: error.stack, timestamp: new Date().toISOString() });
-                if (this.pageErrors.length > 200) this.pageErrors.shift();
-            });
-
-            if (url) {
-                if (!url.startsWith('http')) url = 'https://' + url;
-                await newPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-            }
-            const title = await newPage.title();
-            const tabCount = this.context.pages().length;
-            return {
-                success: true,
-                toolName: 'browser_new_tab',
-                result: `New tab opened${url ? `: ${title}` : ''}. Total tabs: ${tabCount}`,
-                data: { title, url: newPage.url(), tabCount },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_new_tab',
-                error: `New tab failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-    async closeTab(index) {
-        const startTime = Date.now();
-        try {
-            if (!this.context) await this.launch();
-            const pages = this.context.pages();
-            if (pages.length <= 1) {
-                return {
-                    success: false,
-                    toolName: 'browser_close_tab',
-                    error: 'Cannot close the last tab. Use browser_close to close the entire browser.',
-                    errorCode: 'INVALID_ARGS',
-                    errorCategory: 'permanent',
-                    retryable: false,
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            const tabIndex = index !== undefined ? index : pages.indexOf(this.activePage);
-            if (tabIndex < 0 || tabIndex >= pages.length) {
-                return {
-                    success: false,
-                    toolName: 'browser_close_tab',
-                    error: `Tab index ${tabIndex} not valid.`,
-                    errorCode: 'INVALID_ARGS',
-                    errorCategory: 'permanent',
-                    retryable: false,
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            const closedTitle = await pages[tabIndex].title().catch(() => 'Untitled');
-            await pages[tabIndex].close();
-            const remaining = this.context.pages();
-            this.activePage = remaining[0];
-            return {
-                success: true,
-                toolName: 'browser_close_tab',
-                result: `Closed tab "${closedTitle}". ${remaining.length} tabs remaining.`,
-                data: { closedTitle, remainingTabs: remaining.length },
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_close_tab',
-                error: `Close tab failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
-
-    async dragDrop(sourceSelector, targetSelector) {
-        const startTime = Date.now();
-        const page = await this.getPage();
-        try {
-            const source = await this.resolveElement(page, sourceSelector);
-            const target = await this.resolveElement(page, targetSelector);
-            if (!source) {
-                return {
-                    success: false,
-                    toolName: 'browser_drag_drop',
-                    error: `Source element "${sourceSelector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            if (!target) {
-                return {
-                    success: false,
-                    toolName: 'browser_drag_drop',
-                    error: `Target element "${targetSelector}" not found.`,
-                    errorCode: 'ELEMENT_NOT_FOUND',
-                    errorCategory: 'not_found',
-                    retryable: true,
-                    debugInfo: { executionTimeMs: Date.now() - startTime }
-                };
-            }
-            await source.dragTo(target);
-            return {
-                success: true,
-                toolName: 'browser_drag_drop',
-                result: `Dragged "${sourceSelector}" to "${targetSelector}"`,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        } catch (e) {
-            return {
-                success: false,
-                toolName: 'browser_drag_drop',
-                error: `Drag and drop failed: ${e.message}`,
-                errorCode: 'UNKNOWN_ERROR',
-                errorCategory: 'transient',
-                retryable: true,
-                debugInfo: { executionTimeMs: Date.now() - startTime }
-            };
-        }
-    }
-
 
     async close() {
         const startTime = Date.now();
@@ -2667,11 +432,15 @@ class BrowserManagerService {
     }
 }
 
+for (const ferramentas of [ferramentasDePagina, ferramentasDeElemento, ferramentasDeContexto]) {
+    for (const [nome, descritor] of Object.entries(Object.getOwnPropertyDescriptors(ferramentas))) {
+        Object.defineProperty(BrowserManagerService.prototype, nome, { ...descritor, enumerable: false });
+    }
+}
+
 const browserService = new BrowserManagerService();
 
 function registerBrowserHandlers() {
-    // Kick off CDP port resolution at app boot so the port is known (and
-    // reserved) before any browser launch needs it.
     resolveCdpPort().catch((err) => console.error('[BrowserService] CDP port resolution failed:', err.message));
 
     const r = (toolName, fn) => browserService._withAutoRecovery(toolName, fn);
@@ -2738,7 +507,7 @@ function registerBrowserHandlers() {
 
     ipcMain.handle('browser-close',            async () => browserService.close());
 
-    console.log('[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)');
+    console.info('[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)');
 }
 
 module.exports = { registerBrowserHandlers, browserService, resolveCdpPort, getCdpPort, appendBrowserLog };
