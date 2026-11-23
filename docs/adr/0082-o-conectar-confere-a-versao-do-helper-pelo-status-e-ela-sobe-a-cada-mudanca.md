@@ -1,0 +1,3 @@
+# O Conectar confere a versão do helper pelo status, e ela sobe a cada mudança de comportamento
+
+Ao subir, o serviço grava `pronto v<versão>` no status; o Conectar lê isso depois de reiniciar o serviço e só então diz "atualizado". O processo antigo continua rodando o texto velho (o bash mantém aberto o arquivo que já tinha carregado), então sem a versão nova no status o helper não foi de fato trocado. Por isso o número em `HELPER_VERSION=` (lido por `setup.js` com uma expressão regular de linha inteira) sobe a cada mudança de comportamento do script. Tirar comentário não é mudança de comportamento e não sobe o número.
