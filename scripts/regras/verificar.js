@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { ErroDeUso, lerArquivo, lerMudancas, resolverBase, tentar } = require('./git');
 const { classificar, resumo } = require('./risco');
+const { soTiraComentario } = require('./so-tira-comentario');
 const { extensaoDe } = require('./globs');
 const caminhosSensiveis = require('./caminhos-sensiveis.json');
 const { atualizarLinhasDeBase, criarLinhasDeBase, regrasDaLinhaDeBase } = require('./linha-de-base');
@@ -12,6 +13,7 @@ const linhas = require('./regra-linhas');
 
 const REGRAS = [
   require('./regra-comentario'),
+  require('./regra-teto-de-comentarios'),
   linhas,
   require('./regra-segredo'),
   require('./regra-binario'),
@@ -31,7 +33,7 @@ Confere o que a mudança (merge-base com a base até a árvore de trabalho) acre
   --regra <id>                 roda só esta regra (pode repetir)
   --lista                      lista as regras e sai
   --criar-linha-de-base        cria em scripts/regras/linha-de-base.json a linha de base que ainda falta
-                               (com --regra, só a dessa regra: limite-de-linhas ou saude-do-codigo)
+                               (com --regra, só a dessa regra: limite-de-linhas, saude-do-codigo ou teto-de-comentarios)
   --atualizar-linha-de-base    baixa a linha de base depois de melhorar ou mover um arquivo (nunca sobe;
                                com --regra, só a dessa regra)
   --help                       esta ajuda
@@ -79,6 +81,14 @@ function linhasAcrescentadasDe(ctx, caminho) {
   return [...numeros].map(n => linhas[n - 1] || '');
 }
 
+function arquivosQueSoTiramComentario(ctx) {
+  try {
+    return soTiraComentario(ctx.raiz, ctx.mudancas.base.desde, 'HEAD', ctx.env);
+  } catch {
+    return new Set();
+  }
+}
+
 function formatar(regra, achados) {
   const porArquivo = new Map();
   for (const achado of achados) {
@@ -91,6 +101,13 @@ function formatar(regra, achados) {
     if (lista.length > 10) corpo.push(`    ${arquivo}: … e mais ${lista.length - 10}`);
   }
   return [`✗ ${regra.id} — ${regra.titulo}`, ...corpo, `  Conserto: ${regra.conserto}`].join('\n');
+}
+
+function descreverRisco(ctx) {
+  const soTiram = arquivosQueSoTiramComentario(ctx);
+  const risco = classificar(ctx.arquivos.filter(item => !soTiram.has(item.caminho)).map(item => ({ caminho: item.caminho, adicionadas: linhasAcrescentadasDe(ctx, item.caminho) })), caminhosSensiveis);
+  if (soTiram.size) console.log(`${soTiram.size} arquivo(s) só tiram comentário (o código fica igual) e não entram na classificação de risco`);
+  console.log(risco.alta ? `risco: ALTA — a PR precisa de "Atenção: ALTA" e da seção Prova real:\n  ${resumo(risco.motivos).join('\n  ')}` : 'risco: nenhum caminho sensível mudou');
 }
 
 function main(argv, env = process.env) {
@@ -123,8 +140,7 @@ function main(argv, env = process.env) {
     if (achados.length) falhas.push(formatar(regra, achados));
     else console.log(`✓ ${regra.id}`);
   }
-  const risco = classificar(ctx.arquivos.map(item => ({ caminho: item.caminho, adicionadas: linhasAcrescentadasDe(ctx, item.caminho) })), caminhosSensiveis);
-  console.log(risco.alta ? `risco: ALTA — a PR precisa de "Atenção: ALTA" e da seção Prova real:\n  ${resumo(risco.motivos).join('\n  ')}` : 'risco: nenhum caminho sensível mudou');
+  descreverRisco(ctx);
   for (const aviso of avisos) console.log(`aviso: ${aviso}`);
   if (falhas.length) {
     console.log(`\n${falhas.join('\n\n')}\n\nerror: ${falhas.length} regra(s) falharam em ${base.ref}..HEAD`);
