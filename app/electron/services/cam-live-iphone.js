@@ -144,6 +144,7 @@ class CamLiveIphone {
     // e estourava "Cannot read properties of undefined (reading 'iosSsh')".
     if (!this.mobile && typeof this.getMobileService === 'function') this.mobile = this.getMobileService();
     if (!this.mobile) throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de transmitir.');
+    require('./tool-paths').exigirOpenssh('ssh');
     const response = await this.mobile.iosSsh('cat /var/tmp/obs-graph-bridge-status.json');
     if (!response || !response.ok) throw new Error('iPhone sem acesso SSH. Use Conectar em PHONE CONTROL e confira o cabo USB.');
     try { return JSON.parse(response.stdout); } catch (_) { throw new Error('A ponte do iPhone não retornou um status válido. Reconecte em PHONE CONTROL.'); }
@@ -170,11 +171,16 @@ class CamLiveIphone {
     this.media = new UsbMedia({ idleFrame: BLACK_FRAME });
     try {
       await this.media.listen();
+      this._exigirCelular();
       await this._tunnel();
     } catch (error) {
       await this.closeTransport();
       throw error;
     }
+  }
+  _exigirCelular() {
+    if (!this.mobile) this.mobile = this.getMobileService?.();
+    if (!this.mobile) throw new Error('Abra PHONE CONTROL e conecte o iPhone antes de ligar a injeção.');
   }
   async closeTransport() {
     const tunnel = this.tunnel, media = this.media, socketPath = this.socketPath;
@@ -247,7 +253,7 @@ class CamLiveIphone {
   }
   _openForward(args) {
     return new Promise((resolve, reject) => {
-      const child = this.spawnProcess(require('./tool-paths').ssh(), args, { stdio: ['ignore', 'ignore', 'pipe'] }); child.novaAbort = false; this.tunnel = child;
+      const child = this.spawnProcess(require('./tool-paths').exigirOpenssh('ssh'), args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true }); child.novaAbort = false; this.tunnel = child;
       let confirmed = false, settled = false, stderr = '';
       const close = () => { if (this.tunnel === child) this.tunnel = null; try { child.kill(); } catch (_) {} };
       const fail = error => {
@@ -301,7 +307,7 @@ class CamLiveIphone {
   async _encoder(token) {
     const ffmpeg = this.ffmpegPath || require('./tool-paths').ffmpeg();
     if (!ffmpeg) throw new Error('FFmpeg não está incluído no Nova. Reinstale o aplicativo completo.');
-    const child = this.spawnProcess(ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-probesize', '32', '-analyzeduration', '0', '-f', 's16le', '-ar', String(this.sampleRate), '-ac', '1', '-i', 'pipe:0', '-vn', '-c:a', 'aac', '-profile:a', 'aac_low', '-ar', '44100', '-ac', '1', '-b:a', '96k', '-flush_packets', '1', '-f', 'adts', 'pipe:1'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const child = this.spawnProcess(ffmpeg, ['-nostdin', '-hide_banner', '-loglevel', 'error', '-probesize', '32', '-analyzeduration', '0', '-f', 's16le', '-ar', String(this.sampleRate), '-ac', '1', '-i', 'pipe:0', '-vn', '-c:a', 'aac', '-profile:a', 'aac_low', '-ar', '44100', '-ac', '1', '-b:a', '96k', '-flush_packets', '1', '-f', 'adts', 'pipe:1'], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
     this.encoder = child; this.encoderError = '';
     const parser = new AdtsParser(packet => { if (token !== this.generation || !this.media) return; this.media.audioPacket(packet); this._updateSource(token); });
     child.stdout.on('data', data => { if (token !== this.generation) return; try { parser.push(data); } catch (e) { this._fail(e, token); } });

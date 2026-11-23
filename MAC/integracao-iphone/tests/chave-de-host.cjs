@@ -7,7 +7,6 @@ const arquivos=[
  'app/electron/services/ios-bridge.js',
  'app/electron/services/idioma-ipc.js',
  'app/electron/services/physicalMobileService.js',
- 'MAC/integracao-iphone/ios-camera.js',
  'MAC/integracao-camlive/cam-live-iphone.js',
 ];
 for(const rel of arquivos){
