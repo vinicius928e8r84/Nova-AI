@@ -4,20 +4,12 @@
 #include <unistd.h>
 #include <string.h>
 
-// novamodel — CLI de spoofing de modelo do iPhone (rootless, setuid root).
 //
-//   novamodel set <productType>   valida no banco, grava o control file
-//   novamodel clear               apaga o control file (volta ao modelo real)
-//   novamodel status              JSON: { "real", "active", "enabled" }
 //
-// O tweak com.aquiles.novamodel lê o control file a cada chamada e aplica
-// instantâneo. Este binário roda SEM o tweak (o %ctor o ignora), então
-// "real" é sempre o ProductType verdadeiro do aparelho.
 
 static NSString *const kControl = @"/var/tmp/nova-model-control.json";
 static NSString *const kModelsPath = @"/var/jb/usr/share/novamodel/models.json";
 
-// ProductType real via MobileGestalt (aqui o tweak não carrega, então é o real).
 static NSString *realProductType(void) {
     void *mg = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_LAZY);
     if (!mg) return nil;
@@ -29,7 +21,6 @@ static NSString *realProductType(void) {
     return CFBridgingRelease(v);
 }
 
-// Banco de modelos instalado no aparelho.
 static NSArray *loadModels(void) {
     NSData *data = [NSData dataWithContentsOfFile:kModelsPath];
     if (!data) return nil;
