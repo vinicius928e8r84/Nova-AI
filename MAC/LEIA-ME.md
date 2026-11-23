@@ -1,5 +1,12 @@
 # Nova AI para macOS (Apple Silicon) — estado do projeto
 
+## Registro da PR: risco do revisor e prova parcial — 21/11/2026
+
+- **O que mudou:** o registro de revisão ganha a linha `Risco: BAIXA|MÉDIA|ALTA` (o `registrar-na-pr.js revisao` pede `--risco`), e o check `Registro da PR` usa a maior atenção entre o corpo e os registros do head: ALTA exige `PROVADO 100% REAL`. Uma revisão sem `Risco:` deixa de valer. A seção "Prova real" que diz `NÃO COBERTO` ou `BLOQUEADA` não vale como prova, e isso pega o feminino, o plural e o hífen (`NÃO COBERTA`, `não cobertos`, `NÃO-COBERTO`, `bloqueado`, `BLOQUEADAS`), com ou sem acento, em qualquer caixa, e também em bloco de código ou citação dentro da seção; o `registrar-na-pr.js prova` pede `--cobertura total|parcial`, e `parcial` escreve `BLOQUEADA-iPhone` no lugar da frase. Origem: a PM 692 foi mesclada como MÉDIA porque o corpo dizia MÉDIA e a revisão dizia ALTA.
+- **Arquivos:** `scripts/regras/registro-da-pr.js`, `scripts/regras/registrar-na-pr.js`, `scripts/regras/test/registro.test.js`, `correcoes.test.js` e `endurecimento.test.js` (registros com `Risco:`), `CONTRIBUTING.md`, `.github/PULL_REQUEST_TEMPLATE.md`.
+- **Arquivos do app instalado no Mac que mudam:** nenhum.
+- **Sem testar:** o check rodando no GitHub com as regras novas (só valem a partir da PR seguinte à mescla, porque o workflow usa as regras da base).
+
 ## Lote Nova 1: wake_word_bg.py, comentarios.js e git.js refatorados sem mudar o comportamento (Onda 6) — 21/11/2026
 
 - **O que mudou:** `listen_for_nova` (`app/wake_word_bg.py`) virou passos com nome: `criar_microfone`, `conferir_entrada_do_mac`, `abrir_microfone`, `ouvir_uma_vez`, `tratar_fala`, `anunciar` e `informar`. As mensagens JSON continuam iguais byte a byte. Em `scripts/regras/comentarios.js`, `analisarJs` e `comentariosSh` viraram leitores por estado (`LeitorJs`, `LeitorSh`), e a cascata de linguagens virou a tabela `LEITORES`, na mesma ordem. Em `scripts/regras/git.js`, o laço do diff virou `LeitorDeDiff`, a decodificação UTF-16 ganhou passos (`temBom`, `ordemPelosZeros`) e `lerMudancas` passou a usar `ClassificadorDeMudancas`. As chamadas ao `git` seguem na mesma ordem. Mesma feature no Mac e no Windows: nenhum ramo por sistema novo.
