@@ -116,3 +116,9 @@ test('JavaScript: bloco de várias linhas com asteriscos sai; a diretiva dentro 
   const licenca = ['/**', ' * Faz a conta.', ' * @license MIT', ' */', 'const a = 1;', ''].join('\n');
   assert.equal(comparar('app/a.js', licenca, 'const a = 1;\n').ok, false);
 });
+
+test('JavaScript: comentário de prosa que começa com ! (comando de chat) sai; o /*! de licença não', () => {
+  const linhas = ['// !status texto livre', 'const a = 1;', ''];
+  assert.equal(comparar('app/a.js', linhas.join('\n'), 'const a = 1;\n').ok, true);
+  assert.equal(comparar('app/a.js', '/*! (c) Nova */\nconst a = 1;\n', 'const a = 1;\n').ok, false);
+});
