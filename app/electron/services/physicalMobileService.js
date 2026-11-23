@@ -46,7 +46,7 @@ class PhysicalMobileService {
 
     resolveAdbPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('adb') || require('./android-tools-mac').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
+            return require('./mac-native').tool('adb') || require('./android-tools').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
         }
 
         if (this._adbPath && fs.existsSync(this._adbPath)) {
@@ -89,7 +89,7 @@ class PhysicalMobileService {
 
     resolveScrcpyPath() {
         if (process.platform === "darwin") {
-            return require('./mac-native').tool('scrcpy') || require('./android-tools-mac').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
+            return require('./mac-native').tool('scrcpy') || require('./android-tools').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
         }
 
         if (this._scrcpyPath && fs.existsSync(this._scrcpyPath)) {
@@ -133,84 +133,7 @@ class PhysicalMobileService {
     }
 
     async ensureTools(force = false) {
-        if (process.platform === "darwin") return require('./android-tools-mac').ensureForService(this, force);
-
-        const adbReady = fs.existsSync(this.adbPath);
-        const scrcpyReady = fs.existsSync(this.scrcpyPath);
-
-        if (adbReady && scrcpyReady && !force) {
-            return { success: true, message: 'Ferramentas prontas.' };
-        }
-
-        if (this.isProvisioning) {
-            return { success: true, message: 'Configuração em andamento...' };
-        }
-
-        this.isProvisioning = true;
-        this.sendToFrontend('physical-mobile:setup-progress', { stage: 'starting', message: 'Configurando Motor de Controle Móvel...' });
-
-        try {
-            if (!adbReady || force) {
-                this.sendToFrontend('physical-mobile:setup-progress', { stage: 'adb', message: 'Baixando Motor ADB Android...' });
-                const adbZipUrl = 'https://dl.google.com/android/repository/platform-tools-latest-windows.zip';
-                const adbZipPath = path.join(this.baseDir, 'platform-tools.zip');
-                
-                const response = await axios({
-                    url: adbZipUrl,
-                    method: 'GET',
-                    responseType: 'arraybuffer',
-                    timeout: 60000
-                });
-                fs.writeFileSync(adbZipPath, Buffer.from(response.data));
-
-                await new Promise((resolve, reject) => {
-                    const extractCmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Path '${adbZipPath}' -DestinationPath '${this.baseDir}' -Force"`;
-                    exec(extractCmd, (err) => {
-                        try { fs.unlinkSync(adbZipPath); } catch (_) {}
-                        if (err) reject(err); else resolve();
-                    });
-                });
-            }
-
-            if (!scrcpyReady || force) {
-                this.sendToFrontend('physical-mobile:setup-progress', { stage: 'scrcpy', message: 'Configurando Motor de Espelhamento de Tela...' });
-                const scrcpyZipUrl = 'https://github.com/Genymobile/scrcpy/releases/download/v2.4/scrcpy-win64-v2.4.zip';
-                const scrcpyZipPath = path.join(this.baseDir, 'scrcpy.zip');
-                const scrcpyDest = path.join(this.baseDir, 'scrcpy');
-
-                try {
-                    const response = await axios({
-                        url: scrcpyZipUrl,
-                        method: 'GET',
-                        responseType: 'arraybuffer',
-                        timeout: 60000
-                    });
-                    fs.writeFileSync(scrcpyZipPath, Buffer.from(response.data));
-
-                    await new Promise((resolve, reject) => {
-                        const extractCmd = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$temp = Join-Path '${this.baseDir}' 'scrcpy_temp'; Expand-Archive -Path '${scrcpyZipPath}' -DestinationPath $temp -Force; $inner = Get-ChildItem -Path $temp -Directory | Select-Object -First 1; if ($inner) { Move-Item -Path ($inner.FullName + '\\*') -Destination '${scrcpyDest}' -Force } else { Move-Item -Path ($temp + '\\*') -Destination '${scrcpyDest}' -Force }; Remove-Item -Recurse -Force $temp"`;
-                        if (!fs.existsSync(scrcpyDest)) fs.mkdirSync(scrcpyDest, { recursive: true });
-                        exec(extractCmd, (err) => {
-                            try { fs.unlinkSync(scrcpyZipPath); } catch (_) {}
-                            if (err) reject(err); else resolve();
-                        });
-                    });
-                } catch (e) {
-                    console.warn('[PhysicalMobile] Scrcpy download mirror failed, attempting fallback...', e);
-                }
-            }
-
-            this.resolveAdbPath();
-            this.resolveScrcpyPath();
-            this.sendToFrontend('physical-mobile:setup-progress', { stage: 'done', message: 'Motores prontos!' });
-            return { success: true };
-        } catch (error) {
-            console.error('[PhysicalMobile] ensureTools error:', error);
-            this.sendToFrontend('physical-mobile:setup-progress', { stage: 'error', message: 'A configuração automática encontrou um erro: ' + error.message });
-            return { success: false, error: error.message };
-        } finally {
-            this.isProvisioning = false;
-        }
+        return require('./android-tools').ensureForService(this, force);
     }
 
     async getConnectedDevices() {
@@ -264,7 +187,7 @@ class PhysicalMobileService {
             const args = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', command];
-            execFile(require('./tool-paths').ssh(), args, { timeout: 12000 }, (err, stdout, stderr) => {
+            require('./tool-paths').execSsh(args, { timeout: 12000 }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
             });
         });
@@ -283,7 +206,7 @@ class PhysicalMobileService {
             const sshArgs = ['-p', '2222', ...iphoneSsh.sshOptions(),
                 '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
                 'mobile@127.0.0.1', cmd];
-            execFile(require('./tool-paths').ssh(), sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
+            require('./tool-paths').execSsh(sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || '').trim(), error: err ? (String(stderr || '').trim() || err.message) : null });
             });
         });
@@ -394,7 +317,7 @@ class PhysicalMobileService {
 
     iosRun(args) {
         return new Promise((resolve) => {
-            execFile(require('./ios-tools').tool('ideviceinstaller'), args, { timeout: 25000 }, (err, stdout, stderr) => {
+            execFile(require('./ios-tools').tool('ideviceinstaller'), args, { timeout: 25000, windowsHide: true }, (err, stdout, stderr) => {
                 resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
             });
         });
@@ -1568,45 +1491,26 @@ exit 0
     }
 
     idevicesetlocationPath() {
-        const roots = [
-            process.resourcesPath ? path.join(process.resourcesPath, 'bin') : null,
-            '/opt/homebrew/bin',
-            '/usr/local/bin',
-            '/usr/bin'
-        ].filter(Boolean);
-        for (const root of roots) {
-            const file = path.join(root, 'idevicesetlocation');
-            try { fs.accessSync(file, fs.constants.X_OK); return file; } catch (_) {}
-        }
-        return null;
+        return require('./tool-paths').gpsTool('idevicesetlocation');
     }
 
     pymobiledevice3Path() {
-        const candidates = [
-            process.env.NOVA_PYMOBILEDEVICE3,
-            path.join(os.homedir(), '.local', 'bin', 'pymobiledevice3'),
-            '/opt/homebrew/bin/pymobiledevice3',
-            '/usr/local/bin/pymobiledevice3'
-        ].filter(Boolean);
-        for (const c of candidates) {
-            try { fs.accessSync(c, fs.constants.X_OK); return c; } catch (_) {}
-        }
-        return null;
+        return require('./tool-paths').gpsTool('pymobiledevice3');
     }
 
     mountDeveloperImage(udid) {
         return new Promise((resolve) => {
             const bin = this.pymobiledevice3Path();
             if (!bin) return resolve(false);
-            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000 }, (err) => resolve(!err));
+            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000, windowsHide: true }, (err) => resolve(!err));
         });
     }
 
     runIdevicesetlocation(udid, args, timeout = 30000) {
         return new Promise((resolve) => {
             const bin = this.idevicesetlocationPath();
-            if (!bin) return resolve({ ok: false, error: 'idevicesetlocation não encontrado neste computador.' });
-            execFile(bin, ['--udid', udid, ...args], { timeout }, (err, stdout, stderr) => {
+            if (!bin) return resolve({ ok: false, err: 'idevicesetlocation não encontrado neste computador.' });
+            execFile(bin, ['--udid', udid, ...args], { timeout, windowsHide: true }, (err, stdout, stderr) => {
                 // idevicesetlocation imprime os erros no STDOUT (não no stderr); junta os dois
                 const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
                 resolve({ ok: !err, out: String(stdout || ''), err: saida || (err && err.message) || '' });
@@ -1650,25 +1554,6 @@ exit 0
         return { success: true };
     }
 
-    languageForCountry(cc) {
-        const map = {
-            US: ['en-US', 'en_US'], GB: ['en-GB', 'en_GB'], CA: ['en-CA', 'en_CA'], AU: ['en-AU', 'en_AU'],
-            NZ: ['en-NZ', 'en_NZ'], IE: ['en-IE', 'en_IE'], DE: ['de-DE', 'de_DE'], AT: ['de-AT', 'de_AT'],
-            CH: ['de-CH', 'de_CH'], FR: ['fr-FR', 'fr_FR'], BE: ['fr-BE', 'fr_BE'], ES: ['es-ES', 'es_ES'],
-            MX: ['es-MX', 'es_MX'], AR: ['es-AR', 'es_AR'], CO: ['es-CO', 'es_CO'], CL: ['es-CL', 'es_CL'],
-            PE: ['es-PE', 'es_PE'], VE: ['es-VE', 'es_VE'], BR: ['pt-BR', 'pt_BR'], PT: ['pt-PT', 'pt_PT'],
-            IT: ['it-IT', 'it_IT'], NL: ['nl-NL', 'nl_NL'], SE: ['sv-SE', 'sv_SE'], NO: ['nb-NO', 'nb_NO'],
-            DK: ['da-DK', 'da_DK'], FI: ['fi-FI', 'fi_FI'], PL: ['pl-PL', 'pl_PL'], RU: ['ru-RU', 'ru_RU'],
-            UA: ['uk-UA', 'uk_UA'], TR: ['tr-TR', 'tr_TR'], JP: ['ja-JP', 'ja_JP'], KR: ['ko-KR', 'ko_KR'],
-            CN: ['zh-CN', 'zh_CN'], TW: ['zh-TW', 'zh_TW'], HK: ['zh-HK', 'zh_HK'], IN: ['en-IN', 'en_IN'],
-            ID: ['id-ID', 'id_ID'], TH: ['th-TH', 'th_TH'], VN: ['vi-VN', 'vi_VN'], PH: ['en-PH', 'en_PH'],
-            MY: ['ms-MY', 'ms_MY'], SG: ['en-SG', 'en_SG'], ZA: ['en-ZA', 'en_ZA'], AE: ['ar-AE', 'ar_AE'],
-            SA: ['ar-SA', 'ar_SA'], IL: ['he-IL', 'he_IL'], EG: ['ar-EG', 'ar_EG'], NG: ['en-NG', 'en_NG']
-        };
-        const hit = map[String(cc || '').toUpperCase()] || ['en-US', 'en_US'];
-        return { language: hit[0], locale: hit[1] };
-    }
-
     iosLocaleStatus() {
         return this.iosSsh('cat /var/tmp/nova-locale-status.json 2>/dev/null').then((r) => {
             try { return JSON.parse(String(r.stdout || '').trim()); } catch (_) { return null; }
@@ -1682,7 +1567,7 @@ exit 0
 
     iosScp(args) {
         return new Promise((resolve, reject) => {
-            execFile(require('./tool-paths').scp(), args, { timeout: 30000 }, (err, stdout, stderr) => {
+            execFile(require('./tool-paths').scp(), args, { timeout: 30000, windowsHide: true }, (err, stdout, stderr) => {
                 if (err) return reject(new Error(String(stderr || err.message).slice(0, 200)));
                 resolve(true);
             });
