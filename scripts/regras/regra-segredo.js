@@ -44,7 +44,7 @@ function constanteDeSegredoNaLinha(texto) {
   return constante && valorEscrito(constante[1]) ? 'constante de segredo com valor escrito' : null;
 }
 
-function acharNaJanela(texto, emTeste) {
+function acharNaJanela(texto) {
   for (const { nome, regex } of PADROES) if (regex.test(texto)) return nome;
   for (const url of texto.matchAll(URL_COM_SENHA)) {
     const resto = url[0].slice(url[0].indexOf('@') + 1).split(/[/?#]/)[0];
@@ -56,14 +56,20 @@ function acharNaJanela(texto, emTeste) {
   }
   const m = ATRIBUICAO.exec(texto);
   if (m && pareceSegredo(m[1])) return 'valor literal em campo de segredo';
-  return emTeste ? null : constanteDeSegredoNaLinha(texto);
+  return null;
 }
 
 function acharNaLinha(texto, emTeste = false) {
-  if (texto.length <= TAMANHO_DA_JANELA) return acharNaJanela(texto, emTeste);
+  const achado = acharPorJanelas(texto);
+  if (achado || emTeste) return achado;
+  return constanteDeSegredoNaLinha(texto);
+}
+
+function acharPorJanelas(texto) {
+  if (texto.length <= TAMANHO_DA_JANELA) return acharNaJanela(texto);
   const passo = TAMANHO_DA_JANELA - SOBRA_ENTRE_JANELAS;
   for (let inicio = 0; inicio < texto.length; inicio += passo) {
-    const nome = acharNaJanela(texto.slice(inicio, inicio + TAMANHO_DA_JANELA), emTeste);
+    const nome = acharNaJanela(texto.slice(inicio, inicio + TAMANHO_DA_JANELA));
     if (nome) return nome;
   }
   return null;
