@@ -5,8 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const { blocosDe, deixariaVazio, removerBlocos } = require('./blocos');
 
-const RAIZ = path.resolve(__dirname, '..', '..', '..');
-const REGRAS = path.join(RAIZ, 'scripts', 'regras');
+const RAIZ_DA_FERRAMENTA = path.resolve(__dirname, '..', '..', '..');
+const RAIZ = process.env.RAIZ_DO_REPOSITORIO ? path.resolve(process.env.RAIZ_DO_REPOSITORIO) : RAIZ_DA_FERRAMENTA;
+const REGRAS = path.join(RAIZ_DA_FERRAMENTA, 'scripts', 'regras');
 const python = () => process.env.PYTHON || 'python3';
 const imprimir = texto => process.stdout.write(`${texto}\n`);
 

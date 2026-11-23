@@ -33,6 +33,8 @@ Fora do escopo, porque não são prosa: shebang, `@ts-*`, `noqa`, `type: ignore`
 9. **Rode a catraca.** `PYTHON=python3 node scripts/regras/verificar.js --base origin/main`. Depois de apagar, a regra avisa "a linha de base pode descer". Não precisa baixá-la na PR de limpeza (muda `scripts/regras/linha-de-base.json`, que é caminho sensível e conflita entre PRs): quem une a série baixa tudo de uma vez com `node scripts/regras/verificar.js --atualizar-linha-de-base --regra teto-de-comentarios`. Arquivo que chega a zero fica proibido de voltar a ter comentário.
 10. **Abra a PR** com o corpo de `.github/PULL_REQUEST_TEMPLATE.md`: quanto saiu (linhas e blocos), por classe; os ADRs; as issues das Desculpas; a prova do passo 8. A atenção é BAIXA quando a PR só tira comentário de arquivo JavaScript ou Python (o `Registro da PR` os tira da classificação de caminho sensível); arquivo de shell, Objective-C/Logos, HTML ou CSS em caminho sensível mantém a PR em ALTA, com a prova real. Nada de merge: quem une é o responsável.
 
+Para limpar outra cópia do repositório com a ferramenta de uma branch (por exemplo, uma branch que ainda não tem a habilidade), aponte `RAIZ_DO_REPOSITORIO=<pasta>` e rode o `comentarios.js` da pasta que tem a ferramenta.
+
 ## Cuidados
 
 - **Não toque no que uma `fm/*` ou outra tarefa já limpa.** Se o arquivo está na lista de outra tarefa, deixe: a catraca o cobre.
