@@ -8,6 +8,7 @@ const os = require('os');
 const path = require('path');
 
 const toolPathsReais = require('../tool-paths');
+const { FALHAS_LIVRES } = require('../limite-tentativas');
 
 const carregadorOriginal = Module._load;
 const TMP = fs.realpathSync(os.tmpdir());
@@ -18,7 +19,7 @@ const PORTA = 3456;
 const CORS_PREFLIGHT = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 const CABECALHO_JSON = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
@@ -64,6 +65,7 @@ class ServidorHttpFalso extends EventEmitter {
         const erro = cena.errosDeEscuta.shift();
         process.nextTick(() => (erro ? this.emit('error', erro) : this.emit('listening')));
     }
+    address() { return { port: this.escutas.at(-1)[0] }; }
     close() { this.fechado = true; }
 }
 
@@ -175,7 +177,7 @@ async function servicoIniciado() {
 test('construtor sem tokens salvos gera um token padrão e grava remote_tokens.json', () => {
     const servico = novoServico();
     const [dados] = servico.tokens.values();
-    assert.match(dados.token, /^[0-9A-F]{8}$/);
+    assert.match(dados.token, /^[0-9A-F]{32}$/);
     assert.strictEqual(dados.deviceName, 'Default Mobile');
     assert.strictEqual(dados.active, true);
     const gravado = JSON.parse(fs.readFileSync(path.join(servico.dados, 'remote_tokens.json'), 'utf8'));
@@ -206,7 +208,16 @@ test('start sobe http e socket.io em 127.0.0.1 e devolve os endereços, túnel d
     const [io] = cena.ios;
     assert.deepStrictEqual(servidor.escutas, [[PORTA, '127.0.0.1', 'function']]);
     assert.strictEqual(io.servidorHttp, servidor);
-    assert.deepStrictEqual(io.opcoes, { cors: { origin: '*', methods: ['GET', 'POST'] }, transports: ['websocket', 'polling'] });
+    assert.deepStrictEqual(Object.keys(io.opcoes), ['cors', 'allowRequest', 'transports']);
+    assert.deepStrictEqual(io.opcoes.transports, ['websocket', 'polling']);
+    assert.deepStrictEqual(io.opcoes.cors.methods, ['GET', 'POST']);
+    const origemAceita = (origem) => new Promise((resolve) => io.opcoes.cors.origin(origem, (_, ok) => resolve(ok)));
+    assert.strictEqual(await origemAceita('http://localhost:3456'), true);
+    assert.strictEqual(await origemAceita('http://192.168.0.7:3456'), true);
+    assert.strictEqual(await origemAceita('https://site-qualquer.example'), false);
+    const requisicaoAceita = (origem) => new Promise((resolve) => io.opcoes.allowRequest({ headers: { origin: origem } }, (_, ok) => resolve(ok)));
+    assert.strictEqual(await requisicaoAceita(undefined), true);
+    assert.strictEqual(await requisicaoAceita('https://site-qualquer.example'), false);
     assert.deepStrictEqual(Object.keys(io.ouvintes), ['connection']);
     assert.strictEqual(servico.isRunning, true);
     assert.deepStrictEqual(cena.logs, [
@@ -304,8 +315,9 @@ test('start já rodando com URL pública ou processo do túnel não reabre', asy
     assert.deepStrictEqual(cena.logs, [['log', '[RemoteAccess] Server already running'], ['log', '[RemoteAccess] Server already running']]);
 });
 
-function requisicao(url, method) {
-    return Object.assign(new EventEmitter(), { url, method });
+function requisicao(url, method, token) {
+    const headers = token ? { authorization: `Bearer ${token}` } : {};
+    return Object.assign(new EventEmitter(), { url, method, headers, socket: { remoteAddress: '127.0.0.1' } });
 }
 
 function resposta() {
@@ -317,11 +329,11 @@ function resposta() {
     };
 }
 
-function atenderComPwaEspiado(servidor, servico, url, method) {
+function atenderComPwaEspiado(servidor, servico, url, method, token = [...servico.tokens.keys()][0]) {
     const pwa = [];
     servico.servePWA = (req, res) => pwa.push([req.url, req.method, res]);
     const res = resposta();
-    const req = requisicao(url, method);
+    const req = requisicao(url, method, token);
     assert.strictEqual(servidor.atender(req, res), undefined);
     return { req, res, pwa };
 }
@@ -378,6 +390,34 @@ test('GET /api/get-firebase-config devolve {} sem arquivo, o arquivo salvo, ou 5
     assert.match(JSON.parse(res.fins[0][0]).error, /JSON/);
 });
 
+test('rotas de config do Firebase recusam requisição sem token ou com token falso e não tocam no arquivo', async () => {
+    const { servico, servidor } = await servicoIniciado();
+    const caminho = path.join(servico.dados, 'firebase_config.json');
+    fs.writeFileSync(caminho, '{"apiKey":"segredo"}');
+    for (const token of [null, 'TOKENFALSO']) {
+        for (const [url, method] of [['/api/get-firebase-config', 'GET'], ['/api/save-firebase-config', 'POST']]) {
+            const { req, res, pwa } = atenderComPwaEspiado(servidor, servico, url, method, token);
+            req.emit('data', '{"apiKey":"invasor"}');
+            req.emit('end');
+            assert.deepStrictEqual(res.cabecalhos, [[401, CABECALHO_JSON]]);
+            assert.deepStrictEqual(res.fins, [[JSON.stringify({ error: 'Não autenticado' })]]);
+            assert.deepStrictEqual(pwa, []);
+        }
+    }
+    assert.strictEqual(fs.readFileSync(caminho, 'utf8'), '{"apiKey":"segredo"}');
+});
+
+test('rotas de config do Firebase passam pelo limite de tentativas: depois das falhas o token certo também é barrado', async () => {
+    const { servico, servidor } = await servicoIniciado();
+    const certo = [...servico.tokens.keys()][0];
+    for (let i = 0; i < FALHAS_LIVRES + 20; i++) {
+        const { res } = atenderComPwaEspiado(servidor, servico, '/api/get-firebase-config', 'GET', `CHUTE${String(i).padStart(27, '0')}`);
+        assert.strictEqual(res.cabecalhos[0][0], 401);
+    }
+    const { res } = atenderComPwaEspiado(servidor, servico, '/api/get-firebase-config', 'GET', certo);
+    assert.strictEqual(res.cabecalhos[0][0], 401);
+});
+
 test('método ou caminho fora das rotas do Firebase vai para o PWA', async () => {
     const { servico, servidor } = await servicoIniciado();
     const casos = [
@@ -414,8 +454,11 @@ function socketFalso(id) {
         id,
         ouvintes: {},
         emitidos: [],
+        salas: [],
         desconexoes: 0,
+        handshake: { address: '127.0.0.1', headers: {} },
         on(evento, fn) { this.ouvintes[evento] = fn; },
+        join(sala) { this.salas.push(sala); },
         emit(evento, dados) { this.emitidos.push([evento, dados]); },
         disconnect() { this.desconexoes++; }
     };
@@ -442,7 +485,9 @@ test('authenticate com token inválido recusa e desconecta', async () => {
     assert.strictEqual(socket.desconexoes, 1);
     assert.strictEqual(servico.connectedClients.size, 0);
     assert.deepStrictEqual(servico.desktop, []);
-    assert.throws(() => socket.ouvintes.authenticate(undefined), TypeError);
+    assert.deepStrictEqual(socket.salas, []);
+    socket.ouvintes.authenticate(undefined);
+    assert.deepStrictEqual(socket.emitidos[1], ['authenticated', { success: false, error: 'Invalid token' }]);
 });
 
 test('authenticate com token válido registra o cliente, avisa o desktop e manda a chave do Groq', async () => {
@@ -458,6 +503,7 @@ test('authenticate com token válido registra o cliente, avisa o desktop e manda
     assert.ok(cliente.connectedAt >= antes);
     assert.ok(servico.tokens.get(token).lastUsed >= antes);
     assert.deepStrictEqual(socket.emitidos, [['authenticated', { success: true }], ['groq-key', { apiKey: 'gk-arquivo' }]]);
+    assert.deepStrictEqual(socket.salas, ['autenticados']);
     assert.strictEqual(socket.desconexoes, 0);
     assert.deepStrictEqual(servico.desktop, [['client-connected', { deviceName: 'Default Mobile', socketId: 's1' }]]);
     assert.deepStrictEqual(cena.logs.slice(1), [['log', '[RemoteAccess] Client authenticated: Default Mobile']]);
@@ -506,8 +552,14 @@ test('disconnect tira o cliente autenticado e avisa o desktop; sem cliente não 
     assert.deepStrictEqual(cena.logs, [['log', '[RemoteAccess] Client disconnected: Default Mobile']]);
 });
 
-test('get-groq-key usa o ambiente sem arquivo e não emite sem chave', async () => {
-    const { socket } = await conectado();
+test('get-groq-key só responde a socket autenticado, usa o ambiente sem arquivo e não emite sem chave', async () => {
+    const { socket, token } = await conectado();
+    process.env.GROQ_API_KEY = 'gk-ambiente';
+    socket.ouvintes['get-groq-key']();
+    assert.deepStrictEqual(socket.emitidos, []);
+    delete process.env.GROQ_API_KEY;
+    socket.ouvintes.authenticate({ token });
+    socket.emitidos.length = 0;
     socket.ouvintes['get-groq-key']();
     assert.deepStrictEqual(socket.emitidos, []);
     process.env.GROQ_API_KEY = 'gk-ambiente';

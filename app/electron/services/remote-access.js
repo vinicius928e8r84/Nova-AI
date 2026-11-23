@@ -11,7 +11,7 @@ const toolPaths = require('./tool-paths');
 const CORS_PREFLIGHT = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
 };
 const CABECALHOS_JSON = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 const METODOS_DAS_ROTAS_FIREBASE = new Map([
@@ -64,6 +64,19 @@ function argumentosDoTunel(porta) {
     return ['tunnel', '--url', `http://localhost:${porta}`, '--no-autoupdate'];
 }
 
+const { LimiteDeTentativas, clienteDaConexao } = require('./limite-tentativas');
+
+const SALA_AUTENTICADOS = 'autenticados';
+const BYTES_DO_TOKEN = 16;
+const TAMANHO_MINIMO_DO_TOKEN = BYTES_DO_TOKEN * 2;
+const RESULTADO_VALIDO = 'valido';
+const RESULTADO_INVALIDO = 'invalido';
+const RESULTADO_BLOQUEADO = 'bloqueado';
+const RECUSAS_DO_SOCKET = {
+    [RESULTADO_INVALIDO]: { success: false, error: 'Invalid token' },
+    [RESULTADO_BLOQUEADO]: { success: false, bloqueado: true, error: 'Muitas tentativas. Aguarde e tente de novo.' }
+};
+
 class RemoteAccessService {
     constructor(app) {
         this.app = app;
@@ -74,6 +87,7 @@ class RemoteAccessService {
         this.tokens = new Map(); // Store active tokens
         this.connectedClients = new Map(); // Track connected mobile clients
         this.cloudflaredProcess = null;
+        this.limiteDeTentativas = new LimiteDeTentativas();
         this.publicUrl = null;
         this.isRunning = false;
 
@@ -89,8 +103,13 @@ class RemoteAccessService {
         try {
             if (fs.existsSync(this.tokensPath)) {
                 const data = JSON.parse(fs.readFileSync(this.tokensPath, 'utf8'));
-                this.tokens = new Map(Object.entries(data.tokens || {}));
+                const salvos = Object.entries(data.tokens || {});
+                this.tokens = new Map(salvos.filter(([token]) => token.length >= TAMANHO_MINIMO_DO_TOKEN));
                 console.log(`[RemoteAccess] Loaded ${this.tokens.size} saved tokens`);
+                if (this.tokens.size < salvos.length) {
+                    console.warn(`[RemoteAccess] ${salvos.length - this.tokens.size} tokens fracos (menos de ${TAMANHO_MINIMO_DO_TOKEN} caracteres) descartados; leia o QR novo.`);
+                    this.saveTokens();
+                }
             }
 
             // Automatically generate a default token if none exist
@@ -118,7 +137,7 @@ class RemoteAccessService {
 
     // Generate a new authentication token
     generateToken(deviceName = 'Mobile Device') {
-        const token = crypto.randomBytes(4).toString('hex').toUpperCase(); // 8 characters, e.g., 'A1B2C3D4'
+        const token = crypto.randomBytes(BYTES_DO_TOKEN).toString('hex').toUpperCase();
         const tokenData = {
             token,
             deviceName,
@@ -207,6 +226,46 @@ hone par ye file automatically update ho jayegi.
         return false;
     }
 
+    revogarTodosOsTokens() {
+        this.tokens.clear();
+        this.connectedClients.forEach((client, socketId) => {
+            this.io?.to(socketId).emit('token-revoked');
+            this.io?.sockets.sockets.get(socketId)?.disconnect();
+        });
+    }
+
+    tunelCloudflaredAtivo() {
+        return Boolean(this.cloudflaredProcess && this.publicUrl);
+    }
+
+    clienteDaConexao(enderecoDoPar, cabecalhos) {
+        return clienteDaConexao(enderecoDoPar, cabecalhos, this.tunelCloudflaredAtivo());
+    }
+
+    conferirCliente(cliente, validar) {
+        if (this.limiteDeTentativas.bloqueado(cliente)) return RESULTADO_BLOQUEADO;
+        if (!validar()) {
+            this.limiteDeTentativas.registrarFalha(cliente);
+            return RESULTADO_INVALIDO;
+        }
+        this.limiteDeTentativas.registrarSucesso(cliente);
+        return RESULTADO_VALIDO;
+    }
+
+    tokenDaRequisicaoValido(req) {
+        const token = /^Bearer (\S+)$/.exec(req.headers.authorization || '')?.[1];
+        if (!token) return false;
+        const cliente = this.clienteDaConexao(req.socket?.remoteAddress, req.headers);
+        return this.conferirCliente(cliente, () => this.tokens.get(token)?.active === true) === RESULTADO_VALIDO;
+    }
+
+    origemPermitida(origem) {
+        if (!origem) return true;
+        const porta = this.httpServer?.address()?.port ?? this.port;
+        const proprias = [this.publicUrl, `http://localhost:${porta}`, `http://127.0.0.1:${porta}`, `http://${this.getLocalIpAddress()}:${porta}`];
+        return proprias.filter(Boolean).map((url) => url.replace(/\/$/, '')).includes(origem);
+    }
+
     // Get all tokens
     getAllTokens() {
         return Array.from(this.tokens.values()).map(t => ({
@@ -254,9 +313,10 @@ hone par ye file automatically update ho jayegi.
         this.httpServer = http.createServer((req, res) => this.atenderRequisicao(req, res));
         this.io = new Server(this.httpServer, {
             cors: {
-                origin: '*',
+                origin: (origem, responder) => responder(null, this.origemPermitida(origem)),
                 methods: ['GET', 'POST']
             },
+            allowRequest: (req, responder) => responder(null, this.origemPermitida(req.headers.origin)),
             transports: ['websocket', 'polling']
         });
         this.setupSocketHandlers();
@@ -305,6 +365,7 @@ hone par ye file automatically update ho jayegi.
     atenderRequisicao(req, res) {
         if (!ehRotaDeConfigFirebase(req)) this.servePWA(req, res);
         else if (req.method === 'OPTIONS') responderPreflight(res);
+        else if (!this.tokenDaRequisicaoValido(req)) responderJson(res, 401, { error: 'Não autenticado' });
         else if (req.method === 'POST') this.receberConfigFirebase(req, res);
         else responderJsonOuErro(res, () => this.lerConfigFirebase());
     }
@@ -336,24 +397,37 @@ hone par ye file automatically update ho jayegi.
 
     receberCelular(socket) {
         console.info(`[RemoteAccess] New connection attempt: ${socket.id}`);
-        socket.on('authenticate', ({ token }) => this.autenticarCelular(socket, token));
+        socket.on('authenticate', (carga) => this.autenticarSocket(socket, carga));
         socket.on('chat-message', (data) => this.encaminharMensagem(socket, data));
         socket.on('switch-model', (data) => this.encaminharTrocaDeModelo(socket, data));
         socket.on('disconnect', () => this.desligarCelular(socket));
         socket.on('get-groq-key', () => this.sendGroqKeyToClient(socket));
     }
 
-    autenticarCelular(socket, token) {
-        if (!this.validateToken(token)) {
-            socket.emit('authenticated', { success: false, error: 'Invalid token' });
-            socket.disconnect();
-            return;
-        }
-        const { deviceName } = this.tokens.get(token);
-        this.connectedClients.set(socket.id, { token, deviceName, connectedAt: Date.now() });
-        socket.emit('authenticated', { success: true });
-        console.info(`[RemoteAccess] Client authenticated: ${deviceName}`);
-        this.notifyDesktop('client-connected', { deviceName, socketId: socket.id });
+    autenticarSocket(socket, carga) {
+        const cliente = this.clienteDaConexao(socket.handshake.address, socket.handshake.headers);
+        const resultado = this.conferirCliente(cliente, () => this.validateToken(carga?.token));
+        if (resultado === RESULTADO_VALIDO) return this.aceitarSocket(socket, carga.token);
+        socket.emit('authenticated', RECUSAS_DO_SOCKET[resultado]);
+        socket.disconnect();
+    }
+
+    aceitarSocket(socket, token) {
+        const tokenData = this.tokens.get(token);
+        this.connectedClients.set(socket.id, {
+            token,
+            deviceName: tokenData.deviceName,
+            connectedAt: Date.now()
+        });
+
+        this.confirmarAutenticacao(socket);
+        console.info(`[RemoteAccess] Client authenticated: ${tokenData.deviceName}`);
+
+        this.notifyDesktop('client-connected', {
+            deviceName: tokenData.deviceName,
+            socketId: socket.id
+        });
+
         this.sendGroqKeyToClient(socket);
     }
 
@@ -389,6 +463,7 @@ hone par ye file automatically update ho jayegi.
 
     // Send Groq key to a specific socket
     sendGroqKeyToClient(socket) {
+        if (!this.connectedClients.has(socket.id)) return;
         const groqKeyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
         try {
             if (fs.existsSync(groqKeyPath)) {
@@ -407,6 +482,11 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
+    confirmarAutenticacao(socket) {
+        socket.join(SALA_AUTENTICADOS);
+        socket.emit('authenticated', { success: true });
+    }
+
     // Send response back to mobile client
     sendToMobile(socketId, event, data) {
         if (this.io) {
@@ -414,10 +494,9 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
-    // Broadcast event to all connected mobile clients
     broadcastToMobile(event, data) {
         if (this.io) {
-            this.io.emit(event, data);
+            this.io.to(SALA_AUTENTICADOS).emit(event, data);
         }
     }
 

@@ -35,6 +35,21 @@ function openssh(name, opts) {
 
 const ssh = (opts) => openssh('ssh', opts);
 const scp = (opts) => openssh('scp', opts);
+const MSG_SEM_OPENSSH = 'O Cliente OpenSSH do Windows não está ativo. Ative-o em Configurações > Aplicativos > Recursos opcionais.';
+
+function exigirOpenssh(nome, opts) {
+  const s = sistema(opts);
+  const file = openssh(nome, opts);
+  if (s.win && !s.exists(file)) throw new Error(MSG_SEM_OPENSSH);
+  return file;
+}
+
+function execSsh(args, options, callback, opts) {
+  let file;
+  try { file = exigirOpenssh('ssh', opts); } catch (erro) { process.nextTick(callback, erro, '', erro.message); return; }
+  require('child_process').execFile(file, args, { ...options, windowsHide: true }, callback);
+}
+
 const sshKeygen = (opts) => openssh('ssh-keygen', opts);
 
 function nullDevice(opts) {
@@ -43,6 +58,10 @@ function nullDevice(opts) {
 
 function posixPath(file, opts) {
   return sistema(opts).win ? String(file).replace(/\\/g, '/') : String(file);
+}
+
+function pastasDoPath(s) {
+  return (s.env.PATH || s.env.Path || '').split(s.delimiter);
 }
 
 function ffmpegDirs(s) {
@@ -56,7 +75,7 @@ function ffmpegDirs(s) {
     s.resourcesPath && s.p.join(s.resourcesPath, 'bin'),
     s.p.join(s.dirname, '../../resources/bin'),
     ...(s.win ? win : unix),
-    ...(s.env.PATH || s.env.Path || '').split(s.delimiter)
+    ...pastasDoPath(s)
   ].filter(Boolean);
 }
 
@@ -78,4 +97,39 @@ function iosTool(name, opts) {
   return s.p.join(root, 'ios-tools', 'bin', exe(name, opts));
 }
 
-module.exports = { ssh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe, iconFile };
+function lerPastaInjetada(opts) {
+  return (opts && opts.readdir) || fs.readdirSync;
+}
+
+function pythonScripts(s, readdir) {
+  const appData = s.env.APPDATA;
+  if (!appData) return [];
+  const base = s.p.join(appData, 'Python');
+  let versoes = [];
+  try { versoes = readdir(base); } catch { return []; }
+  return versoes.filter((v) => /^Python3/i.test(v)).sort().map((v) => s.p.join(base, v, 'Scripts'));
+}
+
+function pastasGpsWindows(s, readdir) {
+  const doApp = (...partes) => s.resourcesPath && s.p.join(s.resourcesPath, ...partes);
+  return [doApp('ios-tools', 'bin'), doApp('bin'), ...pythonScripts(s, readdir), ...pastasDoPath(s)];
+}
+
+function pastasGpsMac(name, s) {
+  if (name === 'pymobiledevice3') return [s.p.join(s.home, '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin'];
+  return [s.resourcesPath && s.p.join(s.resourcesPath, 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin'];
+}
+
+function caminhoForcadoGps(name, s) {
+  return name === 'pymobiledevice3' ? s.env.NOVA_PYMOBILEDEVICE3 : null;
+}
+
+function gpsTool(name, opts) {
+  const s = sistema(opts);
+  const file = exe(name, opts);
+  const pastas = s.win ? pastasGpsWindows(s, lerPastaInjetada(opts)) : pastasGpsMac(name, s);
+  const candidatos = [caminhoForcadoGps(name, s), ...pastas.filter(Boolean).map((d) => s.p.join(d, file))];
+  return candidatos.filter(Boolean).find((f) => s.exists(f)) || null;
+}
+
+module.exports = { gpsTool, ssh, exigirOpenssh, execSsh, scp, sshKeygen, nullDevice, posixPath, ffmpeg, tool, iosTool, exe, iconFile };
