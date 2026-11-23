@@ -49,7 +49,7 @@ test('installAdb com hash correto instala', async () => {
     const http = async ({ url }) => ({ data: url.endsWith('.xml') ? Buffer.from(xmlFor(sha(zip, 'sha1'))) : zip });
     const p = await m.installAdb(base, { http, platform: 'darwin', runner: fakeRunner(['platform-tools/adb']) });
     assert.strictEqual(p, path.join(base, 'platform-tools', 'adb'));
-    assert.ok(fs.statSync(p).mode & 0o100);
+    if (process.platform !== 'win32') assert.ok(fs.statSync(p).mode & 0o100);
     assert.deepStrictEqual(fs.readdirSync(base), ['platform-tools']);
 });
 
