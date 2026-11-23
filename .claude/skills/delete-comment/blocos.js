@@ -19,7 +19,8 @@ function linhaDe(fonte, posicao) {
   return { inicio, fim: fim < 0 ? fonte.length : fim };
 }
 
-function descreverTrecho(fonte, inicios, [de, ate]) {
+function descreverTrecho(fonte, inicios, [de, fimBruto]) {
+  const ate = fonte[fimBruto - 1] === String.fromCharCode(13) ? fimBruto - 1 : fimBruto;
   const primeira = linhaDe(fonte, de);
   const ultima = linhaDe(fonte, Math.max(de, ate - 1));
   return {

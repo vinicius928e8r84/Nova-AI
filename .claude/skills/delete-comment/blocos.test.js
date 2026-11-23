@@ -58,3 +58,8 @@ test('docstring que é o único corpo do bloco não pode sair', comPython, () =>
   const comCorpo = 'def f():\n    """Soma."""\n    return 1\n';
   assert.equal(deixariaVazio(comCorpo, blocosDe('a.py', comCorpo, PYTHON)[0]), false);
 });
+
+test('apagar o comentário do fim da linha em arquivo CRLF mantém o CRLF da linha', () => {
+  const fonte = 'const a = 1; // nota\r\nconst b = 2;\r\n';
+  assert.equal(apagarTudo('a.js', fonte), 'const a = 1;\r\nconst b = 2;\r\n');
+});
