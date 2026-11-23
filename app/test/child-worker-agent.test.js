@@ -166,7 +166,8 @@ test('receita do .dmg, lida pelo leitor ReAct, roda no sh e chama hdiutil e ditt
     const comando = COMANDOS_DAS_RECEITAS[0][1].replaceAll('TMP', `${pasta}/mnt`).replaceAll('ARQ', `${pasta}/App.dmg`).replaceAll('X.app', 'App.app');
     const { agente, ferramentas } = await rodarTarefa([`Thought: instalar\nAction: execute_shell(${comando})`, 'Thought: ok\nAction: FINAL_ANSWER(instalado)'], {}, 'instalar', 'k');
     assert.strictEqual(await agente._execShell(ferramentas[0].args), 'Command executed successfully.');
-    for (let tentativa = 0; tentativa < 50 && !(fs.existsSync(registro) && fs.readFileSync(registro, 'utf8').includes('detach')); tentativa++) {
+    const detachRegistrado = () => fs.existsSync(registro) && fs.readFileSync(registro, 'utf8').includes('detach');
+    for (let tentativa = 0; tentativa < 50 && !detachRegistrado(); tentativa++) {
       await new Promise(r => setTimeout(r, 20));
     }
     assert.deepStrictEqual(fs.readFileSync(registro, 'utf8').trim().split('\n'), [
