@@ -15,6 +15,7 @@ const sandbox = {
   setTimeout,
   clearTimeout,
   require(name) {
+    if (name === '../tool-paths') return require('../../../app/electron/services/tool-paths');
     if (name === '../ios-tools') return { tool: (tool) => '/bundled/' + tool };
     if (name === './node_modules/ssh2') return { Client: class { constructor() { sshAttempts++; throw Error('SSH não deveria ser alcançado'); } } };
     if (name === 'child_process') return {
