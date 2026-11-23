@@ -51,15 +51,10 @@ static CGColorSpaceRef VCPCopyColorSpace(CVPixelBufferRef buffer) {
 static size_t VCPRowAlignment(CVPixelBufferRef buffer) {
     if (!buffer) return 0;
     size_t stride = CVPixelBufferIsPlanar(buffer) ? CVPixelBufferGetBytesPerRowOfPlane(buffer, 0) : CVPixelBufferGetBytesPerRow(buffer);
-    // Core Video expects an alignment, not the entire row length. A non-power
-    // row length can also alter planar padding. Match its power-of-two factor;
-    // the final CM format check remains mandatory.
     return stride & (~stride + 1);
 }
 
 static BOOL VCPShouldPrepareStill(double lastStill, double lastVideo, double now) {
-    // A known still format stays warm while its own camera source is streaming.
-    // No template is invented before the first still sample has been observed.
     return lastStill > 0 && (now-lastStill < 5.0 || (lastVideo > 0 && now-lastVideo < 1.0));
 }
 
@@ -98,7 +93,6 @@ static void VCPDrawFrame(CGImageRef frame, CIContext *context, CVPixelBufferRef 
     [context render:image toCVPixelBuffer:out bounds:CGRectMake(0, 0, w, h) colorSpace:space];
 }
 
-// Worker-thread only. The cold still path also calls this with a recent frame.
 static CVPixelBufferRef VCPCopyRenderedBuffer(CGImageRef frame, CIContext *context,
     size_t w, size_t h, OSType fmt, CGColorSpaceRef space, NSDictionary *attachments, int rotation, size_t rowAlignment) {
     if (!frame || !context || !space || !VCPFormatSupported(fmt) || w < 2 || h < 2 ||
@@ -113,10 +107,6 @@ static CVPixelBufferRef VCPCopyRenderedBuffer(CGImageRef frame, CIContext *conte
     return out;
 }
 
-// Some camera IOSurfaces reserve extra bytes after both NV12 planes. Core Video
-// includes that reservation in GetBytesPerRow and the sample format description.
-// Match the observed allocation in a transportable IOSurface, keeping the two
-// plane strides intact.
 static CVPixelBufferRef VCPCopyRenderedPlanarLayout(CGImageRef frame, CIContext *context,
     size_t w, size_t h, OSType fmt, CGColorSpaceRef space, NSDictionary *attachments,
     int rotation, size_t plane0Row, size_t plane1Row, size_t dataSize) {
@@ -154,9 +144,6 @@ static CVPixelBufferRef VCPCopyRenderedPlanarLayout(CGImageRef frame, CIContext 
     return out;
 }
 
-// Does not modify the source buffer. Reuses the current sample's envelope, not
-// a past frame's timestamps. Private camera attachments remain an experimental
-// compatibility requirement, not evidence that the external pixels hit a sensor.
 typedef NS_ENUM(NSInteger, VCPReplacementResult) {
     VCPInvalidSample, VCPUnsupportedBuffer, VCPDimensionMismatch,
     VCPFormatMismatch, VCPTimingError, VCPAssemblyError, VCPReplaced
@@ -211,7 +198,6 @@ static CMSampleBufferRef VCPCopyReplacement(CMSampleBufferRef original, CVPixelB
     return out;
 }
 
-// Cold still capture: no networking, no template from a previous exposure.
 static CVPixelBufferRef VCPCopyColdStill(CMSampleBufferRef sample, CGImageRef frame, CIContext *context, int rotation) {
     if (!sample || !frame || !context) return NULL;
     CVPixelBufferRef native = CMSampleBufferGetImageBuffer(sample);
