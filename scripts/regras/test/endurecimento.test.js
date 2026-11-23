@@ -220,7 +220,7 @@ test('comentário em .bat com @rem e depois de & é achado', () => {
 test('registro: NOT CLEAN com a linha Head mal formatada continua definitivo', () => {
   const head = 'a'.repeat(40);
   const ruim = `Veredito: NOT CLEAN\nHead: ${head} (atual)\nAutor: x\nRevisor: y\n`;
-  const bom = `Veredito: CLEAN\nHead: ${head}\nAutor: x2\nRevisor: y2\n`;
+  const bom = `Veredito: CLEAN\nHead: ${head}\nAutor: x2\nRevisor: y2\nRisco: BAIXA\n`;
   const r = conferir({ head, arquivos: [{ caminho: 'README.md', adicionadas: [] }], corpo: `${'Corrige o botão do iPhone que mostrava Parar transmissão.'.repeat(2)}\n\nAtenção: BAIXA\n`, registros: [ruim, bom] });
   assert.equal(r.ok, false);
   assert.match(r.mensagem, /não se desfaz com outro comentário/);

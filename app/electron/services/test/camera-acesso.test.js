@@ -63,3 +63,16 @@ test('outra plataforma não abre nada', async () => {
   assert.deepStrictEqual(await liberar(m.args), { success: false, estado: 'denied' });
   assert.deepStrictEqual(m.abertos, []);
 });
+
+test('linux: não determinada não pergunta nem abre nada', async () => {
+  const m = montar('not-determined', 'linux');
+  assert.deepStrictEqual(await liberar(m.args), { success: false, estado: 'not-determined' });
+  assert.deepStrictEqual(m.pedidos, []);
+  assert.deepStrictEqual(m.abertos, []);
+});
+
+test('darwin: negada não pergunta ao sistema de novo', async () => {
+  const m = montar('denied', 'darwin');
+  await liberar(m.args);
+  assert.deepStrictEqual(m.pedidos, []);
+});

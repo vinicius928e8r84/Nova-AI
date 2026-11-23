@@ -1,9 +1,10 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 
 // Valida o trecho do cartão no bundle já patcheado: iPhone preparado mostra
 // "Abrir controle" e chama PI; Android continua com "Parar transmissão".
-const bundle = process.argv[2] || '/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js';
+const bundle = process.argv[2] || path.join(__dirname, '..', '..', '..', 'app', 'dist', 'assets', 'index-Dun7lr2S.js');
 const source = fs.readFileSync(bundle, 'utf8');
 
 assert.ok(source.includes('physical-mobile:ios-console-open'), 'bundle sem o canal do controle do iPhone');

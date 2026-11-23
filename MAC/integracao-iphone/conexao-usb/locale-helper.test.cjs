@@ -24,8 +24,10 @@ const { EventEmitter } = require('node:events');
 
 const SH = process.env.NOVA_LOCALE_SH || path.join(__dirname, 'nova-locale.sh');
 const TWIN = path.join(__dirname, '..', '..', 'controle-celular-plataformas', 'geo-proxy', 'helper', 'nova-locale.sh');
-const SETUP = process.env.NOVA_SETUP_JS || path.join(__dirname, 'setup.js');
+const SETUP = process.env.NOVA_SETUP_JS || path.join(__dirname, '../../../app/electron/services/iphone-setup/setup.js');
 const src = fs.readFileSync(SH, 'utf8');
+
+const NO_WINDOWS = process.platform === 'win32';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function waitFor(fn, ms, what) {
@@ -40,7 +42,8 @@ async function waitFor(fn, ms, what) {
 
 // ── 1. Estático ──────────────────────────────────────────────────────────────
 function testeEstatico() {
-  assert.equal(spawnSync('bash', ['-n', SH]).status, 0, 'bash -n falhou no nova-locale.sh');
+  if (NO_WINDOWS) console.log('PULADO no Windows: bash -n (não há bash no PATH; o helper só roda no iPhone)');
+  else assert.equal(spawnSync('bash', ['-n', SH]).status, 0, 'bash -n falhou no nova-locale.sh');
 
   if (fs.existsSync(TWIN)) assert.equal(fs.readFileSync(TWIN, 'utf8'), src, 'cópia em geo-proxy/helper difere do nova-locale.sh canônico');
 
@@ -92,6 +95,7 @@ function criarSandbox() {
 }
 
 function testeGuardaSleepETrim(sb) {
+  if (!sb) return;
   // Antes: err e log enormes (2 MB) e out pequeno. O serviço sobe sem sleep no PATH.
   fs.writeFileSync(sb.t('nova-locale.err'), Buffer.alloc(2 * 1048576, 65));
   fs.writeFileSync(sb.t('nova-locale.log'), Buffer.alloc(2 * 1048576, 66));
@@ -119,6 +123,7 @@ function testeGuardaSleepETrim(sb) {
 }
 
 async function testeSleepSomeComServicoRodando(sb) {
+  if (!sb) return;
   for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
   const filho = spawn('/bin/bash', [sb.scriptComSleep], { env: { PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'ignore', 'pipe'] });
   let stderr = '';
@@ -140,6 +145,7 @@ async function testeSleepSomeComServicoRodando(sb) {
 }
 
 async function testeRecusasDoHelperRoot(sb) {
+  if (!sb) return;
   for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
   // Arquivo de OUTRO dono (2 MiB) e um plist "secreto" fora de /var/tmp, ambos fora da pasta tmp do helper.
   const vitima = path.join(sb.root, 'vitima.bin');
@@ -176,6 +182,7 @@ async function testeRecusasDoHelperRoot(sb) {
 }
 
 async function testeFluxoNormal(sb) {
+  if (!sb) return;
   for (const n of ['nova-locale.err', 'nova-locale.log', 'nova-locale.out', 'nova-locale-status.json']) fs.rmSync(sb.t(n), { force: true });
   const versao = /^HELPER_VERSION=(\d+)/m.exec(src)[1];
   const filho = spawn('/bin/bash', [sb.scriptComSleep], { env: { PATH: '/usr/bin:/bin' }, stdio: ['ignore', 'ignore', 'pipe'] });
@@ -194,6 +201,7 @@ async function testeFluxoNormal(sb) {
 
     await waitFor(() => status(), 4000, 'status de partida');
     assert.deepEqual(status(), { ok: true, message: 'pronto v' + versao });
+    await waitFor(() => linhasLog() > 0, 2000, 'linha de partida no log');
     assert.equal(linhasLog(), 1);
 
     await enviar('action=ping\n', { ok: true, message: 'pronto v' + versao });
@@ -290,14 +298,15 @@ async function testeHandshake() {
 
 (async () => {
   testeEstatico();
-  const sb = criarSandbox();
+  if (NO_WINDOWS) console.log('PULADO no Windows: testes de comportamento do sandbox (exigem /bin/bash, ferramentas POSIX em /usr/bin e links simbólicos)');
+  const sb = NO_WINDOWS ? null : criarSandbox();
   try {
     testeGuardaSleepETrim(sb);
     await testeFluxoNormal(sb);
     await testeRecusasDoHelperRoot(sb);
     await testeSleepSomeComServicoRodando(sb); // por último: remove o sleep da pasta de PATH do sandbox
   } finally {
-    fs.rmSync(sb.root, { recursive: true, force: true });
+    if (sb) fs.rmSync(sb.root, { recursive: true, force: true });
   }
   await testeHandshake();
   console.log('TODOS OS TESTES DO HELPER NOVA-LOCALE PASSARAM');
