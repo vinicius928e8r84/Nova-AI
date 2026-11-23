@@ -4,13 +4,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { conferir } = require('../registro-da-pr');
 const { classificar } = require('../risco');
-const { corpoComAProva, planejar } = require('../registrar-na-pr');
+const { corpoComAProva, lerArgumentos, planejar } = require('../registrar-na-pr');
 const { novasAltas } = require('../auditoria');
 
 const HEAD = 'a'.repeat(40);
 const OUTRO = 'b'.repeat(40);
 const DESCRICAO = 'Corrige o botão do iPhone que mostrava Parar transmissão em vez de Abrir controle depois do patch do bundle.';
-const REVISAO = head => `Registro de revisão independente\n\nVeredito: CLEAN\nHead: ${head}\nAutor: agente-a\nRevisor: agente-b\n`;
+const REVISAO = (head, risco = 'BAIXA') => `Registro de revisão independente\n\nVeredito: CLEAN\nHead: ${head}\nAutor: agente-a\nRevisor: agente-b\nRisco: ${risco}\n`;
 const PROVA = head => `## Prova real\n\nPROVADO 100% REAL\nHead: ${head}\n\nRodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.\n`;
 const comum = { head: HEAD, rotulos: [], arquivos: [{ caminho: 'app/electron/pwa/app.js', adicionadas: ['const a = 1;'] }], registros: [REVISAO(HEAD)] };
 
@@ -71,7 +71,7 @@ test('registro: vale a revisão mais recente do head, e a de um registro citado 
 
 test('classificador: caminhos sensíveis do Nova-AI contam como ALTA', () => {
   const sensiveis = [
-    'app/electron/main.js', 'app/electron/preload.js', 'app/electron/services/identidade-ipc.js', 'app/electron/services/remote-access.js',
+    'app/electron/main.js', 'app/electron/preload.js', 'app/electron/services/idioma-ipc.js', 'app/electron/services/remote-access.js',
     'app/electron/services/global-spoof-service.js', 'app/electron/services/iphone-ssh.js', 'app/electron/services/ios-bridge.js',
     'app/electron/services/physicalMobileService.js', 'app/electron/services/child-worker-agent.js', 'app/package.json',
     'app/package-lock.json', 'MAC/integracao-iphone/conexao-usb/setup.js', 'MAC/proxy-iphone/instalar-proxy-iphone.command',
@@ -91,20 +91,90 @@ test('classificador: arquivo comum não conta, e o conteúdo novo sensível cont
 
 test('registrar-na-pr: recusa revisão de head antigo e prova com o autor igual ao revisor', () => {
   const pr = { ...comum, registros: [], corpo: `${DESCRICAO}\nAtenção: ALTA\n` };
-  const antigo = planejar({ comando: 'revisao', head: OUTRO, autor: 'a', revisor: 'b', veredito: 'CLEAN' }, pr, '');
+  const antigo = planejar({ comando: 'revisao', head: OUTRO, autor: 'a', revisor: 'b', risco: 'ALTA', veredito: 'CLEAN' }, pr, '');
   assert.match(antigo.recusa, /um commit novo muda o head/);
-  const mesmo = planejar({ comando: 'revisao', head: HEAD, autor: 'a', revisor: 'a', veredito: 'CLEAN' }, pr, '');
+  const mesmo = planejar({ comando: 'revisao', head: HEAD, autor: 'a', revisor: 'a', risco: 'ALTA', veredito: 'CLEAN' }, pr, '');
   assert.match(mesmo.recusa, /próprio autor/);
-  const bom = planejar({ comando: 'revisao', head: HEAD, autor: 'a', revisor: 'b', veredito: 'CLEAN' }, pr, '');
-  assert.match(bom.comentario, new RegExp(`Head: ${HEAD}`));
+  const bom = planejar({ comando: 'revisao', head: HEAD, autor: 'a', revisor: 'b', risco: 'ALTA', veredito: 'CLEAN' }, pr, '');
+  assert.match(bom.comentario, new RegExp(`Head: ${HEAD}\nAutor: a\nRevisor: b\nRisco: ALTA`));
 });
 
 test('registrar-na-pr: a seção de prova entra no corpo e troca a anterior', () => {
   const corpo = `${DESCRICAO}\nAtenção: ALTA\n\n${PROVA(OUTRO)}\n## Outra\n\nfim\n`;
   const novo = corpoComAProva(corpo, `## Prova real\n\nPROVADO 100% REAL\nHead: ${HEAD}`);
   assert.ok(novo.includes(`Head: ${HEAD}`) && !novo.includes(OUTRO) && novo.includes('## Outra'));
-  const plano = planejar({ comando: 'prova', head: HEAD, nota: 'x' }, { ...comum, corpo }, 'Rodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.');
+  const plano = planejar({ comando: 'prova', head: HEAD, cobertura: 'total', nota: 'x' }, { ...comum, corpo }, 'Rodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.');
   assert.equal(plano.depois.ok, true, plano.depois.mensagem);
+});
+
+test('registro: o risco do revisor sobe a atenção do corpo, e o do corpo não desce', () => {
+  const media = conferir({ ...comum, corpo: `${DESCRICAO}\nAtenção: MÉDIA\n`, registros: [REVISAO(HEAD, 'ALTA')] });
+  assert.equal(media.ok, false);
+  assert.match(media.mensagem, /atenção ALTA \(o revisor disse Risco: ALTA, o corpo diz MÉDIA\): o corpo não tem a seção "Prova real"/);
+  assert.equal(conferir({ ...comum, corpo: `${DESCRICAO}\nAtenção: MÉDIA\n\n${PROVA(HEAD)}`, registros: [REVISAO(HEAD, 'ALTA')] }).ok, true);
+  assert.equal(conferir({ ...comum, corpo: `${DESCRICAO}\nAtenção: MÉDIA\n`, registros: [REVISAO(OUTRO, 'ALTA'), REVISAO(HEAD, 'MÉDIA')] }).ok, true);
+  const alta = conferir({ ...comum, corpo: `${DESCRICAO}\nAtenção: ALTA\n`, registros: [REVISAO(HEAD, 'BAIXA')] });
+  assert.match(alta.mensagem, /^ {4}- atenção ALTA: o corpo não tem a seção "Prova real"/m);
+});
+
+test('registro falha: revisão sem a linha Risco ou com um risco inválido', () => {
+  const corpo = `${DESCRICAO}\nAtenção: BAIXA\n`;
+  for (const registro of [REVISAO(HEAD).replace(/Risco: .*\n/, ''), REVISAO(HEAD, 'alto')]) {
+    assert.match(conferir({ ...comum, corpo, registros: [registro] }).mensagem, /não diz o risco que o revisor viu/);
+  }
+  assert.equal(conferir({ ...comum, corpo, registros: [REVISAO(HEAD, 'media')] }).ok, true);
+});
+
+test('registro falha: PROVADO com a nota dizendo NÃO COBERTO ou BLOQUEADA', () => {
+  const notas = [
+    'NAO COBERTO: o GPS do iPhone', 'O GPS do iPhone ficou não coberto.', 'iPhone BLOQUEADA-iPhone sem cabo',
+    'GPS do iPhone: NÃO COBERTA (aparelho fora do cabo).', 'casos não cobertos: GPS', 'parte real NAO COBERTA', 'iPhone e Android: não cobertas.',
+    'iPhone bloqueado', 'iPhone e Android: BLOQUEADOS.', 'iPhone e Android: bloqueadas.', 'GPS: **NÃO** COBERTO.', 'GPS: NÃO-COBERTO.',
+    '```text\nMac: ok\niPhone: NÃO COBERTO\n```', '~~~\n## iPhone\nbloqueado\n~~~', '> NÃO COBERTA: o GPS.', '  > > nao cobertos: o GPS e a câmera.',
+  ];
+  for (const nota of notas) {
+    const r = conferir({ ...comum, corpo: `${DESCRICAO}\nAtenção: ALTA\n\n${PROVA(HEAD)}${nota}\n` });
+    assert.equal(r.ok, false, nota);
+    assert.match(r.mensagem, /prova parcial não vale como PROVADO 100% REAL/, nota);
+  }
+});
+
+test('registro passa: NÃO COBERTO fora da seção Prova real ou em comentário de HTML não conta', () => {
+  const comAProva = antes => `${DESCRICAO}\nAtenção: ALTA\n\n${antes}${PROVA(HEAD)}`;
+  for (const corpo of [
+    comAProva('```\n## Prova real\nNÃO COBERTO\n```\n\n'),
+    comAProva('## Limites\n\nNÃO COBERTO: a versão antiga, fora do escopo.\n> BLOQUEADA\n\n'),
+    `${comAProva('')}\n<!-- NÃO COBERTO: o GPS. -->\n\`\`\`text\nMac: ok\n\`\`\`\n> Abriu o cartão do iPhone.\n`,
+  ]) {
+    const r = conferir({ ...comum, corpo });
+    assert.equal(r.ok, true, r.mensagem);
+  }
+});
+
+test('registrar-na-pr: prova parcial escreve BLOQUEADA-iPhone e fica vermelha; total recusa nota suja', () => {
+  const pr = { ...comum, corpo: `${DESCRICAO}\nAtenção: ALTA\n` };
+  const nota = 'Rodei o app no Mac; o cartão do iPhone NÃO COBERTO porque o aparelho não estava no cabo.';
+  const parcial = planejar({ comando: 'prova', head: HEAD, cobertura: 'parcial' }, pr, nota);
+  assert.match(parcial.secao, /^BLOQUEADA-iPhone$/m);
+  assert.doesNotMatch(parcial.corpo, /PROVADO 100% REAL/);
+  assert.equal(parcial.depois.ok, false);
+  assert.match(parcial.depois.mensagem, /diz BLOQUEADA/);
+  assert.match(planejar({ comando: 'prova', head: HEAD, cobertura: 'total' }, pr, nota).recusa, /a nota diz NAO COBERTO/);
+  for (const suja of ['GPS do iPhone: NÃO COBERTA (aparelho fora do cabo).', 'casos não cobertos: GPS', 'iPhone bloqueado', 'GPS: **NÃO** COBERTO.', '> NÃO-COBERTAS: GPS e câmera.']) {
+    assert.match(planejar({ comando: 'prova', head: HEAD, cobertura: 'total' }, pr, suja).recusa || '', /a nota diz (NAO COBERT|BLOQUEAD)/, suja);
+  }
+  const limpa = planejar({ comando: 'prova', head: HEAD, cobertura: 'total' }, pr, 'Rodei o app no Mac e abri o cartão do iPhone: o botão mostrou Abrir controle.');
+  assert.equal(limpa.depois.ok, true, limpa.depois.mensagem);
+});
+
+test('registrar-na-pr: revisao pede --risco e prova pede --cobertura', () => {
+  const sha = ['--pr', '7', '--head', HEAD];
+  assert.throws(() => lerArgumentos(['revisao', ...sha, '--autor', 'a', '--revisor', 'b']), /pede --risco/);
+  assert.throws(() => lerArgumentos(['revisao', ...sha, '--autor', 'a', '--revisor', 'b', '--risco', 'alto']), /--risco é baixa, média, alta/);
+  assert.equal(lerArgumentos(['revisao', ...sha, '--autor', 'a', '--revisor', 'b', '--risco', 'media']).risco, 'MÉDIA');
+  assert.throws(() => lerArgumentos(['prova', ...sha, '--nota', 'n.md']), /pede --cobertura/);
+  assert.throws(() => lerArgumentos(['prova', ...sha, '--nota', 'n.md', '--cobertura', 'meia']), /total ou parcial/);
+  assert.equal(lerArgumentos(['prova', ...sha, '--nota', 'n.md', '--cobertura', 'parcial']).cobertura, 'parcial');
 });
 
 test('auditoria: só vulnerabilidade alta ou crítica que a base não tinha', () => {
