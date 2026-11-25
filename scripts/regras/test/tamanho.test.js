@@ -123,8 +123,9 @@ test('falha: arquivo que sai de um lugar isento para o código é arquivo novo',
 
 test('passa: o fim de linha CRLF não conta como byte a mais', () => {
   const linha = `${'a'.repeat(98)}\n`;
-  const repo = criar({ 'app/texto.js': linha.repeat(195) });
-  repo.escrever({ 'app/texto.js': linha.replace('\n', '\r\n').repeat(195) });
+  const repo = criar({ 'app/texto.js': linha.repeat(201) });
+  repo.git('config', 'core.autocrlf', 'false');
+  repo.escrever({ 'app/texto.js': linha.replace('\n', '\r\n').repeat(201) });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);

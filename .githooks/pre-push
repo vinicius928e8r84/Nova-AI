@@ -22,7 +22,7 @@ cabeca=$(git rev-parse HEAD 2>/dev/null)
 barrado=0
 while read -r ref_local sha_local ref_remota _; do
   [ "$sha_local" = "$zeros" ] && continue
-  case "$ref_local" in refs/heads/*) ;; *) continue ;; esac
+  case "$ref_local" in refs/heads/*|HEAD) ;; *) continue ;; esac
   [ "$ref_remota" = refs/heads/main ] && continue
   if [ "$sha_local" != "$cabeca" ]; then
     echo "aviso: $ref_local não é o HEAD; as regras de revisão foram puladas" >&2

@@ -107,14 +107,27 @@ test('pre-push barra o ramo com commit de outro e-mail', () => {
 
 test('pre-push não julga o push da main nem a exclusão de ramo', () => {
   const repo = repositorio();
-  const sha = repo.git('rev-parse', 'HEAD');
-  const entrada = `refs/heads/main ${sha} refs/heads/main ${ZEROS}\n(delete) ${ZEROS} refs/heads/velho ${sha}\n`;
   repo.escrever({ 'app/grande.js': GRANDE });
   repo.git('add', '-A');
-  repo.git('commit', '-q', '--no-verify', '-m', 'grande');
+  repo.git('commit', '-q', '--no-verify', '-m', 'grande', '--date', DEPOIS_DO_CORTE);
+  const sha = repo.git('rev-parse', 'HEAD');
+  const entrada = `refs/heads/main ${sha} refs/heads/main ${ZEROS}\n(delete) ${ZEROS} refs/heads/velho ${sha}\n`;
   const r = spawnSync('sh', [path.join(GANCHOS, 'pre-push'), 'origin', 'url'], { cwd: repo.raiz, encoding: 'utf8', input: entrada, env: AMBIENTE });
   repo.limpar();
   assert.equal(r.status, 0, saida(r));
+});
+
+test('pre-push barra o push de HEAD (git push origin HEAD e HEAD:refs/heads/x), que o git manda como ref local HEAD', () => {
+  const repo = criar();
+  repo.escrever({ 'app/grande.js': GRANDE });
+  repo.git('add', '-A');
+  repo.git('commit', '-q', '--no-verify', '-m', 'grande', '--date', DEPOIS_DO_CORTE);
+  repo.git('update-ref', 'refs/remotes/origin/main', 'main');
+  const sha = repo.git('rev-parse', 'HEAD');
+  const r = spawnSync('sh', [path.join(GANCHOS, 'pre-push'), 'origin', 'url'], { cwd: repo.raiz, encoding: 'utf8', input: `HEAD ${sha} refs/heads/ramo ${ZEROS}\n`, env: AMBIENTE });
+  repo.limpar();
+  assert.equal(r.status, 1, saida(r));
+  assert.match(saida(r), /limite-de-tamanho/);
 });
 
 test('o pre-commit roda todas as regras do CI menos a autoria, que o pre-push cobre', () => {
