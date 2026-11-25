@@ -48,5 +48,10 @@
   ],
   "auditoria": {
     "nivelMinimo": ["high", "critical"]
+  },
+  "autoria": {
+    "emailsDeAutor": ["48294278+vinicius928e8r84@users.noreply.github.com"],
+    "emailsDeCommitter": ["noreply@github.com"],
+    "julgaCommitsAPartirDe": "2026-11-26T00:00:00-03:00"
   }
 }
