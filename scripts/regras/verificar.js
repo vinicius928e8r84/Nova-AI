@@ -19,6 +19,8 @@ const REGRAS = [
   require('./regra-sintaxe'),
   require('./regra-eslint'),
   require('./regra-saude'),
+  require('./regra-autoria'),
+  require('./regra-tamanho'),
 ];
 
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
