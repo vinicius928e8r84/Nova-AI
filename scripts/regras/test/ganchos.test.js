@@ -6,14 +6,14 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
 const { criar, EMAIL_DO_REPOSITORIO } = require('./auxiliar');
-const { autoria, tamanhoDeArquivo } = require('../configuracao.json');
+const { julgaCommitsAPartirDe, tamanhoDeArquivo } = require('../configuracao.json');
 
 const RAIZ_REAL = path.join(__dirname, '..', '..', '..');
 const GANCHOS = path.join(RAIZ_REAL, '.githooks');
 const VERIFICAR = path.join(RAIZ_REAL, 'scripts', 'regras', 'verificar.js');
 const ZEROS = '0'.repeat(40);
 const GRANDE = `${'a'.repeat(tamanhoDeArquivo.bytesMaximos)}\n`;
-const DEPOIS_DO_CORTE = new Date(Date.parse(autoria.julgaCommitsAPartirDe) + 24 * 60 * 60 * 1000).toISOString();
+const DEPOIS_DO_CORTE = new Date(Date.parse(julgaCommitsAPartirDe) + 24 * 60 * 60 * 1000).toISOString();
 const AMBIENTE = { ...process.env, REGRAS_EXIGE_FERRAMENTAS: '' };
 
 function repositorio() {
@@ -83,7 +83,8 @@ test('pre-push deixa passar um ramo que as regras aceitam', () => {
 test('pre-push barra o ramo com arquivo acima do limite de bytes', () => {
   const repo = criar();
   repo.escrever({ 'app/grande.js': GRANDE });
-  repo.guardar('grande');
+  repo.git('add', '-A');
+  repo.git('commit', '-q', '-m', 'grande', '--date', DEPOIS_DO_CORTE);
   repo.git('update-ref', 'refs/remotes/origin/main', 'main');
   const r = empurrar(repo);
   repo.limpar();

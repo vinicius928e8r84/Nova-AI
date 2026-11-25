@@ -3,10 +3,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { criar, EMAIL_DO_REPOSITORIO } = require('./auxiliar');
-const { autoria } = require('../configuracao.json');
+const { julgaCommitsAPartirDe } = require('../configuracao.json');
 
 const DIA = 24 * 60 * 60 * 1000;
-const CORTE = Date.parse(autoria.julgaCommitsAPartirDe);
+const CORTE = Date.parse(julgaCommitsAPartirDe);
 const ANTES_DO_CORTE = new Date(CORTE - DIA).toISOString();
 const DEPOIS_DO_CORTE = new Date(CORTE + DIA).toISOString();
 const OUTRO_EMAIL = 'outro@exemplo.test';

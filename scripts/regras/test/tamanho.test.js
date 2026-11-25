@@ -5,9 +5,12 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { criar } = require('./auxiliar');
-const { tamanhoDeArquivo } = require('../configuracao.json');
+const { tamanhoDeArquivo, julgaCommitsAPartirDe } = require('../configuracao.json');
 
 const LIMITE = tamanhoDeArquivo.bytesMaximos;
+const DIA = 24 * 60 * 60 * 1000;
+const ANTES_DO_CORTE = new Date(Date.parse(julgaCommitsAPartirDe) - DIA).toISOString();
+const DEPOIS_DO_CORTE = new Date(Date.parse(julgaCommitsAPartirDe) + DIA).toISOString();
 
 const comBytes = (quantos, letra = 'a') => `${letra.repeat(quantos - 1)}\n`;
 
@@ -138,4 +141,60 @@ test('passa: apagar um arquivo grande', () => {
 test('passa: arquivo grande que a mudança não toca', () => {
   const r = tentar({ 'app/grande.js': comBytes(LIMITE * 2) }, { 'app/outro.js': 'const a = 1;\n' });
   assert.equal(r.codigo, 0, r.saida);
+});
+
+function commitarEm(repo, data, arquivos) {
+  repo.escrever(arquivos);
+  repo.git('add', '-A');
+  repo.git('commit', '-q', '-m', 'muda', '--date', data);
+}
+
+test('corte: arquivo novo grande num commit de antes da data de corte passa', () => {
+  const repo = criar();
+  commitarEm(repo, ANTES_DO_CORTE, { 'app/novo.js': comBytes(LIMITE * 2) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 0, r.saida);
+});
+
+test('corte: o mesmo arquivo num commit de depois da data de corte falha', () => {
+  const repo = criar();
+  commitarEm(repo, DEPOIS_DO_CORTE, { 'app/novo.js': comBytes(LIMITE * 2) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /app\/novo\.js: 40000 bytes/);
+});
+
+test('corte: arquivo grande da base que cresce num commit antigo passa e num commit novo falha', () => {
+  const repo = criar({ 'app/grande.js': comBytes(LIMITE * 2) });
+  commitarEm(repo, ANTES_DO_CORTE, { 'app/grande.js': comBytes(LIMITE * 2 + 100) });
+  const antigo = executar(repo);
+  commitarEm(repo, DEPOIS_DO_CORTE, { 'app/grande.js': comBytes(LIMITE * 2 + 200) });
+  const novo = executar(repo);
+  repo.limpar();
+  assert.equal(antigo.codigo, 0, antigo.saida);
+  assert.equal(novo.codigo, 1);
+  assert.match(novo.saida, /app\/grande\.js: 40200 bytes .*na branch-alvo ele tem 40000/);
+});
+
+test('corte: só o arquivo tocado por commit novo é julgado, o de commit antigo não', () => {
+  const repo = criar();
+  commitarEm(repo, ANTES_DO_CORTE, { 'app/antigo.js': comBytes(LIMITE * 2) });
+  commitarEm(repo, DEPOIS_DO_CORTE, { 'app/novo.js': comBytes(LIMITE * 2) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /app\/novo\.js/);
+  assert.doesNotMatch(r.saida, /app\/antigo\.js/);
+});
+
+test('corte: mudança ainda sem commit é julgada, para o pre-commit pegar', () => {
+  const repo = criar();
+  commitarEm(repo, ANTES_DO_CORTE, { 'app/antigo.js': comBytes(LIMITE * 2) });
+  repo.escrever({ 'app/antigo.js': comBytes(LIMITE * 2 + 1) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /app\/antigo\.js: 40001 bytes/);
 });
