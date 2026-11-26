@@ -1,7 +1,4 @@
 'use strict';
-// Teste do módulo idioma-ipc.js no Mac: nenhum ssh, nenhum aparelho.
-// O `exec` é falso e registra exatamente os argumentos recebidos, para provar
-// que nada é aplicado em silêncio e que não existe chamada com sudo.
 
 const idioma = require('../../../../app/electron/services/idioma-ipc.js');
 
@@ -10,11 +7,9 @@ function ok(nome, cond, extra) {
     if (!cond) { fails++; console.log(`FALHA [${nome}] ${extra || ''}`); }
 }
 
-// exec falso: devolve o que for programado e guarda os comandos
 function fakeExec(respostas = [], helperVersao = 'OK') {
     const chamadas = [];
     const fn = async (cmd, timeoutMs) => {
-        // primeira chamada de cada handler é a checagem de versão do helper
         if (Array.isArray(cmd) && cmd[0] === idioma.HELPER_BASH && cmd[1] === '-c') {
             chamadas.push({ cmd, timeoutMs, helper: helperVersao });
             return { code: 0, stdout: helperVersao + '\n', stderr: '' };
@@ -33,7 +28,6 @@ const SAIDA_SET_OK = 'clearedApps=com.a:es-ES,com.b:pt-BR\nclearedCount=2\nconfi
 const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nrequested=pt-BR\n';
 
 (async () => {
-    // 1) ler o idioma atual
     {
         const exec = fakeExec([{ code: 0, stdout: SAIDA_GET, stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -51,17 +45,15 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('get-sem-sudo', !cmd.join(' ').includes('sudo'), cmd.join(' '));
     }
 
-    // 2) aplicar no global SEM confirmação: não executa nada
     {
         const exec = fakeExec([]);
         const h = idioma.createHandlers({ exec });
         const r = await h.applyLanguage({ tag: 'en-US', domain: 'global' });
         ok('global-sem-confirmar', r.success === false && r.precisaConfirmar === true, JSON.stringify(r));
-        ok('global-sem-confirmar-nao-executa', exec.chamadas.length === 0, `${exec.chamadas.length} chamada(s)`);  // nem checagem de helper
+        ok('global-sem-confirmar-nao-executa', exec.chamadas.length === 0, `${exec.chamadas.length} chamada(s)`);
         ok('global-sem-confirmar-avisa', r.avisos.some((a) => /Accept-Language/.test(a)), JSON.stringify(r.avisos));
     }
 
-    // 3) aplicar no global COM confirmação: executa e devolve o que o aparelho confirmou
     {
         const exec = fakeExec([{ code: 0, stdout: SAIDA_SET_OK, stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -82,7 +74,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('global-avisa-accept', r.avisos.some((a) => /Accept-Language/.test(a)), JSON.stringify(r.avisos));
     }
 
-    // 4) idioma por app: sem aviso de Accept-Language, com o bundle no comando
     {
         const exec = fakeExec([{ code: 0, stdout: 'confirmed=yes\ndomain=com.apple.Preferences\nlanguage=en-US\nok=yes\noverride=yes\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -93,7 +84,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('app-cmd-bundle', cmd[cmd.indexOf('--domain') + 1] === 'com.apple.Preferences', cmd.join(' '));
     }
 
-    // 5) com respring pedido, a flag vai junto e não pede para rodar depois
     {
         const exec = fakeExec([{ code: 0, stdout: 'confirmed=yes\nlanguage=pt-BR\nok=yes\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -103,7 +93,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('respring-avisa-camlive', r.avisos.some((a) => /CAM LIVE/.test(a)), JSON.stringify(r.avisos));
     }
 
-    // 6) tag inválido e domínio inválido não executam nada
     {
         const exec = fakeExec([]);
         const h = idioma.createHandlers({ exec });
@@ -114,7 +103,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('invalido-nao-executa', exec.chamadas.length === 0, `${exec.chamadas.length} chamada(s)`);
     }
 
-    // 7) aparelho não confirmou → success false
     {
         const exec = fakeExec([{ code: 1, stdout: SAIDA_SET_UNICO, stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -122,7 +110,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('nao-confirmado', r.success === false && /não confirmou/.test(r.error || ''), JSON.stringify(r));
     }
 
-    // 8) erro do aparelho (helper não instalado) é repassado com texto claro
     {
         const exec = fakeExec([{ code: 3, stdout: 'error=novalanguage não instalado em /var/jb/usr/bin/novalanguage\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -130,7 +117,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('helper-ausente', r.success === false && /com\.aquiles\.novalanguage/.test(r.error || ''), JSON.stringify(r));
     }
 
-    // 9) revert
     {
         const exec = fakeExec([{ code: 0, stdout: 'language=\nok=yes\noverride=no\nrevertido_de_backup=/var/mobile/x.orig\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -140,7 +126,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('revert-cmd', exec.reais()[0].cmd.includes('revert'), exec.reais()[0].cmd.join(' '));
     }
 
-    // 10) revert sem backup → erro do aparelho
     {
         const exec = fakeExec([{ code: 5, stdout: 'error=sem backup de idioma para global\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -148,7 +133,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('revert-sem-backup', r.success === false && /sem backup/.test(r.error || ''), JSON.stringify(r));
     }
 
-    // 11) respring solto
     {
         const exec = fakeExec([{ code: 0, stdout: 'respring=ok\nwarn=respring derruba o CAM LIVE; reconecte a câmera depois\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -157,7 +141,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('respring-aviso', r.avisos.some((a) => /CAM LIVE/.test(a)), JSON.stringify(r.avisos));
     }
 
-    // 12) nenhum comando em nenhum teste usou sudo ou shell
     {
         const exec = fakeExec([]);
         const h = idioma.createHandlers({ exec });
@@ -167,7 +150,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('argv-separado', Array.isArray(exec.reais()[0].cmd) && exec.reais()[0].cmd.every((x) => typeof x === 'string'), linha);
     }
 
-    // 12b) limparApps:false é respeitado; app domain não limpa nada
     {
         const exec = fakeExec([{ code: 0, stdout: 'confirmed=yes\nlanguage=pt-BR\nok=yes\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -176,7 +158,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('limparApps-false-sem-clear', !exec.reais()[0].cmd.includes('--clear-apps'), exec.reais()[0].cmd.join(' '));
     }
 
-    // 12c) lista de apps com idioma próprio
     {
         const exec = fakeExec([{ code: 0, stdout: 'apps=com.a,com.b,com.c\ncount=3\nok=yes\n', stderr: '' }]);
         const h = idioma.createHandlers({ exec });
@@ -185,7 +166,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('lista-apps-cmd', exec.reais()[0].cmd.includes('apps'), exec.reais()[0].cmd.join(' '));
     }
 
-    // 12d) mensagens de erro traduzidas (o usuário não deve ver zsh cru)
     {
         ok('traduz-helper-antigo', /ajuda|antigo|v2/i.test(idioma.traduzirErro('language: subcomando desconhecido')), idioma.traduzirErro('subcomando desconhecido'));
         ok('traduz-sem-helper', /reinstale|não está nesse caminho/i.test(idioma.traduzirErro("zsh:1: no such file or directory: /var/jb/usr/bin/nova-locale")), 'x');
@@ -193,7 +173,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('traduz-outro', idioma.traduzirErro('erro qualquer') === 'erro qualquer', idioma.traduzirErro('erro qualquer'));
     }
 
-    // 12e) helper v2: NÃO chama o helper (evita o laço do daemon) e explica
     {
         const exec = fakeExec([], 'V2');
         const h = idioma.createHandlers({ exec });
@@ -206,7 +185,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('v2-recusa-respring', r3.success === false && exec.reais().length === 0, JSON.stringify(r3));
     }
 
-    // 12f) helper ausente
     {
         const exec = fakeExec([], 'FALTA');
         const h = idioma.createHandlers({ exec });
@@ -215,7 +193,6 @@ const SAIDA_SET_UNICO = 'confirmed=no\ndomain=global\nlanguage=en-US\nok=yes\nre
         ok('helper-falta-sem-chamada', exec.reais().length === 0, 'x');
     }
 
-    // 13) parser de saída tolera lixo e junta avisos repetidos
     {
         const s = idioma.lerSaida('lixo\nwarn=um\nwarn=dois\nerror=foo\nlanguage=pt-BR\n');
         ok('parser-warns', s.warnings.length === 2, JSON.stringify(s.warnings));

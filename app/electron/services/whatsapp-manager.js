@@ -12,7 +12,6 @@ const screenshot = require('screenshot-desktop');
 
 const BOT_SIGNATURE = '[NOVA_AI_BOT]';
 
-// ── Remote Screenshot: keywords that trigger instant screen capture ──────────
 const SCREENSHOT_TRIGGERS = [
     'screenshot', 'take ss', 'screen dikhao', 'capture screen',
     'ss lo', 'screen lo', 'screen capture', 'pc screen', 'screen bhejo',
@@ -51,7 +50,6 @@ class WhatsAppManager {
         this.maxReconnectAttempts = 8;
         this.maxInitTimeMs = 60000;
 
-        // WhatsApp Intelligence Module State
         this.busyModeEnabled = false;
         this.busyStatusText  = 'busy hain ya shayad kahin bahar gaye hain';
     }
@@ -440,7 +438,6 @@ class WhatsAppManager {
             this.isReady = true;
             this.qrCode = '';
             
-            // Pillar 1: Identity Recognition
             this.bossName = this.client?.info?.pushname || 'Boss';
             console.log(`[WhatsApp] 🤖 Authenticated as: ${this.bossName}`);
             
@@ -480,12 +477,10 @@ class WhatsAppManager {
             this.scheduleReconnect(reason || 'disconnected');
         });
 
-        // 1. Handle incoming messages from others
         client.on('message', async (msg) => {
             await this.handleIncomingMessage(msg);
         });
 
-        // 2. Handle messages created by the user (useful for self-chat sync)
         client.on('message_create', async (msg) => {
             if (msg.fromMe) {
                 await this.handleIncomingMessage(msg);
@@ -496,7 +491,6 @@ class WhatsAppManager {
     async handleIncomingMessage(msg) {
         if (!msg) return;
 
-        // ── Handle Voice Messages (PTT / Audio) ────────────────────────
         if (msg.hasMedia && (msg.type === 'ptt' || msg.type === 'audio')) {
             console.log('[WhatsApp] Voice message detected. Downloading media...');
             try {
@@ -521,53 +515,38 @@ class WhatsAppManager {
         const fromId = msg?.from || '';
         const toId   = msg?.to || '';
 
-        // ── ROOT_MASTER Detection (Pillar 4) ─────────────────────────────
         const isGroup = fromId.includes('@g.us') || toId.includes('@g.us');
 
-        // isSelfChat = Boss sent this message TO THEIR OWN NUMBER
         const isSelfChat = msg.from === msg.to;
 
-        // Target ID to reply to
-        // If fromMe (even to others), the target is toId. If from others, target is fromId.
         const targetId = msg.fromMe ? toId : fromId;
 
         console.log(`[WA-Bridge] body="${body.substring(0, 20)}" | fromMe=${msg.fromMe} | isSelf=${isSelfChat} | targetId=${targetId}`);
 
-        // ── Deduplication ──────────────────────────────────────────────────
-        // 1. By Message ID
         const messageId = msg?.id?._serialized;
         if (messageId && this.processedMessageIds.has(messageId)) return;
         if (messageId) this.processedMessageIds.add(messageId);
 
-        // 2. By Body (Prevent rapid double-processing)
         const bodyKey = `${targetId}:${body}`;
         if (this.processedMessageIds.has(bodyKey)) return;
         this.processedMessageIds.add(bodyKey);
         setTimeout(() => this.processedMessageIds.delete(bodyKey), 5000); 
 
-        // ── Loop Protection ───────────────────────────────────────────────
-        // 1. Always ignore bot's own reply markers
         if (body.includes('[NOVA_AI_BOT]') || body.includes('🤖') || body.includes('\u200B')) {
             return;
         }
 
-        // 2. Ignore Nova's outgoing replies to GUESTS (fromMe=true to a non-self chat)
-        //    But allow: isSelfChat=true (Boss commanding Nova)
         if (msg.fromMe && !isSelfChat) {
             return;
         }
 
         if (!body) return;
 
-        // ── Remote Terminal Commands (From Own Phone / Self-Chat) ─────────────
         const lowerMsg = body.toLowerCase();
         
-        // Allow self commands OR explicitly requested commands
         if (isSelfChat) {
-            // Notify frontend: Visual Pulse (Cyan blink) on ROOT command
             this.sendToFrontend('whatsapp-event', { event: 'root-pulse', data: { command: body } });
 
-            // Instant System Lock: Supports !lock, lock pc, laptop lock karo, etc.
             const isLockCmd = lowerMsg === '!lock' || /(?:pc|laptop|computer|liptop|system) (?:lock|band)/i.test(lowerMsg) || /^(?:lock|lock pc|lock laptop)$/i.test(lowerMsg);
             if (isLockCmd) {
                 console.log('[ROOT_CMD] 🔒 Instant System Lock Triggered');
@@ -576,7 +555,6 @@ class WhatsAppManager {
                 return;
             }
 
-            // !browser [url] — Open URL in default browser
             if (lowerMsg.startsWith('!browser ')) {
                 const url = body.substring('!browser '.length).trim();
                 const fullUrl = url.startsWith('http') ? url : `https://${url}`;
@@ -616,8 +594,6 @@ class WhatsAppManager {
                 return;
             }
 
-            // ── Preset Status Commands ─────────────────────────────────────────
-            // Usage: !busy driving | !busy sick | !busy meeting | !busy sleeping | !busy travelling
             const BUSY_PRESETS = {
                 'driving':    'The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein.',
                 'sick':       'The Carl Moon sir ki tabiyat theek nahi 🤒, get well soon duaen karein.',
@@ -632,14 +608,12 @@ class WhatsAppManager {
             if (lowerMsg.startsWith('!busy ')) {
                 const param = lowerMsg.substring(6).trim();
                 if (BUSY_PRESETS[param]) {
-                    // Preset match
                     this.busyModeEnabled = true;
                     this.busyStatusText = BUSY_PRESETS[param];
                     this._saveBusySettings();
                     await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Status set: "${this.busyStatusText}"`, false);
                     return;
                 }
-                // If param is longer than 3 chars and not a keyword — treat as custom text
                 if (param.length > 3) {
                     this.busyModeEnabled = true;
                     this.busyStatusText = param;
@@ -649,10 +623,6 @@ class WhatsAppManager {
                 }
             }
 
-            // ── !status <text> — Quick custom status update ──────────────────
-            // (Kept here for backward compatibility)
-            
-            // Screenshot command intercept
             const isScreenshotCmd = lowerMsg === '!ss' || SCREENSHOT_TRIGGERS.some(t => lowerMsg.includes(t));
             if (isScreenshotCmd) {
                 console.log('[ROOT_CMD] 📸 Screenshot command');
@@ -663,7 +633,6 @@ class WhatsAppManager {
             }
         }
 
-        // ── Group Intelligence & Stealth Monitor (Pillar 3) ─────────────
         if (isGroup) {
             const urgentKeywords = ['payment', 'meeting', 'urgent', 'emergency', 'jaldi', 'zaroori', 'paisa'];
             const bossMentioned = body.toLowerCase().includes(this.bossName.toLowerCase());
@@ -682,11 +651,9 @@ class WhatsAppManager {
                     }
                 });
             }
-            // Silent Monitor: Groups are never auto-replied to unless Boss commands it
             return; 
         }
 
-        // ── Urgent Detection & Notifications (For Direct Messages) ───────────
         if (!isSelfChat) {
             const urgentKeywords = ['urgent', 'emergency', 'call me', 'jaldi', 'zaroori'];
             const isUrgent = urgentKeywords.some(k => lowerMsg.includes(k));
@@ -705,14 +672,11 @@ class WhatsAppManager {
                 } catch (e) { console.error('Notification error', e); }
             }
 
-            // ── Shagird / Busy Mode Auto-Reply (Only for Direct Messages) ──────────
             if (this.busyModeEnabled) {
                 console.log(`[WA-Intelligence] 💤 Busy Mode Active. Auto-replying to ${fromId}`);
-                // Reply will be handled by Shagird Persona in useAppLogic.ts for better AI response
             }
         }
 
-        // Forward ALL messages to Nova frontend (Crucial for self-chat commands)
         this.sendToFrontend('mobile-message', {
             message:    body,
             chatId:     targetId,
@@ -724,11 +688,6 @@ class WhatsAppManager {
         });
     }
 
-    // ── Remote Screenshot Handler ──────────────────────────────────────────
-    //
-    // Captures the primary display to an in-memory Buffer (no temp file),
-    // converts to whatsapp-web.js MessageMedia, and sends as a photo.
-    // Buffer is GC'd automatically — no cleanup step needed.
     async handleScreenshotCommand(targetChatId) {
         if (!this.client || !this.isReady) {
             console.warn('[WA-Screenshot] Client not ready — cannot send screenshot.');
@@ -738,22 +697,18 @@ class WhatsAppManager {
         try {
             console.log('[WA-Screenshot] Capturing primary screen...');
 
-            // Capture to Buffer (screenshot-desktop default: PNG)
             const imgBuffer = await screenshot({ format: 'png' });
 
-            // Convert buffer → base64 → MessageMedia
             const media = new MessageMedia(
                 'image/png',
                 imgBuffer.toString('base64'),
                 'nova_screenshot.png'
             );
 
-            // Send image + caption to self-chat
             const sentMsg = await this.client.sendMessage(targetChatId, media, {
                 caption: '🖥️ Here is your current PC screen'
             });
 
-            // Register sent message ID to prevent echo processing
             const sentId = sentMsg?.id?._serialized;
             if (sentId) {
                 this.processedMessageIds.add(sentId);
@@ -764,13 +719,12 @@ class WhatsAppManager {
 
         } catch (err) {
             console.error('[WA-Screenshot] Capture/send error:', err.message);
-            // Notify user so they know capture failed
             try {
                 await this.client.sendMessage(
                     targetChatId,
                     `❌ Screenshot failed: ${err.message}\n\n_${BOT_SIGNATURE}_`
                 );
-            } catch (_) { /* silent — client may have disconnected */ }
+            } catch (_) { }
         }
     }
 
@@ -866,7 +820,6 @@ class WhatsAppManager {
         }
     }
 
-    // ── Save busy settings to whatsapp_settings.json ─────────────────────
     _saveBusySettings() {
         try {
             const settingsPath = require('path').join(this.app.getPath('userData'), 'whatsapp_settings.json');
@@ -880,7 +833,6 @@ class WhatsAppManager {
                 busyPreset: 'custom'
             };
             fs.writeFileSync(settingsPath, JSON.stringify(updated, null, 2));
-            // Notify frontend to sync state
             if (this.mainWindow && !this.mainWindow.isDestroyed()) {
                 this.mainWindow.webContents.send('whatsapp-busy-status-updated', {
                     busyStatus: this.busyStatusText
@@ -892,7 +844,6 @@ class WhatsAppManager {
         }
     }
 
-    // ── Human-Mimicry Send Reply ──────────────────────────────────────────
     async sendReplyWithMimicry(chatId, text, addSignature = true) {
         if (!this.client || !this.isReady) return false;
 
@@ -902,14 +853,11 @@ class WhatsAppManager {
         try {
             const chat = await this.client.getChatById(targetChatId);
             
-            // Stealth Typing: Short random delay before typing (1s to 2.5s)
             const initialDelay = Math.random() * 1500 + 1000;
             await new Promise(r => setTimeout(r, initialDelay));
             
-            // Send 'typing...' state
             await chat.sendStateTyping();
             
-            // Simulate typing duration based on text length (20ms per char, max 4s)
             const typingDuration = Math.min(Math.max(text.length * 20, 1000), 4000);
             await new Promise(r => setTimeout(r, typingDuration));
 

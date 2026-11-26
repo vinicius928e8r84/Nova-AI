@@ -1,22 +1,9 @@
-/**
- * 
- *  NOVA AI  Agent Swarm Backend Orchestrator  v4  (GRANULAR LOGS)
- *  electron/services/agent-swarm-controller.js
- *
- *   Correct @google/genai SDK usage (ai.models.generateContent)
- *   Granular step-by-step logs  drive AgentLiveFeed in UI
- *   Cancellation via isCancelled flag
- * 
- */
-
 'use strict';
 
 const path   = require('path');
 const { browserService } = require('./browser-manager');
 
-// ─── Gemini REST helper (Node.js https — no SDK dependency issues) ──────────
 async function geminiGenerate(apiKey, prompt, jsonMode = false) {
-    // Pro Core Shift Logic: Check if Gemini Web Session is active
     try {
         const geminiBrowserEngine = require('./gemini-browser-engine');
         const authStatus = geminiBrowserEngine.getAuthStatus();
@@ -35,7 +22,6 @@ async function geminiGenerate(apiKey, prompt, jsonMode = false) {
     const https = require('https');
     const { URL } = require('url');
 
-    // Only confirmed working free-tier models (no deprecated 1.5-pro/flash-latest)
     const modelsToTry = [
         { model: 'gemini-3.8-flash', api: 'v1beta' },
         { model: 'gemini-4-argon',   api: 'v1beta' },
@@ -71,8 +57,8 @@ async function geminiGenerate(apiKey, prompt, jsonMode = false) {
 
             if (result.json.error) {
                 console.warn(`[SwarmOrchestrator] ${model} [${result.status}]: ${result.json.error.message?.substring(0, 80)}`);
-                if (result.status === 400 || result.status === 403) break; // auth error, stop all
-                continue; // 404 / 429 → try next
+                if (result.status === 400 || result.status === 403) break;
+                continue;
             }
 
             const text = result.json.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -88,7 +74,6 @@ async function geminiGenerate(apiKey, prompt, jsonMode = false) {
 
 const ChildWorkerAgent = require('./child-worker-agent');
 
-//  Main Controller 
 class AgentSwarmController {
     constructor(mainWindow, app) {
         this.mainWindow    = mainWindow;
@@ -97,11 +82,9 @@ class AgentSwarmController {
         this.isCancelled   = false;
         this.activeChild   = null;
 
-        // Initialize Child Worker Agent
         this.childWorker = new ChildWorkerAgent(mainWindow, app);
     }
 
-    //  IPC helpers 
     broadcast(event, data) {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
             this.mainWindow.webContents.send('swarm:' + event, data);
@@ -119,7 +102,6 @@ class AgentSwarmController {
         this.broadcast('status', { agentId, status, progress });
     }
 
-    //  WhatsApp 
     async sendWA(text) {
         try {
             const wm = this.app?.whatsappManager;
@@ -132,7 +114,6 @@ class AgentSwarmController {
         }
     }
 
-    //  Cancellation 
     cancel() {
         if (!this.isSwarmActive) return;
         this.isCancelled = true;
@@ -158,7 +139,6 @@ class AgentSwarmController {
         }, delayMs);
     }
 
-    //  STEP 1: Intent Detection 
     async detectIntent(command, apiKey) {
         this.log('ceo', `Analyzing: "${command}"`);
 
@@ -205,13 +185,11 @@ RULES:
   *Example*: Urdu: "latest AI news check karo" -> Query: "latest AI news 2026"`;
 
         try {
-            // Strict override: User explicitly commanded the Swarm via code!
             const isExplicitCode = lowerCmd.startsWith('agents active') || lowerCmd.startsWith('agent,') || lowerCmd.startsWith('agent ');
             
             const raw = await geminiGenerate(apiKey, prompt, true);
             const match = raw.match(/\{[\s\S]*\}/);
             
-            // If LLM returned text but no JSON
             if (!match) {
                 return { 
                     isAgentTask: isExplicitCode, 
@@ -221,12 +199,10 @@ RULES:
             
             const plan = JSON.parse(match[0]);
             
-            // If explicit code is used, DO NOT allow Gemini to say NO.
             if (isExplicitCode) {
                 plan.isAgentTask = true;
                 if (!plan.tasks) plan.tasks = {};
                 
-                // Force a researcher task at minimum if Gemini failed to assign one
                 const hasAnyTask = plan.tasks.researcher || plan.tasks.coder || plan.tasks.sysadmin || plan.tasks.downloader;
                 if (!hasAnyTask) {
                     plan.tasks.researcher = command.replace(/^(agents active|agent,|agent\s)/i, '').trim() || command;
@@ -236,7 +212,6 @@ RULES:
             return plan;
         } catch (e) {
             console.error('[Swarm-Intent]', e.message);
-            // Fallback to strict code if LLM entirely failed
             const isExplicitCode = lowerCmd.startsWith('agents active') || lowerCmd.startsWith('agent,') || lowerCmd.startsWith('agent ');
             return { 
                 isAgentTask: isExplicitCode,
@@ -245,7 +220,6 @@ RULES:
         }
     }
 
-    //  MAIN ORCHESTRATOR 
     async executeWorkflow(userCommand, apiKey, isDelegated = false, childModel = 'gemini-3.8-flash', groqKey = '') {
         if (this.isSwarmActive) {
             this.log('ceo', 'Swarm already running. Wait or cancel first.');
@@ -254,7 +228,6 @@ RULES:
 
         const t0 = Date.now();
         
-        // ─── YOUTUBE UPLOAD PIPELINE INTERCEPT ───
         if (!isDelegated) {
             const lowerCmd = userCommand.toLowerCase();
             if (lowerCmd.includes('youtube auto upload') || lowerCmd.includes('meri video upload kar do') || lowerCmd.includes('youtube upload')) {
@@ -282,7 +255,6 @@ RULES:
                             const parsed = JSON.parse(line);
                             if (parsed.message) {
                                 this.log('sysadmin', `[YT-Auto] ${parsed.message}`);
-                                // Trigger Nova TTS feedback
                                 this.broadcast('task-result', { 
                                     task: 'YouTube Upload Status', 
                                     answer: parsed.message,
@@ -311,7 +283,6 @@ RULES:
                 return { handled: true };
             }
         }
-        // ──────────────────────────────────────────
 
         let plan;
 
@@ -350,7 +321,6 @@ RULES:
         return { handled: true };
     }
 
-    // Background Async execution runner
     async _runAgentsAsync(willRun, plan, userCommand, apiKey, t0, childModel = 'gemini-3.8-flash', groqKey = '') {
         const agentCount = Object.values(willRun).filter(Boolean).length;
         
@@ -360,20 +330,17 @@ RULES:
             `${agentCount} agents working...`
         );
 
-        // Mark queued agents as WAITING
         if (willRun.coder)      this.setStatus('coder',      'waiting');
         if (willRun.downloader) this.setStatus('downloader',  'waiting');
         if (willRun.sysadmin)   this.setStatus('sysadmin',    'waiting');
 
         try {
-            // DELEGATE TO CHILD WORKER RE-ACT ENGINE (pass user-selected model)
             const result = await this.childWorker.executeTask(userCommand, apiKey, childModel, groqKey || '');
             
             const elapsed = Math.round((Date.now() - t0) / 1000);
             
             if (result.success) {
                 this.log('ceo', ` All tasks complete (${elapsed}s)`);
-                // ── Notify frontend with actual result so Nova can auto-respond ──
                 this.broadcast('task-result', {
                     task:    userCommand,
                     answer:  result.finalAnswer || 'Task completed successfully.',
@@ -399,36 +366,30 @@ RULES:
         }
     }
     
-    //  STEP 6: VISIBLE RPA YouTube Search (Ghost Automation)
     async executeVisibleYouTubeDownload(searchQuery) {
         this._checkCancelled();
         this.log('researcher', ` Initializing VISIBLE browser sub-system...`);
         
         try {
-            await browserService.launch(); // headless: false is default in browserService
+            await browserService.launch();
             
-            // 1. Navigate to YouTube
             this.log('researcher', ` Navigating to YouTube...`);
             await browserService.navigate('https://www.youtube.com');
             await new Promise(r => setTimeout(r, 2000));
 
-            // 2. Type Query into Search Bar
             this.log('researcher', ` Typing query: "${searchQuery}"`);
             await browserService.type('input#search', searchQuery, true);
             
-            // 3. Wait for search results
             this.log('researcher', ` Waiting for results...`);
             await browserService.wait('ytd-video-renderer', 'visible', 10000);
             await new Promise(r => setTimeout(r, 1000));
 
-            // 4. Click the first video
             this.log('researcher', ` Selecting top result...`);
             await browserService.click('ytd-video-renderer a#video-title');
             
-            // 5. Polling loop for URL extraction (Dynamic wait)
             this.log('researcher', ` Waiting for video page to stabilize...`);
             let finalUrl = '';
-            for (let i = 0; i < 20; i++) { // Max 10 seconds (20 * 500ms)
+            for (let i = 0; i < 20; i++) {
                 await new Promise(r => setTimeout(r, 500));
                 const currentUrlResult = await browserService.executeScript('window.location.href');
                 
@@ -443,10 +404,8 @@ RULES:
 
             if (finalUrl && finalUrl.includes('/watch')) {
                 this.log('researcher', ` URL Extracted: ${finalUrl}`);
-                // 6. Close browser and return
                 await browserService.close();
                 
-                // 7. Focus Nova Window (via main process handler if called from renderer or directly if in main)
                 if (this.mainWindow && !this.mainWindow.isDestroyed()) {
                     this.mainWindow.show();
                     this.mainWindow.focus();

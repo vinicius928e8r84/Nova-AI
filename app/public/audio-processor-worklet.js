@@ -1,9 +1,3 @@
-/**
- * Audio Processor Worklet for Gemini Live API
- * Captures microphone audio and converts to PCM16 format
- * This replaces deprecated ScriptProcessorNode
- */
-
 const amostraParaInt16 = amostra => {
     const limitada = Math.max(-1, Math.min(1, amostra));
     return limitada < 0 ? limitada * 0x8000 : limitada * 0x7FFF;

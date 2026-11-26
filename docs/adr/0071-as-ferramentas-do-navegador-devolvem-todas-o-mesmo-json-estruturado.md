@@ -1,0 +1,3 @@
+# As ferramentas do navegador devolvem todas o mesmo JSON estruturado
+
+Cada método do `BrowserManager` devolve `{ success, toolName, result?, data?, error?, errorCode?, errorCategory?, retryable?, retrySuggestion?, debugInfo? }`: `result` é o resumo legível, `data` o dado estruturado, `errorCode` um código como `ELEMENT_NOT_FOUND` ou `NAVIGATION_TIMEOUT`, e `errorCategory` um de `transient`, `permanent`, `config`, `timeout` ou `not_found`. Quem chama decide repetir a ferramenta olhando `retryable`, sem interpretar a mensagem de erro; uma ferramenta nova que lance exceção em vez de devolver esse formato quebra o agente que a chama.
