@@ -1,0 +1,8 @@
+# As amostras do OBS imitam o que o nó nativo entregaria
+
+Os destinos do pipeline de captura (compressor de vídeo, sink de MOV, coordenador de foto, nó de time machine) assumem coisas que só a câmera de verdade cumpre. Cada adaptação abaixo existe porque a falta dela levanta exceção ou trava o disparo:
+
+- **Dicionários mutáveis.** O `BWVideoCompressorNode` escreve tempos no dicionário da amostra; um literal imutável levanta exceção em `setObject:forKeyedSubscript:`. O sink de MOV usa o anexo de topo como chave de um dicionário de análise, e anexo ausente levanta exceção (chave nil). Montamos as duas coisas.
+- **Dimensões.** O grafo do Safari (`com.apple.WebKit.GPU`) pede as próprias dimensões de captura e não tem ramos de foto nem de metadados. Seguimos o formato de vídeo configurado na saída física substituída, e não os 1584x1188 do app Câmera.
+- **Foto.** O coordenador do pipeline de foto libera o obturador apenas com mensagens de sequência de bracket que só o nó físico emite; publicamos essas mensagens a partir da saída de foto para o sink começar a receber. A saída de software se chama `OBSBridgeStill`, mas os ajustes originais da foto identificam a câmera como `PortTypeBack`, e o nó de time machine indexa o estado por porta pelo `MetadataDictionary` da amostra: traduzimos só o nosso quadro marcado, na fronteira daquele nó.
+- **Gravação.** O ramo nativo de gravação entrega ao compressor as suas próprias amostras de fronteira e controle, e só imagens nunca inicializam o estado de gravação dele. Guardamos aquela entrada exata e alimentamos o compressor com as imagens do OBS sem mudar as conexões do grafo nem interromper essas mensagens; também mantemos as mensagens de fronteira e controle do fluxo nativo.

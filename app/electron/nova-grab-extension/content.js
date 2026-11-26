@@ -1,14 +1,3 @@
-/**
- * NOVA GRAB — IDM-Style 3-Step Downloader v3
- *
- * Step 1: Small "Baixar este vídeo" bar appears at video top-right corner
- * Step 2: Click → format list slides down (IDM-style dropdown)
- * Step 3: Click format → "Info do Arquivo" draggable dialog
- * Step 4: Click "Iniciar Download" → IDM-style draggable progress dialog
- *
- * All 3 dialogs are movable/draggable.
- * Uses console.log('NOVA_DL:...') bridge → Playwright → yt-dlp
- */
 (function () {
   'use strict';
 
@@ -604,7 +593,6 @@
     buildTriggerBar(videoTitle, videoUrl);
   }
 
-  // ─── 4 Injection Strategies ───────────────────────────────────────────────
   new MutationObserver(() => {
     if (location.href.includes('/watch') && !document.getElementById('ng-trigger')) tryBuild();
   }).observe(document.documentElement, { childList: true, subtree: true });
