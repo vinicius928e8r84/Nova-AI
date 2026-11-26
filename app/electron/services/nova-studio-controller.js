@@ -1,17 +1,3 @@
-/**
- * 
- *  NOVA STUDIO  Core Backend Orchestrator v3
- *  electron/services/nova-studio-controller.js
- *
- *  MODES:
- *    1. ACCOUNT MODE (Primary):   Routes through GeminiBrowserEngine
- *       — Uses the user's own Google Account session (no API quota).
- *    2. API KEY MODE (Fallback):  Uses GoogleGenerativeAI SDK with stored key.
- *
- *  Model selection, login state, and mode-switch are controlled via IPC.
- * 
- */
-
 'use strict';
 
 const axios = require('axios');
@@ -21,7 +7,6 @@ const path = require('path');
 const fs = require('fs');
 const { clipboard } = require('electron');
 
-// ── Google Account Browser Engine ──────────────────────────────────
 let geminiBrowserEngine = null;
 try {
     geminiBrowserEngine = require('./gemini-browser-engine');
@@ -142,9 +127,6 @@ class NovaStudioController {
         this.mainWindow = mainWindow;
         this.app = app;
 
-        // Diagnostic model check removed to prevent SDK listModels errors
-
-        // PHASE 1 (Native Imaging): Initialize Imagen 3
         this.app.getGeminiToken().then(token => {
             if (token) {
                 this.nativeImageClient = new GoogleGenAI({ apiKey: token });
@@ -152,9 +134,6 @@ class NovaStudioController {
         });
     }
 
-    /**
-     * Helper: Convert Base64 into Generative Part
-     */
     base64ToGenerativePart(base64Str, mimeType = "image/png") {
         if (!base64Str) return null;
         try {
@@ -222,9 +201,6 @@ class NovaStudioController {
         return respostaComImagem(edicao, roteiro, imagem);
     }
 
-    /**
-     * MULTIMODAL VISION: Deep Reasoning & OCR (Gemini 1.5 Pro)
-     */
     async generateVisionResponse({ image, command, history }, intent, genAI) {
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-3.8-flash',
@@ -246,9 +222,6 @@ class NovaStudioController {
         return result.response.text();
     }
 
-    /**
-     * INTENT CLASSIFICATION (Gemini 1.5 Flash)
-     */
     async classifyIntent(image, command, genAI, history = []) {
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-3.8-flash',
@@ -274,9 +247,6 @@ Return ONLY valid JSON: { "intent": "image_edit" | "ocr_extraction" | "question"
         return match ? JSON.parse(match[0]) : { intent: 'image_edit' };
     }
 
-    /**
-     * PROMPT ENGINEERING & CONFIRMATION (Gemini 1.5 Pro)
-     */
     async enhancePrompt(image, command, genAI, history = []) {
         const model = genAI.getGenerativeModel({ 
             model: 'gemini-3.1-flash-live-preview',
@@ -318,9 +288,6 @@ Format: { "intent": "...", "positive": "...", "confirmation_text": "...", "targe
         };
     }
 
-    /**
-     * NATIVE IMAGE GENERATION: Google Imagen 3.0
-     */
     async generateNativeImage(prompt) {
         if (!this.nativeImageClient) {
             const token = await this.app.getGeminiToken();
@@ -351,16 +318,10 @@ Format: { "intent": "...", "positive": "...", "confirmation_text": "...", "targe
         }
     }
 
-    /**
-     * Decommissioned: Stable Diffusion Router (Local)
-     */
     async callStableDiffusion(sourceImage, promptData, mode) {
         throw new Error("STABLE_DIFFUSION_DECOMMISSIONED");
     }
 
-    /**
-     * Noise Harmonization Pass
-     */
     async harmonizeEdit(sourceImage, mode) {
         console.log(`[Studio] Harmonizing...`);
         const payload = {

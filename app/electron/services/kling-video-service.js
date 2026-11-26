@@ -1,11 +1,3 @@
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- *  KLING AI PICTURE-TO-VIDEO SERVICE - NOVA AI
- *  Transforms any image/picture into a cinematic, animated AI video.
- *  Supports Kling AI Cloud API + Nova High-Fidelity Local Motion Engine.
- * ═══════════════════════════════════════════════════════════════════════════
- */
-
 const fs = require('fs');
 const path = require('path');
 const https = require('https');

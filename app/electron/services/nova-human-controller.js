@@ -11,7 +11,6 @@ class NovaHumanController {
     log(text) {
         if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
         const ts = new Date().toLocaleTimeString([], { hour12: false });
-        // Direct Nova Log
         this.mainWindow.webContents.send('swarm:log', { 
             agent: 'nova', 
             text: `[${ts}] [NOVA] → ${text}` 
@@ -28,38 +27,31 @@ class NovaHumanController {
         );
 
         try {
-            // 1. Launch/Ensure Browser is Ready (Visible)
             await browserService.launch();
             const page = await browserService.getPage();
             
-            // Bring to Front - Ensuring user sees the action
             await page.bringToFront();
 
-            // 2. Navigation & Search
             if (attempt === 1) {
                 this.log(`Navigating to YouTube Media Database...`);
                 await browserService.navigate('https://www.youtube.com');
-                await page.waitForTimeout(1500); // Wait to look human
+                await page.waitForTimeout(1500);
                 
                 await page.bringToFront();
                 this.log(`Manually typing query: "${searchQuery}"`);
-                // Use new delay feature for character-by-character look
                 await browserService.type('input#search', searchQuery, { delay: 120, pressEnter: true });
                 
-                await page.waitForTimeout(2000); // Wait for potential auto-navigation
+                await page.waitForTimeout(2000);
                 
-                // ROBUSTNESS CHECK: Did search trigger?
                 if (!page.url().includes('/results')) {
                     this.log(`Search not triggered via Enter. Clicking Search Icon manually...`);
                     await page.click('button#search-icon-legacy');
                     await page.waitForTimeout(1000);
                 }
             } else {
-                // For retry, we represent the search or go back
                 this.log(`Returning to Search interface...`);
                 await page.bringToFront();
                 
-                // If it's a retry, we might want to refresh to be safe
                 if (page.url().includes('watch?v=')) {
                     await page.goBack();
                 } else {
@@ -68,20 +60,17 @@ class NovaHumanController {
                 await page.waitForTimeout(2000);
             }
 
-            // 3. Click Result based on Attempt Index
             this.log(`Analyzing search results (Waiting up to 20s)...`);
             await page.bringToFront();
             
-            // INCREASED TIMEOUT FOR RELIABILITY
             await page.waitForSelector('ytd-video-renderer', { visible: true, timeout: 20000 });
-            await page.waitForTimeout(1500); // Simulate "looking" at results
+            await page.waitForTimeout(1500);
             
             const results = page.locator('ytd-video-renderer a#video-title');
             const count = await results.count();
             
             if (count === 0) throw new Error('No videos found.');
 
-            // Human logic: 1st video for 1st attempt, 2nd video for 2nd attempt
             const index = Math.min(attempt - 1, count - 1);
             this.log(`Selecting Media Result #${index + 1}...`);
             
@@ -89,7 +78,6 @@ class NovaHumanController {
             await page.waitForTimeout(800);
             await results.nth(index).click();
             
-            // 4. Polling for URL extraction
             this.log(`Stabilizing encrypted media link...`);
             let finalUrl = '';
             for (let i = 0; i < 20; i++) {
@@ -98,7 +86,7 @@ class NovaHumanController {
                 if (currentUrl.includes('/watch?v=')) {
                     finalUrl = currentUrl;
                     this.log(`Playback confirmed. Capturing link...`);
-                    await page.waitForTimeout(1500); // Visual wait to show playback
+                    await page.waitForTimeout(1500);
                     break;
                 }
             }
@@ -106,9 +94,8 @@ class NovaHumanController {
             if (!finalUrl) throw new Error('Link stabilization failed.');
 
             this.log(`Media Link Captured Successfully.`);
-            await page.waitForTimeout(1000); // Give user a second to see the video page
+            await page.waitForTimeout(1000);
 
-            // 5. Done - Focus App
             if (this.mainWindow && !this.mainWindow.isDestroyed()) {
                 this.mainWindow.show();
                 this.mainWindow.focus();

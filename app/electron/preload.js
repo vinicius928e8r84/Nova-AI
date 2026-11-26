@@ -139,8 +139,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 });
 
-// iPhone por USB: o modal "Conectar iPhone" é desenhado dentro desta janela,
-// no mundo isolado do preload, em vez de abrir uma janela/página à parte.
 try {
     const { attach: attachIphoneSetup } = require('./services/iphone-setup/inapp');
     attachIphoneSetup({ ipcRenderer });

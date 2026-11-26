@@ -36,7 +36,6 @@ test('CAM LIVE sobe em socket Unix com token e o sequestro usa esse endereço',a
  const paused=service.snapshot();assert.equal(paused.transport,'unix');
  await service.setCameraEnabled(false,async()=>{wrote++;});
  assert.equal(wrote,2);assert.equal(service.cameraEnabled,false);
- // CAM LIVE continua rodando: o transporte permanece até o stop.
  assert.notEqual(service.media,null);
  await service.stop();assert.equal(service.media,null);
  assert(commands.some(c=>c.startsWith('rm -f')&&c.includes('.nb-')),'socket Unix deve ser removido');

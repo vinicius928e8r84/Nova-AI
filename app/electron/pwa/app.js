@@ -55,6 +55,11 @@ class NovaRemoteApp {
     }
 
     setupEventListeners() {
+        this.ligarTelaDeAcesso();
+        this.ligarTelaDoChat();
+    }
+
+    ligarTelaDeAcesso() {
         const connectBtn = document.getElementById('connect-btn');
         if (connectBtn) connectBtn.addEventListener('click', () => this.connect());
 
@@ -63,38 +68,49 @@ class NovaRemoteApp {
                 if (e.key === 'Enter') this.connect();
             });
         }
+    }
 
+    ligarTelaDoChat() {
         const disconnectBtn = document.getElementById('disconnect-btn');
         if (disconnectBtn) disconnectBtn.addEventListener('click', () => this.disconnect());
 
         const sendBtn = document.getElementById('send-btn');
         if (sendBtn) sendBtn.addEventListener('click', () => this.sendMessage());
 
-        if (this.messageInput) {
-            this.messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    this.sendMessage();
-                }
-            });
-
-            this.messageInput.addEventListener('input', (e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
-            });
-        }
+        if (this.messageInput) this.ligarCaixaDeMensagem();
 
         if (this.micBtn) {
             this.micBtn.addEventListener('click', () => this.handleMicClick());
         }
 
         if (this.modelSelect) {
-            this.modelSelect.addEventListener('change', () => {
-                const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
-                if (this.activeModelName) this.activeModelName.textContent = selectedText.split(' ').pop();
-                this.switchModel(this.modelSelect.value);
-            });
+            this.modelSelect.addEventListener('change', () => this.aoTrocarModelo());
         }
+    }
+
+    ligarCaixaDeMensagem() {
+        this.messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+
+        this.messageInput.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+        });
+    }
+
+    nomeDoModeloEscolhido() {
+        const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
+        return selectedText.split(' ').pop();
+    }
+
+    aoTrocarModelo() {
+        const nome = this.nomeDoModeloEscolhido();
+        if (this.activeModelName) this.activeModelName.textContent = nome;
+        this.switchModel(this.modelSelect.value);
     }
 
     async connect() {
@@ -219,8 +235,7 @@ class NovaRemoteApp {
         if (authError) authError.style.display = 'none';
 
         if (this.modelSelect && this.activeModelName) {
-            const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
-            this.activeModelName.textContent = selectedText.split(' ').pop();
+            this.activeModelName.textContent = this.nomeDoModeloEscolhido();
             this.switchModel(this.modelSelect.value);
         }
     }
@@ -264,7 +279,7 @@ class NovaRemoteApp {
             return;
         }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (!this.microfoneDisponivel()) {
             const msg = 'Microfone não suportado neste navegador. Chrome/Safari exigem HTTPS para acesso ao microfone. Use a URL do Túnel Cloudflare.';
             alert(msg);
             this.showError(msg);
@@ -272,35 +287,47 @@ class NovaRemoteApp {
         }
 
         if (!this.isRecording) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.mediaRecorder = new MediaRecorder(stream);
-                this.audioChunks = [];
-
-                this.mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) this.audioChunks.push(e.data);
-                };
-
-                this.mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/m4a' });
-                    await this.processTranscription(audioBlob);
-                    stream.getTracks().forEach(track => track.stop());
-                };
-
-                this.mediaRecorder.start();
-                this.isRecording = true;
-                this.micBtn.classList.add('recording');
-            } catch (err) {
-                console.error("Recording start fail:", err);
-                this.showError('Acesso ao microfone negado');
-            }
+            await this.iniciarGravacao();
         } else {
-            if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-                this.mediaRecorder.stop();
-            }
-            this.isRecording = false;
-            this.micBtn.classList.remove('recording');
+            this.pararGravacao();
         }
+    }
+
+    microfoneDisponivel() {
+        return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
+
+    async iniciarGravacao() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) this.audioChunks.push(e.data);
+            };
+
+            this.mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/m4a' });
+                await this.processTranscription(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            this.mediaRecorder.start();
+            this.isRecording = true;
+            this.micBtn.classList.add('recording');
+        } catch (err) {
+            console.error("Recording start fail:", err);
+            this.showError('Acesso ao microfone negado');
+        }
+    }
+
+    pararGravacao() {
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+        this.isRecording = false;
+        this.micBtn.classList.remove('recording');
     }
 
     async processTranscription(blob) {
@@ -407,9 +434,12 @@ class NovaRemoteApp {
         const btnText = btn.querySelector('.btn-text');
         const btnLoader = btn.querySelector('.btn-loader');
 
+        const displayDoTexto = isConnecting ? 'none' : 'inline';
+        const displayDoLoader = isConnecting ? 'block' : 'none';
+
         btn.disabled = isConnecting;
-        if (btnText) btnText.style.display = isConnecting ? 'none' : 'inline';
-        if (btnLoader) btnLoader.style.display = isConnecting ? 'block' : 'none';
+        if (btnText) btnText.style.display = displayDoTexto;
+        if (btnLoader) btnLoader.style.display = displayDoLoader;
     }
 
     updateConnectionStatus(isOnline) {
