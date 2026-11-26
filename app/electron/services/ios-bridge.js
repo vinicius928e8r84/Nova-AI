@@ -1,7 +1,4 @@
 'use strict';
-// Nova AI — iOS Bridge: iPhone por USB dentro do app (Apple Silicon port).
-// Serve a pagina "iPhone Console" em 127.0.0.1:8778 com: info do aparelho,
-// tela ao vivo (CatVNC via noVNC) e acoes por SSH (uiopen, screenshot, apps).
 const http = require('http');
 const net = require('net');
 const fs = require('fs');
@@ -12,7 +9,7 @@ const iphoneSsh = require('./iphone-ssh');
 const { WebSocketServer } = require('ws');
 
 const PORT = parseInt(process.env.NOVA_IOS_PORT || '8778', 10);
-const VNC_PORT = 5900;            // CatVNC no iPhone (encaminhado pelo iproxy)
+const VNC_PORT = 5900;
 const SSH_ARGS = ['-p', '2222', ...iphoneSsh.sshOptions(),
   '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
   'mobile@127.0.0.1'];
@@ -37,7 +34,6 @@ function ssh(command) {
   catch (erro) { return Promise.resolve({ ok: false, stdout: '', stderr: '', error: erro.message }); }
 }
 
-// ── iproxy: mantem o encaminhamento VNC do celular vivo ──
 function vncReachable() {
   return new Promise((resolve) => {
     const s = net.connect({ host: '127.0.0.1', port: VNC_PORT, timeout: 1500 });
@@ -76,14 +72,13 @@ setInterval(async () => {
   try {
     const ok = await vncReachable();
     if (!ok && !iproxyChild) spawnIproxy();
-  } catch (e) { /* ignora */ }
+  } catch (e) { }
   try {
     const sshOk = await portOpen(2222);
     if (!sshOk && !sshProxyChild) spawnSshProxy();
-  } catch (e) { /* ignora */ }
+  } catch (e) { }
 }, 15000).unref();
 
-// ── Helpers de acoes ──
 async function deviceInfo() {
   const keys = ['DeviceName', 'ProductType', 'ProductVersion', 'ModelNumber', 'SIMStatus'];
   const out = { connected: false };
@@ -129,7 +124,6 @@ function launchApp(bundleId) {
   return ssh('uiopen --bundleid ' + JSON.stringify(bundleId)).then(r => ({ ok: r.ok, error: r.ok ? null : (r.stderr || r.error) }));
 }
 
-// ── Ponte WebSocket <-> VNC TCP (para o noVNC da pagina) ──
 function attachVncBridge(wssInstance) {
   wssInstance.on('connection', (ws) => {
     vncWsCount++;
@@ -144,7 +138,6 @@ function attachVncBridge(wssInstance) {
   });
 }
 
-// ── Pagina do console ──
 const PAGE = `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

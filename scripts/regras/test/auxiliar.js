@@ -6,15 +6,16 @@ const os = require('os');
 const path = require('path');
 
 const VERIFICAR = path.join(__dirname, '..', 'verificar.js');
+const EMAIL_DO_REPOSITORIO = require('../configuracao.json').autoria.emailsDeAutor[0];
 const LINHA_DE_BASE = 'scripts/regras/linha-de-base.json';
 
 const linhas = quantas => Array.from({ length: quantas }, (_, i) => `const v${i} = ${i};`).join('\n') + '\n';
 
-const comoLinhaDeBase = (arquivos, saude) => `${JSON.stringify(saude === null ? { arquivos } : { arquivos, 'saude-do-codigo': saude })}\n`;
+const comoLinhaDeBase = (arquivos, saude) => `${JSON.stringify(saude === null ? { arquivos, comentarios: {} } : { arquivos, 'saude-do-codigo': saude, comentarios: {} })}\n`;
 
 function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'regras-teste-'));
-  const git = (...args) => execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: raiz, encoding: 'utf8', stdio: 'pipe' }).trim();
+  const git = (...args) => execFileSync('git', ['-c', `user.email=${EMAIL_DO_REPOSITORIO}`, '-c', 'user.name=t', ...args], { cwd: raiz, encoding: 'utf8', stdio: 'pipe' }).trim();
   const escrever = arquivos => {
     for (const [arquivo, texto] of Object.entries(arquivos)) {
       const completo = path.join(raiz, arquivo);
@@ -46,4 +47,4 @@ function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
 
 const temEslint = Boolean(process.env.ESLINT_BIN);
 
-module.exports = { criar, linhas, temEslint, LINHA_DE_BASE };
+module.exports = { criar, linhas, temEslint, EMAIL_DO_REPOSITORIO, LINHA_DE_BASE };
