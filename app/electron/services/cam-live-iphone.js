@@ -1,5 +1,4 @@
 'use strict';
-//
 const http = require('http');
 const crypto = require('crypto');
 const path = require('path');
