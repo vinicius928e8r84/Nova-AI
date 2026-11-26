@@ -1,34 +1,11 @@
-/**
- * ═══════════════════════════════════════════════════
- *  Platform Utilities (Cross-Platform Abstraction Layer)
- * ═══════════════════════════════════════════════════
- *
- * Industry-standard single source of truth for OS detection and
- * OS-specific behaviour. Instead of scattering `process.platform`
- * checks across the codebase, services call helpers from here.
- *
- * RULE: Windows behaviour must NEVER change. macOS / Linux branches
- * are ADDED alongside the existing Windows path — never replacing it.
- *
- *   const { isWindows, isMac } = require('./platform-utils');
- *   if (isWindows) { ...original windows code... }
- *   else if (isMac) { ...mac equivalent... }
- */
-
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// ── Detection flags (the one place platform is decided) ──
 const isWindows = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 const isLinux = process.platform === 'linux';
 
-// ════════════════════════════════════════════════════════
-//  Bundled Chromium resolution (used by browser-manager)
-// ════════════════════════════════════════════════════════
-// Relative executable locations inside a Playwright chromium-<rev> folder,
-// per platform. Windows list matches the original hardcoded path exactly.
 function getChromiumCandidateSubpaths() {
     if (isWindows) {
         return [
@@ -38,11 +15,9 @@ function getChromiumCandidateSubpaths() {
     }
     if (isMac) {
         return [
-            // Newer Playwright builds ship "Google Chrome for Testing.app"
             path.join('chrome-mac-arm64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
             path.join('chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
             path.join('chrome-mac', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'),
-            // Older builds ship "Chromium.app"
             path.join('chrome-mac-arm64', 'Chromium.app', 'Contents', 'MacOS', 'Chromium'),
             path.join('chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium'),
         ];
@@ -74,11 +49,6 @@ function executavelNaPastaDeNavegadores(browsersDir, candidates) {
         .find((exePath) => fs.existsSync(exePath)) ?? null;
 }
 
-/**
- * Scan the given browsers/ directories for a chromium-<rev> folder that
- * contains this platform's executable. Returns the absolute executable
- * path or null.
- */
 function findBundledChromiumExecutable(searchDirs) {
     const candidates = getChromiumCandidateSubpaths();
     for (const browsersDir of searchDirs) {
@@ -92,12 +62,6 @@ function primeiroCaminhoExistente(caminhos) {
     return caminhos.filter(Boolean).find((caminho) => fs.existsSync(caminho)) ?? null;
 }
 
-/**
- * Absolute path to the bundled `bin/` directory (agent-browser, etc.), or
- * null when it is not shipped. Checked in production-first order because in
- * a packaged app the dev path would resolve inside the asar archive, where
- * child processes cannot exec.
- */
 function findBundledBinDir() {
     return primeiroCaminhoExistente([
         process.resourcesPath ? path.join(process.resourcesPath, 'bin') : null,
@@ -105,10 +69,6 @@ function findBundledBinDir() {
     ]);
 }
 
-/**
- * Platform-appropriate Chrome user agent. The Windows string is the exact
- * one the app has always used — do not change it.
- */
 function getDefaultUserAgent() {
     if (isMac) {
         return 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -119,7 +79,6 @@ function getDefaultUserAgent() {
     return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 }
 
-// Promisified exec helper
 function execPromise(command, options = {}) {
     return new Promise((resolve, reject) => {
         exec(command, { timeout: 15000, ...options }, (error, stdout, stderr) => {
@@ -129,10 +88,6 @@ function execPromise(command, options = {}) {
     });
 }
 
-// ════════════════════════════════════════════════════════
-//  macOS: Open Application
-// ════════════════════════════════════════════════════════
-// Friendly name → macOS application name (used with `open -a`).
 const MAC_APP_MAP = {
     'notepad': 'TextEdit',
     'textedit': 'TextEdit',
@@ -183,17 +138,12 @@ const MAC_APP_MAP = {
     'blender': 'Blender',
 };
 
-// Apps that are better launched via a URL scheme on macOS.
 const MAC_SCHEME_MAP = {
     'settings': 'x-apple.systempreferences:',
     'system settings': 'x-apple.systempreferences:',
     'system preferences': 'x-apple.systempreferences:',
 };
 
-/**
- * Launch an application on macOS.
- * Returns the shell command that was run (for logging).
- */
 async function macOpenApplication(appName) {
     const name=String(appName).toLowerCase().trim();
     const mac=require('./mac-native');
@@ -202,10 +152,6 @@ async function macOpenApplication(appName) {
     return 'open '+args.join(' ');
 }
 
-// ════════════════════════════════════════════════════════
-//  macOS: Active Window  (via AppleScript / osascript)
-//  NOTE: window titles require Accessibility permission.
-// ════════════════════════════════════════════════════════
 async function macGetActiveWindow() {
     const script = `
 tell application "System Events"
@@ -241,9 +187,6 @@ end tell`;
     };
 }
 
-// ════════════════════════════════════════════════════════
-//  macOS: List Windows  (via AppleScript / osascript)
-// ════════════════════════════════════════════════════════
 async function macListWindows() {
     const script = `
 tell application "System Events"

@@ -1,23 +1,3 @@
-/**
- * ═══════════════════════════════════════════════════════════════════
- *   NOVA STUDIO — Gemini Browser Engine v1.0
- *   electron/services/gemini-browser-engine.js
- *
- *   PURPOSE:
- *   Instead of using API keys (which have strict per-day quotas),
- *   this engine opens a Puppeteer-controlled browser session logged
- *   into the user's own Google Account, then sends requests directly
- *   to the Gemini web API endpoint that the browser client uses.
- *   Session cookies are persisted to disk so the user only logs in once.
- *
- *   SUPPORTED MODELS (web-tier names):
- *     gemini-pro          → "Gemini 1.5 Pro"
- *     gemini-flash        → "Gemini 1.5 Flash"
- *     gemini-advanced     → "Gemini Advanced (Ultra 1.0)"
- *     gemini-3.7-flash    → "Gemini 3.7 Flash"
- * ═══════════════════════════════════════════════════════════════════
- */
-
 'use strict';
 
 const { BrowserWindow, session, app } = require('electron');
@@ -76,14 +56,6 @@ function saveModelPref(model) {
 }
 
 
-/**
- * Opens a dedicated login window using the persistent Electron session.
- * The window navigates to Google Sign-In, and we watch for the redirect
- * back to gemini.google.com to confirm login success.
- *
- * @param {BrowserWindow} parentWindow  Main Nova window (for positioning)
- * @returns {Promise<{success:boolean, email:string|null}>}
- */
 function openGoogleLoginWindow(parentWindow) {
     if (loginWindow) {
         return Promise.resolve(semLogin());
@@ -202,10 +174,6 @@ async function fecharSemErro(pagina) {
 
 
 
-/**
- * Extracts cookies from our persistent session and returns them
- * as a "Cookie: ..." header string for axios requests.
- */
 async function getSessionCookieHeader() {
     const geminiSession = session.fromPartition(SESSION_PARTITION);
     const cookies = await geminiSession.cookies.get({ url: GEMINI_ORIGIN });
@@ -213,9 +181,6 @@ async function getSessionCookieHeader() {
 }
 
 
-/**
- * Maps our internal model IDs to the Gemini web API model parameter.
- */
 const MODEL_ID_MAP = {
     'gemini-pro':      'gemini-3.8-flash',
     'gemini-flash':    'gemini-3.8-flash',
@@ -225,9 +190,6 @@ const MODEL_ID_MAP = {
     
 };
 
-/**
- * Sends a multimodal chat message through the user's browser session.
- */
 async function sendMessage({ prompt, imageBase64 = null, model = null, history = [], apiKey = null }) {
     if (!isLoggedIn) {
         return { success: false, error: 'NOT_LOGGED_IN: Please connect your Google Account first.' };
@@ -499,15 +461,11 @@ async function logoutSession() {
 loadAuthState();
 loadModelPref();
 
-/**
- * AUTO-RECONNECT: Check if session already has valid Gemini cookies
- */
 async function checkAutoLogin() {
     try {
         const geminiSession = session.fromPartition(SESSION_PARTITION);
         const cookies = await geminiSession.cookies.get({ url: GEMINI_ORIGIN });
         
-        // Look for SID or __Secure-1PSID which indicates a logged-in session
         const hasSession = cookies.some(c => c.name === 'SID' || c.name === '__Secure-1PSID' || c.name === 'OSID');
         
         if (hasSession) {
@@ -528,7 +486,6 @@ function setupSessionBypass() {
     const geminiSession = session.fromPartition(SESSION_PARTITION);
     const spoofUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
     
-    // Override the user agent for all requests in this session to bypass Google's "secure browser" check
     geminiSession.webRequest.onBeforeSendHeaders((details, callback) => {
         details.requestHeaders['User-Agent'] = spoofUserAgent;
         callback({ cancel: false, requestHeaders: details.requestHeaders });
@@ -545,9 +502,6 @@ if (app.isReady()) {
     });
 }
 
-/**
- * HEARTBEAT: Periodically check if the session is still alive
- */
 function startHeartbeat() {
     setInterval(async () => {
         if (isLoggedIn) {
@@ -562,29 +516,22 @@ function startHeartbeat() {
 }
 
 module.exports = {
-    /** Open the Google Sign-In popup */
     openGoogleLoginWindow,
 
-    /** Send a message using the logged-in session */
     sendMessage,
 
-    /** Logout and clear all cookies */
     logoutSession,
 
-    /** Get current auth status */
     getAuthStatus: () => ({ isLoggedIn, email: loggedInEmail }),
 
-    /** Perform manual auto-login check */
     checkAutoLogin,
 
-    /** Get/set selected model */
     getSelectedModel: () => selectedModel,
     setSelectedModel: (model) => {
         selectedModel = model;
         saveModelPref(model);
     },
 
-    /** List available models */
     AVAILABLE_MODELS: [
         { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash',         badge: 'BEST'    },
         { id: 'gemini-4-argon',   label: 'Gemini 4 Argon',           badge: 'FRONTIER' },

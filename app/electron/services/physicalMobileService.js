@@ -193,7 +193,6 @@ class PhysicalMobileService {
         });
     }
 
-    // Fuso do aparelho (o iOS ajusta sozinho quando a localização simulada muda)
     async iosDeviceTimeZone() {
         const r = await this.iosSsh('readlink /var/db/timezone/localtime');
         const m = r.ok ? String(r.stdout || '').trim().match(/zoneinfo\/(.+)$/) : null;
@@ -333,8 +332,6 @@ class PhysicalMobileService {
         }
     }
 
-    // iPhone já preparado neste Mac: chave SSH instalada e impressão digital registrada
-    // pelo Conectar. Serve para o cartão mostrar "Abrir controle" em vez de "Conectar".
     iosPrepared(udid) {
         try {
             const pinsFile = path.join(this.baseDir, 'iphone-hosts.json');
@@ -669,11 +666,6 @@ class PhysicalMobileService {
         return { success: true };
     }
 
-    // iOS: toggle de Wi-Fi/Bluetooth via Atalho nativo disparado por uiopen.
-    // Atalhos a criar no iPhone (nomes exatos): "Nova WiFi On", "Nova WiFi Off",
-    // "Nova BT On", "Nova BT Off" — ações Definir Wi-Fi / Definir Bluetooth.
-    // Leitura de estado real disponível via CLI novactl (com.aquiles.novactl).
-    // Detalhes: MAC/integracao-iphone/CONTROLS-IPHONE-WIFI-BLUETOOTH.md
     async iosToggleSetting(deviceId, setting, enable) {
         const SHORTCUTS = {
             wifi:      { on: 'Nova WiFi On', off: 'Nova WiFi Off' },
@@ -984,7 +976,6 @@ class PhysicalMobileService {
             const profile = brand.find(m => m.model === modelKey);
             if (!profile) return { success: false, error: `Model "${modelKey}" not found.` };
 
-            // Each brand family maps to an official TAC range registered with GSMA
             const IMEI_TAC = {
                 'samsung':   ['35265210', '35386910', '35617210', '35913410', '35265211'],
                 'google':    ['35396210', '35396211', '35396212', '35396213', '35396214'],
@@ -1010,7 +1001,6 @@ class PhysicalMobileService {
             const gaid     = this.generateGAID();
             const imsi     = '310150' + Math.floor(Math.random() * 9999999999).toString().padStart(10, '0');
 
-            // Read the device's actual OS properties to prevent framework mismatch crashes
             const realReleaseRes = await this.adbRootExec(deviceId, 'getprop ro.build.version.release');
             const realSdkRes = await this.adbRootExec(deviceId, 'getprop ro.build.version.sdk');
             const realPatchRes = await this.adbRootExec(deviceId, 'getprop ro.build.version.security_patch');
@@ -1066,7 +1056,6 @@ class PhysicalMobileService {
                 ['persist.radio.imei1',                 imei],
                 ['vendor.ril.imei',                     imei],
                 ['vendor.ril.imei1',                    imei],
-                // Anti-detection: must appear as a production user build
                 ['ro.debuggable',                       '0'],
                 ['ro.secure',                           '1'],
                 ['ro.adb.secure',                       '1'],
@@ -1084,9 +1073,6 @@ class PhysicalMobileService {
                 await this.adbRootExec(deviceId, `resetprop "${key}" "${val}" 2>/dev/null; true`);
             }
 
-            // Strategy: Set ALL known IMEI prop paths persistently + trigger safe telephony
-            // notification WITHOUT restarting ril-daemon (which causes blank IMEI).
-            // *#06# reads from ril.gsm.imei OR ril.imei — we set both.
             console.log(`[Spoofer] Deep IMEI inject: writing all prop paths (no ril restart)`);
 
             const imeiProps = [
@@ -1094,15 +1080,13 @@ class PhysicalMobileService {
                 `persist.radio.imei`, `persist.radio.imei1`,
                 `vendor.ril.imei`, `vendor.ril.imei1`,
                 `ro.ril.oem.imei`, `ril.gsm.imei`,
-                `gsm.current.phone-subid`, // Samsung path
+                `gsm.current.phone-subid`,
             ];
             for (const p of imeiProps) {
-                // -p flag writes to persist.* namespace AND volatile namespace
                 await this.adbRootExec(deviceId, `resetprop -p "${p}" "${imei}" 2>/dev/null; true`);
                 await this.adbRootExec(deviceId, `resetprop "${p}" "${imei}" 2>/dev/null; true`);
             }
 
-            // Samsung EFS direct write (if /efs accessible) — takes effect after full reboot
             await this.adbRootExec(deviceId, `mount -o remount,rw /efs 2>/dev/null; true`);
             await this.adbRootExec(deviceId,
                 `[ -d /efs/imei ] && printf '%s' '${imei}' > /efs/imei/nv_data.bin 2>/dev/null; true`);
@@ -1112,8 +1096,6 @@ class PhysicalMobileService {
                 `[ -f /efs/imei ] && printf '%s' '${imei}' > /efs/imei 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `sync 2>/dev/null; true`);
 
-            // Broadcast a safe Intent to tell TelephonyManager to re-read IMEI from props.
-            // This makes *#06# and Settings show the spoofed IMEI WITHOUT killing ril-daemon.
             await this.adbRootExec(deviceId, `am broadcast -a android.intent.action.SERVICE_STATE 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `am broadcast -a android.telephony.action.SUBSCRIPTION_CARRIER_IDENTITY_CHANGED 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `service call phone 1 2>/dev/null; true`);
@@ -1219,9 +1201,6 @@ class PhysicalMobileService {
                 ['ro.build.expect.bootloader',          profile.device.toLowerCase()],
             );
 
-
-            // Magisk reads system.prop from /data/adb/modules/<id>/ at boot
-            // and applies them via resetprop BEFORE Zygote starts → all apps see spoofed props
 
             this._lastAppliedProfile = {
                 model: profile.model,
@@ -1369,13 +1348,9 @@ exit 0
 
             console.log(`[Spoofer] ✅ Profile applied: ${profile.name} (Android ${av}) — Triggering crash-safe zygote reboot`);
 
-            // We do NOT use setTimeout — wait inline so Scrcpy has time to recover.
             await new Promise(r => setTimeout(r, 1500));
             console.log(`[Spoofer] Issuing zygote restart on ${deviceId}...`);
 
-            // Strategy: setprop ctl.restart zygote
-            // ✔ Kernel stays alive  ✔ ADB stays alive  ✔ Input/touch events stay alive
-            // ✔ Scrcpy connection survives  ✔ All Java framework restarts cleanly
             await this.adbRootExec(deviceId, `setprop ctl.restart zygote 2>/dev/null; true`);
 
             let zygoteReady = false;
@@ -1394,7 +1369,7 @@ exit 0
                 console.warn('[Spoofer] ⚠ Zygote did not report running in 20s — may still be booting');
             }
 
-            await new Promise(r => setTimeout(r, 3000)); // let system_server settle
+            await new Promise(r => setTimeout(r, 3000));
             const toastMsg = `NOVA SPOOF ✓ | ${profile.name} | IMEI: ${imei}`;
             await this.adbRootExec(deviceId,
                 `cmd notification post -S bigtext -t 'NOVA Spoof Active' 'NovaSpoofTag' "${toastMsg}" 2>/dev/null; true`
@@ -1511,7 +1486,6 @@ exit 0
             const bin = this.idevicesetlocationPath();
             if (!bin) return resolve({ ok: false, err: 'idevicesetlocation não encontrado neste computador.' });
             execFile(bin, ['--udid', udid, ...args], { timeout, windowsHide: true }, (err, stdout, stderr) => {
-                // idevicesetlocation imprime os erros no STDOUT (não no stderr); junta os dois
                 const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
                 resolve({ ok: !err, out: String(stdout || ''), err: saida || (err && err.message) || '' });
             });
@@ -1530,7 +1504,6 @@ exit 0
             console.log(`[Geo] iPhone falhou: ${(r.err || '').slice(0, 160)}`);
             return { success: false, error: (r.err || 'Falha ao aplicar a localização no iPhone.').slice(0, 300) };
         }
-        // O iOS ajusta o fuso sozinho a partir da localização; espera ele trocar (até ~8s).
         let timezone = tzAntes;
         for (let i = 0; i < 4; i++) {
             await new Promise((res) => setTimeout(res, 2000));
@@ -1612,9 +1585,6 @@ exit 0
         return plistPrefs.lerPrimeiroIdioma(local);
     }
 
-    // Idioma: o iOS 16 só troca de verdade pela tela de Ajustes — escrever o plist
-    // (mesmo com cfprefsd morto e respring) não muda o idioma efetivo. Por isso aqui
-    // só aplicamos o FUSO (determinístico) e não mexemos mais no idioma.
     async iosApplyLocale(deviceId, timezone) {
         if (!String(deviceId || '').startsWith('ios-')) return { success: false, error: 'Só para iPhone.' };
         if (!(await this.iosLocaleHelperReady())) {
@@ -1623,7 +1593,6 @@ exit 0
         const tz = timezone && /^[A-Za-z0-9_+\/-]+$/.test(timezone) ? timezone : '';
         if (!tz) return { success: false, error: 'sem fuso para aplicar' };
         try {
-            // Se o fuso do aparelho já é o pedido, não manda comando (evita respring à toa)
             const tzAntes = await this.iosDeviceTimeZone();
             if (tzAntes === tz) return { success: true, timezone: tz, message: 'fuso já estava certo' };
             await this.iosSendLocaleCommand({ action: 'apply', tz });
@@ -1715,8 +1684,6 @@ done
         return { success: true };
     }
 
-    // ✔ Kernel stays alive  ✔ ADB stays alive  ✔ Input/touch/mouse stays alive
-    // ✔ Scrcpy connection survives  ✔ All Java framework restarts cleanly
     async rebootDevice(deviceId, mode = 'soft') {
         try {
             if (mode === 'hard') {
@@ -1727,8 +1694,6 @@ done
             console.log(`[Spoofer] Zygote-only soft reboot on ${deviceId}`);
             await this.adbRootExec(deviceId, `setprop ctl.restart zygote 2>/dev/null; true`);
 
-            // ── FIX 2: Poll zygote state properly — wait until 'running' or 20s timeout
-            // This prevents returning too early (which caused Scrcpy mouse loss)
             let zygoteState = 'unknown';
             for (let i = 0; i < 20; i++) {
                 await new Promise(r => setTimeout(r, 1000));
@@ -1740,7 +1705,6 @@ done
                 }
             }
 
-            // Extra 2s for input service to stabilise — keeps Scrcpy mouse alive
             await new Promise(r => setTimeout(r, 2000));
 
             return { success: true, mode: 'soft-zygote', zygoteState };
@@ -1757,7 +1721,6 @@ done
             await this.adbRootExec(deviceId, `rm -f /data/local/tmp/nova_spoof.json 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `rm -f /data/local/tmp/nova_gps_loop.sh 2>/dev/null; true`);
             await this.adbRootExec(deviceId, `rm -rf /data/adb/modules/nova_spoof 2>/dev/null; true`);
-            // Hard reboot to restore original props from boot image
             await this.rebootDevice(deviceId, 'hard');
             return { success: true, message: 'Reiniciando dispositivo para restaurar a identidade real...' };
         } catch (err) {
@@ -1797,7 +1760,6 @@ done
             const existingMod = `/data/adb/modules/nova_spoof/system.prop`;
             const imeiLines = allProps.map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
 
-            // Append/update dual IMEI lines in existing module (sed remove old ril.imei lines, then append)
             await this.adbRootExec(deviceId,
                 `grep -v '^ril.imei\|^persist.radio.imei\|^vendor.ril.imei\|^ro.ril.oem.imei' ${existingMod} > /data/local/tmp/sp_tmp.prop 2>/dev/null; true`
             );
@@ -1902,9 +1864,6 @@ done
     }
 
 
-    /**
-     * getCamSpoofStatus — Check if nova-cam-spoofer APK is installed on device
-     */
     iosCamera() {
         if (!this._iosCamera) this._iosCamera = new (require('./ios-camera'))(this);
         return this._iosCamera;
@@ -1925,10 +1884,6 @@ done
         });
     }
 
-    /**
-     * installCamSpoofer — Push and install the nova-cam-spoofer.apk onto device via ADB
-     * The APK must be located at: resources/nova-cam-spoofer.apk (relative to app root)
-     */
     async installCamSpoofer(deviceId) {
         if (String(deviceId).startsWith('ios-')) return this.iosCamera().install();
         return new Promise((resolve) => {
@@ -1962,11 +1917,6 @@ done
         });
     }
 
-    /**
-     * startCamSpoof — Push selected video/picture to device and activate camera spoofing across all apps
-     * @param {string} deviceId - ADB device ID
-     * @param {string} videoPath - Local path to the fake camera video (.mp4) or photo (.jpg/.png/.bmp)
-     */
     async startCamSpoof(deviceId, videoPath) {
         if (String(deviceId).startsWith('ios-')) return this.iosCamera().startCamSpoof(videoPath);
         try {
@@ -2047,9 +1997,6 @@ done
         }
     }
 
-    /**
-     * stopCamSpoof — Send stop broadcast to restore real camera
-     */
     async stopCamSpoof(deviceId) {
         if (String(deviceId).startsWith('ios-')) return this.iosCamera().stopCamSpoof();
         return new Promise((resolve) => {
@@ -2078,16 +2025,6 @@ done
         });
     }
 
-    //  LIVE STREAM ENGINE — MJPEG over ADB Reverse Port Tunnel
-    //  PC runs HTTP MJPEG server on :8899 → ADB reverse → phone localhost:8899
-    //  LSPosed module reads frames from http://127.0.0.1:8899/stream
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /**
-     * startLiveStream — Start MJPEG HTTP server + ADB reverse tunnel
-     * @param {string} deviceId  ADB device serial
-     * @param {number} port      Local port (default 8899)
-     */
     async startLiveStream(deviceId, port = 8899) {
         if (String(deviceId).startsWith('ios-')) return this.iosCamera().start();
         try {
@@ -2178,11 +2115,6 @@ done
         }
     }
 
-    /**
-     * pushLiveFrame — Push a JPEG frame (base64) to all connected MJPEG clients
-     * Called by IPC handler at ~30fps from VirtualCamPanel canvas capture
-     * @param {string} base64jpeg  Base64-encoded JPEG image
-     */
     pushLiveFrame(base64jpeg) {
         if (this._iosCamera && this._iosCamera.server) this._iosCamera.pushFrame(base64jpeg);
         if (!this._mjpegServer || !this._mjpegClients || this._mjpegClients.length === 0) return;
@@ -2215,10 +2147,6 @@ done
         }
     }
 
-    /**
-     * stopLiveStream — Stop MJPEG server + remove ADB reverse tunnel
-     * @param {string} deviceId
-     */
     async stopLiveStream(deviceId) {
         if (String(deviceId).startsWith('ios-')) return this.iosCamera().stop();
         try {
@@ -2243,7 +2171,7 @@ done
             if (this._mjpegServer) {
                 await new Promise((resolve) => {
                     this._mjpegServer.close(() => resolve());
-                    setTimeout(resolve, 2000); // Force close after 2s
+                    setTimeout(resolve, 2000);
                 });
                 this._mjpegServer = null;
                 console.log('[LiveStream] MJPEG server stopped');
@@ -2258,15 +2186,6 @@ done
         }
     }
 
-    //  FRIDA DEEP INJECT — Hardware-level camera replacement
-    //  Starts frida-server on phone, spawns target app with camera hook
-    //  Works for Camera1 + Camera2, ALL apps, Android 9-14
-
-    /**
-     * fridaInject — Start frida-server on phone + inject camera hook into app
-     * @param {string} deviceId  ADB device serial
-     * @param {string} appName   Short app name (tiktok, whatsapp, etc.)
-     */
     async fridaInject(deviceId, appName) {
         try {
             const APP_PACKAGES = {

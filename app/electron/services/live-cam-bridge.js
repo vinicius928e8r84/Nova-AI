@@ -1,14 +1,3 @@
-/**
- * LiveCamBridgeService — Universal Bi-Directional Virtual Camera Bridge
- * 
- * 1. Mobile Camera -> PC Dashboard (Live Phone Camera on PC)
- *    - Universal Web Browser / QR Code (Works on ALL phones: iPhone, Android, iPad)
- *    - 1-Click ADB Scrcpy v4.1 Hardware Camera Stream (--video-source=camera)
- * 
- * 2. PC Webcam -> Mobile Live (Watch PC Webcam on Phone Screen)
- *    - Instant low-latency stream to any mobile device
- */
-
 'use strict';
 
 const http = require('http');
@@ -172,11 +161,11 @@ class LiveCamBridgeService {
         this.tunnelProcess = null;
         this.httpsUrl = null;
 
-        this.mobileStreamClients = new Set(); // Phones sending video to PC
-        this.mobileViewerClients = new Set(); // Phones watching PC video
-        this.mobileSpoofClients = new Set();  // Phones playing spoof video from PC
+        this.mobileStreamClients = new Set();
+        this.mobileViewerClients = new Set();
+        this.mobileSpoofClients = new Set();
 
-        this.adbCameraProcesses = new Map(); // Scrcpy hardware camera instances
+        this.adbCameraProcesses = new Map();
 
         this.lastPhoneFrame = null;
         this.activeSpoofVideoPath = null;
@@ -184,12 +173,10 @@ class LiveCamBridgeService {
         this.selectedIp = null;
     }
 
-    // Detect and rank all available IPv4 addresses (prioritizes real Wi-Fi / LAN adapters over VPN / Virtual ones)
     getAllIps() {
         return enderecosPorPreferencia(os.networkInterfaces());
     }
 
-    // Detect primary local IPv4 address
     getLocalIp() {
         if (this.selectedIp) {
             return this.selectedIp;
@@ -201,7 +188,6 @@ class LiveCamBridgeService {
         return '127.0.0.1';
     }
 
-    // Allow user to manually select or switch network interface IP
     async setSelectedIp(ip) {
         this.selectedIp = ip;
         console.log('[LiveCamBridge] Network IP switched to:', ip);
@@ -210,7 +196,6 @@ class LiveCamBridgeService {
         return status;
     }
 
-    // Start Live Bridge Server with Local Self-Signed HTTPS + HTTP fallback
     async startServer(preferredPort = 8899) {
         if (this.isRunning && this.server) {
             return this.getStatus();
@@ -334,13 +319,11 @@ class LiveCamBridgeService {
         this.notifyFrontend('live-cam:spoof-clients-changed', { count: this.mobileSpoofClients.size });
     }
 
-    // Set Active Spoof Video (from PC Dashboard)
     setSpoofVideo(filePath, meta = {}) {
         this.activeSpoofVideoPath = filePath;
         this.activeSpoofVideoMeta = meta;
         console.log('[LiveCamBridge] Active spoof video set to:', filePath);
 
-        // Notify all connected mobile spoof viewers
         this.broadcastSpoofCommand({
             type: 'load-video',
             hasVideo: !!filePath,
@@ -357,7 +340,6 @@ class LiveCamBridgeService {
         return { success: true, filePath };
     }
 
-    // Broadcast Command to Mobile Spoof Viewers (play, pause, seek, loop, etc.)
     broadcastSpoofCommand(command) {
         if (this.mobileSpoofClients.size === 0) return;
         const payload = typeof command === 'string' ? command : JSON.stringify(command);
@@ -393,7 +375,6 @@ class LiveCamBridgeService {
         return { success: true };
     }
 
-    // Push PC frame to mobile viewers
     pushPcFrame(base64Frame) {
         this.lastPcFrame = base64Frame;
         if (this.mobileViewerClients.size === 0) return;
@@ -407,7 +388,6 @@ class LiveCamBridgeService {
         }
     }
 
-    // Start Android Scrcpy v4.1 Physical Camera Stream (1-Click USB/Wi-Fi)
     async startAdbCameraStream(deviceId, facing = 'back', resolution = '1920x1080', fps = '60') {
         const scrcpyPath = this.physicalMobileService?.scrcpyPath || path.join(__dirname, scrcpyEmbutido());
         
@@ -447,7 +427,6 @@ class LiveCamBridgeService {
         return { success: true, message: 'Câmera Scrcpy (' + facing + ') started successfully!' };
     }
 
-    // Stop Android Scrcpy Camera
     async stopAdbCameraStream(deviceId, facing = 'back') {
         const procKey = deviceId + '-' + facing;
         const proc = this.adbCameraProcesses.get(procKey);
@@ -459,7 +438,6 @@ class LiveCamBridgeService {
         return { success: true };
     }
 
-    // Get Status + QR Codes
     async getStatus() {
         const localIp = this.getLocalIp();
         const availableIps = this.getAllIps().map(c => ({
@@ -524,7 +502,6 @@ class LiveCamBridgeService {
         }
     }
 
-    // Serve HTML Pages for Mobile Phone & PC
     handleHttpRequest(req, res) {
         const url = req.url || '/';
         res.setHeader('Access-Control-Allow-Origin', '*');

@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""Aplica no renderer do Nova: localização automática vinda da proxy.
-
-O que muda no painel "Identidade simulada":
-  - ao salvar a proxy (botão SALVAR e botão "Salvar identidade do iPhone"),
-    a localização é buscada da proxy e o GPS é aplicado no aparelho;
-  - ao abrir a aba com uma proxy salva, a localização é reaplicada;
-  - o botão "Fixar GPS Falso" some (vira texto de status); "Parar" continua.
-
-Uso:
-  python3 aplicar-geo.py <bundle-original.js> <bundle-saida.js>
-"""
 import pathlib
 import re
 import subprocess
@@ -46,7 +35,6 @@ def check(rotulo):
 
 
 def match_close(texto, i):
-    """Índice do delimitador que fecha o que abre em texto[i] (string-aware)."""
     pares = {'(': ')', '[': ']', '{': '}'}
     abre = texto[i]
     fecha = pares[abre]
@@ -85,7 +73,6 @@ def achar_antes(texto, marcador, abertura, rotulo):
     return i
 
 
-# 1) helper de geo + efeito que reaplica ao abrir a aba ---------------------------------
 HELPER = (
     'pGeoApply=async pPx=>{if(!W||!SI)return;const pG=await SI.invoke("spoofer:geo-from-proxy",{deviceId:W,'
     'proxy:(pPx||"").trim()}).catch(pE=>({success:!1,error:String(pE&&pE.message||pE)}));'
@@ -111,21 +98,18 @@ rep(
     'useEffect geo ao abrir',
 )
 
-# 2) salvar proxy -> aplica geo + GPS ---------------------------------------------------
 rep(
     'pSetProxyMsg("Proxy aplicado no iPhone."),pSetProxyStatus("ok")}',
     'pSetProxyMsg("Proxy aplicado no iPhone."),pSetProxyStatus("ok"),await pGeoApply(pV)}',
     'geo ao salvar proxy',
 )
 
-# 3) salvar identidade do iPhone -> aplica geo + GPS ------------------------------------
 velho_fim = 'ainda depende do hook do jailbreak.")}'
 if s.count(velho_fim) != 1:
     raise SystemExit(f'[geo ao salvar identidade] esperava 1, achei {s.count(velho_fim)}')
 s = s.replace(velho_fim, 'ainda depende do hook do jailbreak."),await pGeoApply(pV)}')
 passos.append('geo ao salvar identidade')
 
-# 3b) "Parar" também restaura idioma e fuso
 rep(
     'Ul=async()=>{if(!(!W||!SI))try{await SI.invoke("spoofer:stop-gps",{deviceId:W}),M("idle"),kI("Loop de GPS falso parado. Localização real restaurada."),VI("idle")}catch(eI){kI(`Error: ${eI.message}`)}}',
     'Ul=async()=>{if(!(!W||!SI))try{await SI.invoke("spoofer:stop-gps",{deviceId:W}).catch(()=>{}),'
@@ -134,13 +118,12 @@ rep(
     'parar restaura idioma/fuso',
 )
 
-# 4) remove o botão "Fixar GPS Falso" --------------------------------------------------
 marca = '"Fixar GPS Falso"'
 pos = s.find(marca)
 if pos < 0:
     raise SystemExit('[botões GPS] não achei "Fixar GPS Falso"')
 ini = achar_antes(s, marca, 'b.jsxs("div",{className:"grid grid-cols-2 gap-2"', 'botões GPS')
-fim = match_close(s, s.index('(', ini))        # fecha o parêntese de b.jsxs(...)
+fim = match_close(s, s.index('(', ini))
 NOVOS_BOTOES = (
     'b.jsxs("div",{className:"flex items-center justify-between gap-2",children:['
     'b.jsx("span",{className:`text-[9px] font-bold uppercase tracking-wider ${yl==="set"?"text-emerald-400":"text-white/35"}`,'

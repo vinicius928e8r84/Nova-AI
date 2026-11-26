@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""Controle do Celular: separa a tela em duas, iPhone | Android.
-
-Edita o bundle do renderer (index-Dun7lr2S.js) e cria:
-  - seletor de plataforma no topo do modal (iPhone / Android, com contagem)
-  - lista de dispositivos filtrada por plataforma
-  - abas por plataforma (Identidade simulada só no Android, com aviso)
-  - no iPhone: sem ADB, sem IP/pareamento/busca de rede (desabilitados com aviso)
-    e um guia de conexão próprio
-  - controles root (reiniciar/desligar) desabilitados no iPhone com aviso
-
-Uso:
-  python3 aplicar.py <bundle-original.js> <bundle-saida.js>
-
-O arquivo de saída é validado com node --check (como módulo .mjs) antes de gravar.
-"""
 import os
 import pathlib
 import re
@@ -51,7 +36,6 @@ def rep(velho, novo, rotulo, esperado=1):
 
 
 def match_paren(texto, abertura):
-    """Índice APÓS o ')' que casa com o '(' em `abertura`."""
     i, prof, instr, esc = abertura, 0, None, False
     while i < len(texto):
         ch = texto[i]
@@ -75,12 +59,10 @@ def match_paren(texto, abertura):
     raise ValueError('parêntese sem fechamento')
 
 
-# ── 0. sanidade: o bundle é o esperado ───────────────────────────────────────
 for marca in ['function III({onClose:I})', 'DISPOSITIVOS REAIS CONECTADOS', 'Suíte de Hardware']:
     if marca not in s:
         raise SystemExit('bundle inesperado, falta: ' + marca)
 
-# ── 1. estados novos: plataforma + escolha manual ────────────────────────────
 rep(
     ',[dl,Jl]=F.useState({width:900,height:620,x:120,y:60}),SI=window.electronAPI',
     ',[dl,Jl]=F.useState({width:900,height:620,x:120,y:60}),[pPlat,pSetPlat]=F.useState("android"),'
@@ -90,7 +72,6 @@ rep(
     'estados pPlat/pUserPicked',
 )
 
-# ── 2. abas: contagem/estado passam a usar a lista filtrada ─────────────────
 ini_abas = s.find('b.jsxs("div",{className:"flex border-b border-white/5 bg-black/20 flex-shrink-0",style:')
 fim_abas = s.find('b.jsxs("div",{className:"flex-1 overflow-auto p-6 bg-black/10",children:[', ini_abas)
 if ini_abas < 0 or fim_abas < 0 or fim_abas <= ini_abas:
@@ -101,10 +82,6 @@ if regiao.count('e.length') != 11:
 s = s[:ini_abas] + regiao.replace('e.length', 'pDevices.length') + s[fim_abas:]
 passos.append('abas filtradas (11 usos de e.length)')
 
-# ── 3. aba Identidade simulada: liberada também no iPhone ──────────────────
-# (antes ficava desabilitada com selo ANDROID; agora abre nos dois lados)
-
-# ── 4. definições derivadas (lista filtrada, contagens, ícones) ─────────────
 APPLE = ('M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014'
          '-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 '
          '1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 '
@@ -140,7 +117,6 @@ DEFS = (
 )
 rep('},[c]);const gG=e.find(eI=>eI.id===W)', DEFS, 'lista filtrada + ícones')
 
-# ── 5. efeitos: seguir a plataforma do aparelho e ajustar a seleção ─────────
 EFEITOS = (
     ';F.useEffect(()=>{if(!pUserPicked&&e.length>0){const pAuto=e[0].ios||String(e[0].id).startsWith("ios-")?"ios":"android";'
     'pAuto!==pPlat&&pSetPlat(pAuto)}},[e]);'
@@ -152,7 +128,6 @@ EFEITOS = (
 )
 rep(';return Fl?b.jsx("div",{className:"fixed inset-0 z-[9990]', EFEITOS, 'efeitos de plataforma/seleção')
 
-# ── 6. seletor de plataforma acima das abas ────────────────────────────────
 PLATAFORMA = (
     'b.jsxs("div",{className:"flex items-center gap-2.5 px-3 md:px-5 py-2 bg-black/40 border-b border-white/5 flex-shrink-0",children:['
     'b.jsx("span",{className:"hidden sm:block text-[8px] font-black text-white/25 uppercase tracking-[0.24em]",children:"Plataforma"}),'
@@ -170,7 +145,6 @@ PLATAFORMA = (
 TAB_KEY = 'b.jsxs("div",{className:"flex border-b border-white/5 bg-black/20 flex-shrink-0",style:'
 rep(TAB_KEY, PLATAFORMA + TAB_KEY, 'seletor iPhone | Android')
 
-# ── 7. botão Reparar ADB: desabilitado no iPhone ───────────────────────────
 rep(
     'b.jsx("button",{onClick:XG,disabled:v,className:"hidden sm:block px-2 py-1 bg-white/5 border border-white/10 hover:border-j-cyan/40 text-j-cyan rounded-lg text-[9px] font-black uppercase tracking-wider transition-all",title:"Reiniciar ADB",children:"Reparar ADB"})',
     'pIsIos?b.jsx("span",{className:"hidden sm:block px-2 py-1 bg-white/5 border border-white/10 text-white/25 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-not-allowed",title:"Exclusivo Android",children:"Reparar ADB"}):'
@@ -178,7 +152,6 @@ rep(
     'Reparar ADB só no Android',
 )
 
-# ── 8. faixa "Modo iPhone" no topo do conteúdo ─────────────────────────────
 BANNER = (
     'pIsIos&&b.jsxs("div",{className:"mb-3 flex flex-wrap items-center gap-1.5",children:['
     'b.jsx("span",{className:"text-[9px] font-black text-white uppercase tracking-widest mr-1",children:"Modo iPhone"}),'
@@ -191,7 +164,6 @@ rep(
     'faixa Modo iPhone',
 )
 
-# ── 9. tela Dispositivos: textos e lista por plataforma ─────────────────────
 rep(
     'children:"DISPOSITIVOS REAIS CONECTADOS"',
     'children:pIsIos?"IPHONES CONECTADOS":"ANDROIDS CONECTADOS"',
@@ -214,7 +186,6 @@ rep(
 )
 rep('children:e.map(', 'children:pDevices.map(', 'cartões de dispositivo filtrados')
 
-# ── 10. conexão por IP / pareamento / rede: desabilitadas no iPhone ────────
 rep(
     'children:[b.jsxs("div",{className:"flex items-center gap-2",children:[b.jsx("button",{onClick:()=>g("direct")',
     'children:[b.jsxs("div",{className:"flex items-center gap-2",style:pIsIos?{opacity:.4,pointerEvents:"none"}:null,children:[b.jsx("button",{onClick:()=>g("direct")',
@@ -234,7 +205,6 @@ rep(
     'aviso Exclusivo Android na conexão',
 )
 
-# ── 11. guia de conexão do iPhone (último filho do bloco de conexão) ───────
 GUIA_IOS = (
     ',pIsIos&&b.jsxs("div",{className:"p-4 rounded-xl border border-white/10 bg-white/[0.02] space-y-3 max-w-xl text-[11px] text-white/70",children:['
     'b.jsxs("div",{className:"flex items-center gap-2",children:['
@@ -260,7 +230,6 @@ if s[fim - 3:fim] != ']})':
 s = s[:fim - 3] + GUIA_IOS + s[fim - 3:]
 passos.append('guia do iPhone')
 
-# ── 12. Controles: atalhos no iPhone, comandos root desabilitados ──────────
 rep(
     'children:"DISPARADORES DE COMANDOS ROOT"}),b.jsxs("div",{className:"flex gap-3"',
     'children:"DISPARADORES DE COMANDOS ROOT"}),pIsIos&&b.jsx("span",{className:"text-[7px] font-black text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded px-1.5 py-0.5 uppercase tracking-wider",children:"Exclusivo Android"}),b.jsxs("div",{className:"flex gap-3"',
@@ -282,20 +251,16 @@ rep(
     'desligar desabilitado no iOS',
 )
 
-# ── 12b. Identidade simulada do iPhone: só modelo (7..18) + proxy ─────────
-# Marca escondida
 rep(
     'b.jsxs("div",{children:[b.jsx("label",{className:"text-[9px] font-bold text-white/40 tracking-widest uppercase mb-1 block",children:"Marca"})',
     'b.jsxs("div",{style:pIsIos?{display:"none"}:null,children:[b.jsx("label",{className:"text-[9px] font-bold text-white/40 tracking-widest uppercase mb-1 block",children:"Marca"})',
     'Marca escondida no iPhone',
 )
-# Select de modelo: lista do iPhone quando estiver no modo iPhone
 rep(
     'b.jsx("select",{value:D,onChange:eI=>dI(eI.target.value),className:"w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold appearance-none focus:outline-none focus:border-purple-400/50 cursor-pointer",children:(lI[mI]||[]).map(eI=>b.jsxs("option",{value:eI.model,className:"bg-[#0A0F18] text-white",children:[eI.name," (",eI.model,")"]},eI.model))})',
     'b.jsx("select",{value:pIsIos?pIphoneModel:D,onChange:pIsIos?pE=>pSetIphoneModel(pE.target.value):eI=>dI(eI.target.value),className:"w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-white text-xs font-bold appearance-none focus:outline-none focus:border-purple-400/50 cursor-pointer",children:pIsIos?pIphoneModels.map(pM=>b.jsx("option",{value:pM,className:"bg-[#0A0F18] text-white",children:pM},pM)):(lI[mI]||[]).map(eI=>b.jsxs("option",{value:eI.model,className:"bg-[#0A0F18] text-white",children:[eI.name," (",eI.model,")"]},eI.model))})',
     'select de modelo do iPhone (7 a 18)',
 )
-# Campo de proxy, logo abaixo do modelo
 PROXY = (
     'pIsIos&&b.jsxs("div",{children:['
     'b.jsx("label",{className:"text-[9px] font-bold text-white/40 tracking-widest uppercase mb-1 block",children:"Proxy do dispositivo"}),'
@@ -311,7 +276,6 @@ rep(
     ',' + PROXY + 'b.jsxs("button",{onClick:el,disabled:uI==="applying"||!D',
     'campo de proxy do iPhone',
 )
-# Botão: salvar identidade (iPhone) em vez de aplicar perfil Android
 rep(
     'onClick:el,disabled:uI==="applying"||!D,',
     'onClick:pIsIos?pSaveIos:el,disabled:pIsIos?!1:uI==="applying"||!D,',
@@ -322,7 +286,6 @@ rep(
     'pIsIos?"Salvar identidade do iPhone":uI==="applying"?"Aplicando Falsificação Profunda de IMEI...":"Aplicar Perfil de Falsificação Completo"',
     'rótulo do botão no iPhone',
 )
-# Painel "Identidade aplicada" com campos do iPhone
 rep(
     'children:[["Model",k.model],',
     'children:(k.ios?[["Modelo",k.model],["Proxy",k.proxy||"—"],["Perfil","Nova (salvo no app)"]]:[["Model",k.model],',
@@ -339,7 +302,6 @@ rep(
     'cor do campo Modelo',
 )
 
-# ── 12c. iPhone: esconde ações Android e adapta "Restaurar" ────────────────
 rep(
     'uI==="success"&&b.jsxs("button",{onClick:sG',
     'uI==="success"&&!pIsIos&&b.jsxs("button",{onClick:sG',
@@ -378,7 +340,6 @@ rep(
     'certificação Play Store escondida no iPhone',
 )
 
-# ── 13. validação de sintaxe (ESM) ─────────────────────────────────────────
 with tempfile.TemporaryDirectory() as tmp:
     prova = pathlib.Path(tmp) / 'bundle.mjs'
     prova.write_text(s, encoding='utf-8')

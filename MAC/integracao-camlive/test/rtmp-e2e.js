@@ -1,5 +1,3 @@
-// Teste de ponta a ponta do serviço: ffmpeg faz de servidor RTMP (-listen), o serviço publica pacotes H.264 reais.
-// uso: node rtmp-e2e.js [dyn] [throttle]   (precisa de ffmpeg/ffprobe no PATH)
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { CamLiveService } = require('../../../app/electron/services/cam-live-service.js');
@@ -10,7 +8,6 @@ const h264 = path.join(dir, 'in.h264'), out = path.join(dir, 'out.flv');
 spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', `testsrc=size=${W}x${H}:rate=${FPS}`, '-t', String(SECS), '-c:v', 'libx264', '-profile:v', 'main', '-bf', '0', '-g', '30', '-pix_fmt', 'yuv420p', '-f', 'h264', h264]);
 const raw = fs.readFileSync(h264);
 
-// Annex-B → NALUs
 const nals = []; let i = 0, start = -1;
 while (i < raw.length - 3) {
   const sc3 = raw[i] === 0 && raw[i + 1] === 0 && raw[i + 2] === 1, sc4 = raw[i] === 0 && raw[i + 1] === 0 && raw[i + 2] === 0 && raw[i + 3] === 1;
