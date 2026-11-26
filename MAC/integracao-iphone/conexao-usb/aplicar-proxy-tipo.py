@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""Campo da proxy do Nova (iPhone): seletor de tipo + leitura de qualquer formato.
-
-O que faz no bundle do app:
-  T1) troca o pValidProxy "burro" por pProxyX (leitor que extrai host/porta/usuario/senha
-      de qualquer ordem) mantendo pValidProxy como atalho;
-  T2/T3/T4) Salvar/Salvar identidade/abrir a aba passam a normalizar pelo leitor;
-  T5) mensagem de erro diz o que faltou, em vez de "Formato inválido";
-  T6) seletor de tipo (SOCKS5/SOCKS5H/HTTP/HTTPS/SOCKS4) + linha com o que foi lido;
-  T7) tira "idioma undefined" do status (hunk do aplicar-proxy-formato.py).
-
-Idempotente. Uso: aplicar-proxy-tipo.py ALVO.js [--aplicar]
-Sem --aplicar so simula. Com --aplicar grava e deixa ALVO.js.bak-proxy-tipo.
-"""
 import sys, os, re, shutil
 
 aqui = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +11,6 @@ if not alvo:
     sys.exit(2)
 
 js = open(js_path, encoding="utf8").read()
-# vira o corpo de uma IIFE que devolve os helpers
 linhas = [l for l in js.splitlines() if not l.startswith("if (typeof module")]
 corpo = "\n".join(linhas).replace("var PV_EXPORTS =", "return ", 1)
 corpo = corpo.rstrip()
@@ -66,7 +52,6 @@ for nome, velho, novo, esperado in hunks:
     s = s.replace(velho, novo)
     print(nome, "ok (%d)" % c)
 
-# formato antigo ja aplicado? entao as tres chamadas usam pNormProxy -> troca pelo leitor novo
 if "pNormProxy(pProxy)" in s and "pProxyX.norm(pProxy)" not in s:
     s = s.replace("pNormProxy(pProxy)", "pProxyX.norm(pProxy)")
     print("T2/T3/T4 variante pNormProxy: ok")

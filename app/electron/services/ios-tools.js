@@ -1,6 +1,5 @@
 'use strict';
 const fs=require('fs');
-// Only bundled USB tools: no Homebrew or personal PATH dependency.
 function tool(name){
  if(!['iproxy','idevice_id','ideviceinfo','ideviceinstaller'].includes(name))throw new Error('Ferramenta iPhone desconhecida.');
  const file=require('./tool-paths').iosTool(name);

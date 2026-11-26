@@ -1,25 +1,4 @@
 #!/usr/bin/env python3
-"""Idioma do aparelho inteiro (todos os apps) na tela "Identidade simulada" do Nova.
-
-Escopo escolhido pelo usuário (08/11): idioma do APARELHO INTEIRO, como proxy/GPS/modelo.
-Por isso a tela pede confirmação explícita antes de aplicar no domínio global
-(aceita o contrato do Backend: `confirmGlobal: true`).
-
-O que faz no bundle do app:
-  T8a) tradutor de erro + lista de idiomas (22, BCP-47, com o locale de cada um);
-  T8b) três estados novos: idioma escolhido, mensagem e confirmação pendente;
-  T8c) bloco na tela: seletor + Ler do aparelho + Aplicar + Reverter + confirmação.
-
-IPCs esperados (branch agent/backend/idioma-iphone-20261108, commit f73db98):
-  spoofer:get-language     { deviceId }                          -> { success, language, locale, override, diskMatches }
-  spoofer:apply-language   { deviceId, language, locale, confirmGlobal }
-                                                                 -> { success, language, respring, precisaConfirmar, ... }
-  spoofer:revert-language  { deviceId, confirmGlobal }           -> { success, language }
-Sem eles a tela não quebra: mostra "recurso ainda não ligado no app".
-
-Idempotente. Uso: aplicar-idioma.py ALVO.js [--aplicar]
-Sem --aplicar só simula. Com --aplicar grava e deixa ALVO.js.bak-idioma.
-"""
 import sys, os, shutil
 
 alvo = sys.argv[1] if len(sys.argv) > 1 else ""
@@ -31,7 +10,6 @@ if not alvo:
 s = open(alvo, encoding="utf8").read()
 o = s
 
-# ── T8a: helpers na cadeia de constantes ─────────────────────────────────────
 IDIOMAS = ("pIdiomas=["
            '["pt-BR","Português (Brasil)","pt_BR"],'
            '["pt-PT","Português (Portugal)","pt_PT"],'
@@ -69,7 +47,6 @@ else:
     if c != 1:
         print("T8a ERRO: ancora x%d (esperado 1) — rode antes o aplicar-proxy-tipo.py" % c)
         sys.exit(2)
-    # remove versao anterior, se existir (sem pIdiomas)
     antigo = ('pLangErro=pE=>{const pM=String(pE&&pE.message||pE);'
               'return /No handler registered|not registered/i.test(pM)'
               '?"recurso ainda não ligado no app (falta o IPC de idioma)":pM}')
@@ -80,7 +57,6 @@ else:
         s = s.replace(ANC_ERRO, NOVO_TAIL)
         print("T8a ok")
 
-# ── T8b: estados ─────────────────────────────────────────────────────────────
 ANC_HOOK = '[pProxyMsg,pSetProxyMsg]=F.useState("")'
 NOVOS = (',[pLang,pSetLang]=F.useState("pt-BR"),'
          '[pLangMsg,pSetLangMsg]=F.useState(""),'
@@ -93,7 +69,6 @@ else:
         print("T8b ERRO: ancora do useState x%d (esperado 1)" % c)
         sys.exit(2)
     if "[pLang,pSetLang]=F.useState" in s:
-        # versao anterior sem o estado de confirmacao
         velho = (',[pLang,pSetLang]=F.useState("pt-BR"),'
                  '[pLangMsg,pSetLangMsg]=F.useState("")')
         s = s.replace(velho, velho + ',[pLangConfirm,pSetLangConfirm]=F.useState(!1)')
@@ -102,7 +77,6 @@ else:
         s = s.replace(ANC_HOOK, ANC_HOOK + NOVOS)
         print("T8b ok")
 
-# ── T8c: bloco da tela ───────────────────────────────────────────────────────
 BTN_LER = ('b.jsx("button",{onClick:()=>{if(!SI||!W)return;pSetLangMsg("lendo...");'
            'SI.invoke("spoofer:get-language",{deviceId:W}).then(pR=>{'
            'if(pR&&pR.success&&pR.language){pSetLang(pR.language);'

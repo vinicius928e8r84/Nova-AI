@@ -47,6 +47,8 @@ gh pr create --base main --head <branch> --fill
 - Quem revisa/une faz merge (squash ou `--no-ff`), nunca rebase em `main`.
 - Se dois agentes mexeram no mesmo arquivo, o segundo **rebaseia** e relê o arquivo
   inteiro antes de commitar. Não sobrescreva a versão do outro com a sua.
+- Em cada clone, uma vez: `git config core.hooksPath .githooks`. O pre-commit e o pre-push rodam as mesmas regras do CI (`CONTRIBUTING.md`, "Ganchos locais").
+- Os commits usam o e-mail do repositório (`48294278+vinicius928e8r84@users.noreply.github.com`); a regra `autoria` barra os outros.
 
 ## 4. O que não entra no git
 

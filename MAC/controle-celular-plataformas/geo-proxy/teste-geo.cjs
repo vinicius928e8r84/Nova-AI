@@ -1,8 +1,4 @@
 'use strict';
-/** Teste do módulo geo-proxy.js, sem Electron.
- *  uso: node teste-geo.cjs "socks5://host:porta:usuario:senha"
- *  Sem argumento: testa só o byIp com um IP público conhecido.
- */
 const geo = require('../../../app/electron/services/geo-proxy');
 
 (async () => {

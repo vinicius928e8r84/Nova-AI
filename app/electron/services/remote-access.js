@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const { spawn } = require('child_process');
 const cloudflared = require('cloudflared');
 const toolPaths = require('./tool-paths');
+const { AcessoDoAdmin } = require('./admin-acesso');
 
 const CORS_PREFLIGHT = {
     'Access-Control-Allow-Origin': '*',
@@ -83,22 +84,24 @@ class RemoteAccessService {
         this.server = null;
         this.io = null;
         this.httpServer = null;
-        this.port = 3456; // WebSocket server port
-        this.tokens = new Map(); // Store active tokens
-        this.connectedClients = new Map(); // Track connected mobile clients
+        this.port = 3456;
+        this.tokens = new Map();
+        this.connectedClients = new Map();
         this.cloudflaredProcess = null;
         this.limiteDeTentativas = new LimiteDeTentativas();
+        this.acessoDoAdmin = new AcessoDoAdmin({
+            pasta: app.getPath('userData'),
+            conferirCliente: (cliente, validar) => this.conferirCliente(cliente, validar)
+        });
         this.publicUrl = null;
         this.isRunning = false;
 
-        // Paths
         this.tokensPath = path.join(app.getPath('userData'), 'remote_tokens.json');
         this.settingsPath = path.join(app.getPath('userData'), 'remote_settings.json');
 
         this.loadTokens();
     }
 
-    // Load saved tokens from disk
     loadTokens() {
         try {
             if (fs.existsSync(this.tokensPath)) {
@@ -112,7 +115,6 @@ class RemoteAccessService {
                 }
             }
 
-            // Automatically generate a default token if none exist
             if (this.tokens.size === 0) {
                 console.log('[RemoteAccess] No saved tokens found. Generating a default token...');
                 this.generateToken('Default Mobile');
@@ -122,7 +124,6 @@ class RemoteAccessService {
         }
     }
 
-    // Save tokens to disk
     saveTokens() {
         try {
             const data = {
@@ -135,7 +136,6 @@ class RemoteAccessService {
         }
     }
 
-    // Generate a new authentication token
     generateToken(deviceName = 'Mobile Device') {
         const token = crypto.randomBytes(BYTES_DO_TOKEN).toString('hex').toUpperCase();
         const tokenData = {
@@ -156,7 +156,6 @@ class RemoteAccessService {
         return tokenData;
     }
 
-    // Write connection info to REMOTE_ACCESS_INFO.txt in userData (never inside the .app bundle — it would break the code signature)
     writeLinkToFile() {
         try {
             const { app } = require('electron');
@@ -190,14 +189,12 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
-    // Validate token
     validateToken(token) {
         const tokenData = this.tokens.get(token);
         if (!tokenData || !tokenData.active) {
             return false;
         }
 
-        // Update last used time
         tokenData.lastUsed = Date.now();
         this.tokens.set(token, tokenData);
         this.saveTokens();
@@ -205,7 +202,6 @@ hone par ye file automatically update ho jayegi.
         return true;
     }
 
-    // Revoke a token
     revokeToken(token) {
         const tokenData = this.tokens.get(token);
         if (tokenData) {
@@ -213,7 +209,6 @@ hone par ye file automatically update ho jayegi.
             this.tokens.set(token, tokenData);
             this.saveTokens();
 
-            // Disconnect any clients using this token
             this.connectedClients.forEach((client, socketId) => {
                 if (client.token === token && this.io) {
                     this.io.to(socketId).emit('token-revoked');
@@ -266,14 +261,13 @@ hone par ye file automatically update ho jayegi.
         return proprias.filter(Boolean).map((url) => url.replace(/\/$/, '')).includes(origem);
     }
 
-    // Get all tokens
     getAllTokens() {
         return Array.from(this.tokens.values()).map(t => ({
             deviceName: t.deviceName,
             createdAt: t.createdAt,
             lastUsed: t.lastUsed,
             active: t.active,
-            token: t.token.substring(0, 8) + '...' // Show only first 8 chars for security
+            token: t.token.substring(0, 8) + '...'
         }));
     }
 
@@ -363,7 +357,8 @@ hone par ye file automatically update ho jayegi.
     }
 
     atenderRequisicao(req, res) {
-        if (!ehRotaDeConfigFirebase(req)) this.servePWA(req, res);
+        if (this.acessoDoAdmin.ehRota(req)) this.acessoDoAdmin.atender(req, res, this.clienteDaConexao(req.socket?.remoteAddress, req.headers));
+        else if (!ehRotaDeConfigFirebase(req)) this.servePWA(req, res);
         else if (req.method === 'OPTIONS') responderPreflight(res);
         else if (!this.tokenDaRequisicaoValido(req)) responderJson(res, 401, { error: 'Não autenticado' });
         else if (req.method === 'POST') this.receberConfigFirebase(req, res);
@@ -461,7 +456,6 @@ hone par ye file automatically update ho jayegi.
         this.notifyDesktop('client-disconnected', { deviceName: cliente.deviceName, socketId: socket.id });
     }
 
-    // Send Groq key to a specific socket
     sendGroqKeyToClient(socket) {
         if (!this.connectedClients.has(socket.id)) return;
         const groqKeyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
@@ -473,7 +467,6 @@ hone par ye file automatically update ho jayegi.
                     return;
                 }
             }
-            // Fallback to env
             if (process.env.GROQ_API_KEY) {
                 socket.emit('groq-key', { apiKey: process.env.GROQ_API_KEY });
             }
@@ -487,7 +480,6 @@ hone par ye file automatically update ho jayegi.
         socket.emit('authenticated', { success: true });
     }
 
-    // Send response back to mobile client
     sendToMobile(socketId, event, data) {
         if (this.io) {
             this.io.to(socketId).emit(event, data);
@@ -500,34 +492,28 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
-    // Notify desktop app (will be connected via IPC)
     notifyDesktop(event, data) {
-        // This will be handled by main.js via event emitter
         if (this.desktopCallback) {
             this.desktopCallback(event, data);
         }
     }
 
-    // Set callback for desktop notifications
     setDesktopCallback(callback) {
         this.desktopCallback = callback;
     }
 
-    // Serve PWA files
     servePWA(req, res) {
         const pwaDir = path.join(__dirname, '../pwa');
         let filePath = path.join(pwaDir, req.url === '/' ? 'index.html' : req.url);
 
-        // Security check
         if (!filePath.startsWith(pwaDir)) {
             res.writeHead(403);
             res.end('Forbidden');
             return;
         }
 
-        // Check if file exists
         if (!fs.existsSync(filePath)) {
-            filePath = path.join(pwaDir, 'index.html'); // SPA fallback
+            filePath = path.join(pwaDir, 'index.html');
         }
 
         const ext = path.extname(filePath);
@@ -633,10 +619,9 @@ hone par ye file automatically update ho jayegi.
         this.startFallbackTunnel();
     }
 
-    // Fallback to localtunnel
     async startFallbackTunnel() {
-        if (this.publicUrl) return; // Already have a URL
-        if (!this.isRunning) return; // Service is stopping
+        if (this.publicUrl) return;
+        if (!this.isRunning) return;
 
         try {
             console.log('[RemoteAccess] Starting Localtunnel fallback...');
@@ -653,7 +638,6 @@ hone par ye file automatically update ho jayegi.
             this.publicUrl = tunnel.url;
             console.log(`[RemoteAccess] ✅ Localtunnel Ready: ${this.publicUrl}`);
 
-            // Write to REMOTE_ACCESS_INFO.txt in project root
             this.writeLinkToFile();
 
             this.notifyDesktop('tunnel-ready', {
@@ -672,29 +656,23 @@ hone par ye file automatically update ho jayegi.
     }
 
 
-    // Get local IP address for same-network access
     getLocalIpAddress() {
         const os = require('os');
         const interfaces = os.networkInterfaces();
 
-        // Find the first non-internal IPv4 address
         for (const name of Object.keys(interfaces)) {
             for (const iface of interfaces[name]) {
-                // Skip internal (localhost) and non-IPv4 addresses
                 if (iface.family === 'IPv4' && !iface.internal) {
                     return iface.address;
                 }
             }
         }
 
-        // Fallback to localhost if no network interface found
         return 'localhost';
     }
 
-    // Generate QR code for mobile setup
     async generateQRCode(token) {
         try {
-            // Priority: Public URL > Local Network IP > Localhost
             let baseUrl;
             const localIp = this.getLocalIpAddress();
             const localNetworkUrl = `http://${localIp}:${this.port}`;
@@ -705,8 +683,6 @@ hone par ye file automatically update ho jayegi.
                 baseUrl = localNetworkUrl;
             }
 
-            // Create direct URL with token as query parameter
-            // This will open directly in mobile browser when QR is scanned
             const directUrl = `${baseUrl}?token=${token}`;
 
             const qrCodeDataUrl = await QRCode.toDataURL(directUrl, {
@@ -731,23 +707,19 @@ hone par ye file automatically update ho jayegi.
         }
     }
 
-    // Stop the service
     async stop() {
         console.log('[RemoteAccess] Stopping service...');
         this.isRunning = false;
 
-        // Disconnect all clients
         if (this.io) {
             this.io.emit('server-shutdown');
             this.io.close();
         }
 
-        // Close HTTP server
         if (this.httpServer) {
             this.httpServer.close();
         }
 
-        // Kill cloudflared process
         if (this.cloudflaredProcess) {
             this.cloudflaredProcess.kill();
             this.cloudflaredProcess = null;
@@ -759,7 +731,6 @@ hone par ye file automatically update ho jayegi.
         console.log('[RemoteAccess] Service stopped');
     }
 
-    // Get service status
     getStatus() {
         const localIp = this.getLocalIpAddress();
         return {

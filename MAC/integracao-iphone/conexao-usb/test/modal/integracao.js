@@ -1,4 +1,3 @@
-// Teste de integração: preload real do Nova + modal desenhado no app.
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -50,7 +49,6 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(__dirname, 'index.html'));
   const temApi = await win.webContents.executeJavaScript('typeof window.electronAPI');
   console.log('[test] electronAPI no renderer:', temApi);
-  // Primeiro sem nome (como no app, para abrir na hora); depois o nome chega do ideviceinfo.
   win.webContents.send('nova:iphone-setup-open', { id: 'ios-47F4FC34C3ACF770EB4E3561CAD85FCARDCAC298' });
   await new Promise((resolve) => setTimeout(resolve, 300));
   win.webContents.send('nova:iphone-setup-open', { id: 'ios-47F4FC34C3ACF770EB4E3561CAD85FCARDCAC298', name: 'iPhone 8 Plus (iOS 16.7.16)' });
@@ -75,7 +73,6 @@ app.whenReady().then(async () => {
   })`);
   console.log('[test] estado:', estado);
 
-  // Fecha o modal de senha e abre o controle direto pelo cartão ("Abrir controle").
   await win.webContents.executeJavaScript(`document.querySelector('.nvios-done').click()`);
   await new Promise((resolve) => setTimeout(resolve, 250));
   win.webContents.send('nova:iphone-console-open', { id: 'ios-47F4FC34C3ACF770EB4E3561CAD85FCARDCAC298' });

@@ -4,7 +4,6 @@ ARCHS = arm64
 
 include $(THEOS)/makefiles/common.mk
 
-# Tweak: injeta o modelo em MGCopyAnswer/sysctl/UIDevice (carrega em todo processo)
 TWEAK_NAME = NovaModel
 NovaModel_FILES = Tweak.x
 NovaModel_CFLAGS = -fobjc-arc -Wno-unused-function
@@ -12,7 +11,6 @@ NovaModel_FRAMEWORKS = Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-# CLI: novamodel set/clear/status (setuid root, rootless)
 TOOL_NAME = novamodel
 novamodel_FILES = main.m
 novamodel_CFLAGS = -fobjc-arc -Wall

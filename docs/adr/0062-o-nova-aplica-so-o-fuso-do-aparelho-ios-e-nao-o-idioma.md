@@ -1,0 +1,3 @@
+# O Nova aplica só o fuso do aparelho iOS, não o idioma
+
+No iOS 16 o idioma só troca de verdade pela tela de Ajustes: gravar o plist, mesmo com o `cfprefsd` parado e um respring, não muda o idioma efetivo. Por isso a preparação do aparelho aplica apenas o fuso, que é determinístico, e não mexe mais no idioma. O fuso acompanha a localização simulada: o iOS o ajusta sozinho depois de `idevicesetlocation`, e o Nova espera até cerca de 8 segundos que ele troque; se o fuso já é o pedido, nenhum comando é enviado, para não causar respring à toa. O `idevicesetlocation` escreve os erros no STDOUT, não no stderr, então os dois fluxos são lidos juntos.

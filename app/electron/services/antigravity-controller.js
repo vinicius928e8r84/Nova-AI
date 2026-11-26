@@ -4,7 +4,6 @@ const os = require('os');
 const fs = require('fs');
 const { clipboard } = require('electron');
 
-// The PS1 automation script path (bundled with app or in temp)
 const PS_SCRIPT_CONTENT = `
 param([int]$SendEnter = 1)
 Add-Type -AssemblyName System.Windows.Forms
@@ -123,7 +122,6 @@ class AntigravityController {
         this._initScript();
     }
 
-    /** Write PS1 script to a temp file once at startup */
     _initScript() {
         try {
             const tmpDir = os.tmpdir();
@@ -143,10 +141,6 @@ class AntigravityController {
         });
     }
 
-    /**
-     * Core automation: set clipboard then run PowerShell STA script to focus + paste + enter
-     * sendEnter=true also presses Enter to submit
-     */
     async runPowerShellAutomation(promptText, sendEnter = true) {
         if (process.platform === "darwin") {
             return this._colarNoMac(promptText, sendEnter);
@@ -198,9 +192,6 @@ class AntigravityController {
         return { success: false, error: output || stderr };
     }
 
-    /**
-     * Checks if Antigravity is running, and if not, launches it.
-     */
     async ensureAntigravityRunning() {
         if (process.platform === "darwin") {
             return await this.launchAntigravity();
@@ -231,9 +222,6 @@ class AntigravityController {
         }
     }
 
-    /**
-     * Spawns the Antigravity application from its standard path.
-     */
     async launchAntigravity() {
         if (process.platform === "darwin") {
             try { await require('./mac-native').run('/usr/bin/open',['-a','Antigravity']);return true; } catch(e) {this.log(e.message);return false;}
@@ -259,9 +247,6 @@ class AntigravityController {
         }
     }
 
-    /**
-     * Focuses the editor window using PowerShell STA automation
-     */
     async focusEditor() {
         if (process.platform === "darwin") {
             return await this.launchAntigravity();
@@ -270,16 +255,11 @@ class AntigravityController {
         if (!running) {
             this.log('Warning: Could not guarantee Antigravity is running.');
         }
-        // Use the PS automation script with no paste (just focus)
-        // We pass a dummy space so Ctrl+L just focuses, then no Enter
         clipboard.writeText(' ');
         const result = await this.runPowerShellAutomation(' ', false);
         return result.success;
     }
 
-    /**
-     * Queries process stats from Antigravity
-     */
     async getProcessStats() {
         if (process.platform === "darwin") {
             try {
@@ -305,9 +285,6 @@ class AntigravityController {
         return estatisticasDaSaida(await saidaDoPowerShell(comandoPowerShell(psCommand)));
     }
 
-    /**
-     * Starts the periodic monitoring loop
-     */
     startMonitoring() {
         if (this.monitorInterval) clearInterval(this.monitorInterval);
         this.log('Starting background monitoring loop...');
@@ -338,9 +315,6 @@ class AntigravityController {
         }, 4000);
     }
 
-    /**
-     * Stops the monitoring loop
-     */
     stopMonitoring() {
         if (this.monitorInterval) {
             clearInterval(this.monitorInterval);
@@ -352,9 +326,6 @@ class AntigravityController {
         }
     }
 
-    /**
-     * Restores Nova window to normal
-     */
     restoreWindow() {
         if (!this.mainWindow || this.mainWindow.isDestroyed()) return;
         try {
@@ -363,10 +334,6 @@ class AntigravityController {
         } catch (e) {}
     }
 
-    /**
-     * Prepares and executes the prompt in Antigravity
-     * This is the MAIN entry point called by IPC handlers
-     */
     async preparePrompt(promptText) {
         if (process.platform === "darwin") {
             return this._prepararNoMac(promptText);
@@ -437,9 +404,6 @@ class AntigravityController {
         return { success: result.success };
     }
 
-    /**
-     * Presses Enter in Antigravity to execute the pasted prompt
-     */
     async confirmAndExecute() {
         this.log('Confirm received - automation already completed (paste+Enter done in preparePrompt).');
 
@@ -448,8 +412,6 @@ class AntigravityController {
             return true;
         }
 
-        // Automation was already done in preparePrompt with sendEnter=true
-        // Just ensure monitoring is running
         if (!this.monitorInterval) {
             this.startMonitoring();
         }
@@ -457,9 +419,6 @@ class AntigravityController {
         return true;
     }
 
-    /**
-     * Minimizes the Antigravity editor window
-     */
     async minimizeEditor() {
         if (process.platform === "darwin") {
             try {await require('./mac-native').apple('tell application "System Events" to tell process "Antigravity" to set value of attribute "AXMinimized" of front window to true');return true;}catch{return false;}
@@ -479,17 +438,11 @@ class AntigravityController {
         });
     }
 
-    /**
-     * Maximize = focusEditor (bring to foreground + maximize)
-     */
     async maximizeEditor() {
         this.log('Maximizing Antigravity (via focusEditor)...');
         return await this.focusEditor();
     }
 
-    /**
-     * Closes the Antigravity editor completely
-     */
     async closeEditor() {
         if (process.platform === "darwin") {
             try {await require('./mac-native').apple('tell application "Antigravity" to quit');this.stopMonitoring();return true;}catch{return false;}
