@@ -12,6 +12,7 @@ if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
 fi
 node "$regras" --raiz "$raiz" --base "$base" \
   --regra sem-comentario-novo \
+  --regra teto-de-comentarios \
   --regra limite-de-linhas \
   --regra sem-segredo \
   --regra sem-binario-nem-lixo \
