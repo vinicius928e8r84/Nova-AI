@@ -1,7 +1,4 @@
 #!/bin/bash
-# Teste do binário novalanguage no Mac (o mesmo main.m que vai no .deb).
-# Usa um domínio de teste descartável (com.aquiles.novalanguage.teste) para não
-# encostar no domínio global nem nas preferências reais. Ocorre só no Mac.
 set -u
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 FONTE="$AQUI/../novalanguage/main.m"
@@ -19,14 +16,12 @@ echo "compilou: $BIN"
 PREFS_FAKE="${TMPDIR:-/tmp}/nl-prefs-fake"
 limpar() {
     rm -f "$PLIST"
-    # o CFPreferences cria arquivo de 42 B ao sincronizar domínio vazio; apaga os do teste
     rm -f "$HOME/Library/Preferences/com.teste.a.plist" "$HOME/Library/Preferences/com.teste.b.plist" \
           "$HOME/Library/Preferences/com.aquiles.novalanguage.teste.global.plist"
     rm -rf "$PREFS_FAKE"
 }
 trap limpar EXIT
 limpar
-# Estado limpo pelo STORE (apagar o arquivo não basta: a autoridade é o cfprefsd).
 "$BIN" clear --domain "$D" >/dev/null 2>&1 || true
 "$BIN" clear --domain com.teste.a >/dev/null 2>&1 || true
 "$BIN" clear --domain com.teste.b >/dev/null 2>&1 || true
@@ -64,7 +59,6 @@ ok "json-valido" 'printf "%s" "$saida" | node -e "let s=\"\";process.stdin.on(\"
 saida=$("$BIN" comando-que-nao-existe 2>&1); rc=$?
 ok "comando-desconhecido" '[ $rc -ne 0 ]'
 
-# ── aparelho inteiro: scan, limpar idioma próprio dos apps, locale derivado ──
 mkdir -p "$PREFS_FAKE"
 python3 - "$PREFS_FAKE" <<'FIX'
 import plistlib, sys, os
@@ -80,7 +74,6 @@ ok "scan-conta" 'printf "%s" "$saida" | grep -q "^count=2$"'
 ok "scan-lista" 'printf "%s" "$saida" | grep -q "com.teste.a" && printf "%s" "$saida" | grep -q "com.teste.b"'
 ok "scan-ignora-sem-idioma" '! printf "%s" "$saida" | grep -q "com.teste.sem"'
 
-# valores antes de limpar, para o 'antes' sair certo
 "$BIN" write pt-BR --domain com.teste.a >/dev/null
 "$BIN" write es-ES --domain com.teste.b >/dev/null
 
@@ -91,13 +84,11 @@ ok "locale-auto" 'printf "%s" "$saida" | grep -q "^locale=en_US$" && printf "%s"
 ok "global-confirmado" 'printf "%s" "$saida" | grep -q "^confirmed=yes$"'
 ok "override-do-apps-limpo" 'saida2=$("$BIN" read --domain com.teste.a --format lines); printf "%s" "$saida2" | grep -q "^override=no$"'
 
-# sem --clear-apps, o app continua com o idioma dele
 "$BIN" write pt-BR --domain com.teste.a >/dev/null
 "$BIN" write en-US --no-clear-apps >/dev/null
 saida=$("$BIN" read --domain com.teste.a --format lines)
 ok "no-clear-respeita" 'printf "%s" "$saida" | grep -q "^override=yes$"'
 
-# locale auto sem região no tag não inventa locale
 saida=$("$BIN" write pt --locale auto --domain "$D" --format lines)
 ok "auto-sem-regiao" 'printf "%s" "$saida" | grep -q "^confirmed=yes$"'
 
