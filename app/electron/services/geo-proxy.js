@@ -1,11 +1,4 @@
 'use strict';
-/**
- * geo-proxy.js — resolve a localização (lat/lon/cidade/fuso) do IP de saída
- * de um proxy SOCKS5, e também geolocaliza um IP já conhecido.
- *
- * Módulo puro (sem Electron) para poder ser testado direto com node:
- *   node teste-geo.cjs "socks5://host:porta:usuario:senha"
- */
 const https = require('https');
 
 const GEO_BASE = 'https://ipwho.is';
@@ -149,7 +142,6 @@ function normalize(data) {
   };
 }
 
-/** Consulta a geo *através* do proxy (devolve o IP de saída e a geo dele). */
 async function throughProxy(proxy) {
   const parsed = parseProxy(proxy);
   if (!parsed) throw new Error('Proxy inválido: não achei host e porta na string');
@@ -157,7 +149,6 @@ async function throughProxy(proxy) {
   return normalize(data);
 }
 
-/** Geolocaliza um IP já conhecido (sem proxy). */
 async function byIp(ip) {
   const clean = String(ip || '').trim();
   if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(clean) && !/^[0-9a-f:]+$/i.test(clean)) {

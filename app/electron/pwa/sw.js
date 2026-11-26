@@ -1,4 +1,3 @@
-// Service Worker for PWA offline support
 const CACHE_NAME = 'nova-remote-v1';
 const urlsToCache = [
     '/',
@@ -8,7 +7,6 @@ const urlsToCache = [
     '/manifest.json'
 ];
 
-// Install event
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -16,18 +14,15 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Fetch event
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request)
             .then((response) => {
-                // Return cached version or fetch from network
                 return response || fetch(event.request);
             })
     );
 });
 
-// Activate event
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
