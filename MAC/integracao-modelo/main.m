@@ -4,9 +4,6 @@
 #include <unistd.h>
 #include <string.h>
 
-//
-//
-
 static NSString *const kControl = @"/var/tmp/nova-model-control.json";
 static NSString *const kModelsPath = @"/var/jb/usr/share/novamodel/models.json";
 

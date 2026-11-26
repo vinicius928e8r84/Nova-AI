@@ -10,9 +10,6 @@
 #import <string.h>
 #import <unistd.h>
 
-//
-//
-
 static NSString *const kControl = @"/var/tmp/nova-model-control.json";
 
 static NSSet<NSString *> *g_mgKeys;
