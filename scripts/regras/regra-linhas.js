@@ -8,10 +8,12 @@ const { ARQUIVO_DA_LINHA_DE_BASE, gravarChave } = require('./linha-de-base');
 
 const id = 'limite-de-linhas';
 const titulo = 'Arquivo de código com no máximo 1000 linhas';
+const ATUALIZAR = `node scripts/regras/verificar.js --atualizar-linha-de-base --regra ${id}`;
 
 const conserto = 'Divida o arquivo por responsabilidade em módulos menores (no máximo 1000 linhas cada) e leve o código novo para um módulo novo, '
   + 'não para o arquivo grande. A linha de base (scripts/regras/linha-de-base.json) lista os arquivos que já passavam do limite: ela só encolhe. '
-  + 'Depois de encolher um deles, rode `node scripts/regras/verificar.js --atualizar-linha-de-base` e versione o arquivo.';
+  + 'O teto de cada um deles é o tamanho que ele tem na branch-alvo: encolher passa sem editar a linha de base, que pode ser baixada com '
+  + '`node scripts/regras/verificar.js --atualizar-linha-de-base`.';
 
 function lerLista(texto, origem) {
   let dados;
@@ -28,6 +30,30 @@ function renomeados(mudancas) {
   const mapa = new Map();
   for (const item of mudancas.itens) if (item.status === 'R') mapa.set(item.caminho, item.antigo);
   return mapa;
+}
+
+function tamanhoNaBase(ctx, caminho, antigo) {
+  const texto = arquivoNaBase(ctx.raiz, ctx.mudancas.base.desde, antigo !== undefined ? antigo : caminho);
+  return texto === null ? undefined : contarLinhas(texto);
+}
+
+function tetoDoArquivo(ctx, doTeto, caminho, antigo) {
+  const daLista = caminho in doTeto ? doTeto[caminho] : doTeto[antigo];
+  if (daLista === undefined) return undefined;
+  const real = tamanhoNaBase(ctx, caminho, antigo);
+  return real === undefined ? daLista : Math.min(daLista, real);
+}
+
+function conferirGrande({ aviso, falha, caminho, linhas, teto, daLinhaDeBase, limite }) {
+  if (linhas > teto) {
+    falha(caminho, `${linhas} linhas; o teto é ${teto} (o menor entre a linha de base e o tamanho na branch-alvo): arquivo grande não pode crescer (${linhas - teto} linhas a mais)`);
+  } else if (daLinhaDeBase === undefined) {
+    falha(caminho, `${linhas} linhas e saiu da linha de base sem ficar abaixo de ${limite}`);
+  } else if (daLinhaDeBase < linhas) {
+    falha(caminho, `tem ${linhas} linhas e a linha de base do ramo diz ${daLinhaDeBase}: a linha de base só pode descer até o tamanho do arquivo`);
+  } else if (daLinhaDeBase > linhas) {
+    aviso(`${id}: a linha de base pode descer: ${caminho} ${daLinhaDeBase} → ${linhas} (${ATUALIZAR})`);
+  }
 }
 
 function verificar(ctx) {
@@ -55,21 +81,16 @@ function verificar(ctx) {
     if (!arquivo || arquivo.binario) continue;
     const linhas = contarLinhas(arquivo.texto);
     const antigo = origem.get(caminho);
-    const teto = caminho in doTeto ? doTeto[caminho] : antigo !== undefined ? doTeto[antigo] : undefined;
-    const naLista = teto !== undefined;
+    const teto = tetoDoArquivo(ctx, doTeto, caminho, antigo);
     if (linhas <= limite) {
       if (caminho in doRamo) falha(caminho, `tem ${linhas} linhas, dentro do limite de ${limite}: tire-o da linha de base (--atualizar-linha-de-base)`);
       continue;
     }
-    if (!naLista) {
+    if (teto === undefined) {
       falha(caminho, `${linhas} linhas, ${linhas - limite} acima do limite de ${limite}; arquivo novo (ou que não estava na linha de base) tem de caber no limite`);
-    } else if (linhas > teto) {
-      falha(caminho, `${linhas} linhas; a linha de base o deixa em ${teto}: arquivo grande não pode crescer (${linhas - teto} linhas a mais)`);
-    } else if (doRamo[caminho] === undefined) {
-      falha(caminho, `${linhas} linhas e saiu da linha de base sem ficar abaixo de ${limite}`);
-    } else if (doRamo[caminho] !== linhas) {
-      falha(caminho, `tem ${linhas} linhas e a linha de base do ramo diz ${doRamo[caminho]}: ajuste com --atualizar-linha-de-base (o teto é o tamanho de hoje)`);
+      continue;
     }
+    conferirGrande({ aviso: texto => ctx.aviso(texto), falha, caminho, linhas, teto, daLinhaDeBase: doRamo[caminho], limite });
   }
 
   for (const item of mudancas.itens) {

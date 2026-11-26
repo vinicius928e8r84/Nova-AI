@@ -39,7 +39,7 @@ test('falha: arquivo grande da linha de base que cresce', () => {
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 1);
-  assert.match(r.saida, /1201 linhas; a linha de base o deixa em 1200/);
+  assert.match(r.saida, /1201 linhas; o teto é 1200/);
 });
 
 test('falha: subir a linha de base à mão para o arquivo poder crescer', () => {
@@ -62,17 +62,46 @@ test('falha: listar na linha de base um arquivo novo acima do limite', () => {
   assert.match(r.saida, /entrou na linha de base, que só encolhe/);
 });
 
-test('encolher exige baixar a linha de base, e --atualizar-linha-de-base a baixa', () => {
+test('encolher passa sem editar a linha de base e avisa que ela pode descer', () => {
   const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
   repo.escrever({ 'app/grande.js': linhas(1100) });
   const antes = executar(repo);
-  assert.equal(antes.codigo, 1);
-  assert.match(antes.saida, /tem 1100 linhas e a linha de base do ramo diz 1200/);
+  assert.equal(antes.codigo, 0, antes.saida);
+  assert.match(antes.saida, /a linha de base pode descer: app\/grande\.js 1200 → 1100/);
   assert.equal(repo.rodar('--atualizar-linha-de-base').codigo, 0);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(repo.raiz, 'scripts/regras/linha-de-base.json'), 'utf8')).arquivos, { 'app/grande.js': 1100 });
   const depois = executar(repo);
   repo.limpar();
   assert.equal(depois.codigo, 0, depois.saida);
+});
+
+test('falha: linha de base do ramo abaixo do tamanho do arquivo', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+  repo.escrever({ 'app/grande.js': linhas(1150) });
+  repo.lista({ 'app/grande.js': 1100 });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /tem 1150 linhas e a linha de base do ramo diz 1100/);
+});
+
+test('falha: crescer sobre a folga que a linha de base ainda guarda na main', () => {
+  const repo = criar({ 'app/grande.js': linhas(1130) }, { 'app/grande.js': 1200 });
+  repo.escrever({ 'app/grande.js': linhas(1170) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /1170 linhas; o teto é 1130/);
+});
+
+test('passa: encolher na mesma PR que renomeia o arquivo grande', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+  repo.git('mv', 'app/grande.js', 'app/outro.js');
+  repo.escrever({ 'app/outro.js': linhas(1150) });
+  repo.lista({ 'app/outro.js': 1150 });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 0, r.saida);
 });
 
 test('arquivo que cai para 1000 linhas sai da lista', () => {
