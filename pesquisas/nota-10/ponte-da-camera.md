@@ -1,6 +1,6 @@
 # O corte da ponte da câmera do iPhone (`bridge/Tweak.x`) em arquivos `.m`
 
-Esta é a pesquisa do ticket [Pesquisa: o corte da ponte da câmera do iPhone (bridge/Tweak.x) em arquivos .m](https://github.com/vinicius928e8r84/Nova-AI/issues/190), do mapa [Nova-AI na nota 10 no CodeScene: o plano, com a fila de lotes e as regras que seguram](https://github.com/vinicius928e8r84/Nova-AI/issues/120). Foi feita em 26/11/2026 sobre a `main` em `96ea7ce`, que é também a revisão da análise 161 do painel (26/11, 20:54 UTC). Ela parte do que o dono já decidiu em [O código em Objective-C e Logos: o roteiro de corte e de prova](https://github.com/vinicius928e8r84/Nova-AI/issues/134) e usa as seções 2.1, 4 e 5 de [Pesquisa: como se corta e se prova o código em Objective-C e Logos](https://github.com/vinicius928e8r84/Nova-AI/issues/133).
+Esta é a pesquisa do ticket [Pesquisa: o corte da ponte da câmera do iPhone (bridge/Tweak.x) em arquivos .m](https://github.com/vinicius928e8r84/Nova-AI/issues/190), do mapa [Nova-AI na nota 10 no CodeScene: o plano, com a fila de lotes e as regras que seguram](https://github.com/vinicius928e8r84/Nova-AI/issues/120). Foi feita em 26/11/2026 sobre a `main` em `96ea7ce`, que é também a revisão da análise 161 do painel (26/11, 20:54 UTC). A `main` andou para `4b398b1` antes desta PR. No caminho da ponte, só o `Pipeline.h` mudou: perdeu os comentários, e o código ficou igual. O `Tweak.x` ficou idêntico. Ela parte do que o dono já decidiu em [O código em Objective-C e Logos: o roteiro de corte e de prova](https://github.com/vinicius928e8r84/Nova-AI/issues/134) e usa as seções 2.1, 4 e 5 de [Pesquisa: como se corta e se prova o código em Objective-C e Logos](https://github.com/vinicius928e8r84/Nova-AI/issues/133).
 
 **Como foi feita.** Li o `Tweak.x`, o `Pipeline.h`, o `Makefile`, o `control`, os ADRs 0050 a 0055 e o `setup.js`. Li o painel só com GET, usando o token do dono, sem mudar nada. Depois montei uma divisão de teste fora do repositório: um script cortou o `Tweak.x` pelas linhas da tabela da seção 2 e gerou os arquivos. Compilei essa divisão no Mac de prova (macOS 15.6.1, Apple clang 17) contra o SDK do macOS, com um `substrate.h` falso, e comparei o binário com o do arquivo inteiro. Apaguei tudo depois. **Não compilei para iOS:** o Mac de prova ainda não tem Theos nem o SDK do iOS. Também não instalei nada no iPhone.
 
@@ -9,7 +9,7 @@ A pesquisa tem duas partes. Esta traz a resposta, as partes e o estado compartil
 ## Resposta curta
 
 - **As partes.** A ponte vira dez arquivos `.m` e um cabeçalho `Ponte.h`. O maior arquivo, `Foto.m`, fica com 13.641 bytes, e todos ficam abaixo de 300 linhas. O `Tweak.x` deixa de existir. O `%ctor` vira `__attribute__((constructor))` dentro de `Ganchos.m`.
-- **O `Pipeline.h` sai.** Das 13 funções dele, só `VCPDrawFrame` e `VCPFormatSupported` são usadas. As outras 11 nunca chegam ao binário, o que o `nm` confirma. As duas funções usadas passam para `Quadros.m`.
+- **O `Pipeline.h` sai.** Das 12 funções dele, só `VCPDrawFrame` e `VCPFormatSupported` são usadas. As outras 10 nunca chegam ao binário, o que o `nm` confirma. As duas funções usadas passam para `Quadros.m`.
 - **A ordem.** O corte 1 é a divisão mecânica: move o código sem mudar nenhuma função. Os cortes 2 a 10 refatoram um arquivo cada, nesta ordem: `Estado.m`, `Controle.m`, `Audio.m`, `Quadros.m`, `Saidas.m`, `Foto.m`, `CicloDoGrafo.m`, `Grafo.m` e `Ganchos.m`. Um arquivo que o painel já der como 10 depois do corte 1 sai da fila. O mais provável é que seja o `Runtime.m`, que por isso nem entra na lista.
 - **O que passa a ser compartilhado.** O arquivo tem 100 variáveis `static` no topo (97 `g_*` e 3 `k*`). No corte 1, **93 passam a ser compartilhadas**, entre elas **os 23 ponteiros `g_original*`**, e só 7 continuam `static`. Também passam a ser compartilhadas 35 funções. No fim da fila, sobram **21 compartilhadas, todas da configuração e do núcleo do grafo**, e **nenhum `g_original*`**. Para chegar lá, cada arquivo passa a montar o seu pedaço do estado e a instalar os seus próprios ganchos.
 - **O binário não muda.** A divisão de teste, compilada no Mac de prova, deu o mesmo binário que o arquivo inteiro em cinco medidas: os mesmos 164 símbolos importados, os mesmos 2 exportados, as mesmas 10 bibliotecas, os mesmos 256 textos e os mesmos 202 seletores. Deu igual com `-O0` e com `-O2`, sem nenhum aviso de compilação. Isso exige uma linha a mais no cabeçalho (`#pragma GCC visibility push(hidden)`). Sem ela, o binário passa a exportar 128 símbolos novos.
@@ -21,12 +21,12 @@ A pesquisa tem duas partes. Esta traz a resposta, as partes e o estado compartil
 | Medida | Valor na `main` em `96ea7ce` |
 | --- | --- |
 | `bridge/Tweak.x` | 1.500 linhas, 79.151 bytes, 51 funções, 1 classe (`OBSBridgeContext`) |
-| `bridge/Pipeline.h` | 227 linhas, 13.466 bytes, 13 funções `static` |
+| `bridge/Pipeline.h` | 227 linhas, 13.466 bytes, 12 funções `static`. Depois, a [PR #156](https://github.com/vinicius928e8r84/Nova-AI/pull/156) tirou os 14 comentários: na `main` em `4b398b1` são 213 linhas e 12.429 bytes, com o mesmo código |
 | Variáveis `static` no topo | 100: 97 `g_*` (23 delas são ponteiros `g_original*`) e 3 constantes `k*` |
 | Ganchos | 22 chamadas a `MSHookMessageEx` e 1 ponteiro lido com `class_getMethodImplementation` (`g_originalPhysicalEmitSequence`) |
 | Logos | só o `%ctor` (linha 1474) |
 | Painel (análise 161) | o `Tweak.x` não aparece entre os arquivos com nota, e o filtro de exclusão do projeto ainda é `*.json;*.h;*.yml;*.sh;*.md;*.min.js;*.txt;*.html;*.css` |
-| Regras do repositório | `linha-de-base.json`: o `Tweak.x` tem 1.500 linhas na base do limite de linhas e 88 comentários na base de comentários; o `Pipeline.h` tem 14 comentários na base |
+| Regras do repositório | `linha-de-base.json`: o `Tweak.x` tem 1.500 linhas na base do limite de linhas e 88 comentários na base de comentários; o `Pipeline.h` tem 14 comentários na base (zerados pela PR #156) |
 | Versão | `0.1-39` em `bridge/control`, em `saveStatus` e no `TARGET` de `app/electron/services/iphone-setup/setup.js` |
 
 O que cada ADR protege, para o revisor saber onde olhar em cada corte:
