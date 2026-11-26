@@ -43,6 +43,14 @@ const ehProsa = (trecho, linhas) => {
   return false;
 };
 
+const ehMarcaVazia = (trecho, linhas) => {
+  for (let linha = trecho.de; linha <= trecho.ate; linha++) {
+    const item = linhas.get(linha);
+    if (item && item.corpo) return false;
+  }
+  return trecho.tipo === 'linha' && trecho.inteira;
+};
+
 const seguem = (anterior, atual) => anterior.tipo === 'linha' && atual.tipo === 'linha' && anterior.inteira && atual.inteira
   && atual.de === anterior.ate + 1 && atual.identacao === anterior.identacao;
 
@@ -78,7 +86,7 @@ function blocosDe(arquivo, fonte, python = 'python3') {
   const inicios = indiceDeLinhas(fonte);
   const linhas = new Map(linhasDeComentario(arquivo, fonte).map(item => [item.linha, item]));
   const trechos = trechosDeComentario(arquivo, fonte).sort((a, b) => a[0] - b[0]).map(trecho => descreverTrecho(fonte, inicios, trecho));
-  const prosa = juntar(trechos.filter(trecho => ehProsa(trecho, linhas)));
+  const prosa = juntar(trechos.filter(trecho => ehProsa(trecho, linhas) || ehMarcaVazia(trecho, linhas))).filter(grupo => ehProsa(grupo, linhas));
   const todos = [...prosa, ...docstringsDe(arquivo, fonte, inicios, python)].sort((a, b) => a.inicio - b.inicio);
   return todos.map((bloco, i) => ({ id: i + 1, ...bloco, texto: bloco.tipo === 'docstring' ? fonte.slice(bloco.inicio, bloco.fim).trim().replace(/\s+/g, ' ') : textoDo(fonte, bloco, linhas) }));
 }

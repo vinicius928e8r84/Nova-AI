@@ -16,6 +16,12 @@ test('junta as linhas // seguidas num bloco e separa o que não é vizinho', () 
   assert.deepEqual(blocos.map(b => [b.de, b.ate, b.texto]), [[1, 2, 'um dois'], [5, 5, 'tres']]);
 });
 
+test('a linha // vazia entre ou em volta da prosa sai com o bloco; sozinha não aparece', () => {
+  const fonte = '//\n// um\n//\n// dois\n//\nconst a = 1;\n//\nconst b = 2;\n';
+  assert.deepEqual(blocosDe('a.js', fonte).map(b => [b.de, b.ate, b.texto]), [[1, 5, 'um dois']]);
+  assert.equal(apagarTudo('a.js', fonte), 'const a = 1;\n//\nconst b = 2;\n');
+});
+
 test('apagar tira o bloco inteiro e deixa o código idêntico', () => {
   const fonte = '// um\n// dois\nconst a = 1;\n\n// tres\nconst b = 2;\n';
   assert.equal(apagarTudo('a.js', fonte), 'const a = 1;\n\nconst b = 2;\n');
