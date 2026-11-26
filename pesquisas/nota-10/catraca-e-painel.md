@@ -94,7 +94,7 @@ Somando: 407 achados de função, 314 na mesma função (77%), 47 dentro de fun�
 
 **Onde a catraca é mais grossa que o painel.** No `main.js`, 33 dos 66 achados caem dentro de `registerHandlers` (linhas 665 a 3897). A catraca soma numa unidade só os callbacks anônimos de `ipcMain.handle(...)`, e dá 649 pontos a `registerHandlers`; o painel separa cada um com o nome do canal (`registerHandlers.'system-fs-op'`, linha 2855, complexidade 38). No `global-spoof-service.js`, 9 caem dentro de `startHijack` (linhas 165 a 1404): 8 são funções de dentro do script injetado na página, que para a catraca é texto (seção seguinte), e 1 é o callback de `'Target.attachedToTarget'` (linha 1346). Nesses arquivos a catraca diz que o bloco está ruim, mas não diz qual handler cortar.
 
-**Os 10 achados que a catraca não vê** (em 9 funções), mais o do `rtmp-server.js`, todos de complexidade ou de lombadas:
+**Os 10 achados que a catraca não vê** (em 9 funções), mais o do `rtmp-server.js`, todos de complexidade ou de lombadas.
 
 A tabela com cada função e as duas contagens está no [anexo](catraca-e-painel-anexo.md#os-achados-que-a-catraca-não-vê).
 
@@ -124,7 +124,7 @@ O comentário do ticket pedia para conferir se o painel lê como código o texto
 - Não conferi por que o painel conta de 3 a 4 a mais em `_openForward`, `_readState` e `parseTarget`. A documentação pública do CodeScene não diz como cada construção de JavaScript soma na complexidade.
 - Não conferi o limite exato a partir do qual o painel tira ponto do código no topo do arquivo; só que 12 não tira e 18 e 21 tiram.
 - A comparação "mesma função" casa por linha de início e nome. Uma função que muda de nome entre as duas leituras, ou um callback anônimo com outro rótulo, pode ter ficado na coluna errada.
-- Não atualizei a linha de base nem mudei regra nenhuma: esta pesquisa só lê.
+- Fora disparar a análise 160, não mudei nada: nem a linha de base, nem as regras, nem a configuração do painel.
 
 ## Como refazer
 
