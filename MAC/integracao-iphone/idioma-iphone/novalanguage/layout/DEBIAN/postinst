@@ -2,9 +2,6 @@
 set -e
 JB=/var/jb
 
-# 755 e dono root:wheel, NUNCA setuid. Este binário só precisa escrever as
-# preferências do próprio usuário `mobile` — foi medido que esse caminho não
-# precisa de root. Diferente do novaproxy, que é SUID e é superfície de risco.
 chown root:wheel "$JB/usr/bin/novalanguage" 2>/dev/null || true
 chmod 755 "$JB/usr/bin/novalanguage" 2>/dev/null || true
 

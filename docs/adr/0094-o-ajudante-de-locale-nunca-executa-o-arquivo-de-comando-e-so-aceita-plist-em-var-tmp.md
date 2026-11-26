@@ -1,0 +1,3 @@
+# O ajudante de locale nunca executa o arquivo de comando e só aceita plist em `/var/tmp`
+
+O `nova-locale` roda como root pelo launchd e lê `/var/tmp/nova-locale.cmd`, que qualquer processo do aparelho pode gravar. Por isso ele nunca executa nada desse arquivo: lê apenas as chaves `action`, `tz` e `plist` e valida cada uma. O caminho de `plist` só vale dentro de `/var/tmp`, sem `..` e sem ser link simbólico; o arquivo precisa começar com `<?xml`. O `cfprefsd` (que também roda como root) é morto antes de trocar o arquivo de preferências, para não sobrescrever a troca. O resultado vai para `/var/tmp/nova-locale-status.json`.

@@ -1,30 +1,9 @@
 #import <Foundation/Foundation.h>
 
-// novalanguage — lê e grava o idioma preferido pelo store de preferências
-// (CFPreferences), que é quem manda em tempo de execução.
-//
-// Por que existe: no iOS 16 não há `defaults` nem `plutil` no aparelho, e editar
-// o .plist à mão não adianta (a autoridade é o cache do cfprefsd). A escrita que
-// o time provou funcionar é esta: CFPreferencesSetValue + Synchronize, como
-// usuário `mobile`, sem root.
-//
-// Uso:
-//   novalanguage read  [--domain global|<bundle-id>]
-//   novalanguage write <tag> [--domain global|<bundle-id>] [--locale <xx_YY>]
-//   novalanguage clear [--domain global|<bundle-id>] [--locale <xx_YY>|-]
-//   ... qualquer comando aceita --format json (padrão) | lines
-//
-// Sempre imprime uma linha JSON com o que ficou no store *depois* da operação
-// (leitura de confirmação), nunca o que a gente pediu.
-
 static NSArray<NSString *> *GlobalPrefsCandidates(void) {
-    // A ordem importa: o mesmo domínio que o Security & Infra mediu funcionando.
     return @[ @"/var/mobile/Library/Preferences/.GlobalPreferences.plist" ];
 }
 
-// Diretórios onde ficam as preferências dos apps. O valor VALE no cfprefsd; o
-// arquivo serve só para DESCOBRIR quais apps têm idioma próprio (senão não há
-// como saber o nome do domínio para limpar).
 static NSArray<NSString *> *PrefsDirs(void) {
     const char *env = getenv("NOVALANGUAGE_PREFS_DIRS");
     if (env && env[0]) {
@@ -39,8 +18,6 @@ static NSArray<NSString *> *PrefsDirs(void) {
               @"/var/mobile/Containers/Shared/AppGroup" ];
 }
 
-// Devolve os bundle ids que têm AppleLanguages próprio (lido do arquivo, só
-// para descoberta; a limpeza é feita pelo CFPreferences).
 static NSArray<NSString *> *ScanOverrides(void) {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSMutableSet<NSString *> *achados = [NSMutableSet set];
@@ -58,7 +35,6 @@ static NSArray<NSString *> *ScanOverrides(void) {
             }
             continue;
         }
-        // Containers: <raiz>/<UUID>/Library/Preferences/*.plist
         for (NSString *uuid in [fm contentsOfDirectoryAtPath:dir error:nil]) {
             NSString *prefs = [[dir stringByAppendingPathComponent:uuid] stringByAppendingPathComponent:@"Library/Preferences"];
             NSDictionary *meta = [NSDictionary dictionaryWithContentsOfFile:
@@ -75,7 +51,6 @@ static NSArray<NSString *> *ScanOverrides(void) {
     return [achados.allObjects sortedArrayUsingSelector:@selector(compare:)];
 }
 
-// "pt-BR" -> "pt_BR"; sem região devolve nil (não mexe no AppleLocale).
 static NSString *AutoLocale(NSString *tag) {
     NSArray<NSString *> *partes = [tag componentsSeparatedByString:@"-"];
     if (partes.count < 2) return nil;
@@ -84,9 +59,6 @@ static NSString *AutoLocale(NSString *tag) {
     return [out componentsJoinedByString:@"_"];
 }
 
-// O domínio global de verdade é kCFPreferencesAnyApplication. Para os testes no
-// Mac existir um desvio (NOVALANGUAGE_GLOBAL_DOMAIN) evita escrever nas
-// preferências reais da máquina — no aparelho a variável não existe.
 static CFStringRef GlobalDomain(void) {
     static NSString *override;
     static dispatch_once_t once;
@@ -102,7 +74,6 @@ static BOOL IsGlobal(NSString *d) {
 }
 
 static BOOL ValidTag(NSString *t) {
-    // BCP-47 curto: idioma de 2-3 letras + subtags de 2-8 alfanuméricos.
     static NSRegularExpression *re;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
@@ -135,7 +106,7 @@ static NSString *DomainArg(NSString *domain) {
     return domain.length ? domain : @"global";
 }
 
-static BOOL gLines = NO;   // --format lines: chave=valor, uma por linha
+static BOOL gLines = NO;
 
 static void PrintJSON(NSDictionary *d) {
     if (gLines) {
@@ -165,7 +136,6 @@ static NSDictionary *Fail(NSString *msg) {
     return @{ @"ok": @NO, @"error": msg ?: @"erro" };
 }
 
-// Lê o valor atual do store. Devolve sempre um dicionário pronto para o JSON.
 static NSDictionary *ReadState(NSString *domain) {
     BOOL global = IsGlobal(domain);
     if (!global && !ValidBundle(domain)) return Fail(@"domínio inválido");
@@ -196,9 +166,6 @@ static NSDictionary *ReadState(NSString *domain) {
         @"override": list.count ? @YES : @NO,
     } mutableCopy];
 
-    // Informativo: o arquivo em disco só é reescrito quando o cfprefsd descarrega.
-    // Se o store diz pt-BR e o disco diz en-US, um desligamento limpo volta ao
-    // idioma do disco — é o risco que o time levantou hoje.
     if (global) {
         for (NSString *p in GlobalPrefsCandidates()) {
             NSDictionary *plist = [NSDictionary dictionaryWithContentsOfFile:p];
@@ -265,8 +232,6 @@ int main(int argc, char **argv) { @autoreleasepool {
     CFStringRef app = global ? GlobalDomain() : (__bridge CFStringRef)domain;
 
     if ([cmd isEqualToString:@"scan"]) {
-        // Quais apps têm idioma PRÓPRIO. Sem isto, trocar o global não alcança
-        // esses apps: cada um continua no idioma que gravou para si.
         NSArray<NSString *> *apps = ScanOverrides();
         PrintJSON(@{ @"ok": @YES, @"count": @(apps.count), @"apps": apps });
         return 0;
@@ -278,8 +243,6 @@ int main(int argc, char **argv) { @autoreleasepool {
     }
 
     if ([cmd isEqualToString:@"clear"]) {
-        // Remove o override de idioma. Com --locale <valor> devolve o AppleLocale;
-        // com --locale - remove o AppleLocale (volta ao padrão do sistema).
         CFPreferencesSetValue(CFSTR("AppleLanguages"), NULL, app,
                               kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
         if (locale && [locale isEqualToString:@"-"]) {
@@ -301,8 +264,6 @@ int main(int argc, char **argv) { @autoreleasepool {
     if ([cmd isEqualToString:@"write"]) {
         if (!tag.length) { PrintJSON(Fail(@"falta o idioma (ex.: pt-BR)")); return 64; }
         if (!ValidTag(tag)) { PrintJSON(Fail([NSString stringWithFormat:@"idioma inválido: %@", tag])); return 64; }
-        // auto = derivar o AppleLocale do próprio idioma (pt-BR -> pt_BR), para
-        // não ficar com texto em português e data/número no padrão americano.
         BOOL localeAuto = NO;
         if ([locale isEqualToString:@"auto"]) { locale = AutoLocale(tag); localeAuto = YES; }
         if (locale && ![locale isEqualToString:@"-"] && !ValidLocale(locale)) { PrintJSON(Fail([NSString stringWithFormat:@"locale inválido: %@", locale])); return 64; }
@@ -320,15 +281,11 @@ int main(int argc, char **argv) { @autoreleasepool {
         out[@"requested"] = tag;
         if (localeAuto) out[@"localeAuto"] = @YES;
 
-        // "aparelho inteiro e todos os apps": app com idioma próprio ignora o
-        // global, então limpa esses overrides (só com --clear-apps explícito).
         if (global && clearApps && !noClearApps) {
             NSMutableArray<NSString *> *limpos = [NSMutableArray array];
             NSMutableArray<NSString *> *falhas = [NSMutableArray array];
             for (NSString *bundle in ScanOverrides()) {
                 CFStringRef app2 = (__bridge CFStringRef)bundle;
-                // Guarda o idioma que o app tinha antes de limpar: é isto que
-                // permite o revert devolver cada app ao que era.
                 CFPropertyListRef atual = CFPreferencesCopyValue(CFSTR("AppleLanguages"), app2,
                                                                  kCFPreferencesCurrentUser, kCFPreferencesAnyHost);
                 NSString *antes = @"";
@@ -352,7 +309,6 @@ int main(int argc, char **argv) { @autoreleasepool {
             out[@"clearedCount"] = @(limpos.count);
             if (falhas.count) out[@"clearFailed"] = falhas;
         }
-        // confirmation é o que veio do store depois de gravar, não o pedido.
         out[@"confirmed"] = [tag isEqual:(out[@"language"] ?: [NSNull null])] ? @YES : @NO;
         PrintJSON(out);
         return ([out[@"confirmed"] boolValue] && synced) ? 0 : 1;

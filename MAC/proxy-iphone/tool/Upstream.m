@@ -85,7 +85,6 @@ static int tcp_connect(const char *host, int port, int timeout_ms, char *err, si
     return fd;
 }
 
-// SOCKS4 e SOCKS4a: o 4a manda o nome do alvo (o proxy resolve); o 4 exige IPv4.
 static int socks4_connect(const char *proxy_host, int proxy_port,
                           const char *user, const char *target_host, int target_port,
                           BOOL remote_dns, char *err, size_t errlen) {
@@ -100,7 +99,7 @@ static int socks4_connect(const char *proxy_host, int proxy_port,
     req[n++] = (unsigned char)(target_port & 0xFF);
 
     if (remote_dns) {
-        req[n++] = 0; req[n++] = 0; req[n++] = 0; req[n++] = 1;  // 0.0.0.1 = SOCKS4a
+        req[n++] = 0; req[n++] = 0; req[n++] = 0; req[n++] = 1;
     } else {
         struct in_addr in;
         if (inet_pton(AF_INET, target_host, &in) != 1) {
@@ -124,12 +123,12 @@ static int socks4_connect(const char *proxy_host, int proxy_port,
     size_t ul = strlen(u);
     if (ul > 500) ul = 500;
     memcpy(req + n, u, ul); n += ul;
-    req[n++] = 0;                                    // fim do usuário
+    req[n++] = 0;
     if (remote_dns) {
         size_t hl = strlen(target_host);
         if (hl > 500) hl = 500;
         memcpy(req + n, target_host, hl); n += hl;
-        req[n++] = 0;                                // fim do host
+        req[n++] = 0;
     }
 
     if (send_all_fd(fd, req, n) < 0) { set_err(err, errlen, "não consegui enviar o pedido SOCKS4"); close(fd); return -1; }
@@ -137,8 +136,6 @@ static int socks4_connect(const char *proxy_host, int proxy_port,
     unsigned char resp[8];
     if (recv_full_fd(fd, resp, sizeof(resp)) < 0) { set_err(err, errlen, "proxy SOCKS4 não respondeu"); close(fd); return -1; }
     if (resp[0] != 0x00) {
-        // Não é resposta SOCKS4: ou o servidor fala SOCKS5 (0x05), ou devolveu
-        // texto. Nos dois casos o proxy não serve por SOCKS4.
         if (resp[0] == 0x05) {
             set_err(err, errlen, "esse proxy fala SOCKS5, não SOCKS4: use socks5:// na mesma porta");
         } else if (resp[0] >= 0x20 && resp[0] < 0x7F) {

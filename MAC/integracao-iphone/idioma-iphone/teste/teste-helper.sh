@@ -1,10 +1,4 @@
 #!/bin/bash
-# Teste do helper v4 (nova-locale.sh) no Mac, sem aparelho.
-#
-# Usa um `novalanguage` FALSO e um `killall` FALSO num diretório temporário:
-# nada é escrito em preferência de sistema, nada respinga, nada toca o iPhone.
-# O que fica provado aqui é o contrato do helper: argumentos, backup, avisos,
-# reverting e códigos de saída.
 set -u
 AQUI="$(cd "$(dirname "$0")" && pwd)"
 HELPER="$AQUI/../../conexao-usb/nova-locale.sh"
@@ -15,7 +9,6 @@ trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/prefs"
 SUBIO=0
 
-# ── novalanguage falso: guarda o estado em arquivo, imita o formato lines ──
 cat > "$T/novalanguage" <<'STUB'
 #!/bin/bash
 # estado: $STUB_STATE/<domínio>.lang e .locale ; chamadas em $STUB_ARGS
@@ -86,7 +79,6 @@ exit 0
 STUB
 chmod +x "$T/novalanguage"
 
-# ── killall falso: registra e não faz nada ──
 cat > "$T/killall" <<'STUB'
 #!/bin/bash
 echo "killall $*" >> "$STUB_KILLLOG"
@@ -98,7 +90,7 @@ export STUB_STATE="$T/state" STUB_KILLLOG="$T/kill.log" STUB_ARGS="$T/args.log" 
 : > "$STUB_ARGS"
 
 fails=0
-roda() {   # roda <nome> <esperado-no-stdout|-> <args...>
+roda() {
     local nome=$1 esperado=$2; shift 2
     saida=$(NOVALANGUAGE="$T/novalanguage" KILLALL="$T/killall" SBRELOAD="$T/nao-existe" \
             LANGBACKUP_DIR="$T/prefs" bash "$HELPER" "$@" 2>&1)
@@ -110,7 +102,7 @@ roda() {   # roda <nome> <esperado-no-stdout|-> <args...>
     fi
     printf '%s' "$saida"
 }
-espera_falta() {  # espera_falta <nome> <texto-que-não-pode-aparecer>
+espera_falta() {
     if printf '%s' "$saida" | grep -qF "$2"; then
         fails=$((fails+1)); echo "FALHA [$1]: não devia conter '$2'"
     fi

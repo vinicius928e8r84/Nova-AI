@@ -1,25 +1,12 @@
 #!/var/jb/bin/bash
-# nova-locale — aplica fuso horário e idioma pedidos pelo Nova AI.
-# Roda como root (launchd). Lê /var/tmp/nova-locale.cmd e responde em
-# /var/tmp/nova-locale-status.json. Nunca executa nada do arquivo de comando:
-# lê apenas as chaves action, tz e plist, e valida cada uma.
-# O launchd roda com PATH mínimo (só /usr/bin:/bin:/usr/sbin:/sbin). Sem isto,
-# comandos como `sleep` não existem e o daemon gira em erro (idioma UNDEFINED).
 export PATH=/var/jb/usr/bin:/var/jb/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
-# Versão do helper. Ao subir, o serviço grava "pronto v<versão>" no status; o
-# Conectar lê isso depois de reiniciar o serviço e só então diz "atualizado".
-# Sem a versão nova no status, o processo antigo ainda está rodando o texto velho
-# (o bash mantém aberto o arquivo que já tinha carregado). Suba o número a cada
-# mudança de comportamento deste script.
 HELPER_VERSION=4
 
 CMD=/var/tmp/nova-locale.cmd
 PROC=/var/tmp/nova-locale.proc
 STATUS=/var/tmp/nova-locale-status.json
 LOG=/var/tmp/nova-locale.log
-# stdout/stderr do serviço (StandardOutPath/StandardErrorPath do plist). O launchd
-# só anexa e nunca gira esses arquivos: um erro em laço chegou a 571 MB em 19 h.
 ERRLOG=/var/tmp/nova-locale.err
 OUTLOG=/var/tmp/nova-locale.out
 MAXLOG=1048576
@@ -43,14 +30,10 @@ respring() {
     return 0
 }
 
-# Mantém os logs pequenos: zera o que passar de 1 MB (o arquivo continua existindo
-# e o launchd segue anexando nele). Roda ao subir e a cada ~10 minutos.
 trim_logs() {
     local f size
     for f in "$ERRLOG" "$OUTLOG" "$LOG"; do
-        # Link simbólico fica de fora: `: >` seguiria o link e zeraria o arquivo de outro dono.
         [ -f "$f" ] && [ ! -L "$f" ] || continue
-        # 2>/dev/null ANTES do <: se o redirecionamento falhar, a mensagem também some.
         size=$(wc -c 2>/dev/null < "$f")
         size=${size//[!0-9]/}
         if [ "${size:-0}" -gt "$MAXLOG" ]; then
@@ -59,12 +42,8 @@ trim_logs() {
     done
 }
 
-# Logs pequenos primeiro: uma falha em laço não pode crescer nem antes da checagem abaixo.
 trim_logs
 
-# Sem estes comandos o laço não atende nada. Não escreva "pronto v<n>" nesse caso: o
-# Conectar e o app leriam um serviço saudável que não existe. Avise no status, registre
-# uma linha e saia com 78; o launchd (KeepAlive) só religa depois de 10 s.
 missing=""
 for c in sleep sed head grep cp mv ln chown chmod rm; do
     command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
@@ -75,11 +54,6 @@ if [ -n "$missing" ]; then
     exit 78
 fi
 
-# ─────────────────────── idioma: subcomandos de linha ───────────────────────
-# Nada aqui usa root: o store de preferências aceita escrita como `mobile` (foi
-# medido pelo time), e o respring é `kill -9` no SpringBoard, que roda como
-# mobile. O binário novalanguage fala com o cfprefsd; o .plist NUNCA é editado
-# à mão, porque a autoridade é o cache do cfprefsd e a edição se perde.
 NOVALANGUAGE=${NOVALANGUAGE:-/var/jb/usr/bin/novalanguage}
 LANGBACKUP_DIR=${LANGBACKUP_DIR:-/var/mobile/Library/Preferences}
 
@@ -100,7 +74,6 @@ todas aceitam --format json (padrão) ou --format lines
 USO
 }
 
-# campo <texto> <chave>  → valor daquela chave no formato lines
 campo() {
     printf '%s\n' "$1" | sed -n "s/^$2=//p" | head -1
 }
@@ -142,8 +115,6 @@ cmd_language() {
             if [ "$domain" = "global" ]; then
                 local napps
                 napps=$(campo "$("$NOVALANGUAGE" scan --format lines)" count)
-                # Um app com idioma próprio IGNORA o global: sem isto, "aparelho
-                # inteiro" não vale para todos os apps.
                 echo "apps_com_idioma_proprio=${napps:-0}"
             fi
             ;;
@@ -153,8 +124,6 @@ cmd_language() {
             ;;
         set)
             [ -n "$tag" ] || { echo "error=falta o idioma (ex.: pt-BR)"; usage_language; exit 2; }
-            # Guarda uma CÓPIA do que estava valendo antes do primeiro set deste
-            # domínio, para `revert` ter para onde voltar. Nunca sobrescreve.
             before=$("$NOVALANGUAGE" read --domain "$domain" --format lines)
             local bf orig_lang orig_loc
             bf=$(backup_file "$domain")
@@ -168,9 +137,6 @@ cmd_language() {
                 } > "$bf" 2>/dev/null && chmod 600 "$bf" 2>/dev/null \
                     || echo "warn=não consegui gravar o backup em $bf (revert não vai ter para onde voltar)"
             fi
-            # Domínio global = aparelho inteiro: deriva o AppleLocale do idioma
-            # (senão fica texto em pt com data/número em padrão americano) e, por
-            # padrão, limpa o idioma próprio dos apps.
             local locarg="" extra=""
             if [ -n "$locale" ]; then
                 locarg=$locale
@@ -231,7 +197,6 @@ cmd_language() {
             fi
             echo "$out"
             echo "revertido_de_backup=$bf"
-            # Devolve o idioma próprio de cada app que este helper limpou.
             local apps_line par d l n=0
             apps_line=$(sed -n 's/^apps=//p' "$bf" | head -1)
             if [ -n "$apps_line" ]; then
@@ -264,8 +229,6 @@ cmd_respring() {
     echo "warn=respring derruba o CAM LIVE; reconecte a câmera depois"
 }
 
-# Subcomando tem prioridade sobre o daemon: quem chama `nova-locale language set`
-# não quer um laço rodando. Sem argumento, o comportamento continua o de antes.
 if [ $# -gt 0 ]; then
     case "$1" in
         language) shift; cmd_language "$@" ;;
@@ -275,7 +238,6 @@ if [ $# -gt 0 ]; then
     exit $?
 fi
 
-# Guarda o estado original na primeira execução (fuso + prefs).
 if [ ! -f "$STATE" ]; then
     orig_tz=$(readlink "$TZLINK" 2>/dev/null | sed -n 's#.*/zoneinfo/##p')
     {
@@ -313,8 +275,6 @@ while true; do
                         esac
                     fi
                     if [ "$ok" -eq 1 ] && [ -n "$plist" ]; then
-                        # Só dentro de /var/tmp, sem ".." e sem link simbólico: o helper é root e o
-                        # arquivo de comando é gravável por qualquer processo.
                         case "$plist" in
                             *..*) ok=0; msg="caminho de plist invalido" ;;
                             /var/tmp/*) ;;
@@ -323,7 +283,6 @@ while true; do
                         if [ "$ok" -eq 1 ] && [ -L "$plist" ]; then ok=0; msg="caminho de plist invalido"; fi
                         if [ "$ok" -eq 1 ]; then
                             if head -c 40 "$plist" 2>/dev/null | grep -q '<?xml'; then
-                                # cfprefsd roda como root: mata antes de trocar para nao sobrescrever
                                 [ -x "$KILLALL" ] && "$KILLALL" -9 cfprefsd >/dev/null 2>&1
                                 cp "$plist" "$PREF.tmp" && chown mobile:mobile "$PREF.tmp" && chmod 600 "$PREF.tmp" \
                                     && mv -f "$PREF.tmp" "$PREF" || { ok=0; msg="falha ao gravar prefs"; }
@@ -359,10 +318,6 @@ while true; do
             rm -f "$PROC"
         fi
     fi
-    # Sem `sleep` o laço giraria sem pausa e encheria o log (foi o que o PATH mínimo
-    # do launchd causou: ~118 linhas por segundo). Aqui o serviço encerra: o launchd só
-    # reinicia depois de 10 s, então o erro vira ~1 linha a cada 10 s e o trim_logs
-    # (ao subir) mantém o arquivo abaixo de 1 MB.
     sleep 1 || {
         echo "nova-locale: sleep indisponivel (PATH=$PATH); encerrando" >&2
         exit 1
