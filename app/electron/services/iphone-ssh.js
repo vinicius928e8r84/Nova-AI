@@ -7,7 +7,7 @@ function appDataDir() {
   if (process.env.NOVA_USER_DATA) return process.env.NOVA_USER_DATA;
   try {
     const electron = require('electron');
-    if (electron && electron.app && typeof electron.app.getPath === 'function') return electron.app.getPath('userData');
+    if (typeof electron?.app?.getPath === 'function') return electron.app.getPath('userData');
   } catch (_) { }
   return path.join(os.homedir(), 'Library', 'Application Support', 'nova_dsktp');
 }
@@ -35,9 +35,17 @@ function migrateLegacy() {
   const p = paths();
   if (process.env.NOVA_SMOKE_TEST === '1') return p;
   try { fs.mkdirSync(p.dir, { recursive: true, mode: 0o700 }); } catch (_) { return p; }
+  moverChaveAntiga(p);
+  herdarKnownHostsAntigo(p);
+  return p;
+}
+
+const chaveAntigaPrecisaMudar = (p, legacyKey) => !fs.existsSync(p.key) && fs.existsSync(legacyKey);
+
+function moverChaveAntiga(p) {
   const legacyKey = path.join(os.homedir(), '.ssh', 'id_iphone');
   try {
-    if (!fs.existsSync(p.key) && fs.existsSync(legacyKey)) {
+    if (chaveAntigaPrecisaMudar(p, legacyKey)) {
       fs.renameSync(legacyKey, p.key);
       if (fs.existsSync(legacyKey + '.pub')) fs.renameSync(legacyKey + '.pub', p.publicKey);
       try { fs.chmodSync(p.key, 0o600); } catch (_) {}
@@ -46,6 +54,9 @@ function migrateLegacy() {
   } catch (e) {
     console.error('[iPhone SSH] não foi possível mover a chave de ~/.ssh:', e.message);
   }
+}
+
+function herdarKnownHostsAntigo(p) {
   try {
     if (!fs.existsSync(p.knownHosts)) {
       const legacyKnown = path.join(os.homedir(), '.ssh', 'known_hosts');
@@ -55,7 +66,6 @@ function migrateLegacy() {
       }
     }
   } catch (_) { }
-  return p;
 }
 
 module.exports = { appDataDir, paths, sshOptions, migrateLegacy };
