@@ -17,7 +17,6 @@ static const char *kJob = "system/com.aquiles.novaproxy";
 static const char *kPlist = "/var/jb/Library/LaunchDaemons/com.aquiles.novaproxy.plist";
 
 
-// Lê se o Wi-Fi está ligado (MobileWiFi). -1 = não consegui ler.
 static int wifi_power(void) {
     void *h = dlopen("/System/Library/PrivateFrameworks/MobileWiFi.framework/MobileWiFi", RTLD_LAZY);
     if (!h) return -1;
@@ -131,8 +130,6 @@ static int cmd_set(NSString *raw) {
     return 0;
 }
 
-// Reaplica a configuração já salva (usado depois de atualizar o pacote): sobe o
-// daemon com o binário novo e devolve o proxy do Wi-Fi para 127.0.0.1.
 static int cmd_reapply(void) {
     ProxyConfig *cfg = [ProxyConfig load];
     if (!cfg) { printf("sem proxy configurado\n"); return 0; }

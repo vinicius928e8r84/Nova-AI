@@ -15,9 +15,6 @@ static BOOL SchemeSupported(NSString *s) {
     return [ok containsObject:s];
 }
 
-// Sem esquema na string, a porta é a única pista. 1000/3128/8080/8888 são portas
-// clássicas de proxy HTTP; 1001 é o endpoint HTTPS da Evomi; o resto fica SOCKS5,
-// que é o que o app sempre usou.
 static NSString *SchemeForPort(int port) {
     switch (port) {
         case 1000:
@@ -33,7 +30,6 @@ static NSString *SchemeForPort(int port) {
     }
 }
 
-// Casa a string inteira com o padrão e devolve os grupos (nil se não casar).
 static NSArray<NSString *> *Match(NSString *pattern, NSString *s) {
     NSRegularExpression *re = [NSRegularExpression regularExpressionWithPattern:pattern options:0 error:nil];
     NSTextCheckingResult *m = [re firstMatchInString:s options:0 range:NSMakeRange(0, s.length)];
@@ -50,7 +46,6 @@ static NSArray<NSString *> *Match(NSString *pattern, NSString *s) {
     NSString *s = [raw stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     if (s.length == 0) { if (error) *error = @"proxy vazio"; return nil; }
 
-    // Aspas e barra final sobrando são enfeite de colagem, não fazem parte da string.
     if (s.length >= 2) {
         unichar a = [s characterAtIndex:0], b = [s characterAtIndex:s.length - 1];
         if ((a == '"' && b == '"') || (a == '\'' && b == '\'') || (a == '`' && b == '`')) {
@@ -76,13 +71,10 @@ static NSArray<NSString *> *Match(NSString *pattern, NSString *s) {
     NSString *host = nil, *portStr = nil, *user = @"", *pass = @"";
     NSArray<NSString *> *g;
     if ((g = Match([NSString stringWithFormat:@"%@:(\\d{1,5}):%@:(.+)", H, U], s))) {
-        // formato Evomi: host:porta:usuario:senha (a senha pode ter ':' e '@')
         host = g[0]; portStr = g[1]; user = g[2]; pass = g[3];
     } else if ((g = Match([NSString stringWithFormat:@"%@:(.*)@%@:(\\d{1,5})", U, H], s))) {
-        // usuario:senha@host:porta (último '@'; a senha pode ter ':' e '@')
         user = g[0]; pass = g[1]; host = g[2]; portStr = g[3];
     } else if ((g = Match([NSString stringWithFormat:@"%@:(\\d{1,5})@%@:(.+)", H, U], s))) {
-        // ordem invertida da Evomi: host:porta@usuario:senha
         host = g[0]; portStr = g[1]; user = g[2]; pass = g[3];
     } else if ((g = Match([NSString stringWithFormat:@"%@:(\\d{1,5})", H], s))) {
         host = g[0]; portStr = g[1];

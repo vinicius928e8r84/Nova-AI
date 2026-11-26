@@ -1,6 +1,3 @@
-// Teste do upstream_connect no Mac, contra proxies falsos locais (nada sai para a internet).
-// Verifica o que realmente vai no fio: CONNECT do HTTP (com Basic auth), SOCKS4a,
-// recusa do proxy e o caso https não suportado.   ./teste/rodar.sh
 #import "../Upstream.h"
 #import <Foundation/Foundation.h>
 #include <pthread.h>
@@ -51,7 +48,7 @@ static void *http_server(void *arg) {
         ? "HTTP/1.1 407 Proxy Authentication Required\r\n\r\n"
         : "HTTP/1.1 200 Connection Established\r\n\r\n";
     send(c, resp, strlen(resp), 0);
-    if (f->kind == 0) {                 // 200: faz eco do que chegar
+    if (f->kind == 0) {
         char b[256];
         for (;;) {
             ssize_t n = recv(c, b, sizeof(b), 0);
@@ -69,7 +66,7 @@ static void *socks4_server(void *arg) {
     if (c < 0) return NULL;
     char b[1024];
     size_t used = 0;
-    while (used < sizeof(b) - 1) {          // 8 bytes + usuário + host, cada um com NUL
+    while (used < sizeof(b) - 1) {
         ssize_t n = recv(c, b + used, 1, 0);
         if (n <= 0) break;
         used += (size_t)n;
@@ -99,7 +96,6 @@ static int starts(Fake *f, void *(*fn)(void *), NSString **payload) {
 int main(void) { @autoreleasepool {
     char err[512];
 
-    // ---- HTTP CONNECT com autenticação
     {
         Fake f = {0};
         int port = 0;
@@ -125,7 +121,6 @@ int main(void) { @autoreleasepool {
         close(f.fd);
     }
 
-    // ---- HTTP CONNECT recusado (407)
     {
         Fake f = {0};
         f.kind = 407;
@@ -139,7 +134,6 @@ int main(void) { @autoreleasepool {
         close(f.fd);
     }
 
-    // ---- SOCKS4a
     {
         Fake f = {0};
         int port = 0;
@@ -163,7 +157,6 @@ int main(void) { @autoreleasepool {
         close(f.fd);
     }
 
-    // ---- SOCKS4 recusado
     {
         Fake f = {0};
         f.kind = 1;
@@ -177,7 +170,6 @@ int main(void) { @autoreleasepool {
         close(f.fd);
     }
 
-    // ---- https ainda não suportado: erro claro, sem conectar
     {
         err[0] = 0;
         int fd = upstream_connect("https", "127.0.0.1", 1, "u", "p", "alvo", 443, err, sizeof(err));

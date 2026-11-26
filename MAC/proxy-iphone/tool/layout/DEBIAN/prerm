@@ -2,9 +2,6 @@
 set -e
 JB=/var/jb
 
-# Em atualização, NÃO limpa nada: o proxy do Wi-Fi e a configuração continuam
-# válidos e o postinst religa o daemon com o binário novo. Só na remoção de
-# verdade o proxy é tirado do Wi-Fi (senão o iPhone fica sem internet).
 case "$1" in
     upgrade|failed-upgrade|abort-upgrade)
         exit 0

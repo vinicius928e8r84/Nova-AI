@@ -1,7 +1,4 @@
 #!/bin/sh
-# Compila e roda os testes do novaproxy no Mac, sem tocar no iPhone:
-#   parse_test    -> ProxyConfig.parse (formatos/ordens/tipos de proxy)
-#   upstream_test -> upstream_connect contra proxies falsos locais (HTTP CONNECT e SOCKS4a)
 set -e
 D="$(cd "$(dirname "$0")" && pwd)"
 T="${TMPDIR:-/tmp}/novaproxy-testes"

@@ -1,9 +1,6 @@
 #import "SysProxy.h"
 #import <CoreFoundation/CoreFoundation.h>
 
-// SCPreferences é API de macOS: o SDK do iOS marca como indisponível, mas o
-// framework exporta os símbolos (é o que o networksetup usa no macOS).
-// Declaramos na mão para poder usar no iPhone com root.
 typedef struct __SCPreferences *SCPreferencesRef;
 extern SCPreferencesRef SCPreferencesCreate(CFAllocatorRef allocator, CFStringRef name, CFStringRef prefsID);
 extern Boolean SCPreferencesLock(SCPreferencesRef prefs, Boolean wait);
@@ -15,8 +12,6 @@ extern Boolean SCPreferencesApplyChanges(SCPreferencesRef prefs);
 
 static CFStringRef kNetworkServices = CFSTR("NetworkServices");
 
-// No iPhone o serviço Wi-Fi não usa Type=IEEE80211: vem como
-// Interface.Hardware = "AirPort" e Type = "Ethernet", com nome "Wi-Fi".
 static BOOL isWifiService(NSDictionary *svc) {
     if (![svc isKindOfClass:[NSDictionary class]]) return NO;
     if ([svc[@"UserDefinedName"] isEqualToString:@"Wi-Fi"]) return YES;
@@ -61,8 +56,6 @@ BOOL SysProxyApply(NSString *host, int port, NSString **error) {
         if (error) *error = @"SCPreferencesCreate falhou";
         return NO;
     }
-    // No iOS o lock do SCPreferences pode não ser suportado; o iOS-ProxyTool
-    // ignora o retorno e o commit funciona. Seguimos o mesmo caminho.
     BOOL locked = SCPreferencesLock(prefs, true);
 
     BOOL ok = NO;
