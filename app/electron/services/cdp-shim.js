@@ -1,12 +1,3 @@
-//
-//
-//
-//
-//
-//
-//
-//
-
 const http = require('http');
 const net = require('net');
 
@@ -94,7 +85,6 @@ function sendJson(res, payload) {
     res.end(body);
 }
 
-//
 async function handleRequest(req, res) {
     if (!hostIsLoopback(req.headers.host)) {
         return sendJsonError(res, 403, 'Forbidden');
@@ -140,7 +130,6 @@ async function handleRequest(req, res) {
     }
 }
 
-//
 async function handleUpgrade(req, clientSocket, head) {
     const fail = (line, reason) => {
         console.warn('[CDP Shim] Rejected websocket upgrade:', reason);

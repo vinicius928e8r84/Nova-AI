@@ -1,5 +1,4 @@
 'use strict';
-//
 
 const HELPER_BASH = '/var/jb/bin/bash';
 const HELPER_SCRIPT = '/var/jb/usr/libexec/nova-locale.sh';

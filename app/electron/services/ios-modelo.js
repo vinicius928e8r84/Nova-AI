@@ -1,6 +1,4 @@
 'use strict';
-//
-//
 
 const NOVAMODEL = '/var/jb/usr/bin/novamodel';
 const PRODUCT_TYPE_RE = /^[A-Za-z0-9][A-Za-z0-9,]*$/;

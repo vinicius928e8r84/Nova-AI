@@ -1,7 +1,5 @@
 'use strict';
 
-//
-
 const STYLE_ID = 'nova-iphone-setup-style';
 const HOST_ATTR = 'data-nova-iphone-setup';
 const OPEN_CHANNEL = 'nova:iphone-setup-open';
