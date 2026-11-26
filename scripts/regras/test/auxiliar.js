@@ -11,7 +11,7 @@ const LINHA_DE_BASE = 'scripts/regras/linha-de-base.json';
 
 const linhas = quantas => Array.from({ length: quantas }, (_, i) => `const v${i} = ${i};`).join('\n') + '\n';
 
-const comoLinhaDeBase = (arquivos, saude) => `${JSON.stringify(saude === null ? { arquivos } : { arquivos, 'saude-do-codigo': saude })}\n`;
+const comoLinhaDeBase = (arquivos, saude) => `${JSON.stringify(saude === null ? { arquivos, comentarios: {} } : { arquivos, 'saude-do-codigo': saude, comentarios: {} })}\n`;
 
 function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'regras-teste-'));
