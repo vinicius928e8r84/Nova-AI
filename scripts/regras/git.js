@@ -278,4 +278,4 @@ function arquivoNaBase(raiz, desde, caminho) {
   }
 }
 
-module.exports = { ErroDeUso, arquivoNaBase, bytesDaBase, contarLinhas, git, lerArquivo, lerMudancas, resolverBase, tentar };
+module.exports = { ErroDeUso, arquivoNaBase, bytesDaBase, contarLinhas, git, lerArquivo, lerMudancas, lerStatus, resolverBase, tentar };

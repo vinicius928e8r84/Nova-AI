@@ -1,6 +1,11 @@
 'use strict';
 
+const { spawnSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const { git, tentar } = require('./git');
 const { classificar, resumo } = require('./risco');
+const { soTiraComentario } = require('./so-tira-comentario');
 
 const ATENCOES = ['BAIXA', 'MÉDIA', 'ALTA'];
 const ROTULO_DE_RISCO_ALTO = 'risco:alto';
@@ -157,10 +162,10 @@ function faltaDaProva(corpo, head) {
     : `atenção ALTA: a seção "${SECAO_DA_PROVA}" não explica o que foi provado no app (escreva ao menos ${MINIMO_DA_PROVA} caracteres sobre o que rodou e o que apareceu)`;
 }
 
-function atencaoDaPr(textos, { rotulos, registros, head, arquivos }) {
+function atencaoDaPr(textos, { rotulos, registros, head, arquivos, semComentario }) {
   const { atencao: doCorpo, falta } = atencaoDe(textos);
   const doRevisor = riscoDoRevisor(registros, head) || doCorpo;
-  const risco = classificar(arquivos);
+  const risco = classificar(arquivos.filter(arquivo => !semComentario.has(arquivo.caminho)));
   const rotulado = rotulos.some(rotulo => igual(String(rotulo), ROTULO_DE_RISCO_ALTO));
   const atencao = maiorAtencao(doCorpo || doRevisor, doRevisor);
   const subiuPeloRevisor = doRevisor === 'ALTA' && doCorpo !== 'ALTA';
@@ -178,9 +183,9 @@ function faltaDaProvaDaPr(corpo, head, { alta, doCorpo, subiuPeloRevisor }) {
   return falta && falta.replace(/^atenção ALTA:/, `atenção ALTA (o revisor disse Risco: ALTA, o corpo diz ${doCorpo || 'nada'}):`);
 }
 
-function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor }) {
+function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], autor, semComentario = new Set() }) {
   const linhas = linhasQueValem(corpo);
-  const quadro = atencaoDaPr(linhas.map(linha => linha.texto), { rotulos, registros, head, arquivos });
+  const quadro = atencaoDaPr(linhas.map(linha => linha.texto), { rotulos, registros, head, arquivos, semComentario });
   const { atencao, alta } = quadro;
   const faltas = [
     faltaDaDescricao(linhas),
@@ -204,6 +209,31 @@ function conferir({ corpo, rotulos = [], registros = [], head, arquivos = [], au
 function adicionadasDoArquivo(arquivo) {
   if (arquivo.patch === undefined && arquivo.changes > 0) return null;
   return String(arquivo.patch || '').split('\n').filter(linha => linha.startsWith('+') && !linha.startsWith('+++')).map(linha => linha.slice(1));
+}
+
+const ANALISADOR = path.join(__dirname, 'analisador');
+
+function instalarOAcorn() {
+  const acorn = path.join(ANALISADOR, 'node_modules', 'acorn');
+  if (fs.existsSync(acorn) || !fs.existsSync(path.join(ANALISADOR, 'package-lock.json'))) return;
+  spawnSync('npm', ['ci', '--no-audit', '--no-fund', '--ignore-scripts', '--prefix', ANALISADOR], { stdio: 'ignore' });
+}
+
+function trazerAHistoria(raiz, pr) {
+  if (tentar(raiz, ['rev-parse', '--is-shallow-repository']) === 'true') tentar(raiz, ['fetch', '--no-tags', '--unshallow', 'origin']);
+  if (tentar(raiz, ['cat-file', '-e', `${pr.head.sha}^{commit}`]) === null) tentar(raiz, ['fetch', '--no-tags', 'origin', `refs/pull/${pr.number}/head`]);
+}
+
+function arquivosSoComComentarioRemovido(env, pr) {
+  try {
+    const raiz = env.GITHUB_WORKSPACE || process.cwd();
+    instalarOAcorn();
+    trazerAHistoria(raiz, pr);
+    const desde = git(raiz, ['merge-base', `origin/${pr.base.ref}`, pr.head.sha]).trim();
+    return soTiraComentario(raiz, desde, pr.head.sha, env);
+  } catch {
+    return new Set();
+  }
 }
 
 async function lerDoGitHub(env) {
@@ -232,7 +262,7 @@ async function lerDoGitHub(env) {
     arquivos.push({ caminho: arquivo.filename, adicionadas: adicionadasDoArquivo(arquivo) });
     if (arquivo.previous_filename) arquivos.push({ caminho: arquivo.previous_filename, adicionadas: [] });
   }
-  return { corpo: pr.body, rotulos: pr.labels.map(rotulo => rotulo.name), registros, head: pr.head.sha, arquivos, autor: pr.user && pr.user.login };
+  return { corpo: pr.body, rotulos: pr.labels.map(rotulo => rotulo.name), registros, head: pr.head.sha, arquivos, autor: pr.user && pr.user.login, semComentario: arquivosSoComComentarioRemovido(env, pr) };
 }
 
 async function main(env) {
@@ -262,5 +292,5 @@ if (require.main === module) main(process.env).then(codigo => { process.exitCode
 
 module.exports = {
   ATENCOES, BLOQUEADA, FRASE, ROTULO_DE_RISCO_ALTO, SECAO_DA_PROVA,
-  atencaoValida, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, marcaDeProvaParcial, tituloDe,
+  arquivosSoComComentarioRemovido, atencaoValida, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, linhasQueValem, marcaDeProvaParcial, tituloDe,
 };

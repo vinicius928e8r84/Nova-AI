@@ -6,8 +6,6 @@ BIN="$JB/usr/bin/novamodel"
 mkdir -p "$JB/usr/share/novamodel"
 
 chown root:wheel "$BIN" 2>/dev/null || true
-# setuid root: o app chama via SSH como mobile e o binário precisa gravar o
-# control file em /var/tmp. Mesmo mecanismo do novaproxy (também setuid).
 chmod 4755 "$BIN" 2>/dev/null || true
 
 exit 0

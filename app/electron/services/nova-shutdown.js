@@ -64,12 +64,10 @@ function createProcessCleanup(electronHelpersPath) {
       children.get(entry.parent).push(pid);
     }
 
-    // Keep track of children seen before their parent exits and launchd adopts them.
     for (const [pid, identity] of owned) {
       if (entries.get(pid)?.identity !== identity) owned.delete(pid);
     }
 
-    // A daemon such as ADB can reparent itself to launchd before shutdown starts.
     try { collectOrphans(entries); }
     catch (error) { console.error('[Shutdown] Orphan scan failed:', error.code ?? error.status); }
 
@@ -81,7 +79,6 @@ function createProcessCleanup(electronHelpersPath) {
         visited.add(pid);
         pending.push(pid);
         const entry = entries.get(pid);
-        // Electron closes its own helpers when the main process exits.
         if (!entry.command.startsWith(electronHelpersPath)) owned.set(pid, entry.identity);
       }
     }
@@ -328,7 +325,6 @@ function registerShutdown(app, stopServices, processCleanup) {
       console.error('[Shutdown] Process cleanup:', error.message);
     }).finally(() => {
       state = 'finished';
-      // A renderer can veto the normal quit (for example, through beforeunload).
       setTimeout(() => {
         processCleanup.terminate().catch(error => {
           console.error('[Shutdown] Final process cleanup:', error.message);
