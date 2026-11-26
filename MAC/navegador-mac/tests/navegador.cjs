@@ -58,6 +58,11 @@ test('edge embutido e sem nada devolve null', () => {
   } finally { restaurar(); }
 });
 
+const ehCaminhoDeArquivo = pedido => pedido.startsWith('.') || path.isAbsolute(pedido);
+const ehDoNodeOuDoElectron = pedido => Module.builtinModules.includes(pedido) || pedido === 'electron';
+const ehPacoteDeTerceiros = pedido => !ehCaminhoDeArquivo(pedido) && !ehDoNodeOuDoElectron(pedido);
+const pacoteFalso = () => new Proxy(function () {}, { get: () => function () {} });
+
 function carregarGerente(plataforma, base) {
   const original = Module._load;
   const descritor = Object.getOwnPropertyDescriptor(process, 'platform');
@@ -65,7 +70,7 @@ function carregarGerente(plataforma, base) {
   delete require.cache[require.resolve(path.join(servicos, 'platform-utils.js'))];
   delete require.cache[require.resolve(path.join(servicos, 'whatsapp-manager.js'))];
   Module._load = function (pedido, ...resto) {
-    if (!pedido.startsWith('.') && !path.isAbsolute(pedido) && !Module.builtinModules.includes(pedido) && pedido !== 'electron') return new Proxy(function () {}, { get: () => function () {} });
+    if (ehPacoteDeTerceiros(pedido)) return pacoteFalso();
     return original.call(this, pedido, ...resto);
   };
   try {
