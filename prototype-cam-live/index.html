@@ -675,7 +675,7 @@ window.CamLiveGeometria = (function () {
   const audio = () => window.CamLiveAudio || null;
 
   const { CSS, IC, KINDS, PRESETS, RATIOS } = window.CamLiveDados;
-  const { calcDims, defaultDoc, even, idbDel, idbGet, idbKeys, idbPut, mkItem } = window.CamLiveModelo;
+  const { calcDims, defaultDoc, idbDel, idbGet, idbKeys, idbPut, mkItem } = window.CamLiveModelo;
   const { HANDLES, ROT_ARC, ROT_HEAD, ROT_OFF, centerOf, cursorFor, hitHandle, insideItem, rad, toLocal, toWorld } = window.CamLiveGeometria;
   const ic = (n, s = 14) => `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
