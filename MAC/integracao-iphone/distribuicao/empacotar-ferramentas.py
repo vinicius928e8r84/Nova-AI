@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Bundle installed iOS USB tools and their non-system dylibs for Apple Silicon."""
 import hashlib,json,shutil,subprocess
 from pathlib import Path
 resources=Path('/Applications/Nova AI Mac.app/Contents/Resources')

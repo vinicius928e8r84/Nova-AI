@@ -7,8 +7,6 @@ Nova-AI/**/index-Dun7lr2S*.js
 Nova-AI/app/dist/assets/face-api.esm-*.js
 Nova-AI/app/dist/assets/face_mesh-*.js
 Nova-AI/**/marked.min.js
-Nova-AI/MAC/**/reservas/**
-Nova-AI/MAC/**/backup-*/**
 ```
 
 | Linha | O que tira da análise | Por quê |
@@ -17,8 +15,8 @@ Nova-AI/MAC/**/backup-*/**
 | `app/dist/assets/face-api.esm-*.js` | face-api | Biblioteca de terceiros embarcada pronta |
 | `app/dist/assets/face_mesh-*.js` | MediaPipe Face Mesh | Biblioteca de terceiros embarcada pronta |
 | `**/marked.min.js` | marked, em `app/electron/pwa/` | Biblioteca de terceiros minificada |
-| `MAC/**/reservas/**` | Cópias do arquivo anterior do app instalado | `AGENTS.md` seção 5 manda guardá-las; nenhum código as usa |
-| `MAC/**/backup-*/**` | Cópias de segurança da tradução | Nenhum código as usa |
+
+As pastas `MAC/**/reservas/` e `MAC/**/backup-*/` saíram da lista porque o repositório já não tem nenhum arquivo nelas (as cópias foram apagadas, e o histórico do git guarda os originais); `scripts/regras/configuracao.json` continua isentando-as nas regras. Se uma PR voltar a versionar código nelas, ela acrescenta a linha de volta, pois o teste confere que toda linha da lista casa com algum arquivo.
 
 `app/dist/` inteira **não** sai: `app/dist/cam-live.js` e `app/dist/cam-live-audio.js` são código do CAM LIVE escrito à mão, carregado por `<script>` no `index.html`.
 

@@ -1,0 +1,7 @@
+# O idioma do iPhone nunca usa sudo, e o global exige confirmação
+
+O `idioma-ipc.js` lê e grava o idioma do aparelho pelo helper `nova-locale`, que usa CFPreferences (o store que manda). Regras do módulo: nunca usa `sudo` (o caminho provado grava como `mobile`, e o respring é `kill -9` no SpringBoard); nada vai por shell (os argumentos seguem como lista, ou entre aspas simples um a um quando o `ssh` remoto exige uma string, e argumento com aspas é recusado); a tag e o domínio são validados antes; e toda resposta devolve o que o aparelho confirmou na leitura de volta, não o que foi pedido.
+
+Idioma no domínio global muda o `Accept-Language` que os sites recebem, o que é incoerente com um IP dos EUA; por isso aplicar no global exige `confirmGlobal: true` e, sem isso, o módulo não executa nada e devolve o motivo. "Aparelho inteiro" precisa de duas coisas para alcançar todos os apps: derivar o `AppleLocale` do idioma (senão o texto fica em português com a data americana) e limpar o idioma próprio dos apps que tiverem um.
+
+O helper só aceita subcomando de idioma a partir da v3 (v4 no aparelho); com a v2 instalada, chamar `language …` entra no laço do daemon e o processo fica girando. A checagem de versão vem antes de qualquer chamada e não procura uma frase, porque o texto do script muda: vale se existe a função `cmd_language` ou se a versão declarada é 3 ou mais. O helper roda em `/var/jb/usr/libexec/nova-locale.sh` pelo `/var/jb/bin/bash`, como o launchd faz, e o atalho `/var/jb/usr/bin/nova-locale` fica como reserva.

@@ -10,8 +10,6 @@
 #import <dispatch/dispatch.h>
 #import "Pipeline.h"
 
-// Experimental graph replacement for selected camera clients. A short lease
-// is required before any graph is changed. A failed OBS request emits nothing.
 static NSString *const kControl = @"/var/tmp/obs-graph-bridge-control.json";
 static NSString *const kStatus = @"/var/tmp/obs-graph-bridge-status.json";
 static NSString *const kCameraApp = @"com.apple.camera";
@@ -52,12 +50,6 @@ static unsigned long g_graphStopsSkipped;
 static unsigned long g_recordConnections, g_emittedRecord;
 static unsigned long g_compressorImageSamples, g_compressorControlSamples;
 static void (*g_originalCompressorRender)(id, SEL, CMSampleBufferRef, id);
-// Diagnosed 02/11 with mediaserverd-safari-2026-11-02-230934.ips: the remote
-// queue sink converts the sample's MetadataDictionary PortType with
-// _BWActiveDeviceTypeFromPortType, which raises an NSException for any port
-// name outside its fixed list ("OBSBridgeVideo" included) and aborts
-// mediaserverd. Rewrite our port names at this boundary and keep the sink's
-// own raises from killing the service.
 static void (*g_originalQueueSinkRender)(id, SEL, CMSampleBufferRef, id);
 static NSString *g_remoteQueuePortType;
 static unsigned long g_remoteQueueRenders, g_remoteQueuePortRemaps, g_remoteQueueRenderFailures;
@@ -126,9 +118,6 @@ static BOOL bridgeGraphStart(id graph, SEL selector, void *error);
 @property BOOL running;
 @property BOOL masterSource;
 @property int frameRate;
-// The Safari graph (com.apple.WebKit.GPU) requests its own capture dimensions
-// and has no still/metadata branches. Match the replaced physical output's
-// configured video format instead of assuming the Camera app's 1584x1188.
 @property NSUInteger videoWidth, videoHeight;
 @property (nonatomic, strong) NSURLSession *networkSession;
 @property (nonatomic, strong) id pendingPhotoSettings;
@@ -195,12 +184,8 @@ static BOOL leaseValid(void) {
     return g_enabled && !g_faulted && (g_continuous || [[NSDate date] timeIntervalSince1970] < g_expires);
 }
 
-// ── Transporte camuflado (0.1-39) ───────────────────────────────────────
-// A câmera só aceita um caminho com token de 32 hex; quando o Mac abre um
-// socket Unix pelo túnel USB, nenhuma porta TCP fica escutando no aparelho.
-
 static BOOL isHexTokenPath(NSString *path) {
-    const NSUInteger expected = 3 + 32 + 10; // "/s/" + token + "/frame.jpg"
+    const NSUInteger expected = 3 + 32 + 10;
     if (![path isKindOfClass:[NSString class]] || path.length != expected) return NO;
     if (![path hasPrefix:@"/s/"] || ![path hasSuffix:@"/frame.jpg"]) return NO;
     for (NSUInteger i = 3; i < 35; i++) {
@@ -217,7 +202,6 @@ static BOOL isCameraSocketPath(NSString *path) {
     return YES;
 }
 
-// GET HTTP/1.0 por socket Unix; devolve o corpo ou nil em erro/timeout.
 static NSData *httpGetOverUnix(NSString *socketPath, NSString *requestPath, NSTimeInterval timeout, NSUInteger maxBytes) {
     if (!isCameraSocketPath(socketPath) || requestPath.length == 0 || requestPath.length > 256) return nil;
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -457,13 +441,9 @@ static CMSampleBufferRef copySample(CGImageRef image, CIContext *render, CGColor
         CMSampleTimingInfo timing = {CMTimeMake(1, fps), pts, kCMTimeInvalid};
         if (CMSampleBufferCreateReadyWithImageBuffer(NULL, pixels, format, &timing, &sample) == noErr) {
             CMSetAttachment(sample, CFSTR("MetadataDictionary"),
-                            // BWVideoCompressorNode writes timing into this dictionary.
-                            // An immutable literal raises at setObject:forKeyedSubscript:.
                             (__bridge CFTypeRef)[@{@"PortType":port,
                                 @"SynchronizedStreamsIsMaster":@(master)} mutableCopy],
                             kCMAttachmentMode_ShouldPropagate);
-            // The MOV sink uses this top-level attachment as an analytics
-            // dictionary key. Missing it raises an exception (nil key).
             CMSetAttachment(sample, CFSTR("LastPortType"), CFSTR("PortTypeBack"),
                             kCMAttachmentMode_ShouldPropagate);
         }
@@ -555,10 +535,6 @@ static void produce(OBSBridgeContext *ctx) {
     }
 }
 
-// The Synchronizer→VideoCompressor→RemoteQueue path (the client-facing
-// viewfinder transport) only runs once the graph has a master clock; the
-// never-started physical node would provide it, so give redirected nodes the
-// host clock — the same domain used by our software sources' timestamps.
 static id physicalClockOverride(id node, SEL selector) {
     [g_lock lock];
     BOOL mapped = g_contexts[[NSValue valueWithPointer:(__bridge const void *)node]] != nil;
@@ -567,9 +543,6 @@ static id physicalClockOverride(id node, SEL selector) {
     return g_originalPhysicalClock ? g_originalPhysicalClock(node, selector) : nil;
 }
 
-// The still pipeline's coordinator gates the shutter on bracket-sequence
-// messages only the physical node emits; publish them from the still output
-// so the photo sink can start receiving.
 static void emitStillSequence(OBSBridgeContext *ctx) {
     static long long sequence;
     if (!g_originalPhysicalEmitSequence || !ctx.stillSource) return;
@@ -582,11 +555,6 @@ static void emitStillSequence(OBSBridgeContext *ctx) {
 }
 
 static void resumeContextConnections(OBSBridgeContext *ctx) {
-    // consumeMessage:fromOutput: only delivers on connections resumed for
-    // data: suspended connections cache messages and events-only connections
-    // discard sample buffers silently (observed 26/10, probe 0.1-9: 174
-    // consumed, zero rendered). The session resumes the connections it
-    // knows; ours is new. Resume before source start to preserve configuration events.
     Class connectionClass = objc_getClass("BWNodeConnection");
     if (connectionClass && hasABI(connectionClass, "resumeForEventsOnly:", "v20@0:8B16")) {
         id outputs[4] = {ctx.videoSource, ctx.stillSource, ctx.metadataSource, ctx.recordSource};
@@ -644,8 +612,6 @@ static OBSBridgeContext *contextForGraphAndPhysical(id graph, id physical) {
     NSValue *key = [NSValue valueWithPointer:(__bridge const void *)physical];
     OBSBridgeContext *ctx = g_contexts[key];
     if (!ctx) {
-        // A graph construction failure can cause rapid retries. Stop before
-        // keeping hundreds of graphs and software nodes alive in mediaserverd.
         if (g_contexts.count >= 4) {
             g_contextLimitHits++;
             g_faulted = YES;
@@ -653,9 +619,6 @@ static OBSBridgeContext *contextForGraphAndPhysical(id graph, id physical) {
         }
         ctx = [OBSBridgeContext new];
         ctx.graph = graph; ctx.physical = physical;
-        // BWCrossoverNode only forwards samples whose metadata marks the
-        // synchronized stream as master. Elect exactly one software source
-        // per graph; physical front/back inputs must not both become master.
         ctx.masterSource = YES;
         for (OBSBridgeContext *existing in g_contexts.allValues)
             if (existing.graph == graph) { ctx.masterSource = NO; break; }
@@ -665,11 +628,6 @@ static OBSBridgeContext *contextForGraphAndPhysical(id graph, id physical) {
 }
 
 static id createVideoSourceWithFormat(id graph, NSString *port, NSUInteger width, NSUInteger height, OSType pixelFormat) {
-    // The deferred source inherits BWSourceNode's clock, which returns nil;
-    // the real pipeline schedules presentation against the source clock, so a
-    // nil clock leaves emitted samples buffered forever (black viewfinder,
-    // zero drops — observed 26/10 with probe 0.1-7). This subclass returns
-    // the host clock, the same domain used to timestamp produced samples.
     if (!g_softwareSourceClass) {
         Class base = objc_getClass("BWDeferredProcessingSourceNode");
         if (!base) return nil;
@@ -754,8 +712,6 @@ static BOOL redirectedConnect(id graph, SEL selector, id output, id input, id st
             if (!recordContext.recordSource) return NO;
             id replacement = ((id (*)(id, SEL, id))objc_msgSend)(recordContext.recordSource,
                 sel_registerName("outputForPortType:"), @"OBSBridgeRecord");
-            // Keep the native stream's recording boundary/control messages.
-            // Images alone never initialize the compressor's recording state.
             Class funnelClass = objc_getClass("BWFunnelNode");
             if (!hasABI(funnelClass, "initWithNumberOfInputs:mediaType:", "@24@0:8i16I20")) return NO;
             id funnel = ((id (*)(id, SEL, int32_t, uint32_t))objc_msgSend)(
@@ -844,7 +800,7 @@ static BOOL suppressedPhysicalStart(id node, SEL selector, void *error) {
     if (mapped) g_suppressedStarts++;
     [g_lock unlock];
     if (!mapped) return g_originalPhysicalStart ? g_originalPhysicalStart(node, selector, error) : NO;
-    return ready; // never start hardware for a redirected graph
+    return ready;
 }
 
 static BOOL suppressedPhysicalStop(id node, SEL selector, void *error) {
@@ -856,11 +812,6 @@ static BOOL suppressedPhysicalStop(id node, SEL selector, void *error) {
     return mapped ? YES : (g_originalPhysicalStop ? g_originalPhysicalStop(node, selector, error) : NO);
 }
 
-// Diagnosed 26/10 with probe 0.1-6: with its three outputs redirected, the
-// physical node's allocateOrReuseBufferPoolsFromSourceNode: returns -12780
-// inside _captureSession_startGraph, which aborts the session before
-// [BWGraph start:]. Those pools feed this node's buffers; a redirected node
-// never starts and produces none, so report success and allocate nothing.
 static int32_t suppressedPhysicalPools(id node, SEL selector, id source) {
     [g_lock lock];
     BOOL mapped = g_contexts[[NSValue valueWithPointer:(__bridge const void *)node]] != nil;
@@ -876,9 +827,6 @@ static BOOL bridgeGraphStart(id graph, SEL selector, void *error) {
     BOOL mapped = [g_redirectedGraphs containsObject:[NSValue valueWithPointer:(__bridge const void *)graph]];
     if (mapped) g_graphStarts++;
     [g_lock unlock];
-    // Sources publish configuration-live notifications during graph start.
-    // Open the new connections first, including the branch that has no still
-    // image samples while preview-only mode is active.
     if (mapped) {
         [g_lock lock]; NSArray *beforeStart = [g_contexts.allValues copy]; [g_lock unlock];
         for (OBSBridgeContext *ctx in beforeStart)
@@ -889,10 +837,6 @@ static BOOL bridgeGraphStart(id graph, SEL selector, void *error) {
         [g_lock lock]; g_graphStartFailures++; [g_lock unlock];
     }
     if (started) {
-        // The physical node's suppressed start normally triggers the deferred
-        // prepare wave that resumes the FanOut branches (probe 0.1-11: several
-        // FanOut outputs stayed suspended, starving Funnel→RemoteQueue). Run
-        // the graph's own prepare machinery here instead.
         if (mapped) {
             if (g_originalDeferredStart)
                 g_originalDeferredStart(graph, sel_registerName("startDeferredSourceNodesIfNeeded"));
@@ -915,9 +859,6 @@ static BOOL bridgeGraphCommit(id graph, SEL selector, long long configurationID,
     @try {
         committed = g_originalGraphCommit(graph, selector, configurationID, error);
     } @catch (NSException *exception) {
-        // Keep unrelated sessions' behavior unchanged. For redirected graphs,
-        // stop injection and expose the actual contract violation instead of
-        // allowing an uncaught exception to restart mediaserverd repeatedly.
         if (!mapped) @throw;
         NSString *reason = [NSString stringWithFormat:@"%@: %@", exception.name, exception.reason ?: @""];
         [g_lock lock];
@@ -946,9 +887,6 @@ static void bridgeInitialSemaphore(id node, SEL selector, int32_t capacity) {
     [g_lock lock];
     BOOL mapped = [g_redirectedGraphs containsObject:
         [NSValue valueWithPointer:(__bridge const void *)graph]];
-    // The software source has no hardware pool budget. A zero calculated
-    // budget aborts movie graph setup. Test a bounded single-buffer budget,
-    // retaining the normal semaphore/back-pressure behavior downstream.
     if (mapped && capacity == 0) { capacity = 1; g_minimumBufferBudgets++; }
     [g_lock unlock];
     g_originalInitialSemaphore(node, selector, capacity);
@@ -975,10 +913,6 @@ static void bridgeDevicePrepare(id device, SEL selector, id completion) {
         g_originalDevicePrepare(device, selector, completion);
         return;
     }
-    // The physical source never starts in an OBS graph, so its preparation
-    // callback cannot arrive. Complete only this mapped camera request after
-    // the coordinator has entered its waiting state; leave sample capture and
-    // all unrelated devices untouched.
     void (^reply)(int32_t) = [completion copy];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_MSEC * 100), g_controlQueue, ^{
         reply(0);
@@ -1039,10 +973,6 @@ static void bridgeStreamPrepareStill(id stream, SEL selector, id settings) {
     }
 }
 
-// The software output is named OBSBridgeStill, but the original photo
-// settings identify the camera port as PortTypeBack. The time-machine node
-// indexes its per-port capture state using the sample's MetadataDictionary.
-// Translate only our tagged still frame at this node boundary.
 static void bridgeTimeMachineRender(id node, SEL selector, CMSampleBufferRef sample, id input) {
     if (sample && CMGetAttachment(sample, CFSTR("BWStillImageCaptureSettings"), NULL)) {
         NSDictionary *metadata = (__bridge NSDictionary *)CMGetAttachment(sample, CFSTR("MetadataDictionary"), NULL);
@@ -1218,9 +1148,6 @@ static void bridgeGNRRender(id node, SEL selector, CMSampleBufferRef sample, id 
     }
 }
 
-// The native recording branch delivers its own boundary/control samples to
-// this compressor. Remember that exact input, then feed OBS image samples to
-// it without changing graph connections or interrupting those messages.
 static void bridgeCompressorRender(id node, SEL selector, CMSampleBufferRef sample, id input) {
     if (sample && CMSampleBufferGetImageBuffer(sample))
         __atomic_add_fetch(&g_compressorImageSamples, 1, __ATOMIC_RELAXED);
@@ -1284,7 +1211,6 @@ static void fetchAudio(void) {
         [g_lock unlock];
     };
     if (socketPath.length) {
-        // O socket Unix pode bloquear até o timeout; não prenda a fila do áudio.
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
             NSData *data = httpGetOverUnix(socketPath, audioPath, 0.7, 32*8192);
             handle(data, data ? 200 : 0);
@@ -1362,12 +1288,6 @@ static void bridgeMovieSinkRender(id node, SEL selector, CMSampleBufferRef sampl
     CFRelease(replacement);
 }
 
-// The preview delivery to remote clients resolves the sample's PortType
-// through _BWActiveDeviceTypeFromPortType, which raises for any port name it
-// does not know (crash mediaserverd-safari-2026-11-02-230934.ips: SIGABRT on
-// the first "OBSBridgeVideo" render). Present our samples under the port name
-// the pipeline already accepts, and keep any residual raise inside the sink
-// from restarting the whole service.
 static void bridgeQueueSinkRender(id node, SEL selector, CMSampleBufferRef sample, id input) {
     if (!g_originalQueueSinkRender) return;
     @autoreleasepool {
@@ -1433,15 +1353,8 @@ static BOOL bridgeGraphStop(id graph, SEL selector, void *error) {
         }
     }
     [g_lock unlock];
-    // The stop path observed on 27/10 (photo-shutter-crash .ips) traps inside
-    // BWGraph stop: when a redirected graph's physical node never started. The
-    // Camera graph is verified there; for other clients (Safari) skip the
-    // original stop and retire only our producer, leaving the idle graph to
-    // the system instead of risking the service.
     BOOL stopped = YES;
     if (!mapped || cameraGraph) {
-        // Keep the mapping while BWGraph calls each node's stop:. The physical
-        // node was never started, so its stop must remain suppressed as well.
         stopped = g_originalGraphStop ? g_originalGraphStop(graph, selector, error) : NO;
     } else {
         __atomic_add_fetch(&g_graphStopsSkipped, 1, __ATOMIC_RELAXED);

@@ -196,10 +196,6 @@ function parseProxy(proxyStr) {
   const str = proxyStr.trim();
   if (!str) return null;
 
-  // Format 1: user:pass@host:port
-  // Format 2: host:port:user:pass
-  // Format 3: host:port
-
   let host = '';
   let port = '';
   let username = '';
@@ -697,7 +693,6 @@ class BrowserFarmService {
 
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
-            // Clean up Singleton lock files to prevent "already running" errors
             if (fs.existsSync(userDataDir)) {
               try {
                 const files = fs.readdirSync(userDataDir);
@@ -711,7 +706,7 @@ class BrowserFarmService {
             if (attempt === 2) {
               this._log(profileId, `Attempt 2: Clearing corrupted profile directory...`, 'warn');
               try { fs.rmSync(userDataDir, { recursive: true, force: true }); } catch (e) {}
-              await this._sleep(3000); // Wait 3s for browser to fully release before retry
+              await this._sleep(3000);
             }
             if (attempt === 3) {
               this._log(profileId, `Attempt 3: Final retry with fresh profile...`, 'warn');
@@ -770,9 +765,6 @@ class BrowserFarmService {
               extraArgs.push('--ssl-version-min=tls1.2');
             }
 
-            // For desktop maximized: use viewport=null so Playwright doesn't lock the viewport
-            // and the OS maximized state fills the entire window naturally.
-            // For desktop custom / mobile: set explicit viewport dimensions.
             const viewportArg = (sizeCfg.maximized && !isMobilePlt)
               ? null
               : { width: sizeCfg.width, height: sizeCfg.height };
@@ -781,7 +773,7 @@ class BrowserFarmService {
             const context = await playLauncher.launchPersistentContext(userDataDir, {
               executablePath: exePath,
               headless: false,
-              slowMo: 400, // 400ms between CDP calls — gives browser window time to initialize
+              slowMo: 400,
               viewport: viewportArg,
               userAgent: profile.ua,
               proxy: proxyOpts,
@@ -995,7 +987,6 @@ class BrowserFarmService {
   }
 
   async runFarm({ profileIds, targetUrl, action, batchSize, launchDelay, actionDelay, commentText }) {
-    // Always stop and clean up any existing runs or open login browsers first to guarantee a clean state
     this.stopFarm();
     await this._sleep(1000);
 
@@ -1105,7 +1096,6 @@ class BrowserFarmService {
         for (let attempt = 1; attempt <= 3; attempt++) {
           if (this.shouldStop || this.currentRunId !== runId) return;
           try {
-            // Remove Singleton lock files to avoid "browser already running" crash
             if (fs.existsSync(userDataDir)) {
               try {
                 const files = fs.readdirSync(userDataDir);
@@ -1119,7 +1109,7 @@ class BrowserFarmService {
             if (attempt === 2) {
               this._log(profile.id, `Attempt 2: Clearing corrupted profile dir...`, 'warn');
               try { fs.rmSync(userDataDir, { recursive: true, force: true }); } catch (e) {}
-              await this._sleep(3000); // 3s for browser to fully release
+              await this._sleep(3000);
             }
             if (attempt === 3) {
               this._log(profile.id, `Attempt 3: Final retry with fresh profile...`, 'warn');
@@ -1182,8 +1172,6 @@ class BrowserFarmService {
               extraArgs.push('--ssl-version-min=tls1.2');
             }
 
-            // For desktop maximized: viewport=null lets the OS window fill naturally
-            // For mobile / custom resolution: explicit viewport needed
             const viewportArg2 = (sizeCfg.maximized && !isMobilePlt2)
               ? null
               : { width: sizeCfg.width, height: sizeCfg.height };
@@ -1192,7 +1180,7 @@ class BrowserFarmService {
             context = await playLauncher.launchPersistentContext(userDataDir, {
               executablePath: exePath,
               headless: false,
-              slowMo: 400, // 400ms between CDP calls — gives browser window time to initialize
+              slowMo: 400,
               viewport: viewportArg2,
               userAgent: profile.ua,
               proxy: proxyOpts,
@@ -1377,7 +1365,6 @@ class BrowserFarmService {
 
       this._log(profile.id, `📍 Navigating → ${targetUrl}`, 'info');
 
-      // Page load wrapper with a soft timeout (12s) to avoid freezing on heavy trackers/scripts
       await new Promise((resolve) => {
         const t = setTimeout(() => {
           this._log(profile.id, `⚠️ Page load took too long, stopping load and proceeding...`, 'warn');
@@ -2107,7 +2094,6 @@ class BrowserFarmService {
 
     ipcMain.handle('farm:run', async (e, config) => {
       try {
-        // Run non-blocking — don't await the full run
         this.runFarm(config).catch(err => {
           console.error('[Farm IPC] runFarm error:', err);
         });
