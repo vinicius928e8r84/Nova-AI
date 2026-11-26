@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""Botão do cartão iPhone: "Conectar" -> "Abrir controle" depois de conectado.
-
-O renderer é um bundle já compilado (index-Dun7lr2S.js). Este script troca apenas
-dois trechos do painel PHONE CONTROL:
-
-1. cria `PI(id)`, que pede ao main para abrir o controle do iPhone já preparado;
-2. no cartão com `streaming`, iPhone mostra "Abrir controle" (ciano) e chama PI;
-   Android continua com "Parar transmissão" e Wc.
-
-Uso:
-    python3 aplicar-botao-iphone.py                      # aplica no app instalado
-    python3 aplicar-botao-iphone.py entrada.js saida.js   # aplica em uma cópia
-"""
 import shutil
 import subprocess
 import sys
@@ -44,7 +31,6 @@ NEW_BRANCH = ('eI.streaming?b.jsxs("button",{onClick:gI=>{gI.stopPropagation(),'
 
 
 def syntax_ok(path):
-    """O bundle é um módulo ESM; o node só aceita .mjs fora de um package type=module."""
     with tempfile.NamedTemporaryFile('w', suffix='.mjs', delete=False, encoding='utf-8') as tmp:
         shutil.copyfileobj(open(path, encoding='utf-8'), tmp)
         tmp_path = tmp.name

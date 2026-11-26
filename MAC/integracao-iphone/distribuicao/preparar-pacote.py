@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Create a clean, shareable Mac app copy, keeping user data outside the package."""
 from pathlib import Path
 import datetime,shutil,plistlib,json,tempfile
 source=Path('/Applications/Nova AI Mac.app')
@@ -16,7 +15,6 @@ def ignore(directory,names):
 shutil.copytree(source,app,symlinks=True,ignore=ignore)
 info=app/'Contents/Info.plist';data=plistlib.loads(info.read_bytes());data['CFBundleVersion']='20261103.1';data['LSMinimumSystemVersion']='26.0';info.write_bytes(plistlib.dumps(data))
 resources=app/'Contents/Resources'
-# Package metadata uses relative component paths and carries no source-machine paths.
 for p in [resources/'ios-tools/manifest.json',resources/'python-runtime-portable/manifest.json']:
  rows=json.loads(p.read_text());p.write_text(json.dumps([{k:v for k,v in row.items() if k!='source'} for row in rows],indent=2)+'\n')
 (stage/'LEIA-ME.txt').write_text('''NOVA AI MAC — versão local de 03/11/2026

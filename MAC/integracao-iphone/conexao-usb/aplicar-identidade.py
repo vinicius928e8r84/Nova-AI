@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""Aba "Identidade simulada": modelo+idioma, proxy, coordenadas, 3 botoes (v2).
-
-Regras do usuario (08/11, respostas 1-5):
- 1) Registrar modelo: GRAVA o modelo (aplica no aparelho) e guarda o perfil com um nome
-    que ele digita num popup.
- 2) Restaurar celular: DESFAZ TUDO (modelo, proxy, GPS, fuso, idioma) - sem reiniciar.
- 3) Coordenada DIGITADA vence a da proxy.
- 4) Idioma PREENCHE automatico com o pais da proxy (sem aplicar sozinho).
- 5) Salvar upa tudo (modelo, proxy, GPS, fuso, idioma) SEM derrubar o CAM LIVE:
-    o idioma vai sem respring (a interface do iPhone so muda se ele pedir depois).
-
-Depende de aplicar-proxy-tipo.py e aplicar-idioma.py (usa pProxyX, pIdiomas, pLang, pLangErro).
-
-Idempotente e com atualizacao de versao do painel. Uso: aplicar-identidade.py ALVO.js [--aplicar]
-"""
 import sys, os, shutil
 
 alvo = sys.argv[1] if len(sys.argv) > 1 else ""
@@ -30,7 +15,6 @@ for dep, marca in (("aplicar-proxy-tipo.py", "pProxyX="), ("aplicar-idioma.py", 
         print("ERRO: falta rodar antes o %s (nao achei %s)" % (dep, marca))
         sys.exit(2)
 
-# ── ID1: estados do painel ───────────────────────────────────────────────────
 NOVOS_ESTADOS = ('[pIdMsg,pSetIdMsg]=F.useState(""),'
                  '[pIdNome,pSetIdNome]=F.useState(""),'
                  '[pIdPrompt,pSetIdPrompt]=F.useState(!1)')
@@ -47,7 +31,6 @@ else:
     s = s.replace(ANC_HOOK, ANC_HOOK + "," + NOVOS_ESTADOS)
     print("ID1 ok")
 
-# ── ID1b: mapa pais -> idioma (para "preenche automatico com a proxy") ───────
 MAPA = ('pPaisIdioma=pC=>{const pM={US:"en-US",GB:"en-GB",AU:"en-AU",CA:"en-CA",NZ:"en-US",IE:"en-GB",'
         'BR:"pt-BR",PT:"pt-PT",ES:"es-ES",MX:"es-419",AR:"es-419",CO:"es-419",CL:"es-419",PE:"es-419",'
         'VE:"es-419",FR:"fr-FR",BE:"fr-FR",DE:"de-DE",AT:"de-DE",CH:"de-DE",IT:"it-IT",NL:"nl-NL",'
@@ -61,11 +44,9 @@ else:
     if s.count(ANC_MAPA) != 1:
         print("ID1b ERRO: ancora da lista de idiomas x%d" % s.count(ANC_MAPA))
         sys.exit(2)
-    # insere como constante irma, logo depois da lista
     s = s.replace(ANC_MAPA, ANC_MAPA + "," + MAPA)
     print("ID1b ok")
 
-# ── pecas do painel ──────────────────────────────────────────────────────────
 MODELO = ('b.jsxs("div",{children:['
           'b.jsx("label",{className:"text-[9px] font-bold text-white/40 tracking-widest uppercase mb-1 block",children:"Modelo"}),'
           'b.jsxs("div",{className:"relative",children:['
@@ -269,7 +250,6 @@ INICIO_PAINEL = 'b.jsxs("div",{className:"space-y-3 mb-4",children:['
 GRID = 'b.jsxs("div",{className:"grid grid-cols-2 gap-5",children:['
 GRID_OCULTO = 'b.jsxs("div",{className:"grid grid-cols-2 gap-5",children:[b.jsxs("div",{className:"space-y-3",style:{display:"none"},children:['
 
-# ── ID2: painel (troca de versao ou primeira insercao) ───────────────────────
 i = s.find(INICIO_PAINEL)
 if i >= 0:
     fim = s.find(GRID_OCULTO, i)
@@ -288,7 +268,6 @@ else:
     s = s.replace(GRID, PAINEL + GRID_OCULTO)
     print("ID2 ok (painel novo + coluna antiga oculta)")
 
-# ── ID3: ocultar o par latitude/longitude antigo ────────────────────────────
 ANC_LAT = ('b.jsxs("div",{className:"grid grid-cols-2 gap-2",children:[b.jsxs("div",{children:['
            'b.jsx("label",{className:"text-[8px] font-bold text-white/30 uppercase tracking-widest mb-1 block",'
            'children:"Latitude"})')
