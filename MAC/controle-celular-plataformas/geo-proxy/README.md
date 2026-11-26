@@ -52,7 +52,7 @@ A DDI cai quando o iPhone reinicia; o auto-mount remonta na próxima vez que o G
 | `electron/main.js` | IPC `spoofer:geo-from-proxy` |
 | `dist/assets/index-Dun7lr2S.js` | `pGeoApply`, `pGeoOnOpen`, chamadas ao salvar, remoção do botão "Fixar GPS Falso" |
 
-Os arquivos aplicados vivem em `app/` (a pasta `aplicado/` foi apagada). Backup do original: `reservas/<data-hora>/`.
+Os arquivos aplicados vivem em `app/` (a pasta `aplicado/` foi apagada). O original está no histórico: `git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/<arquivo>` (a pasta `reservas/` foi apagada).
 
 ## Reaplicar (depois de atualizar o app)
 
@@ -60,7 +60,8 @@ O script do renderer sempre parte do **bundle original**:
 
 ```sh
 cd "/Users/aquilesneri/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy"
-python3 aplicar-geo.py reservas/<data>/index-Dun7lr2S.js /tmp/novo.js
+git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/index-Dun7lr2S.js > /tmp/original.js
+python3 aplicar-geo.py /tmp/original.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
 ```
 
@@ -69,9 +70,12 @@ Backend: `geo-proxy.js` e os trechos de geo já estão em `app/electron/main.js`
 ## Desfazer
 
 ```sh
-cp reservas/<data>/index-Dun7lr2S.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
-cp reservas/<data>/main.js "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/main.js"
-cp reservas/<data>/physicalMobileService.js "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/physicalMobileService.js"
+git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/index-Dun7lr2S.js > /tmp/original.js
+cp /tmp/original.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
+git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/main.js > /tmp/main.js
+cp /tmp/main.js "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/main.js"
+git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/physicalMobileService.js > /tmp/physicalMobileService.js
+cp /tmp/physicalMobileService.js "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/physicalMobileService.js"
 rm "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/geo-proxy.js"
 ```
 

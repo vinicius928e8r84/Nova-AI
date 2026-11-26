@@ -94,7 +94,7 @@ class TelegramManager {
         this.sessionDir = path.join(app.getPath('userData'), '.telegram_auth');
         this.sessionFilePath = path.join(this.sessionDir, 'session.json');
 
-        this.pendingLogin = null; // Stores details during OTP stage
+        this.pendingLogin = null;
         this.processedMessageIds = new Set();
 
         this.busyModeEnabled = false;
@@ -102,7 +102,6 @@ class TelegramManager {
         this.bossName = 'Boss';
         this.connectionCheckInterval = null;
 
-        // Smart Notification Filter variables
         this.tgNotificationFilterEnabled = false;
         this.tgMonitoredGroups = [];
         this.tgNotificationMessage = '⚠️ Nova Predefined Group Notification: Active monitored group message detected!';
@@ -156,7 +155,6 @@ class TelegramManager {
                 this.busyModeEnabled = !!data.busyModeEnabled;
                 this.busyStatusText = data.busyStatusText || this.busyStatusText;
 
-                // Load Notification Filter settings
                 this.tgNotificationFilterEnabled = !!data.tgNotificationFilterEnabled;
                 this.tgMonitoredGroups = Array.isArray(data.tgMonitoredGroups) ? data.tgMonitoredGroups : [];
                 this.tgNotificationMessage = data.tgNotificationMessage || '⚠️ Nova Predefined Group Notification: Active monitored group message detected!';
@@ -255,7 +253,6 @@ class TelegramManager {
             this.client = null;
         }
 
-        // Clean up session file to force re-login
         try {
             if (fs.existsSync(this.sessionFilePath)) {
                 fs.unlinkSync(this.sessionFilePath);
@@ -559,7 +556,6 @@ class TelegramManager {
         this.qrCodeUrl = '';
         this.setStatus('disconnected');
 
-        // Delete session file
         try {
             if (fs.existsSync(this.sessionFilePath)) {
                 fs.unlinkSync(this.sessionFilePath);

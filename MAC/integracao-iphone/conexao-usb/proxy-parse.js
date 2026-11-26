@@ -1,11 +1,3 @@
-/* Nova AI - leitura de proxy do iPhone.
-   Extrai SO o que interessa (host, porta, usuario, senha) de qualquer formato colado.
-   Formato aceito na entrada (todos):
-     host:porta                host:porta:usuario:senha      usuario:senha@host:porta
-     host:porta@usuario:senha  socks5://host:porta:usuario:senha   http://usuario:senha@host:porta
-     usuario:senha:host:porta  (com ou sem esquema na frente)
-   A senha pode conter ":" (ex.: _country-US_mode-quality_session-x_lifetime-1440). */
-
 function pIsPort(pT) {
   return /^[0-9]{1,5}$/.test(pT) && +pT > 0 && +pT <= 65535;
 }
@@ -72,7 +64,6 @@ function pParseProxy(pRaw) {
   return { scheme: pSch, host: pHost, port: +pPort, user: pUser, pass: pPass };
 }
 
-/* Monta a string canonica que o novaproxy do iPhone entende: esquema://host:porta:usuario:senha */
 function pBuildProxy(pScheme, pO) {
   var pSc = String(pScheme || pO.scheme || "socks5").toLowerCase().replace(/:\/\/$/, "");
   var pBase = pSc + "://" + pO.host + ":" + pO.port;
@@ -91,7 +82,6 @@ function pSchemeOf(pRaw) {
   return pSm ? pSm[1].toLowerCase() : "socks5";
 }
 
-/* Troca so o tipo, mantendo tudo o que ja foi colado. */
 function pWithScheme(pScheme, pRaw) {
   var pO = pParseProxy(pRaw);
   if (pO) return pBuildProxy(pScheme, pO);

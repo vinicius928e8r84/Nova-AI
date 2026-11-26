@@ -2,8 +2,6 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Valida o trecho do cartão no bundle já patcheado: iPhone preparado mostra
-// "Abrir controle" e chama PI; Android continua com "Parar transmissão".
 const bundle = process.argv[2] || path.join(__dirname, '..', '..', '..', 'app', 'dist', 'assets', 'index-Dun7lr2S.js');
 const source = fs.readFileSync(bundle, 'utf8');
 
@@ -24,7 +22,6 @@ const fG = (id) => calls.push('connect:' + id);
 const PI = (id) => calls.push('console:' + id);
 const montar = (device) => new Function('eI', 'b', 'mW', 'bY', 'Wc', 'fG', 'PI', 'return ' + expr)(device, b, mW, bY, Wc, fG, PI);
 
-// iPhone já preparado (streaming) -> botão ciano "Abrir controle"
 const iphone = montar({ id: 'ios-47F4FC', streaming: true });
 iphone.onClick({ stopPropagation() {} });
 assert.equal(calls.pop(), 'console:ios-47F4FC');
@@ -32,19 +29,16 @@ assert.match(JSON.stringify(iphone.children), /Abrir controle/);
 assert.match(iphone.className, /bg-j-cyan/);
 assert.doesNotMatch(JSON.stringify(iphone.children), /Parar transmissão/);
 
-// iPhone marcado por ios:true, sem prefixo no id
 const iphoneLegado = montar({ id: 'algum-id', ios: true, streaming: true });
 iphoneLegado.onClick({ stopPropagation() {} });
 assert.equal(calls.pop(), 'console:algum-id');
 
-// Android continua parando a transmissão
 const android = montar({ id: 'R58M123ABC', streaming: true });
 android.onClick({ stopPropagation() {} });
 assert.equal(calls.pop(), 'stop:R58M123ABC');
 assert.match(JSON.stringify(android.children), /Parar transmissão/);
 assert.match(android.className, /bg-red-500/);
 
-// Nada de "Conectar" nesse estado
 assert.doesNotMatch(JSON.stringify(iphone.children), /Conectar/);
 
 console.log('OK: cartão do iPhone mostra "Abrir controle" (canal ios-console-open); Android segue com "Parar transmissão".');

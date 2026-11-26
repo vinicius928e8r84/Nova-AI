@@ -1,6 +1,3 @@
-// PWA App Logic - Enhanced for Professional UI
-
-// Fallback markdown parser if marked.js fails to load
 if (typeof marked === 'undefined') {
     window.marked = { parse: (text) => text.replace(/\n/g, '<br>') };
 }
@@ -10,7 +7,6 @@ class NovaRemoteApp {
         this.token = null;
         this.isConnected = false;
 
-        // Element references
         this.messageInput = document.getElementById('message-input');
         this.modelSelect = document.getElementById('model-select');
         this.tokenInput = document.getElementById('token-input');
@@ -19,7 +15,6 @@ class NovaRemoteApp {
         this.messagesContainer = document.getElementById('messages');
         this.micBtn = document.getElementById('mic-btn');
 
-        // Recording states
         this.isRecording = false;
         this.mediaRecorder = null;
         this.audioChunks = [];
@@ -60,6 +55,11 @@ class NovaRemoteApp {
     }
 
     setupEventListeners() {
+        this.ligarTelaDeAcesso();
+        this.ligarTelaDoChat();
+    }
+
+    ligarTelaDeAcesso() {
         const connectBtn = document.getElementById('connect-btn');
         if (connectBtn) connectBtn.addEventListener('click', () => this.connect());
 
@@ -68,38 +68,49 @@ class NovaRemoteApp {
                 if (e.key === 'Enter') this.connect();
             });
         }
+    }
 
+    ligarTelaDoChat() {
         const disconnectBtn = document.getElementById('disconnect-btn');
         if (disconnectBtn) disconnectBtn.addEventListener('click', () => this.disconnect());
 
         const sendBtn = document.getElementById('send-btn');
         if (sendBtn) sendBtn.addEventListener('click', () => this.sendMessage());
 
-        if (this.messageInput) {
-            this.messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    this.sendMessage();
-                }
-            });
-
-            this.messageInput.addEventListener('input', (e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
-            });
-        }
+        if (this.messageInput) this.ligarCaixaDeMensagem();
 
         if (this.micBtn) {
             this.micBtn.addEventListener('click', () => this.handleMicClick());
         }
 
         if (this.modelSelect) {
-            this.modelSelect.addEventListener('change', () => {
-                const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
-                if (this.activeModelName) this.activeModelName.textContent = selectedText.split(' ').pop(); // Just the model name
-                this.switchModel(this.modelSelect.value);
-            });
+            this.modelSelect.addEventListener('change', () => this.aoTrocarModelo());
         }
+    }
+
+    ligarCaixaDeMensagem() {
+        this.messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+
+        this.messageInput.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 150) + 'px';
+        });
+    }
+
+    nomeDoModeloEscolhido() {
+        const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
+        return selectedText.split(' ').pop();
+    }
+
+    aoTrocarModelo() {
+        const nome = this.nomeDoModeloEscolhido();
+        if (this.activeModelName) this.activeModelName.textContent = nome;
+        this.switchModel(this.modelSelect.value);
     }
 
     async connect() {
@@ -112,7 +123,6 @@ class NovaRemoteApp {
         this.token = tokenVal;
         this.setConnecting(true);
 
-        // Disconnect any existing socket first
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;
@@ -130,7 +140,6 @@ class NovaRemoteApp {
 
             this.setupSocketHandlers();
 
-            // Connection timeout — show error if no auth within 12s
             this._connectTimer = setTimeout(() => {
                 if (!this.isConnected) {
                     this.showError('Tempo de conexão esgotado. Verifique se o Nova está rodando no seu computador.');
@@ -138,7 +147,6 @@ class NovaRemoteApp {
                 }
             }, 12000);
 
-            // Wait for socket to connect before authenticating
             this.socket.on('connect', () => {
                 console.log('[Socket] Connected, authenticating...');
                 this.socket.emit('authenticate', { token: this.token });
@@ -198,7 +206,6 @@ class NovaRemoteApp {
             }
         });
 
-        // On reconnect, re-authenticate with saved token
         this.socket.on('reconnect', () => {
             console.log('[Socket] Reconnected, re-authenticating...');
             if (this.token) {
@@ -207,7 +214,6 @@ class NovaRemoteApp {
         });
 
         this.socket.on('connect', () => {
-            // Re-authenticate on reconnect if we were previously connected
             if (this.isConnected && this.token) {
                 this.socket.emit('authenticate', { token: this.token });
             }
@@ -229,8 +235,7 @@ class NovaRemoteApp {
         if (authError) authError.style.display = 'none';
 
         if (this.modelSelect && this.activeModelName) {
-            const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
-            this.activeModelName.textContent = selectedText.split(' ').pop();
+            this.activeModelName.textContent = this.nomeDoModeloEscolhido();
             this.switchModel(this.modelSelect.value);
         }
     }
@@ -274,7 +279,7 @@ class NovaRemoteApp {
             return;
         }
 
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (!this.microfoneDisponivel()) {
             const msg = 'Microfone não suportado neste navegador. Chrome/Safari exigem HTTPS para acesso ao microfone. Use a URL do Túnel Cloudflare.';
             alert(msg);
             this.showError(msg);
@@ -282,42 +287,52 @@ class NovaRemoteApp {
         }
 
         if (!this.isRecording) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.mediaRecorder = new MediaRecorder(stream);
-                this.audioChunks = [];
-
-                this.mediaRecorder.ondataavailable = (e) => {
-                    if (e.data.size > 0) this.audioChunks.push(e.data);
-                };
-
-                this.mediaRecorder.onstop = async () => {
-                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/m4a' });
-                    await this.processTranscription(audioBlob);
-                    stream.getTracks().forEach(track => track.stop());
-                };
-
-                this.mediaRecorder.start();
-                this.isRecording = true;
-                this.micBtn.classList.add('recording');
-            } catch (err) {
-                console.error("Recording start fail:", err);
-                this.showError('Acesso ao microfone negado');
-            }
+            await this.iniciarGravacao();
         } else {
-            if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-                this.mediaRecorder.stop();
-            }
-            this.isRecording = false;
-            this.micBtn.classList.remove('recording');
+            this.pararGravacao();
         }
+    }
+
+    microfoneDisponivel() {
+        return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    }
+
+    async iniciarGravacao() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaRecorder = new MediaRecorder(stream);
+            this.audioChunks = [];
+
+            this.mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) this.audioChunks.push(e.data);
+            };
+
+            this.mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(this.audioChunks, { type: 'audio/m4a' });
+                await this.processTranscription(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            this.mediaRecorder.start();
+            this.isRecording = true;
+            this.micBtn.classList.add('recording');
+        } catch (err) {
+            console.error("Recording start fail:", err);
+            this.showError('Acesso ao microfone negado');
+        }
+    }
+
+    pararGravacao() {
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+            this.mediaRecorder.stop();
+        }
+        this.isRecording = false;
+        this.micBtn.classList.remove('recording');
     }
 
     async processTranscription(blob) {
         if (!this.groqKey) {
-            // Request key if not available
             this.socket.emit('get-groq-key');
-            // Wait a bit for the key to arrive
             await new Promise(r => setTimeout(r, 1000));
             if (!this.groqKey) {
                 this.showError('Chave do Groq não disponível');
@@ -366,7 +381,6 @@ class NovaRemoteApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
-        // Use marked for AI messages to support rich text (Markdown)
         let content;
         try {
             content = sender === 'ai' ? marked.parse(text) : `<p>${this.escapeHtml(text)}</p>`;
@@ -381,7 +395,6 @@ class NovaRemoteApp {
 
         this.messagesContainer.appendChild(messageDiv);
 
-        // Use a small timeout to ensure DOM is updated before scrolling
         setTimeout(() => this.scrollToBottom(), 50);
     }
 
@@ -421,9 +434,12 @@ class NovaRemoteApp {
         const btnText = btn.querySelector('.btn-text');
         const btnLoader = btn.querySelector('.btn-loader');
 
+        const displayDoTexto = isConnecting ? 'none' : 'inline';
+        const displayDoLoader = isConnecting ? 'block' : 'none';
+
         btn.disabled = isConnecting;
-        if (btnText) btnText.style.display = isConnecting ? 'none' : 'inline';
-        if (btnLoader) btnLoader.style.display = isConnecting ? 'block' : 'none';
+        if (btnText) btnText.style.display = displayDoTexto;
+        if (btnLoader) btnLoader.style.display = displayDoLoader;
     }
 
     updateConnectionStatus(isOnline) {
@@ -451,7 +467,6 @@ class NovaRemoteApp {
     }
 }
 
-// Initialize
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.app = new NovaRemoteApp();
@@ -460,7 +475,6 @@ if (document.readyState === 'loading') {
     window.app = new NovaRemoteApp();
 }
 
-// PWA Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
 }

@@ -1,18 +1,10 @@
 'use strict';
-// Teste do spoofing de modelo do iPhone (novamodel), com mock do SSH.
-//
-// Roda sem o app instalado: stub dos módulos `ws`, `axios` e `./mac-native` (não usados
-// pelos métodos de modelo) para conseguir carregar physicalMobileService, e `iosSsh`
-// substituído por um mock. Valida também o módulo puro ios-modelo.js (comandos + parse).
-//
-//   node MAC/integracao-modelo-app/novamodel.test.cjs
 
 const assert = require('assert');
 const path = require('path');
 const os = require('os');
 const Module = require('module');
 
-// Stubs de dependências pesadas/ausentes fora do app (não exercitadas aqui).
 const origLoad = Module._load;
 Module._load = function (request, parent, isMain) {
   if (request === 'ws') return function WebSocket() {};
@@ -34,7 +26,6 @@ function ok(cond, label) {
 }
 
 async function main() {
-  // ── 1. módulo puro: comandos e validação ──────────────────────
   console.log('ios-modelo (puro)');
   ok(iosModelo.buildSet('iPhone14,5') === '/var/jb/usr/bin/novamodel set iPhone14,5', 'buildSet');
   ok(iosModelo.buildClear() === '/var/jb/usr/bin/novamodel clear', 'buildClear');
@@ -52,7 +43,6 @@ async function main() {
   ok(iosModelo.findModel(models, 'iPhone14,5') !== null, 'findModel encontra iPhone 13');
   ok(iosModelo.findModel(models, 'Nope9,9') === null, 'findModel rejeita desconhecido');
 
-  // ── 2. fluxos do módulo com mock de SSH ───────────────────────
   console.log('ios-modelo (fluxos com mock sshFn)');
   const callsPuro = [];
   const sshFn = async (cmd) => {
@@ -76,7 +66,6 @@ async function main() {
   const rBad = await iosModelo.applyModel(sshFn, 'iPhone14,5; rm -rf /');
   ok(!rBad.success, 'applyModel rejeita productType malicioso');
 
-  // ── 3. métodos do serviço (mock de iosSsh) ────────────────────
   console.log('physicalMobileService (applyIOSModel/clearIOSModel/getIOSModel)');
   const svc = new PhysicalMobileService(null, { getPath: () => os.tmpdir() });
 
@@ -110,7 +99,6 @@ async function main() {
   ok(rGetSvc.success && rGetSvc.active === 'iPhone15,4', 'getIOSModel devolve status ativo');
   ok(calls[2] === '/var/jb/usr/bin/novamodel status', 'getIOSModel usa iosSsh com status');
 
-  // ── 4. falha de SSH vira erro claro ───────────────────────────
   console.log('physicalMobileService (falha de SSH)');
   const svc2 = new PhysicalMobileService(null, { getPath: () => os.tmpdir() });
   svc2.iosSsh = async () => ({ ok: false, stdout: '', error: 'command not found' });

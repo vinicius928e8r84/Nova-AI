@@ -1,5 +1,3 @@
-// Harness: serve uma página "fake Nova" + o cam-live.js; o IPC do renderer vai por HTTP para o serviço REAL (cam-live-service.js).
-// uso: node harness.js   -> http://localhost:8765   (RTMP de destino: ffmpeg -listen na 19351)
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
 const { register } = require('../../../app/electron/services/cam-live-service.js');
