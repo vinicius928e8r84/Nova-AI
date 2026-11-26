@@ -10,31 +10,17 @@
 #import <string.h>
 #import <unistd.h>
 
-// Spoofing de modelo do iPhone (rootless) para o Nova AI Mac.
-//
-// Lê /var/tmp/nova-model-control.json (mesmo padrão do OBSGraphBridge):
-//   { "enabled": true, "productType": "iPhone14,5", "name": "iPhone 13" }
-// "enabled": false (ou arquivo ausente) = modelo real.
-//
-// Segurança: só sobrescreve um whitelist fechado de chaves de modelo. Nada de
-// serial/IMEI/baseband. A leitura é feita com cache por mtime/size, então a
-// troca é instantânea (próxima chamada já vê o arquivo novo) sem re-parsear
-// JSON a cada chamada de MGCopyAnswer/sysctl.
-
 static NSString *const kControl = @"/var/tmp/nova-model-control.json";
 
-// Whitelist de chaves MobileGestalt que este tweak pode sobrescrever.
 static NSSet<NSString *> *g_mgKeys;
 
-// Estado atual (cache do control file).
 static NSRecursiveLock *g_lock;
-static NSDictionary<NSString *, NSString *> *g_spoof; // chave -> valor
+static NSDictionary<NSString *, NSString *> *g_spoof;
 static BOOL g_enabled;
 static BOOL g_loaded;
 static struct timespec g_mtime;
 static off_t g_size;
 
-// Originais das funções/métodos enganchados.
 static CFTypeRef (*orig_MGCopyAnswer)(CFStringRef, CFDictionaryRef);
 static CFTypeRef (*orig_MGCopyAnswerWithError)(CFStringRef, CFDictionaryRef, CFErrorRef *);
 static CFStringRef (*orig_MGGetStringAnswer)(CFStringRef);
@@ -45,8 +31,6 @@ static id (*orig_uidLocalizedModel)(id, SEL);
 static id (*orig_uidModelName)(id, SEL);
 static id (*orig_uidModelName2)(id, SEL);
 
-// Revalida o control file. Só re-parseia o JSON quando o arquivo muda
-// (mtime/size), para não pesar nas chamadas quentes de MGCopyAnswer.
 static void refreshConfig(void) {
     struct stat st;
     if (stat(kControl.UTF8String, &st) != 0) {
@@ -87,7 +71,6 @@ static void refreshConfig(void) {
     [g_lock unlock];
 }
 
-// Valor de spoof para uma chave MG (CFString +1), ou NULL se não deve spoofar.
 static CFStringRef spoofMGString(CFStringRef question) {
     if (!question) return NULL;
     NSString *key = (__bridge NSString *)question;
@@ -118,8 +101,6 @@ static CFStringRef hook_MGGetStringAnswer(CFStringRef question) {
     return orig_MGGetStringAnswer(question);
 }
 
-// Copia o valor de spoof da chave key para o buffer sysctl (oldp/oldlenp).
-// Retorna YES se tratou (escreveu/respondeu) e grava o resultado em *result.
 static BOOL emitSpoofForSysctl(NSString *key, void *oldp, size_t *oldlenp, int *result) {
     refreshConfig();
     [g_lock lock];
@@ -171,7 +152,6 @@ static int hook_sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, co
     return orig_sysctl(name, namelen, oldp, oldlenp, newp, newlen);
 }
 
-// Valor de spoof (autoreleased, +0) para os métodos do UIDevice, ou nil.
 static id spoofUIDeviceValue(NSString *key) {
     refreshConfig();
     [g_lock lock];
@@ -206,7 +186,6 @@ static id hook_uidModelName2(id self, SEL sel) {
 }
 
 static void installHooks(void) {
-    // MobileGestalt (funções C exportadas pela lib do sistema).
     void *mg = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_LAZY);
     void *ca = mg ? dlsym(mg, "MGCopyAnswer") : NULL;
     void *caE = mg ? dlsym(mg, "MGCopyAnswerWithError") : NULL;
@@ -215,11 +194,9 @@ static void installHooks(void) {
     if (caE) MSHookFunction(caE, (void *)hook_MGCopyAnswerWithError, (void **)&orig_MGCopyAnswerWithError);
     if (gsa) MSHookFunction(gsa, (void *)hook_MGGetStringAnswer, (void **)&orig_MGGetStringAnswer);
 
-    // sysctl/sysctlbyname (libc).
     MSHookFunction((void *)sysctlbyname, (void *)hook_sysctlbyname, (void **)&orig_sysctlbyname);
     MSHookFunction((void *)sysctl, (void *)hook_sysctl, (void **)&orig_sysctl);
 
-    // UIDevice (só se a classe já estiver carregada no processo).
     Class uid = objc_getClass("UIDevice");
     if (!uid) return;
     MSHookMessageEx(uid, sel_registerName("model"), (IMP)hook_uidModel, (IMP *)&orig_uidModel);
@@ -232,8 +209,6 @@ static void installHooks(void) {
 
 %ctor {
     @autoreleasepool {
-        // A CLI novamodel precisa ler o ProductType REAL (sem spoof) para o
-        // comando status; o tweak não deve carregar nesse processo.
         NSString *proc = [NSProcessInfo processInfo].processName;
         if ([proc isEqualToString:@"novamodel"]) return;
 
