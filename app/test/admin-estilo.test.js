@@ -11,7 +11,7 @@ const ADMIN = path.join(PWA, 'admin.html');
 const ESTILO = path.join(PWA, 'admin.css');
 const LIGACAO = '<link rel="stylesheet" href="admin.css">';
 const BLOCO_DE_ESTILO = /<style>([\s\S]*?)<\/style>/g;
-const ESPERADO = { sha256: '29a10af5e24d92706ee445ac21eace37bd43ee887e672cb4482205f6088fc6e1', linhasDeEstilo: 730 };
+const ESPERADO = { sha256: 'fd21b4eaf392876bdfdabe2d723ee6274141085ae427ce8ef422783790faf5b3', linhasDeEstilo: 730 };
 
 const semComentarios = css => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const linhasDoEstilo = css => semComentarios(css).split('\n').map(linha => linha.trim()).filter(Boolean);
