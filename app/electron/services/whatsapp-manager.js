@@ -688,7 +688,6 @@ class WhatsAppManager {
         });
     }
 
-    //
     async handleScreenshotCommand(targetChatId) {
         if (!this.client || !this.isReady) {
             console.warn('[WA-Screenshot] Client not ready — cannot send screenshot.');
