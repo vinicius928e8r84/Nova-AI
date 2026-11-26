@@ -1,9 +1,4 @@
 <!doctype html>
-<!--
-  PROTOTYPE — pode apagar. Pergunta: "Como deve ser o botão CAM LIVE e a tela dele?"
-  3 variantes na mesma página, troque com ?variant=A|B|C ou com as setas ← → do teclado.
-  Tudo fake (sem backend). Só a webcam real é opcional.
--->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -22,7 +17,6 @@
   .mono{font-family:'JetBrains Mono',monospace}
   .rig{font-family:'Righteous',cursive}
 
-  /* ---------- shell do app (réplica) ---------- */
   .topbar{height:60px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--border);background:rgba(5,10,24,.9);position:relative;z-index:20}
   .brand{display:flex;align-items:center;gap:10px;margin-right:8px}
   .brand i{width:32px;height:32px;border-radius:50%;background:conic-gradient(#ff5f6d,#ffc371,#00e5ff,#a78bfa,#ff5f6d);display:block;box-shadow:0 0 12px rgba(0,229,255,.4)}
@@ -52,8 +46,6 @@
   .resp{border:1px solid var(--border);border-radius:14px;background:var(--panel);padding:14px;font-size:13px;line-height:1.5;color:#cbd5e1;max-width:880px}
   .resp h5{font-size:10px;color:var(--cyan);letter-spacing:.15em;margin-bottom:6px;font-family:'Righteous'}
 
-  /* ---------- camada do painel CAM LIVE ---------- */
-  /* Janela flutuante igual à do Phone Control: 900x620, arrastável, redimensionável (mín. 800x540), minimiza em pílula 380x50, sem fundo bloqueando a tela */
   .overlay{position:fixed;inset:0;z-index:30;display:none;pointer-events:none}
   .overlay.open{display:block}
   .panel{position:fixed;pointer-events:auto;background:rgba(6,12,19,.99);backdrop-filter:blur(24px);border:1px solid rgba(0,229,255,.2);box-shadow:0 0 100px rgba(0,0,0,.95),0 0 40px rgba(0,229,255,.07);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
@@ -78,7 +70,6 @@
   .ldot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:5px;vertical-align:middle}
   .navbtn.sel{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,.3)}
 
-  /* ---------- estilo OBS (variante A) ---------- */
   .obs{font-family:system-ui,-apple-system,'Source Sans 3',sans-serif}
   .dock{background:#1f2029;border:1px solid #2c2e3a;border-radius:4px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
   .dhead{display:flex;align-items:center;gap:7px;padding:5px 8px;font-size:12px;font-weight:700;color:#f1f2f6;background:#262833;border-bottom:1px solid #15161c;flex-shrink:0}
@@ -115,7 +106,6 @@
   .badge.ok{color:var(--green);border-color:rgba(0,255,143,.35);background:rgba(0,255,143,.06)}
   .badge.dim{color:var(--dim);border-color:var(--border)}
 
-  /* vídeo fake */
   .video{position:relative;background:#02060f;border-radius:12px;overflow:hidden;border:1px solid var(--border);aspect-ratio:16/9;width:100%}
   .video canvas,.video video{width:100%;height:100%;object-fit:cover;display:block}
   .video .hud{position:absolute;inset:0;pointer-events:none;font-family:'JetBrains Mono';font-size:10px;color:#fff}
@@ -156,7 +146,6 @@
   .level{display:flex;gap:2px;align-items:flex-end;height:22px}.level i{width:4px;background:var(--green);border-radius:1px}
 
 
-  /* ---------- mini OBS: sheets, menu, status ---------- */
   .oprev{position:relative}
   .oprev canvas{height:100%;width:auto;max-width:100%;display:block;background:#000;touch-action:none}
   .otoast{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#000b;color:#e5e7ee;font-size:12px;padding:5px 12px;border-radius:999px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
@@ -175,7 +164,6 @@
   .ctxm{position:fixed;z-index:10001;background:#2a2c38;border:1px solid #3d4054;border-radius:8px;padding:4px;min-width:190px;font:13px system-ui,sans-serif;color:#eceef5;box-shadow:0 10px 30px rgba(0,0,0,.6)}
   .ctxm div{display:flex;gap:8px;align-items:center;padding:6px 10px;border-radius:5px;cursor:pointer}.ctxm div:hover{background:#2f48c5}
   .ctxm hr{border:0;border-top:1px solid #3d4054;margin:4px 2px}
-  /* ---------- switcher do protótipo ---------- */
   #sw{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:999;background:#fff;color:#111;border-radius:999px;padding:6px 8px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 30px rgba(0,0,0,.6);font:600 13px system-ui}
   #sw button{border:0;background:#e5e7eb;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px}
   #sw span{min-width:260px;text-align:center}
@@ -183,7 +171,6 @@
 </head>
 <body>
 
-<!-- ===== SHELL: réplica da barra do app, com o botão novo ===== -->
 <div class="topbar">
   <div class="brand"><i></i><div><b class="rig">NOVA</b><small>Assistente de IA</small></div></div>
   <button class="tb cyan"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/></svg>Gravação de tela</button>
@@ -209,14 +196,12 @@
     <div class="resp"><h5><span class="ldot"></span>RESPOSTA DO NOVA</h5>Pronto. Clique em <b style="color:var(--amber)">CAM LIVE</b> na barra de cima para abrir a tela de câmera ao vivo. (Esta é só uma réplica do app para ver o encaixe do design.)</div>
   </main>
 
-  <!-- ===== PAINEL CAM LIVE (variantes) ===== -->
   <div class="overlay" id="overlay"><div id="variantHost"></div></div>
 </div>
 
 <div id="sw"><button id="prev">←</button><span id="vlabel"></span><button id="next">→</button></div>
 
 <script>
-/* ============ Estado fake ============ */
 const IC={"smartphone": "<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\"/><path d=\"M12 18h.01\"/>", "bot": "<path d=\"M12 8V4H8\"/><rect width=\"16\" height=\"12\" x=\"4\" y=\"8\" rx=\"2\"/><path d=\"M2 14h2M20 14h2M15 13v2M9 13v2\"/>", "laptop": "<path d=\"M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16\"/>", "monitor": "<rect width=\"20\" height=\"14\" x=\"2\" y=\"3\" rx=\"2\"/><path d=\"M8 21h8M12 17v4\"/>", "film": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4\"/>", "camera": "<path d=\"M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z\"/><circle cx=\"12\" cy=\"13\" r=\"3\"/>", "plus": "<path d=\"M5 12h14M12 5v14\"/>", "trash": "<path d=\"M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6\"/>", "up": "<path d=\"m18 15-6-6-6 6\"/>", "down": "<path d=\"m6 9 6 6 6-6\"/>", "eye": "<path d=\"M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "eyeOff": "<path d=\"M9.88 9.88a3 3 0 1 0 4.24 4.24M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20\"/>", "lock": "<rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/>", "sliders": "<path d=\"M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6\"/>", "layers": "<path d=\"m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z\"/><path d=\"m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65\"/>", "volume": "<path d=\"M11 4.7 6.5 9H3v6h3.5l4.5 4.3z\"/><path d=\"M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14\"/>", "volumeX": "<path d=\"M11 4.7 6.5 9H3v6h3.5l4.5 4.3z\"/><path d=\"m22 9-6 6M16 9l6 6\"/>", "headphones": "<path d=\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\"/>", "x": "<path d=\"M18 6 6 18M6 6l12 12\"/>", "minus": "<path d=\"M5 12h14\"/>", "square": "<rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/>", "circleDot": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"3\" fill=\"currentColor\"/>", "stop": "<rect width=\"12\" height=\"12\" x=\"6\" y=\"6\" rx=\"1\" fill=\"currentColor\"/>", "radio": "<path d=\"M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.2 19.1 19.1\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/>", "check": "<path d=\"M20 6 9 17l-5-5\"/>", "video": "<path d=\"m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 11\"/><rect x=\"2\" y=\"6\" width=\"14\" height=\"12\" rx=\"2\"/>", "upload": "<path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12\"/>", "layout": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M3 9h18M9 21V9\"/>", "signal": "<path d=\"M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16\"/>"};
 const ic=(n,s=14)=>`<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
 const S = {
@@ -237,7 +222,6 @@ const VARIANTS = {
   C:{name:'Abas (preview à esquerda, abas à direita)', render:renderC},
 };
 
-/* ============ Preview fake (canvas animado) ============ */
 const canvases = new Set();
 function drawFake(c,seed=0,label=''){
   const g=c.getContext('2d'),w=c.width,h=c.height,t=performance.now()/1000+seed;
@@ -246,7 +230,6 @@ function drawFake(c,seed=0,label=''){
   g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;
   for(let x=0;x<w;x+=w/16){g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()}
   for(let y=0;y<h;y+=h/9){g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke()}
-  // "pessoa"
   const cx=w/2+Math.sin(t*.8)*w*.03,cy=h*.62;
   g.fillStyle='rgba(255,176,32,.18)';g.beginPath();g.ellipse(cx,cy+h*.28,w*.17,h*.28,0,0,7);g.fill();
   g.fillStyle='rgba(255,200,140,.35)';g.beginPath();g.arc(cx,h*.38+Math.sin(t*1.6)*3,h*.17,0,7);g.fill();
@@ -273,7 +256,6 @@ function tick(){
   requestAnimationFrame(tick);
 }
 function videoEl(seed,label,extra=''){
-  // usa webcam real se o usuário ligou, senão canvas fake
   const wrap=document.createElement('div');wrap.className='video '+extra;
   if(S.useWebcam&&S.webcam){const v=document.createElement('video');v.autoplay=true;v.muted=true;v.playsInline=true;v.srcObject=S.webcam;wrap.appendChild(v)}
   else{const c=document.createElement('canvas');c.width=640;c.height=360;c.dataset.seed=seed;c.dataset.label=label;canvases.add(c);wrap.appendChild(c)}
@@ -286,7 +268,6 @@ const hudHTML=()=>`<div class="hud"><i class="corner c1"></i><i class="corner c2
   <div class="br" data-clock>00:00:00</div></div>`;
 function withHud(v){v.insertAdjacentHTML('beforeend',hudHTML());return v}
 
-/* ============ Peças reutilizáveis ============ */
 const lvl=()=>`<div class="level">${'<i></i>'.repeat(14)}</div>`;
 function sourcesList(compact){
   return SOURCES.map(s=>`<div class="src ${S.source===s.id?'sel':''}" data-src="${s.id}"><div class="ic">${ic(s.ic,15)}</div><div><b>${s.name}</b>${compact?'':`<small>${s.meta}</small>`}</div><span class="st badge ${s.st==='ok'?'ok':'dim'}">${s.st==='ok'?'ONLINE':'OFFLINE'}</span></div>`).join('');
@@ -307,9 +288,6 @@ function head(title='CAM LIVE'){
   <span class="sp"></span><span class="mono" style="font-size:10px;color:var(--dim)">LAT 38ms · 0 quadros perdidos</span><button class="x" data-act="min" title="Minimizar">${ic('minus',14)}</button><button class="x" data-act="close" title="Fechar" style="color:var(--red);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.1)">${ic('x',14)}</button></div>`;
 }
 
-/* ============ VARIANTE A — Mini OBS (cenas, fontes, preview arrastável, controles, status) ============
-   Reproduz o MiniOBS Studio (system-jail/mini-obs): Engine + MainView + PreviewView + SettingsSheet + ItemPropertiesSheet.
-   Transmissão é simulada (sem RTMP real). */
 Object.assign(IC,{
  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>',
  palette:'<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
@@ -326,7 +304,7 @@ const KINDS={
 };
 const uid=()=>Math.random().toString(36).slice(2,9);
 const MKEY='nova-camlive-miniobs';
-const media=new Map();   // id -> HTMLImageElement | HTMLVideoElement
+const media=new Map();
 let camEl=null;
 
 function mkItem(kind,name,frame,extra={}){return Object.assign({id:uid(),kind,name,path:null,color:'#3366cc',real:false,frame,visible:true},extra)}
@@ -345,7 +323,6 @@ const scene=()=>P.scenes.find(s=>s.id===P.active)||P.scenes[0];
 const findItem=id=>scene().items.find(i=>i.id===id);
 const q=sel=>R.root&&R.root.querySelector(sel);
 
-/* ---- Engine (cenas / fontes) ---- */
 function addScene(){const s={id:uid(),name:'Cena '+(P.scenes.length+1),items:[]};P.scenes.push(s);P.active=s.id;R.sel=null;save();paint()}
 function removeScene(id){if(P.scenes.length<=1)return;P.scenes=P.scenes.filter(s=>s.id!==id);if(P.active===id)P.active=P.scenes[0].id;R.sel=null;save();paint()}
 function nativeSize(it){const m=media.get(it.id);
@@ -373,7 +350,6 @@ async function requestCam(){if(camEl)return true;
   catch(e){alert('Não consegui abrir a câmera: '+e.message);return false}}
 function pickFile(kind,cb){const inp=document.createElement('input');inp.type='file';inp.accept=kind==='image'?'image/*':'video/*';inp.onchange=()=>{if(inp.files[0])cb(inp.files[0])};inp.click()}
 
-/* ---- Transmissão simulada ---- */
 function setLive(on){S.live=on;if(on)S.t0=Date.now()}
 function startStreaming(){if(R.streaming)return;R.streaming=true;R.status='Conectando…';setLive(true);render();
   setTimeout(()=>{if(R.streaming&&R.status==='Conectando…'){R.status='AO VIVO';R.live0=Date.now()}},900)}
@@ -392,7 +368,6 @@ function updateStats(){
   const d=q('#sdot');if(d)d.style.background=R.streaming?'#ff4d4d':'#7c8196';
 }
 
-/* ---- Desenho do preview ---- */
 function cover(g,v,x,y,w,h){const vw=v.videoWidth||v.naturalWidth,vh=v.videoHeight||v.naturalHeight;if(!vw)return false;const s=Math.max(w/vw,h/vh);g.drawImage(v,x+(w-vw*s)/2,y+(h-vh*s)/2,vw*s,vh*s);return true}
 function drawItem(g,it,t){
   const{x,y,w,h}=it.frame;g.save();g.beginPath();g.rect(x,y,w,h);g.clip();
@@ -441,7 +416,6 @@ function bindCanvas(c){
   c.addEventListener('pointerup',()=>{if(d){d=null;save()}});
 }
 
-/* ---- Menus de contexto e toast ---- */
 let ctxEl=null,ctxOff=null;
 function closeCtx(){if(ctxEl){ctxEl.remove();ctxEl=null}if(ctxOff){removeEventListener('pointerdown',ctxOff,true);ctxOff=null}}
 function ctx(x,y,items){closeCtx();const m=document.createElement('div');m.className='ctxm';
@@ -451,7 +425,6 @@ function ctx(x,y,items){closeCtx();const m=document.createElement('div');m.class
   ctxOff=e=>{if(!e.target.closest('.ctxm'))closeCtx()};setTimeout(()=>addEventListener('pointerdown',ctxOff,true))}
 function toast(msg){const t=q('#obsToast');if(!t)return;t.textContent=msg;t.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.opacity=0,3500)}
 
-/* ---- Painéis ---- */
 const dock=(t,body,st='')=>`<div class="dock" style="${st}"><div class="dhead">${ic('layers',14)}${t}</div>${body}</div>`;
 function docksHTML(){
   const sc=scene(),items=[...sc.items].reverse();
@@ -513,7 +486,6 @@ async function modalOk(){
   R.modal=null;save();paint();
 }
 
-/* ---- Janela: esqueleto + eventos ---- */
 function renderA(host){
   host.innerHTML=`<div class="panel obs"> ${head('CAM LIVE')}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:6px;background:#12131a">
@@ -551,7 +523,6 @@ function renderA(host){
   });
 }
 
-/* ============ VARIANTE B — Multi-câmera (mural) ============ */
 function renderB(host){
   const cams=SOURCES.slice(0,4);
   host.innerHTML=`<div class="panel"> ${head('CAM LIVE — Mural')}
@@ -574,7 +545,6 @@ function renderB(host){
   });
 }
 
-/* ============ VARIANTE C — Gaveta lateral ============ */
 function renderC(host){
   host.innerHTML=`<div class="panel"> ${head('CAM LIVE')}
     <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;padding:14px;flex:1;min-height:0">
@@ -594,7 +564,6 @@ function renderC(host){
   host.querySelectorAll('.tab').forEach(t=>t.onclick=e=>{e.stopPropagation();cur=window.__ctab=t.dataset.tab;paint();bindInner(host)});
 }
 
-/* ============ Cola: render + eventos ============ */
 const host=document.getElementById('variantHost'),overlay=document.getElementById('overlay');
 let variant=(new URLSearchParams(location.search).get('variant')||'A').toUpperCase();
 if(!VARIANTS[variant])variant='A';
@@ -630,10 +599,8 @@ function bindInner(root){
   });
 }
 document.getElementById('camBtn').onclick=()=>{S.open=!S.open;render()};
-// prova de que a tela de trás continua clicável com a janela aberta
 document.querySelectorAll('.navbtn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')});
 
-/* ---- janela flutuante (mesmo comportamento do react-rnd do Phone Control) ---- */
 const G={x:120,y:60,w:900,h:620,min:false};
 const MIN_W=800,MIN_H=540,PILL_W=380,PILL_H=50;
 function applyGeom(p){
@@ -650,7 +617,6 @@ function setupWindow(p){
     ['n','s','e','w','ne','nw','se','sw'].forEach(d=>{const r=document.createElement('div');r.className='rz';r.dataset.rz=d;p.appendChild(r)});
   }
   applyGeom(p);
-  // arrastar pela barra do topo (ignora botões)
   const handle=p.querySelector('.phead,.pillbar');
   handle.addEventListener('pointerdown',e=>{
     if(e.target.closest('button'))return;
@@ -660,7 +626,6 @@ function setupWindow(p){
     const up=()=>{p.classList.remove('dragging');handle.removeEventListener('pointermove',mv);handle.removeEventListener('pointerup',up)};
     handle.addEventListener('pointermove',mv);handle.addEventListener('pointerup',up);
   });
-  // redimensionar pelas bordas/cantos
   p.querySelectorAll('.rz').forEach(rz=>rz.addEventListener('pointerdown',e=>{
     const d=rz.dataset.rz,sx=e.clientX,sy=e.clientY,o={...G};rz.setPointerCapture(e.pointerId);e.stopPropagation();
     const mv=ev=>{const dx=ev.clientX-sx,dy=ev.clientY-sy;
@@ -679,7 +644,6 @@ function go(d){const k=Object.keys(VARIANTS);variant=k[(k.indexOf(variant)+d+k.l
 document.getElementById('prev').onclick=()=>go(-1);document.getElementById('next').onclick=()=>go(1);
 addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
   if(e.key==='ArrowLeft')go(-1);if(e.key==='ArrowRight')go(1);if(e.key==='Escape'){S.open=false;render()}});
-// abre direto no painel pra facilitar a revisão
 S.open=true;render();tick();
 </script>
 </body>

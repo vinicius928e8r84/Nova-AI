@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * geo-proxy.cjs — descobre a localização (lat/lon/cidade/fuso) do IP de saída
- * de um proxy SOCKS5, consultando o ipwho.is *através do proxy*.
- *
- * Uso:
- *   node geo-proxy.cjs                                  # sem proxy (IP da máquina)
- *   node geo-proxy.cjs "socks5://host:porta"            # proxy sem autenticação
- *   node geo-proxy.cjs "socks5://host:porta:user:pass"  # formato do Nova
- *   node geo-proxy.cjs "socks5://user:pass@host:porta"  # formato URL padrão
- *
- * Saída: uma linha JSON com ip, city, region, country, lat, lon, timezone.
- */
 'use strict';
 
 const https = require('https');
@@ -27,10 +15,6 @@ function loadAgent() {
   throw new Error('socks-proxy-agent não encontrado (instale com npm i socks-proxy-agent).');
 }
 
-/**
- * Aceita os dois formatos usados no Nova e no resto do mundo.
- * sock five?://host:porta:user:pass  |  socks5://user:pass@host:porta  |  host:porta
- */
 function toAgentUrl(raw) {
   const s = String(raw || '').trim();
   if (!s) return null;
