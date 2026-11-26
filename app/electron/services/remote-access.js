@@ -7,6 +7,7 @@ const QRCode = require('qrcode');
 const { spawn } = require('child_process');
 const cloudflared = require('cloudflared');
 const toolPaths = require('./tool-paths');
+const { AcessoDoAdmin } = require('./admin-acesso');
 
 const CORS_PREFLIGHT = {
     'Access-Control-Allow-Origin': '*',
@@ -88,6 +89,10 @@ class RemoteAccessService {
         this.connectedClients = new Map();
         this.cloudflaredProcess = null;
         this.limiteDeTentativas = new LimiteDeTentativas();
+        this.acessoDoAdmin = new AcessoDoAdmin({
+            pasta: app.getPath('userData'),
+            conferirCliente: (cliente, validar) => this.conferirCliente(cliente, validar)
+        });
         this.publicUrl = null;
         this.isRunning = false;
 
@@ -352,7 +357,8 @@ hone par ye file automatically update ho jayegi.
     }
 
     atenderRequisicao(req, res) {
-        if (!ehRotaDeConfigFirebase(req)) this.servePWA(req, res);
+        if (this.acessoDoAdmin.ehRota(req)) this.acessoDoAdmin.atender(req, res, this.clienteDaConexao(req.socket?.remoteAddress, req.headers));
+        else if (!ehRotaDeConfigFirebase(req)) this.servePWA(req, res);
         else if (req.method === 'OPTIONS') responderPreflight(res);
         else if (!this.tokenDaRequisicaoValido(req)) responderJson(res, 401, { error: 'Não autenticado' });
         else if (req.method === 'POST') this.receberConfigFirebase(req, res);

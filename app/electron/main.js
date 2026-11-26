@@ -47,11 +47,9 @@ if (process.env.NOVA_SMOKE_TEST === '1') {
 app.commandLine.appendSwitch('disable-background-timer-throttling');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
-// Ignore GPU blocklist so Electron can use available GPU without crashing
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 
-// Global User-Agent spoofing to prevent Google from detecting Electron
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0';
 
 app.whenReady().then(() => {
@@ -93,7 +91,6 @@ browserFarmService.loadProfiles();
 const RtmpServerService = require('./services/rtmp-server');
 
 
-// Production Server for YouTube embeds (file:// origin is blocked by YouTube)
 let productionServer = null;
 let productionPort = process.env.NOVA_TEST_PORT || 45678;
 
@@ -104,16 +101,13 @@ const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-// FORCE DEV UPDATE CONFIG (For testing without building)
 if (process.env.NODE_ENV === 'development') {
   autoUpdater.forceDevUpdateConfig = true;
   console.log('FORCE DEV UPDATE CONFIG ENABLED');
 }
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
-let tray = null; // Prevent garbage collection of the system tray icon
+let tray = null;
 
 autoUpdater.logger = {
   info(text) {
@@ -297,14 +291,12 @@ function createWindow() {
   if (appMenuTemplate) Menu.setApplicationMenu(Menu.buildFromTemplate(appMenuTemplate));
   if (process.platform !== 'win32') mainWindow.setMenu(null);
 
-  // Set app ID for proper Windows taskbar grouping
   app.setAppUserModelId('com.nova.ai');
 
 
   mainWindow.show();
   mainWindow.focus();
 
-  // After 2s turn off alwaysOnTop (only needed during startup)
   setTimeout(() => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.maximize();
@@ -316,7 +308,6 @@ function createWindow() {
 
 
 
-  // Prevent GPU crash from killing entire process — log and continue
   mainWindow.webContents.on('render-process-gone', (event, details) => {
     console.error('[Nova] Renderer process gone:', details.reason, details.exitCode);
     if (details.reason !== 'clean-exit') {
@@ -432,7 +423,7 @@ function createWindow() {
     } catch (e) {
       console.error('[WhatsApp] Auto-connect failed:', e);
     }
-  }, 5000); // 5-second delay to let app settle
+  }, 5000);
 
   setTimeout(async () => {
     if (isShuttingDown()) return;
@@ -447,7 +438,7 @@ function createWindow() {
     } catch (e) {
       console.error('[Telegram] Auto-connect failed:', e);
     }
-  }, 6000); // 6-second delay to let app settle
+  }, 6000);
 
 
 
@@ -474,7 +465,6 @@ function startProductionServer() {
     productionServer = http.createServer((req, res) => {
       let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url);
 
-      // Security: prevent directory traversal
       if (!filePath.startsWith(distPath)) {
         res.writeHead(403);
         res.end('Forbidden');
@@ -553,8 +543,6 @@ function setupPermissions(session) {
     }
   });
 
-  // CRITICAL: Also override the permission CHECK handler so Electron never
-  // silently blocks camera access without even asking (which causes the alert).
   session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
     if (process.env.NOVA_SMOKE_TEST === '1') return false;
     const allowedPermissions = ['media', 'camera', 'microphone', 'videoCapture', 'audioCapture', 'desktopCapture'];
@@ -564,7 +552,6 @@ function setupPermissions(session) {
     return false;
   });
 
-  // Google Login Bypass for Pro Core and Nova Studio
   const stealthSessions = [
     session.defaultSession,
     session.fromPartition('persist:gemini_session'),
@@ -664,10 +651,8 @@ const restoreConfigurationBackup = () => {
   }
 };
 
-// This user-requested local build does not use activation keys or the vendor license service.
 const getLocalEditionStatus = () => ({plan:'pro',status:'active',edition:'mac-local',activationRequired:false});
 
-// Confere se o iPhone Console (servidor local do ios-bridge) já aceita conexões.
 function novaIosConsolePortOpen(port) {
   return new Promise((resolve) => {
     const socket = require('net').connect({ host: '127.0.0.1', port, timeout: 800 });
@@ -709,9 +694,7 @@ function registerHandlers() {
     RtmpServerService.receiveVideoChunk(buffer);
   });
 
-  // CAMLIVE:begin
   try { app.camLiveService = require('./services/cam-live-service').register({ ipcMain, getWindow: () => mainWindow, userDataDir: app.getPath('userData'), getMobileService: () => app.physicalMobileService }); } catch (e) { console.error('[CamLive] falhou ao registrar:', e); }
-  // CAMLIVE:end
 
   ipcMain.handle('physical-mobile:get-status', async () => {
     return app.physicalMobileService.getStatus();
@@ -723,17 +706,15 @@ function registerHandlers() {
     return app.physicalMobileService.disconnectDevice(id);
   });
   ipcMain.handle('physical-mobile:start-stream', async (event, id) => {
-    // iPhone: nenhuma janela externa. O modal de senha é desenhado dentro do Nova.
     if (String(id).startsWith('ios-')) {
       const setup = require('./services/iphone-setup/setup');
       const result = setup.prompt(mainWindow, { id: String(id) });
-      // O nome do aparelho chega depois (ideviceinfo); o modal não espera por ele.
       app.physicalMobileService.getStatus().then((status) => {
         const device = (status.devices || []).find((item) => item.id === id);
         if (device && device.name && mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('nova:iphone-setup-open', { id: String(id), name: device.name });
         }
-      }).catch(() => { /* segue com o identificador do aparelho */ });
+      }).catch(() => { });
       return result;
     }
     return app.physicalMobileService.startStream(id);
@@ -745,7 +726,6 @@ function registerHandlers() {
     let result;
     try { result = await require('./services/iphone-setup/setup').prepare(String(id), password, app.physicalMobileService); }
     catch (e) { return { success: false, error: e.message }; }
-    // O cartão do aparelho troca "Conectar" por "Abrir controle" na hora.
     if (result && result.success && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('physical-mobile:status-updated', { deviceId: String(id), streaming: true });
     }
@@ -798,8 +778,6 @@ function registerHandlers() {
   ipcMain.handle('iphone:proxy:check', async (event, { id }) => {
     return app.physicalMobileService.iosProxyCheck(id);
   });
-  // Spoofing de modelo do iPhone (novamodel) — painel "Identidade simulada".
-  // Contrato com a UI (branch agent/frontend/modelo-iphone-20261105): nomes exatos.
   ipcMain.handle('spoofer:get-ios-models', async () => {
     return app.physicalMobileService.getIosModels();
   });
@@ -844,7 +822,6 @@ function registerHandlers() {
   ipcMain.handle('physical-mobile:start-live-stream', async (event, { id, port }) => {
     return app.physicalMobileService.startLiveStream(id, port || 8899);
   });
-  // push-live-frame: called at 30fps — use 'on' not 'handle' for perf
   ipcMain.on('physical-mobile:push-live-frame', (event, { frame }) => {
     app.physicalMobileService.pushLiveFrame(frame);
   });
@@ -918,7 +895,6 @@ function registerHandlers() {
     return { canceled: true };
   });
 
-  // Identidade simulada: registrado depois do createWindow (precisa do physicalMobileService).
   ipcMain.handle('spoofer:get-models', async () => {
     return app.physicalMobileService.getSpooferModels();
   });
@@ -960,7 +936,6 @@ function registerHandlers() {
   });
 
 
-  // Compatibility channels used by the shipped renderer. No key is read, stored or sent.
   ipcMain.handle('license:get-status', async () => getLocalEditionStatus());
   ipcMain.handle('license:verify', async () => ({success:true,...getLocalEditionStatus()}));
   ipcMain.handle('license:save', async () => true);
@@ -1108,7 +1083,6 @@ function registerHandlers() {
     } catch (e) {
       console.error('[Main] save-recording failed, falling back to direct write:', e);
       
-      // Fallback: if conversion failed for any reason, write raw file so we don't lose the user's data!
       if (finalSavePath) {
         try {
           fs.writeFileSync(finalSavePath, Buffer.from(buffer));
@@ -1336,7 +1310,6 @@ function registerHandlers() {
             case 'list-profiles':
                 return virtualCamInjector.globalSpoof.listProfiles();
 
-            // Canvas Bridge: no filePath needed — canvas chunks arrive via stream-chunk
             case 'hijack': {
                 const result = await virtualCamInjector.startHijack(buffer, settings);
                 return result;
@@ -1414,7 +1387,6 @@ function registerHandlers() {
 
   ipcMain.on('virtual-cam:stream-chunk', (event, arrayBuffer) => {
     if (virtualCamInjector) {
-        // arrayBuffer from frontend comes across IPC as a Uint8Array/Buffer in Electron
         virtualCamInjector.writeChunk(Buffer.from(arrayBuffer));
     }
   });
@@ -1742,8 +1714,6 @@ function registerHandlers() {
   const KlingVideoService = require('./services/kling-video-service');
   const klingVideoService = new KlingVideoService(app);
 
-  // Salva um vídeo exportado copiando o arquivo real (o download de URLs file:// é
-  // bloqueado no Chromium e gerava uma página HTML quebrada no lugar do vídeo).
   ipcMain.handle('kling:save-video', async (event, payload = {}) => {
     try {
       const src = String(payload.sourcePath || '').replace(/^file:\/*/, '/');
@@ -1788,7 +1758,6 @@ function registerHandlers() {
         const scriptPath = path.join(ytDir, 'pipeline.py');
         if (!fs.existsSync(scriptPath)) { resolve({success:false,error:'The original installer does not include youtube_auto/pipeline.py.'}); return; }
         
-        // Write args to a temp JSON file to avoid ALL Windows escaping/quoting issues
         const os = require('os');
         
         let geminiApiKey = process.env.GEMINI_API_KEY || '';
@@ -1806,7 +1775,6 @@ function registerHandlers() {
 
         const { exec } = require('child_process');
         
-        // Simple quoted command — no array-to-shell conversion issues
         const cmd = `"${pythonRuntime.python()}" "${scriptPath}" --args-file "${tmpFile}"`;
         const pyProcess = exec(cmd, { cwd: ytDir, windowsHide: true });
         
@@ -1888,7 +1856,6 @@ function registerHandlers() {
         else if (aiVoice && aiVoice.includes('Christopher')) voice = 'en-US-ChristopherNeural';
         else if (aiLanguage && aiLanguage.includes('Hindi')) voice = 'hi-IN-MadhurNeural';
 
-        // Use real script — no character limit so every word is spoken naturally
         let textToSpeak = (scriptText || '').trim();
         if (!textToSpeak) {
           textToSpeak = voice.startsWith('ur-')
@@ -1898,7 +1865,6 @@ function registerHandlers() {
               : 'Hello! I am Nova AI, your intelligent voice assistant. How can I help you today?';
         }
 
-        // Write to temp file (BOM for proper Urdu/Hindi on Windows)
         fs.writeFileSync(tmpTxt, '\uFEFF' + textToSpeak, 'utf8');
 
         const speed = aiSpeed || 50;
@@ -1936,7 +1902,6 @@ function registerHandlers() {
           let wordTimings = [];
           try {
             const vttRaw = fs.existsSync(tmpSubs) ? fs.readFileSync(tmpSubs, 'utf8') : '';
-            // VTT format: "HH:MM:SS.mmm --> HH:MM:SS.mmm\nword\n"
             const blocks = vttRaw.split(/\n\n+/).filter(b => b.includes('-->'));
             blocks.forEach(block => {
               const lines = block.trim().split('\n');
@@ -1961,7 +1926,6 @@ function registerHandlers() {
             wordTimings
           });
 
-          // Play with ffplay (-nodisp = no window, -autoexit = stop when done)
           const playCmd = `ffplay -nodisp -autoexit -loglevel quiet "${tmpAudio}"`;
           exec(playCmd, () => {
             try { fs.unlinkSync(tmpAudio); } catch(e) {}
@@ -2121,8 +2085,6 @@ function registerHandlers() {
       
       globalChatSaveSessionCount++;
       if (globalChatSaveSessionCount % 10 === 0) {
-        // Continuous Learning Trigger: Silently update the backend User Context profile.
-        // It fetches API Key from the same path as Gemini configuration.
         const tokenPath = getSecretKeyPath();
         if (fs.existsSync(tokenPath)) {
            const tokenData = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
@@ -2365,8 +2327,6 @@ function registerHandlers() {
     }
   });
 
-  // MEMORY GATE: Only search when user explicitly asks about past events/memory.
-  // This prevents wasting API tokens on every simple WhatsApp message.
   const MEMORY_TRIGGER_KEYWORDS = [
     'yaad', 'puran', 'pichl', 'remember', 'last time', 'hafta', 'memory',
     'did we', 'kya humne', 'pehle', 'kya tha', 'batao kal', 'recall',
@@ -2502,15 +2462,11 @@ function registerHandlers() {
           .trim();
       };
 
-      // SOURCE 1: Google Takeout MyActivity.json
-      //   Location: Stonic_Vault/MyActivity.json  (project folder)
-      //   Structure: Array of { header, title, time, safeHtmlItem: [{html}] }
       const activityJsonPath = path.join(
         path.dirname(app.getPath('exe')),
         'Nova_Vault', 'MyActivity.json'
       );
 
-      // Fallback: also check next to main.js (electron/ folder sibling)
       const activityJsonAlt = path.join(
         __dirname, '..', 'Nova_Vault', 'MyActivity.json'
       );
@@ -2526,8 +2482,6 @@ function registerHandlers() {
         const rawJson = fs.readFileSync(jsonPath, 'utf8');
         const activities = JSON.parse(rawJson);
 
-        // File has 1000s of entries — sample 20% for performance
-        // (later: make this configurable via settings)
         const SAMPLE_RATE = 0.2;
         const sampled = activities.filter((_, idx) => Math.random() < SAMPLE_RATE || idx < 50);
 
@@ -2564,8 +2518,6 @@ function registerHandlers() {
         console.warn('[scan-vault-graph] MyActivity.json not found at:', activityJsonPath);
       }
 
-      // SOURCE 2: Nova_Vault Markdown files (Chat notes, secondary source)
-      //   Location: Documents/Nova_Vault/ and /Chats/ subfolder
       const vaultRoot = getVaultPath();
       const chatsDir  = path.join(vaultRoot, 'Chats');
 
@@ -2673,7 +2625,6 @@ function registerHandlers() {
           const data = JSON.parse(fs.readFileSync(mp, 'utf8'));
           childModel = data.model || 'gemini-3.8-flash';
         }
-        // Use dedicated child API key if set (avoids sharing quota with Nova live)
         const kp = getChildAgentKeyPath();
         if (fs.existsSync(kp)) {
           const keyData = JSON.parse(fs.readFileSync(kp, 'utf8'));
@@ -2682,7 +2633,6 @@ function registerHandlers() {
             console.log('[Swarm] Using dedicated child-agent API key.');
           }
         }
-        // Read Groq key (ultimate fallback — completely separate API quota)
         const gp = path.join(app.getPath('userData'), 'groq_key.json');
         if (fs.existsSync(gp)) {
           const gd = JSON.parse(fs.readFileSync(gp, 'utf8'));
@@ -2723,7 +2673,7 @@ function registerHandlers() {
       if (fs.existsSync(p)) {
         try { data = JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { }
       }
-      data.apiKey = apiKey; // Keep for backward compatibility
+      data.apiKey = apiKey;
       data.geminiKey = apiKey;
       data.updatedAt = Date.now();
       fs.writeFileSync(p, JSON.stringify(data, null, 2));
@@ -2904,11 +2854,8 @@ function registerHandlers() {
 
   ipcMain.handle('system-fs-op', async (event, { operation, path: targetPath, content, dest }) => {
     try {
-      // CRITICAL FIX: Resolve relative paths to Nova Data folder
-      // If path starts with "Documents\Nova Data" or similar, treat as relative to user Documents
       let resolvedPath = targetPath;
 
-      // CRITICAL FIX: If AI literally used "${resolvedNotesPath}" string, strip it out
       if (targetPath && (targetPath.includes('${resolvedNotesPath}') || targetPath.includes('$resolvedNotesPath'))) {
         console.warn(`[FS-OP] WARNING: AI used literal template variable "${targetPath}". Fixing...`);
         resolvedPath = targetPath.replace(/\$\{?resolvedNotesPath\}?[\\\/]?/g, '');
@@ -3056,7 +3003,6 @@ function registerHandlers() {
     const results = [];
     for (const filePath of filePaths) {
       const stats = fs.statSync(filePath);
-      // Limit to 50MB per file for inline playback safely
       if (stats.size > 50 * 1024 * 1024) {
         continue;
       }
@@ -3191,7 +3137,6 @@ function registerHandlers() {
       const source = sources[0];
       let img = source.thumbnail;
 
-      // Resizing to maximum width of 1024px to keep base64 size under 200KB
       const imgSize = img.getSize();
       if (imgSize.width > 1024) {
         const scale = 1024 / imgSize.width;
@@ -3215,7 +3160,6 @@ function registerHandlers() {
     }
   });
 
-  // Window minimize/restore — used by Trade Signal Scanner to hide Nova before capture
   ipcMain.handle('window-minimize', () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
   });
@@ -3232,11 +3176,6 @@ function registerHandlers() {
 
   ipcMain.handle('get-screen-sources', async () => {
     try {
-      // CRITICAL FIX: types: ['screen'] ONLY — never include 'window'.
-      // Window-type sources capture a specific app's content independently
-      // of the compositor. If a browser window is in the list and gets
-      // selected, the stream shows that browser even when it's behind Nova.
-      // Screen-type sources capture the TRUE composited display output.
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: { width: 320, height: 180 }
@@ -3246,7 +3185,6 @@ function registerHandlers() {
         id: source.id,
         name: source.name,
         thumbnail: source.thumbnail.toDataURL(),
-        // Include thumbnail dimensions so renderer can pick the largest (primary) screen
         width: source.thumbnail.getSize().width,
         height: source.thumbnail.getSize().height,
         display_id: source.display_id || ''
@@ -3723,7 +3661,6 @@ function registerHandlers() {
       console.log(`[WhatsApp Robot] Time: ${new Date().toLocaleTimeString()}`);
       console.log(`[WhatsApp Robot] Method: RobotJS (Native Node.js)`);
 
-      // Import robotjs dynamically (to handle build issues gracefully)
       let robot;
       try {
         robot = require('@jitsi/robotjs');
@@ -3833,7 +3770,6 @@ function registerHandlers() {
       const lowerKey = key.toLowerCase();
       const sendKey = keyMap[lowerKey] || key;
 
-      // Built-in delay: If it's Enter, ALWAYS wait 8 seconds.
       const isEnter = lowerKey === 'enter';
 
       const psCommand = isEnter
@@ -3869,7 +3805,6 @@ function registerHandlers() {
 
       let psCommand;
       if (pressEnter) {
-        // If pressing enter, type text, WAIT 2 SECONDS, then press Enter
         psCommand = `
           Add-Type -AssemblyName System.Windows.Forms;
           [System.Windows.Forms.SendKeys]::SendWait('${escapedText}');
@@ -4106,7 +4041,6 @@ app.on('window-all-closed', () => {
   if (!isShuttingDown()) app.quit();
 });
 
-// Test instance: isolated userData + port so a second copy can run alongside.
 if (process.env.NOVA_TEST_INSTANCE === '1') {
   try {
     app.setPath('userData', path.join(require('os').tmpdir(), 'nova-test-instance'));
@@ -4142,9 +4076,6 @@ if (!gotTheLock) {
       console.error('[iOSBridge] Failed to start:', err.message);
     }
 
-    // Initialize Web Adblocker with local cache (Technique 2) - Disabled due to compatibility issues with Electron 34 causing Network Service crashes
-
-    // ===== CRITICAL: Configure CSP to allow YouTube embeds in production =====
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
         responseHeaders: {
@@ -4163,7 +4094,6 @@ if (!gotTheLock) {
       });
     });
 
-    // PRODUCTION: Remove CSP completely for local file protocol
     session.defaultSession.webRequest.onHeadersReceived({ urls: ['file://*'] }, (details, callback) => {
       const responseHeaders = { ...details.responseHeaders };
       delete responseHeaders['Content-Security-Policy'];

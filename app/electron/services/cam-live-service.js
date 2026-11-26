@@ -1,21 +1,4 @@
 'use strict';
-/**
- * CAM LIVE — serviço do processo principal (reconstrução em JS do MiniOBS: RTMPClient + RTMPOutput + FLV + AMF0).
- * O renderer captura/compõe/codifica (WebCodecs H.264) e manda os pacotes aqui; este arquivo conecta no servidor RTMP
- * (sem ffmpeg), mantém a fila com descarte por prioridade, o bitrate dinâmico (DBR) e a reconexão automática.
- *
- * Canais IPC:
- *   invoke  camlive:start   (settings)  -> {ok}      começa a conectar
- *   invoke  camlive:stop                -> {ok}      para (envia o fim de sequência)
- *   invoke  camlive:studio-load         -> json|null
- *   invoke  camlive:studio-save (json)  -> {ok}
- *   send    camlive:avcc    (Uint8Array)             AVCDecoderConfigurationRecord do encoder
- *   send    camlive:packet  ({data,ptsUs,key})       pacote H.264 em AVCC
- *   send    camlive:aasc    (Uint8Array)             AudioSpecificConfig do AAC
- *   send    camlive:apacket ({data,ptsUs})           pacote AAC bruto
- *   send    camlive:log     (texto)
- *   evento  camlive:status / camlive:stats / camlive:set-bitrate / camlive:keyframe
- */
 const net = require('net');
 const fs = require('fs');
 const path = require('path');
@@ -24,7 +7,6 @@ const crypto = require('crypto');
 const nowMs = () => Number(process.hrtime.bigint() / 1000000n);
 const nowNs = () => process.hrtime.bigint();
 
-// ───────────────────────── AMF0 ─────────────────────────
 class ByteWriter {
   constructor() { this.parts = []; }
   u8(v) { this.parts.push(Buffer.from([v & 0xff])); return this; }
@@ -79,16 +61,14 @@ class AMFReader {
   }
 }
 
-// ───────────────────────── FLV (corpo das tags de vídeo) ─────────────────────────
 const FLV = {
   sequenceHeader: (avcC) => Buffer.concat([Buffer.from([0x17, 0x00, 0, 0, 0]), Buffer.from(avcC)]),
-  frame: (p) => Buffer.concat([Buffer.from([p.key ? 0x17 : 0x27, 0x01, 0, 0, 0]), Buffer.from(p.data)]),   // sem B-frames: cts = 0
+  frame: (p) => Buffer.concat([Buffer.from([p.key ? 0x17 : 0x27, 0x01, 0, 0, 0]), Buffer.from(p.data)]),
   endOfSequence: () => Buffer.from([0x17, 0x02, 0, 0, 0]),
-  audioSeq: (asc) => Buffer.concat([Buffer.from([0xaf, 0x00]), Buffer.from(asc)]),          // AAC-LC 48 kHz estéreo: 0xAF
+  audioSeq: (asc) => Buffer.concat([Buffer.from([0xaf, 0x00]), Buffer.from(asc)]),
   audio: (data) => Buffer.concat([Buffer.from([0xaf, 0x01]), Buffer.from(data)]),
 };
 
-// ───────────────────────── Cliente RTMP (publicação) ─────────────────────────
 function parseTarget(url, key) {
   const m = /^(rtmps?):\/\/([^/:]+)(?::(\d+))?(?:\/(.*))?$/i.exec(String(url || '').trim());
   if (!m) throw new Error(`URL inválida '${url}'`);
@@ -123,7 +103,7 @@ class RtmpClient {
       sock.once('connect', async () => {
         try {
           await this._handshake();
-          await this._write(new ByteWriter().u32(this.outChunk).data, 1, 2, 0, 0);          // set chunk size
+          await this._write(new ByteWriter().u32(this.outChunk).data, 1, 2, 0, 0);
           const res = await this._command('connect', [{
             app: t.app, type: 'nonprivate', flashVer: 'FMLE/3.0 (compatible; FMSc/1.0)', swfUrl: t.tcUrl, tcUrl: t.tcUrl }], true);
           const code = res && res[res.length - 1] && res[res.length - 1].code;
@@ -157,7 +137,6 @@ class RtmpClient {
     s.end(); setTimeout(() => s.destroy(), 300);
   }
 
-  // ---- handshake ----
   _handshake() {
     return new Promise((resolve, reject) => {
       const c1 = crypto.randomBytes(1536); c1.fill(0, 0, 8);
@@ -167,7 +146,6 @@ class RtmpClient {
     });
   }
 
-  // ---- escrita ----
   _msg(payload, type, csid, streamId, ts) {
     const w = new ByteWriter();
     const ext = ts >= 0xffffff;
@@ -183,13 +161,12 @@ class RtmpClient {
     return w.data;
   }
   _write(payload, type, csid, streamId, ts) { return this.send(this._msg(payload, type, csid, streamId, ts)); }
-  /** Escrita serializada; resolve quando o kernel aceitou os bytes (é a medida de send_beg/send_end do DBR). */
   send(buf) {
     return new Promise((resolve, reject) => {
       if (!this.sock || this.sock.destroyed || !this.sock.writable) { this.lastErrno = this.lastErrno || 'EPIPE'; return reject(new Error('socket fechado')); }
       this.sock.write(buf, (err) => {
         if (err) { this.lastErrno = err.code || String(err.message); return reject(err); }
-        if (this.throttleKbps > 0) setTimeout(resolve, buf.length * 8 / this.throttleKbps);   // só teste: emula link lento
+        if (this.throttleKbps > 0) setTimeout(resolve, buf.length * 8 / this.throttleKbps);
         else resolve();
       });
     });
@@ -213,13 +190,12 @@ class RtmpClient {
   sendVideo(body, tsMs) { return this._write(body, 9, 6, this.streamId, tsMs >>> 0); }
   sendAudio(body, tsMs) { return this._write(body, 8, 5, this.streamId, tsMs >>> 0); }
 
-  // ---- leitura ----
   _pump() {
     if (this.phase === 'hs') {
       if (this.rb.length < 1 + 1536 + 1536) return;
       if (this.rb[0] !== 0x03) { const r = this.hsWait; this.hsWait = null; this.phase = 'dead'; return r.reject(new Error(`versão de handshake inesperada ${this.rb[0]}`)); }
       const s1 = this.rb.subarray(1, 1537);
-      this.sock.write(Buffer.from(s1));                       // C2 = eco de S1
+      this.sock.write(Buffer.from(s1));
       this.rb = this.rb.subarray(1 + 1536 + 1536);
       this.phase = 'chunks';
       const r = this.hsWait; this.hsWait = null; r.resolve();
@@ -278,11 +254,9 @@ class RtmpClient {
   }
 }
 
-// ───────────────────────── Saída RTMP (rtmp_output do obs-outputs) ─────────────────────────
 const MIN_PACKETS = 5, DBR_TRIGGER_US = 200000, DBR_INC_TIMER_MS = 4000, DBR_MIN_BR = 50, DBR_MIN_EST_MS = 1000, DBR_MAX_EST_MS = 2000;
 
 class RtmpOutput {
-  /** s: {url,key,dropMs,pframeDropMs,dyn,bitrate,width,height,fps,maxShutdownSec} */
   constructor(s, hooks) {
     this.s = s; this.hooks = hooks; this.log = hooks.log || (() => {});
     this.client = null; this.packets = []; this.waiter = null;
@@ -295,7 +269,6 @@ class RtmpOutput {
   get isActive() { return this.active; }
   get currentBitrate() { return this.dbr.cur || this.s.bitrate; }
 
-  /** rtmp_stream_start → thread de conexão (FUN_3962c) */
   async start() {
     const s = this.s; this.connecting = true;
     this.disconnected = false; this.sentHeaders = false; this.audioHdr = false; this.gotFirst = false; this.minPriority = 0; this.needKey = true;
@@ -321,7 +294,6 @@ class RtmpOutput {
     this.sendDone = this._sendLoop();
   }
 
-  /** rtmp_stream_stop */
   async stop() {
     if (this.connecting) { for (let i = 0; i < 300 && this.connecting; i++) await new Promise(r => setTimeout(r, 100)); }
     if (!this.active) { this.hooks.onStopped('success'); return; }
@@ -332,11 +304,10 @@ class RtmpOutput {
   _wake() { if (this.waiter) { const w = this.waiter; this.waiter = null; w(); } }
   _waitPacket() { return new Promise(r => { this.waiter = r; }); }
 
-  /** encoded_packet (0x38fd0): pacote = {data,dtsUs,key,dropPriority} ou null (erro do encoder) */
   encodedPacket(p) {
     if (this.disconnected || !this.active) return;
     if (!p) { this.encodeError = true; this._wake(); return; }
-    if (p.audio) { if (!this.gotFirst) return; this.packets.push(p); this._wake(); return; }   // áudio nunca é descartado (prioridade máxima)
+    if (p.audio) { if (!this.gotFirst) return; this.packets.push(p); this._wake(); return; }
     if (this.needKey) { if (!p.key) { this.hooks.requestKeyframe && this.hooks.requestKeyframe(); return; } this.needKey = false; }
     if (!this.gotFirst) { this.startDtsMs = Math.floor(p.dtsUs / 1000); this.gotFirst = true; }
     this._check(false); this._check(true);
@@ -344,7 +315,6 @@ class RtmpOutput {
     this.minPriority = 0; this.lastDtsUs = p.dtsUs; this.packets.push(p); this._wake();
   }
 
-  /** check_to_drop_frames (FUN_3ca34) */
   _check(pframes) {
     const priority = pframes ? 3 : 2, threshold = pframes ? this.pDropUs : this.dropUs;
     if (!pframes) this._dbrTryIncrease();
@@ -370,7 +340,6 @@ class RtmpOutput {
     if (n > 0) { this.dropped += n; this.log(`[rtmp stream: 'CAM LIVE'] dropped ${n} frames (${pframes ? 'pframes' : 'all below HIGH'})`); }
   }
 
-  // ---- DBR ----
   _dbrLowered() {
     const d = this.dbr; let nb;
     if (d.est === 0 || d.cur <= d.est) {
@@ -398,14 +367,13 @@ class RtmpOutput {
     if (dur >= DBR_MIN_EST_MS) { let kbps = dur > 0 ? Math.floor((d.size * 8) / dur) : 0; kbps -= (this.s.audio || 0); if (kbps < DBR_MIN_BR) kbps = DBR_MIN_BR; d.est = kbps; }
   }
 
-  // ---- thread de envio (FUN_3b5dc) ----
   async _sendLoop() {
     let reason = 'success', detail = '';
     try {
       outer: for (;;) {
         if (this.disconnected || this.encodeError) break;
         if (!this.packets.length) { if (this.stopEvent) break; await this._waitPacket(); continue; }
-        if (this.stopEvent) break outer;       // parada imediata: o resto da fila é liberado
+        if (this.stopEvent) break outer;
         const p = this.packets.shift();
         if (!this.sentHeaders) { await this._sendHeaders(); this.sentHeaders = true; }
         if (p.audio) await this._sendAudio(p); else await this._sendPacket(p);
@@ -458,7 +426,6 @@ class RtmpOutput {
   }
 }
 
-// ───────────────────────── Orquestração (o papel do Engine) ─────────────────────────
 class CamLiveService {
   constructor({ send, studioFile, logFile }) {
     this.sendToRenderer = send; this.studioFile = studioFile; this.logFile = logFile;
@@ -535,7 +502,6 @@ class CamLiveService {
   saveStudio(doc) { try { fs.mkdirSync(path.dirname(this.studioFile), { recursive: true }); fs.writeFileSync(this.studioFile, JSON.stringify(doc, null, 2)); return { ok: true }; } catch (e) { return { ok: false, error: e.message }; } }
 }
 
-/** Registra os canais IPC. `getWindow()` devolve a BrowserWindow principal. */
 function register({ ipcMain, getWindow, userDataDir, getMobileService }) {
   const dir = path.join(userDataDir, 'CamLive');
   const svc = new CamLiveService({
@@ -543,7 +509,6 @@ function register({ ipcMain, getWindow, userDataDir, getMobileService }) {
     studioFile: path.join(dir, 'studio.json'), logFile: path.join(dir, 'camlive.log'),
   });
   try { fs.mkdirSync(dir, { recursive: true }); } catch (_) {}
-  // Destino padrão: iPhone por USB (JPEG + PCM → ponte), sem RTMP/MediaMTX.
   const { CamLiveIphone } = require('./cam-live-iphone');
   const iphone = new CamLiveIphone({ getMobileService, send: (ch, payload) => { const w = getWindow && getWindow(); if (w && !w.isDestroyed()) w.webContents.send(ch, payload); } });
   try { const ms = getMobileService && getMobileService(); if (ms) ms.camLiveIphone = iphone; } catch (_) {}

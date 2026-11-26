@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""Site de teste do SEQUESTRO DE CÂMERA (só item 3) com on/off REAL.
-
-Serve a index.html e uma API local que executa o sistema do jailbreak:
-  GET  /api/status  -> ./phone.sh status          (+ checagem do relé OBS 8900)
-  POST /api/on      -> ./phone.sh enable-all       (túnel USB + injeção em qualquer app: Câmera, Safari e demais)
-  POST /api/off     -> ./phone.sh disable         (volta para a câmera real)
-
-O phone.sh pede autenticação interativa quando não existe conexão-mestre SSH.
-Aqui a mestra é aberta antes com a chave ~/.ssh/id_iphone (a mesma do app),
-no mesmo ControlPath que o phone.sh reutiliza.
-
-Uso:  python3 servir.py   ->  http://127.0.0.1:8788
-"""
 import json
 import os
 import subprocess
@@ -22,8 +9,6 @@ from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
 
-# A ponte vive fora do repo e já mudou de lugar uma vez (Desktop -> Documents).
-# Ordem: NOVA_BRIDGE (env) > ao lado do repo > caminho antigo.
 _CANDIDATOS_BRIDGE = [
     Path(os.environ['NOVA_BRIDGE']) if os.environ.get('NOVA_BRIDGE') else None,
     AQUI.parent.parent / 'jailbreak' / 'obs-camera-source' / 'bridge',
@@ -33,8 +18,6 @@ _CANDIDATOS_BRIDGE = [
 BRIDGE = next((c for c in _CANDIDATOS_BRIDGE if c and c.is_dir()), _CANDIDATOS_BRIDGE[1])
 PORTA = 8788
 RELE = 'http://127.0.0.1:8900/frame.jpg'
-# Chave/known_hosts do MESMO lugar que o app usa (o reset do jailbreak apagou
-# ~/.ssh/id_iphone; a chave viva hoje e a do app em Application Support).
 _DIR_CHAVE_APP = Path.home() / 'Library/Application Support/nova_dsktp/iphone-ssh'
 _CANDIDATOS_CHAVE = [
     _DIR_CHAVE_APP / 'id_iphone',
@@ -42,8 +25,6 @@ _CANDIDATOS_CHAVE = [
     Path.home() / '.ssh/id_ed25519',
 ]
 CHAVE = str(next((c for c in _CANDIDATOS_CHAVE if c.is_file()), _CANDIDATOS_CHAVE[0]))
-# known_hosts proprio do app: depois de cada reset a chave de host muda, e o
-# known_hosts do ~/.ssh tem o carimbo velho (StrictHostKeyChecking=yes = recusa).
 CONHECIDOS = _DIR_CHAVE_APP / 'known_hosts'
 
 DIR_CONTROLE = f'/tmp/vcampipeline-ssh-{os.getuid()}'
@@ -62,7 +43,6 @@ def mestre_ativo():
 
 
 def garantir_mestre():
-    """Abre a conexão-mestre com a chave, no ControlPath usado pelo phone.sh."""
     d = Path(DIR_CONTROLE)
     if not d.exists():
         d.mkdir(mode=0o700)
@@ -88,7 +68,7 @@ def rodar(comando, timeout):
 def relay_vivo():
     try:
         with urllib.request.urlopen(RELE, timeout=1.5) as r:
-            return r.status in (200, 503)  # 503 = relé no ar sem quadro recente
+            return r.status in (200, 503)
     except Exception:
         return False
 
@@ -107,8 +87,6 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 corpo = (AQUI / 'index.html').read_bytes()
             except OSError as e:
-                # Nunca deixar a conexao cair sem resposta (o navegador mostra
-                # "site fora do ar" e esconde a causa real).
                 corpo = (f'<h1>index.html nao encontrado</h1><p>{AQUI / "index.html"}</p>'
                          f'<pre>{e}</pre>').encode('utf-8')
                 self.send_response(500)

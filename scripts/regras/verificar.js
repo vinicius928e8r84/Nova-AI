@@ -15,7 +15,7 @@ const REGRAS = [
   require('./regra-comentario'),
   require('./regra-teto-de-comentarios'),
   linhas,
-  require('./regra-segredo'),
+  require('./regra-segredo-completa'),
   require('./regra-binario'),
   require('./regra-debug'),
   require('./regra-sintaxe'),

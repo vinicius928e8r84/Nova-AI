@@ -139,8 +139,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <script>
-        // Secret code to access page itself (can be modified)
-        const ADMIN_SECRET = "asad@786";
         let db = null;
         let isFirebaseInit = false;
 
@@ -158,10 +156,7 @@
                 } catch(e) {}
             }
 
-            const hasAuth = sessionStorage.getItem('admin_authenticated');
-            if (hasAuth === 'true') {
-                showDashboard();
-            }
+            restaurarSessaoDoAdmin();
             loadSavedConfig();
 
             // Allow Enter key on passcode field
@@ -173,18 +168,51 @@
             }
         });
 
-        function attemptAuthentication() {
-            const input = document.getElementById('passcode-input').value;
+        const CHAVE_DA_SESSAO_DO_ADMIN = 'admin_sessao';
+
+        function cabecalhoDaSessaoDoAdmin() {
+            return { 'X-Admin-Sessao': sessionStorage.getItem(CHAVE_DA_SESSAO_DO_ADMIN) || '' };
+        }
+
+        async function restaurarSessaoDoAdmin() {
+            if (!sessionStorage.getItem(CHAVE_DA_SESSAO_DO_ADMIN)) return;
+            try {
+                const resposta = await fetch('/api/admin-sessao', { headers: cabecalhoDaSessaoDoAdmin() });
+                if (resposta.ok) showDashboard();
+                else sessionStorage.removeItem(CHAVE_DA_SESSAO_DO_ADMIN);
+            } catch (e) {
+                sessionStorage.removeItem(CHAVE_DA_SESSAO_DO_ADMIN);
+            }
+        }
+
+        async function pedirSessaoDoAdmin(codigo) {
+            try {
+                const resposta = await fetch('/api/admin-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo })
+                });
+                const corpo = await resposta.json();
+                return resposta.ok ? { sessao: corpo.sessao } : { erro: corpo.error || 'Acesso Negado' };
+            } catch (e) {
+                return { erro: 'Servidor do painel indisponível' };
+            }
+        }
+
+        async function attemptAuthentication() {
+            const campo = document.getElementById('passcode-input');
             const errLbl = document.getElementById('auth-error-lbl');
-            
-            if (input === ADMIN_SECRET) {
-                sessionStorage.setItem('admin_authenticated', 'true');
+            const resultado = await pedirSessaoDoAdmin(campo.value);
+
+            if (resultado.sessao) {
+                sessionStorage.setItem(CHAVE_DA_SESSAO_DO_ADMIN, resultado.sessao);
                 errLbl.style.display = 'none';
                 showDashboard();
             } else {
+                errLbl.textContent = resultado.erro;
                 errLbl.style.display = 'block';
-                document.getElementById('passcode-input').value = '';
             }
+            campo.value = '';
         }
 
         function showDashboard() {
@@ -195,7 +223,8 @@
         }
 
         function terminateSession() {
-            sessionStorage.removeItem('admin_authenticated');
+            fetch('/api/admin-logout', { method: 'POST', headers: cabecalhoDaSessaoDoAdmin() }).catch(() => {});
+            sessionStorage.removeItem(CHAVE_DA_SESSAO_DO_ADMIN);
             document.getElementById('dash-view').style.display = 'none';
             document.getElementById('auth-view').style.display = 'flex';
             document.querySelector('.admin-card').classList.remove('dashboard-mode');

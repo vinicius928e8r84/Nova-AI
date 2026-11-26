@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""Aba da proxy do Nova (iPhone): aceita host:porta@usuario:senha e some com "idioma undefined".
-
-Idempotente. Uso: aplicar-proxy-formato.py ALVO.js [--aplicar]
-Sem --aplicar so simula (nao grava). Com --aplicar grava e deixa ALVO.js.bak-proxy-formato.
-Hunks: A) pNormProxy; B) pSaveProxy normaliza; C) pSaveIos normaliza;
-       D) pGeoOnOpen normaliza; E) texto "idioma" so quando o aparelho devolve idioma.
-Regra: o formato padrao (usuario:senha@host:porta) tem prioridade; so troca quando ele nao vale.
-"""
 import sys, shutil
 alvo = sys.argv[1]; aplicar = "--aplicar" in sys.argv
 s = open(alvo, encoding="utf8").read(); o = s

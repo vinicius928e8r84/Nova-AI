@@ -1,34 +1,18 @@
-/* CAM LIVE — mixer de áudio + captura AAC (renderer do Electron / Chromium, sem dependências).
- *
- * REGRA INEGOCIÁVEL: o áudio vem SOMENTE dos arquivos de vídeo/áudio colocados nas cenas
- * (elementos <video>/<audio> ligados com attach). Este módulo NUNCA chama getUserMedia e
- * nunca captura microfone nem o áudio do computador/sistema.
- *
- * API (window.CamLiveAudio):
- *   attach(id, mediaEl) -> bool          liga o elemento ao mixer (createMediaElementSource, só uma vez por elemento)
- *   detach(id)                           desliga e esquece o canal
- *   setParams(id, {volume, muted, visible, monitor})
- *   levels() -> {master: dB, channels: {id: dB}}
- *   resume()                             retoma o AudioContext (chamar em gesto do usuário)
- *   supported() -> Promise<boolean>      AAC-LC 48 kHz estéreo disponível no AudioEncoder?
- *   startCapture({t0Ms, bitrateKbps, onAsc, onPacket, onError}) -> Promise<{ok, error?}>
- *   stopCapture() -> Promise
- */
 (function () {
   'use strict';
 
   var SR = 48000, BLOCK = 1024, WORKLET_FRAMES = 128, FFT = 2048, FLOOR_DB = -100;
   var AAC_CODEC = 'mp4a.40.2';
 
-  var ctx = null;            // AudioContext (preguiçoso)
-  var master = null;         // GainNode (soma de todos os canais)
-  var masterAn = null;       // AnalyserNode do master
-  var channels = {};         // id -> {id, el, src, gain, an, mon, params}
-  var sources = new WeakMap(); // elemento -> MediaElementAudioSourceNode (só se cria uma vez por elemento)
-  var pending = {};          // parâmetros recebidos antes do attach
-  var buf = null;            // Float32Array reutilizado por levels()
+  var ctx = null;
+  var master = null;
+  var masterAn = null;
+  var channels = {};
+  var sources = new WeakMap();
+  var pending = {};
+  var buf = null;
   var workletReady = false;
-  var cap = null;            // estado da captura em andamento
+  var cap = null;
   var supportedP = null;
 
   function msg(e) { return (e && e.message) ? e.message : String(e); }
@@ -76,15 +60,13 @@
 
   function safeDisconnect(n, to) { try { if (to) n.disconnect(to); else n.disconnect(); } catch (_) {} }
 
-  /* ───────────────────────── mixer ───────────────────────── */
-
   function attach(id, mediaEl) {
     try {
       if (id === undefined || id === null || !mediaEl) return false;
       id = String(id);
       var cur = channels[id];
-      if (cur && cur.el === mediaEl) return true;       // idempotente
-      if (cur) detach(id);                               // mesmo id com outro elemento
+      if (cur && cur.el === mediaEl) return true;
+      if (cur) detach(id);
       ensureCtx();
       var src = sources.get(mediaEl);
       if (!src) { src = ctx.createMediaElementSource(mediaEl); sources.set(mediaEl, src); }
@@ -113,7 +95,7 @@
       delete pending[id];
       if (!ch) return;
       delete channels[id];
-      safeDisconnect(ch.src, ch.gain);   // o nó de origem fica no WeakMap para um futuro attach do mesmo elemento
+      safeDisconnect(ch.src, ch.gain);
       safeDisconnect(ch.gain); safeDisconnect(ch.an); safeDisconnect(ch.mon);
     } catch (_) {}
   }
@@ -152,8 +134,6 @@
     } catch (_) { return Promise.resolve(false); }
   }
 
-  /* ───────────────────────── suporte AAC ───────────────────────── */
-
   function aacConfig(kbps) {
     return { codec: AAC_CODEC, sampleRate: SR, numberOfChannels: 2, bitrate: (kbps || 128) * 1000, aac: { format: 'aac' } };
   }
@@ -170,8 +150,6 @@
     })();
     return supportedP;
   }
-
-  /* ───────────────────────── captura / codificação ───────────────────────── */
 
   var WORKLET_SRC =
     "class CamLiveSink extends AudioWorkletProcessor {\n" +
@@ -256,7 +234,7 @@
 
   function onBlock(c, data) {
     if (c.stopped || c.failed || (!c.rawPcm && (!c.enc || c.enc.state !== 'configured'))) return;
-    if (c.base === null) c.base = performance.now() - WORKLET_FRAMES * 1000 / SR;   // início do primeiro bloco
+    if (c.base === null) c.base = performance.now() - WORKLET_FRAMES * 1000 / SR;
     var l = data[0], r = data[1], n = l.length, off = 0;
     while (off < n) {
       var take = Math.min(n - off, BLOCK - c.fill);
@@ -296,7 +274,7 @@
     try { if (c.node) c.node.port.close(); } catch (_) {}
     var enc = c.enc; c.enc = null;
     if (enc) {
-      if (flush && c.fill > 0 && c.base !== null && !c.failed) {      // completa o último bloco com silêncio
+      if (flush && c.fill > 0 && c.base !== null && !c.failed) {
         try {
           c.L.fill(0, c.fill); c.R.fill(0, c.fill);
           c.enc = enc; c.stopped = false; encodeBlock(c); c.stopped = true; c.enc = null;

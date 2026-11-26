@@ -1,0 +1,3 @@
+# Em produção o Nova serve o `dist` por HTTP local e abre a política de segurança de conteúdo
+
+O YouTube bloqueia embeds cuja origem é `file://`. Em produção o app sobe um servidor HTTP local (porta `NOVA_TEST_PORT` ou 45678, e a seguinte se estiver ocupada) que serve o `dist` e recusa caminhos fora dele, e a interface carrega por `http://localhost`. A política de segurança de conteúdo (CSP) é aberta (`*`, `unsafe-inline`, `unsafe-eval`) para todas as respostas e removida das respostas `file://`, porque as páginas incorporadas vêm de origens que o app não controla. O custo é que a interface não tem a proteção da CSP contra script injetado; fechar a política exige listar as origens de YouTube, Google e dos serviços de vídeo usados.

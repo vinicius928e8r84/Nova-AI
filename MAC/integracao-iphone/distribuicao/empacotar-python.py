@@ -9,7 +9,6 @@ if target.exists():raise RuntimeError('Runtime já existe; não sobrescrevendo a
 shutil.copytree(source,target,symlinks=True,ignore=shutil.ignore_patterns('site-packages','Headers','__pycache__'))
 packages=target/'lib'/('python'+version)/'site-packages'
 shutil.copytree(resources/'python-env/lib'/('python'+version)/'site-packages',packages,symlinks=True,ignore=shutil.ignore_patterns('__pycache__'))
-# Build the source→destination map before rewriting dependencies.
 mapping={};queue=[]
 magic={b'\xcf\xfa\xed\xfe',b'\xfe\xed\xfa\xcf',b'\xca\xfe\xba\xbe',b'\xbe\xba\xfe\xca'}
 def macho(p):
@@ -51,7 +50,6 @@ for src,dest in queue:
  if len(args)>1:subprocess.run(args+[str(dest)],check=True,capture_output=True)
  subprocess.run(['/usr/bin/codesign','--force','--sign','-',str(dest)],check=True,capture_output=True)
  manifest.append({'file':str(dest.relative_to(root)),'source':str(src)})
-# sounddevice normally searches Homebrew at runtime; prefer the included PortAudio.
 sounddevice=packages/'sounddevice.py';s=sounddevice.read_text()
 s=s.replace("from ctypes.util import find_library as _find_library", "from ctypes.util import find_library as _system_find_library\ndef _find_library(name):\n    if name == 'portaudio':\n        return _os.path.join(_os.environ['NOVA_PYTHON_RUNTIME'], 'lib', 'libportaudio.2.dylib')\n    return _system_find_library(name)")
 sounddevice.write_text(s)

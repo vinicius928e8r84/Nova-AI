@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Prepara uma cópia do bundle e um catálogo HTML dos textos revisados."""
 import html
 import json
 import re
@@ -68,7 +67,6 @@ CONTEXTO = {
     'children:aG===ql.CONNECTED||uI||Kc?"Online":"Offline"':
         'children:aG===ql.CONNECTED||uI||Kc?"Conectado":"Desconectado"',
 }
-# Textos gerados por estados, mensagens de formulário e animação de abertura.
 CONTEXTO.update({
     '"INITIALIZING KERNEL..."': '"INICIALIZANDO O NÚCLEO..."',
     '"BIOS_CHECK :: OK"': '"VERIFICAÇÃO DO BIOS CONCLUÍDA"',
