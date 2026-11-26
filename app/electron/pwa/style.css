@@ -66,7 +66,6 @@ body {
     visibility: visible;
 }
 
-/* Auth Screen */
 #auth-screen {
     justify-content: center;
     align-items: center;
@@ -200,7 +199,6 @@ body {
     border: 1px solid rgba(0, 229, 255, 0.1);
 }
 
-/* Chat Screen */
 .chat-main {
     height: 100dvh;
     display: flex;
@@ -302,7 +300,6 @@ body {
     -webkit-overflow-scrolling: touch;
 }
 
-/* Rich Text Styling (Markdown) */
 .message-bubble {
     padding: 1rem 1.25rem;
     font-size: 14px;
@@ -377,7 +374,6 @@ body {
     color: var(--text-dim);
 }
 
-/* Messages */
 .message {
     display: flex;
     flex-direction: column;
@@ -439,7 +435,6 @@ body {
     border-bottom-right-radius: 4px;
 }
 
-/* Control Center */
 .control-center {
     flex-shrink: 0;
     padding: 1rem 1.5rem;
@@ -591,7 +586,6 @@ body {
     border: 1px solid var(--border-soft);
 }
 
-/* Ensure hover works on mobile/touch */
 .action-btn:hover,
 .action-btn:active {
     opacity: 0.8;
@@ -636,7 +630,6 @@ body {
     opacity: 0.2;
 }
 
-/* Loader */
 .dot-flashing {
     position: relative;
     width: 6px;
