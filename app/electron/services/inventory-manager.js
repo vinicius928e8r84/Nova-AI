@@ -1,9 +1,3 @@
-/**
- * Nova Inventory Manager Service (Backend)
- * Handles local SQLite database CRUD, Double-Entry Audit Logs, 
- * Role-Based Access controls, and Backup operations.
- */
-
 'use strict';
 
 const { ipcMain, dialog } = require('electron');

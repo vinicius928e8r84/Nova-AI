@@ -3,7 +3,6 @@
 const { spawnSync } = require('child_process');
 const path = require('path');
 const { casaAlgum } = require('./globs');
-const { ehJs } = require('./escopo');
 
 const id = 'eslint-nas-linhas-novas';
 const titulo = 'ESLint (variável não declarada, não usada, código inalcançável…) só nas linhas novas';
@@ -19,37 +18,56 @@ function localizar(env) {
   return teste.status === 0 ? ['npx', ['--no-install', 'eslint']] : null;
 }
 
-function verificar(ctx) {
-  const arquivos = ctx.arquivos.filter(item => item.status !== 'D' && SO_JS.test(item.caminho) && ehJs(item.caminho)
-    && !casaAlgum(ctx.config.ignorarCodigo, item.caminho) && !ctx.mudancas.copias.has(item.caminho)
-    && (ctx.mudancas.acrescentadas.get(item.caminho) || { size: 0 }).size > 0).map(item => item.caminho);
-  if (!arquivos.length) return [];
-  const comando = localizar(ctx.env);
-  if (!comando) {
-    if (ctx.env.REGRAS_EXIGE_FERRAMENTAS) return [{ arquivo: '(eslint)', detalhe: 'ESLint não está instalado (defina ESLINT_BIN)' }];
-    ctx.aviso('ESLint não está instalado: regra pulada (defina ESLINT_BIN ou rode npm i -g eslint@9)');
-    return [];
-  }
-  const [bin, prefixo] = comando;
-  const resultado = spawnSync(bin, [...prefixo, '--config', CONFIGURACAO, '--format', 'json', '--no-warn-ignored', '--', ...arquivos], {
+function ficaDeFora(ctx, item) {
+  if (item.status === 'D') return true;
+  if (!SO_JS.test(item.caminho)) return true;
+  if (casaAlgum(ctx.config.ignorarCodigo, item.caminho)) return true;
+  return ctx.mudancas.copias.has(item.caminho);
+}
+
+const temLinhaNova = (ctx, caminho) => (ctx.mudancas.acrescentadas.get(caminho) || { size: 0 }).size > 0;
+
+function arquivosParaConferir(ctx) {
+  return ctx.arquivos.filter(item => !ficaDeFora(ctx, item) && temLinhaNova(ctx, item.caminho)).map(item => item.caminho);
+}
+
+function semEslint(ctx) {
+  if (ctx.env.REGRAS_EXIGE_FERRAMENTAS) return [{ arquivo: '(eslint)', detalhe: 'ESLint não está instalado (defina ESLINT_BIN)' }];
+  ctx.aviso('ESLint não está instalado: regra pulada (defina ESLINT_BIN ou rode npm i -g eslint@9)');
+  return [];
+}
+
+function rodarEslint(ctx, [bin, prefixo], arquivos) {
+  return spawnSync(bin, [...prefixo, '--config', CONFIGURACAO, '--format', 'json', '--no-warn-ignored', '--', ...arquivos], {
     cwd: ctx.raiz, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024,
   });
+}
+
+const comecoDaSaida = resultado => `${resultado.stderr}\n${resultado.stdout}`.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3).join(' | ');
+const sufixoDaRegra = ruleId => (ruleId ? ` (${ruleId})` : '');
+
+function achadosDoArquivo(ctx, arquivo) {
+  const caminho = path.relative(ctx.raiz, arquivo.filePath).split(path.sep).join('/');
+  const novas = ctx.mudancas.acrescentadas.get(caminho) || new Set();
+  return arquivo.messages.filter(m => novas.has(m.line))
+    .map(m => ({ arquivo: caminho, linha: m.line, detalhe: `${m.message}${sufixoDaRegra(m.ruleId)}` }));
+}
+
+function verificar(ctx) {
+  const arquivos = arquivosParaConferir(ctx);
+  if (!arquivos.length) return [];
+  const comando = localizar(ctx.env);
+  if (!comando) return semEslint(ctx);
+  const resultado = rodarEslint(ctx, comando, arquivos);
   let relatorio;
   try {
     relatorio = JSON.parse(resultado.stdout);
   } catch {
-    return [{ arquivo: '(eslint)', detalhe: `o ESLint não produziu relatório: ${`${resultado.stderr}\n${resultado.stdout}`.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3).join(' | ')}` }];
+    return [{ arquivo: '(eslint)', detalhe: `o ESLint não produziu relatório: ${comecoDaSaida(resultado)}` }];
   }
   const achados = [];
-  for (const arquivo of relatorio) {
-    const caminho = path.relative(ctx.raiz, arquivo.filePath).split(path.sep).join('/');
-    const novas = ctx.mudancas.acrescentadas.get(caminho) || new Set();
-    for (const m of arquivo.messages) {
-      if (!novas.has(m.line)) continue;
-      achados.push({ arquivo: caminho, linha: m.line, detalhe: `${m.message}${m.ruleId ? ` (${m.ruleId})` : ''}` });
-    }
-  }
-  return achados;
+  for (const arquivo of relatorio) achados.push(achadosDoArquivo(ctx, arquivo));
+  return achados.flat();
 }
 
 module.exports = { id, titulo, conserto, verificar };
