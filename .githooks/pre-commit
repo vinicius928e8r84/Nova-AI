@@ -1,0 +1,25 @@
+#!/bin/sh
+raiz=$(git rev-parse --show-toplevel) || exit 0
+regras=$(cd "$(dirname "$0")/.." && pwd)/scripts/regras/verificar.js
+if ! command -v node >/dev/null 2>&1; then
+  echo "aviso: node não encontrado; as regras de revisão foram puladas" >&2
+  exit 0
+fi
+base=${REGRAS_BASE:-origin/main}
+if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
+  echo "aviso: sem $base para comparar (git fetch origin main); as regras de revisão foram puladas" >&2
+  exit 0
+fi
+node "$regras" --raiz "$raiz" --base "$base" \
+  --regra sem-comentario-novo \
+  --regra limite-de-linhas \
+  --regra sem-segredo \
+  --regra sem-binario-nem-lixo \
+  --regra sem-depuracao-esquecida \
+  --regra sintaxe-valida \
+  --regra eslint-nas-linhas-novas \
+  --regra saude-do-codigo \
+  --regra limite-de-tamanho || {
+  echo "Commit barrado: conserte o que está acima (o CI barraria igual) ou use git commit --no-verify." >&2
+  exit 1
+}
