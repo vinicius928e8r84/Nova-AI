@@ -47,7 +47,7 @@ async iosToggleSetting(deviceId, setting, enable) {
 }
 ```
 
-Reserva do serviço pré-patch: `reservas/novactl-20261103-145612/`.
+Serviço pré-patch: `git show 1b45c3f:MAC/integracao-iphone/reservas/novactl-20261103-145612/physicalMobileService.js`.
 
 ---
 
@@ -151,7 +151,7 @@ O Bluetooth seguiu a mesma lógica: `BluetoothManager.setPoweredEnabled:` não e
 - **Atalho com nome errado** → toggle falha com erro do uiopen; conferir nomes exatos.
 - **Primeira execução do Atalho** pode pedir permissão na tela do iPhone — aceitar uma vez.
 - **"Definir Wi-Fi Off"** do Atalho é toggle completo do Ajustes (não o "suave" do CC).
-- **Reversão do app**: restaurar `reservas/novactl-20261103-145612/physicalMobileService.js`
+- **Reversão do app**: restaurar o arquivo de `git show 1b45c3f:MAC/integracao-iphone/reservas/novactl-20261103-145612/physicalMobileService.js`
   e reiniciar. **Reversão do CLI**: `dpkg -r com.aquiles.novactl`.
 
 ---
