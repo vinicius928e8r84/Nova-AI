@@ -1,6 +1,3 @@
-// PWA App Logic - Enhanced for Professional UI
-
-// Fallback markdown parser if marked.js fails to load
 if (typeof marked === 'undefined') {
     window.marked = { parse: (text) => text.replace(/\n/g, '<br>') };
 }
@@ -10,7 +7,6 @@ class NovaRemoteApp {
         this.token = null;
         this.isConnected = false;
 
-        // Element references
         this.messageInput = document.getElementById('message-input');
         this.modelSelect = document.getElementById('model-select');
         this.tokenInput = document.getElementById('token-input');
@@ -19,7 +15,6 @@ class NovaRemoteApp {
         this.messagesContainer = document.getElementById('messages');
         this.micBtn = document.getElementById('mic-btn');
 
-        // Recording states
         this.isRecording = false;
         this.mediaRecorder = null;
         this.audioChunks = [];
@@ -96,7 +91,7 @@ class NovaRemoteApp {
         if (this.modelSelect) {
             this.modelSelect.addEventListener('change', () => {
                 const selectedText = this.modelSelect.options[this.modelSelect.selectedIndex].text;
-                if (this.activeModelName) this.activeModelName.textContent = selectedText.split(' ').pop(); // Just the model name
+                if (this.activeModelName) this.activeModelName.textContent = selectedText.split(' ').pop();
                 this.switchModel(this.modelSelect.value);
             });
         }
@@ -112,7 +107,6 @@ class NovaRemoteApp {
         this.token = tokenVal;
         this.setConnecting(true);
 
-        // Disconnect any existing socket first
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;
@@ -130,7 +124,6 @@ class NovaRemoteApp {
 
             this.setupSocketHandlers();
 
-            // Connection timeout — show error if no auth within 12s
             this._connectTimer = setTimeout(() => {
                 if (!this.isConnected) {
                     this.showError('Tempo de conexão esgotado. Verifique se o Nova está rodando no seu computador.');
@@ -138,7 +131,6 @@ class NovaRemoteApp {
                 }
             }, 12000);
 
-            // Wait for socket to connect before authenticating
             this.socket.on('connect', () => {
                 console.log('[Socket] Connected, authenticating...');
                 this.socket.emit('authenticate', { token: this.token });
@@ -198,7 +190,6 @@ class NovaRemoteApp {
             }
         });
 
-        // On reconnect, re-authenticate with saved token
         this.socket.on('reconnect', () => {
             console.log('[Socket] Reconnected, re-authenticating...');
             if (this.token) {
@@ -207,7 +198,6 @@ class NovaRemoteApp {
         });
 
         this.socket.on('connect', () => {
-            // Re-authenticate on reconnect if we were previously connected
             if (this.isConnected && this.token) {
                 this.socket.emit('authenticate', { token: this.token });
             }
@@ -315,9 +305,7 @@ class NovaRemoteApp {
 
     async processTranscription(blob) {
         if (!this.groqKey) {
-            // Request key if not available
             this.socket.emit('get-groq-key');
-            // Wait a bit for the key to arrive
             await new Promise(r => setTimeout(r, 1000));
             if (!this.groqKey) {
                 this.showError('Chave do Groq não disponível');
@@ -366,7 +354,6 @@ class NovaRemoteApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
-        // Use marked for AI messages to support rich text (Markdown)
         let content;
         try {
             content = sender === 'ai' ? marked.parse(text) : `<p>${this.escapeHtml(text)}</p>`;
@@ -381,7 +368,6 @@ class NovaRemoteApp {
 
         this.messagesContainer.appendChild(messageDiv);
 
-        // Use a small timeout to ensure DOM is updated before scrolling
         setTimeout(() => this.scrollToBottom(), 50);
     }
 
@@ -451,7 +437,6 @@ class NovaRemoteApp {
     }
 }
 
-// Initialize
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         window.app = new NovaRemoteApp();
@@ -460,7 +445,6 @@ if (document.readyState === 'loading') {
     window.app = new NovaRemoteApp();
 }
 
-// PWA Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
 }

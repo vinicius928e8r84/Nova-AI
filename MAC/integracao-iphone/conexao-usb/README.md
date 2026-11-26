@@ -125,7 +125,7 @@ try {
 
 O app instalado em `/Applications/Nova AI Mac.app` já está com essas alterações;
 `conectar.html`, `conectar.js` e o `preload.js` da janela antiga foram removidos
-(cópias em `../reservas/modal-externo-20261104/`).
+(cópias no histórico: `git show 1b45c3f:MAC/integracao-iphone/reservas/modal-externo-20261104/<arquivo>`).
 
 ## Testes executados
 
@@ -167,8 +167,8 @@ Node e não encontra o módulo `electron`. As capturas vão para `test/modal/sho
 
 ## Como desfazer
 
-1. Copie `../reservas/modal-externo-20261104/setup.js`, `conectar.html`, `conectar.js` e
-   `preload.js` de volta para `Contents/Resources/app/electron/services/iphone-setup/` e
+1. Recupere `setup.js`, `conectar.html`, `conectar.js` e `preload.js` com
+   `git show 1b45c3f:MAC/integracao-iphone/reservas/modal-externo-20261104/<arquivo>` e copie de volta para `Contents/Resources/app/electron/services/iphone-setup/` e
    apague `inapp.js`.
 2. Em `electron/main.js`, volte `physical-mobile:start-stream` para
    `require('./services/iphone-setup/setup').open(id, app.physicalMobileService)` e remova

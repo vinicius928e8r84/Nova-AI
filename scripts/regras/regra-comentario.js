@@ -71,4 +71,4 @@ function verificar(ctx) {
   return achados;
 }
 
-module.exports = { id, titulo, conserto, verificar };
+module.exports = { id, titulo, conserto, verificar, permitida };

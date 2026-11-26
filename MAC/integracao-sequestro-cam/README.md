@@ -159,9 +159,9 @@ preservada); pausa do CAM LIVE com ponte simulada (sessão viva, sem erro).
 
 ## Arquivos
 
-- `reservas/antes-20261103-204008/` — originais do renderer + ios-camera.
-- `reservas/antes-transmissao-*/` — originais dos 4 arquivos de serviço antes
-  do ajuste da transmissão.
+- A pasta `reservas/` foi apagada; os originais estão em `git show 1b45c3f:MAC/integracao-sequestro-cam/reservas/<pasta>/<arquivo>`:
+  `antes-20261103-204008/` (renderer + ios-camera) e `antes-transmissao-20261103-205618/`
+  (os 4 arquivos de serviço antes do ajuste da transmissão).
 - `index-Dun7lr2S.patched.js` — versão do bundle aplicada no app.
 - `controles-independentes.test.cjs` — testa `ios-camera.js` e
   `cam-live-iphone.js` de `app/electron/services/`, a fonte do app.
@@ -170,9 +170,11 @@ preservada); pausa do CAM LIVE com ponte simulada (sessão viva, sem erro).
 ## Para restaurar
 
 ```sh
-cp reservas/antes-20261103-204008/index-Dun7lr2S.js \
+git show 1b45c3f:MAC/integracao-sequestro-cam/reservas/antes-20261103-204008/index-Dun7lr2S.js > /tmp/index-Dun7lr2S.js
+git show 1b45c3f:MAC/integracao-sequestro-cam/reservas/antes-20261103-204008/ios-camera.js > /tmp/ios-camera.js
+cp /tmp/index-Dun7lr2S.js \
    "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/"
-cp reservas/antes-20261103-204008/ios-camera.js \
+cp /tmp/ios-camera.js \
    "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/"
 ```
 
