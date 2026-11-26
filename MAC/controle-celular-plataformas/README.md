@@ -37,7 +37,7 @@ Cada lado mostra só os aparelhos e as funções daquela plataforma.
 |---|---|
 | `aplicar.py` | aplica o patch no bundle do renderer e valida a sintaxe com `node --check` |
 | `index-Dun7lr2S.patched.js` | cópia do bundle já corrigido |
-| `reservas/index-Dun7lr2S.antes-20261104.js` | bundle original, antes desta alteração |
+| `git show 1b45c3f:MAC/controle-celular-plataformas/reservas/index-Dun7lr2S.antes-20261104.js` | bundle original, antes desta alteração (a pasta `reservas/` foi apagada) |
 | `docs/*.png` | capturas das duas telas (teste em navegador com dispositivos simulados) |
 
 Bundle instalado: `/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js`.
@@ -48,14 +48,16 @@ Reaplicar (depois de uma atualização do app, se o nome do bundle continuar o m
 
 ```sh
 cd "/Users/aquilesneri/Desktop/Nova-AI/MAC/controle-celular-plataformas"
-python3 aplicar.py reservas/index-Dun7lr2S.antes-20261104.js /tmp/novo.js
+git show 1b45c3f:MAC/controle-celular-plataformas/reservas/index-Dun7lr2S.antes-20261104.js > /tmp/original.js
+python3 aplicar.py /tmp/original.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
 ```
 
 Desfazer (volta ao visual anterior):
 
 ```sh
-cp "/Users/aquilesneri/Desktop/Nova-AI/MAC/controle-celular-plataformas/reservas/index-Dun7lr2S.antes-20261104.js" \
+git show 1b45c3f:MAC/controle-celular-plataformas/reservas/index-Dun7lr2S.antes-20261104.js > /tmp/original.js
+cp /tmp/original.js \
    "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
 ```
 

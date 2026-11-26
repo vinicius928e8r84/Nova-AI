@@ -1,80 +1,20 @@
-// ═══════════════════════════════════════════════════════════════
-//  CDP Endpoint Shim
-//
-//  Hermes' browser tools honour a `BROWSER_CDP_URL` override: when it is
-//  set they skip BOTH their cloud providers and their own headless Chromium
-//  launcher, and attach to that Chrome DevTools endpoint instead
-//  (see hermes-agent-main/tools/browser_tool.py → _get_cdp_override).
-//
-//  We want them to attach to *Stonic's* bundled Chromium — the one that is
-//  already visible (headless: false) and already keeps logins in a
-//  persistent profile. Two things stand in the way:
-//
-//    1. That Chromium is launched lazily, so nothing is listening until
-//       some tool actually needs a browser.
-//    2. Its CDP port is chosen dynamically at launch (9222-9252), so there
-//       is no fixed address to hand Hermes ahead of time.
-//
-//  This shim is the fixed address, and it is the browser's front door:
-//  Hermes gets `ws://127.0.0.1:<shim>/devtools/browser/stonic`, a URL that
-//  is valid before Chromium exists. Nothing happens until a CDP client
-//  actually opens that websocket — THAT is the moment a tool needs a
-//  browser, so that is where we launch Chromium and then splice the socket
-//  through to the real endpoint.
-//
-//  Why a websocket URL and not a discovery URL (http://…):
-//
-//    Hermes resolves discovery-style overrides by fetching /json/version.
-//    It does that not only when a tool runs, but also from
-//    `check_browser_requirements()` — the registry's availability probe,
-//    which runs during tool-schema assembly at every Hermes startup. A shim
-//    that launched Chromium on discovery therefore popped a browser window
-//    open the moment the app booted, with no task behind it. Hermes returns
-//    any URL containing `/devtools/browser/` untouched, without a probe
-//    (browser_tool.py → _resolve_cdp_override), so handing it one keeps the
-//    availability check free and moves the launch to first real use.
-//
-//  The discovery routes below are kept for other CDP clients, and they too
-//  report the lazy endpoint rather than launching anything.
-//
-//  Hermes itself is not modified — Stonic only sets the env var it already
-//  looks for, and every Hermes child process (dashboard, `hermes -z`
-//  one-shots, Agent Town's `hermes chat`) inherits it via `{...process.env}`.
-// ═══════════════════════════════════════════════════════════════
-
 const http = require('http');
 const net = require('net');
 
 const SHIM_PORT_START = 9333;
 const SHIM_PORT_END = 9353;
 
-// The stable browser endpoint we advertise. Chromium's own websocket path
-// carries a GUID that changes on every launch; this one never does, so a
-// client that reconnects after the user closed the browser by hand lands
-// back here and simply reopens it.
 const LAZY_BROWSER_PATH = '/devtools/browser/stonic';
 
-// A fresh PC's first-ever Chromium start can be very slow (AV scans the
-// whole binary while the profile is created), and browser-manager now allows
-// it 120s. Waiting most of that here costs nothing: if the CDP client hangs
-// up sooner on its own connect timeout, the launch still finishes in the
-// background and the retry connects instantly.
 const LAUNCH_TIMEOUT_MS = 60000;
 const UPSTREAM_TIMEOUT_MS = 2500;
 
-// Discovery routes only. The shim must never serve the /json/new|close|activate
-// mutation routes — a localhost HTTP server that lets a page create and drive
-// arbitrary tabs is a remote-code-execution surface.
 const ALLOWED_PATHS = new Set(['/json/version', '/json', '/json/list']);
 
 let server = null;
-let browserWsUrl = null;   // what Hermes is pointed at
+let browserWsUrl = null;
 let launchPromise = null;
 
-// Collapse concurrent connects into one launch. `browserService.launch()` is
-// already a no-op when the browser is alive, but parallel Hermes tool calls
-// would otherwise each pay the aliveness check while Chromium is still
-// coming up.
 function ensureBrowserLaunched() {
     if (launchPromise) return launchPromise;
     const { browserService } = require('./browser-manager');
@@ -101,7 +41,6 @@ function withTimeout(promise, ms, message) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-// Fetch a discovery route from the real Chromium CDP endpoint.
 function fetchFromChromium(port, pathname) {
     return new Promise((resolve, reject) => {
         const req = http.get(
@@ -121,7 +60,6 @@ function fetchFromChromium(port, pathname) {
     });
 }
 
-// Chromium's current browser-level websocket path (the GUID changes per launch).
 async function chromiumBrowserWsPath(port) {
     const { body } = await fetchFromChromium(port, '/json/version');
     const wsUrl = String(JSON.parse(body).webSocketDebuggerUrl || '');
@@ -129,9 +67,6 @@ async function chromiumBrowserWsPath(port) {
     return new URL(wsUrl).pathname;
 }
 
-// Only answer requests addressed to loopback. The listener is already bound
-// to 127.0.0.1, but an explicit Host check also closes DNS-rebinding, which
-// is how CDP endpoints normally get abused from a web page.
 function hostIsLoopback(hostHeader) {
     if (!hostHeader) return false;
     const host = String(hostHeader).split(':')[0].toLowerCase();
@@ -160,11 +95,6 @@ function caminhoDoPedido(url) {
 
 const ehPedidoDeDescoberta = (req, pathname) => req.method === 'GET' && ALLOWED_PATHS.has(pathname);
 
-// ─── Discovery (never launches) ─────────────────────────────────────────
-//
-// Answers with the lazy endpoint whether or not Chromium is up, so a client
-// that discovers here always gets a URL it can connect to — and connecting
-// is what starts the browser.
 async function handleRequest(req, res) {
     if (!hostIsLoopback(req.headers.host)) {
         return sendJsonError(res, 403, 'Forbidden');
@@ -178,7 +108,6 @@ async function handleRequest(req, res) {
     }
 
     if (!browserIsRunning()) {
-        // Nothing to report yet, and asking is not a reason to open a browser.
         if (pathname === '/json/version') {
             return sendJson(res, {
                 Browser: 'Chrome/Stonic (not started)',
@@ -186,7 +115,7 @@ async function handleRequest(req, res) {
                 webSocketDebuggerUrl: browserWsUrl,
             });
         }
-        return sendJson(res, []);   // /json and /json/list: no targets yet
+        return sendJson(res, []);
     }
     return repassarDoChromium(res, pathname);
 }
@@ -198,9 +127,6 @@ async function repassarDoChromium(res, pathname) {
     try {
         const upstream = await fetchFromChromium(cdpPort, pathname);
         if (pathname === '/json/version') {
-            // Hand out OUR websocket, not Chromium's: clients must come back
-            // through the shim so the browser can be relaunched under them if
-            // it was closed in the meantime.
             const payload = JSON.parse(upstream.body);
             payload.webSocketDebuggerUrl = browserWsUrl;
             return sendJson(res, payload);
@@ -213,12 +139,6 @@ async function repassarDoChromium(res, pathname) {
     }
 }
 
-// ─── Connect (this is where the browser actually opens) ─────────────────
-//
-// A CDP client opening the websocket is the one unambiguous signal that a
-// tool is about to drive a browser. Launch Chromium, then hand the socket
-// straight through to it: after the handshake the shim is a byte pipe, it
-// neither parses nor rewrites CDP traffic.
 function recusarUpgrade(clientSocket, { line, reason }) {
     console.warn('[CDP Shim] Rejected websocket upgrade:', reason);
     try { require('./browser-manager').appendBrowserLog(`shim reject (${line}): ${reason}`); } catch {}
@@ -234,9 +154,6 @@ function recusarUpgrade(clientSocket, { line, reason }) {
 function motivoDaRecusa(req, pathname) {
     if (!hostIsLoopback(req.headers.host)) return { line: '403 Forbidden', reason: 'non-loopback Host' };
 
-    // Real CDP clients (Playwright, agent-browser, chrome-remote-interface) do
-    // not send Origin; browsers always do. Refusing it keeps a malicious page
-    // from driving the user's logged-in browser through this port.
     if (req.headers.origin) return { line: '403 Forbidden', reason: `Origin header present (${req.headers.origin})` };
     if (pathname === null) return { line: '400 Bad Request', reason: 'unparseable request URL' };
     if (!pathname.startsWith('/devtools/')) return { line: '404 Not Found', reason: `path ${pathname}` };
@@ -282,10 +199,6 @@ async function handleUpgrade(req, clientSocket, head) {
 
 function emendarNoChromium(req, clientSocket, head, { cdpPort, targetPath }) {
     const upstream = net.connect(cdpPort, '127.0.0.1', () => {
-        // Replay the client's handshake verbatim against the real endpoint —
-        // only the path and Host change. Chromium computes the accept key from
-        // the client's own Sec-WebSocket-Key, so the handshake it sends back is
-        // the one the client is waiting for.
         upstream.write(handshakeParaChromium(req.headers, { cdpPort, targetPath }));
         if (head && head.length) upstream.write(head);
 
@@ -312,7 +225,7 @@ function listenOn(port) {
         const candidate = http.createServer((req, res) => {
             handleRequest(req, res).catch((err) => {
                 console.error('[CDP Shim] Unhandled error:', err.message);
-                try { sendJsonError(res, 500, 'Internal error'); } catch { /* socket gone */ }
+                try { sendJsonError(res, 500, 'Internal error'); } catch { }
             });
         });
         candidate.on('upgrade', (req, socket, head) => {
@@ -326,10 +239,6 @@ function listenOn(port) {
     });
 }
 
-/**
- * Start the shim and return the CDP URL Hermes should be pointed at.
- * Idempotent — a second call returns the already-running shim's URL.
- */
 async function startCdpShim() {
     if (browserWsUrl) return browserWsUrl;
 
@@ -356,7 +265,7 @@ async function startCdpShim() {
 
 function stopCdpShim() {
     if (server) {
-        try { server.close(); } catch { /* already closed */ }
+        try { server.close(); } catch { }
         server = null;
         browserWsUrl = null;
     }

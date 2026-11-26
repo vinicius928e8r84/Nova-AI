@@ -48,6 +48,6 @@ Esta integração ativa a prévia da Câmera nativa (`previewOnly`). Não afirma
 
 ## Reservas
 
-`reservas/` mantém os arquivos originais do serviço e do bundle. `experimento-nao-utilizado` é um protótipo descartado da abordagem VCamCaptura: não foi instalado nem faz parte da integração ativa. Os projetos originais em Desktop/jailbreak e Projects não foram alterados.
+A pasta `reservas/` foi apagada; os originais do serviço e do bundle estão em `git show 1b45c3f:MAC/integracao-iphone/reservas/<arquivo>`. `reservas/experimento-nao-utilizado` era um protótipo descartado da abordagem VCamCaptura: não foi instalado nem fazia parte da integração ativa. Os projetos originais em Desktop/jailbreak e Projects não foram alterados.
 
 O DMG antigo não foi reconstruído. Ele não contém esta atualização. Os arquivos corrigidos também estão nesta pasta para reaplicação/revisão.
