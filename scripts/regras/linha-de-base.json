@@ -5,7 +5,7 @@
     "app/electron/services/global-spoof-service.js": 1742,
     "app/electron/services/physicalMobileService.js": 2302,
     "MAC/integracao-iphone/bridge/Tweak.x": 1500,
-    "prototype-cam-live/index.html": 1656
+    "prototype-cam-live/index.html": 1631
   },
   "saude-do-codigo": {
     "app/dist/cam-live-audio.js": 39,
