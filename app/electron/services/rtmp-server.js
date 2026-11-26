@@ -53,13 +53,11 @@ async function startBroadcast(adbPath) {
 
     videoStream = new PassThrough();
     
-    // Check if ffmpeg exists in resources/bin
     let ffmpegPath = require('./tool-paths').ffmpeg();
     if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
         ffmpegPath = 'ffmpeg';
     }
     
-    // We expect webm via stdin
     const args = [
         '-y',
         '-i', 'pipe:0', 
@@ -81,8 +79,6 @@ async function startBroadcast(adbPath) {
     videoStream.pipe(ffmpegProcess.stdin);
 
     ffmpegProcess.stderr.on('data', (data) => {
-        // Safe stream logging without hardcoded paths
-        // console.log('[FFMPEG RTMP]', data.toString().trim());
     });
 
     ffmpegProcess.on('close', (code) => {
@@ -133,7 +129,6 @@ function stopBroadcast() {
             ffmpegProcess.kill('SIGKILL');
         }
 
-        // Safety timeout (1s) to prevent hanging if events are missed
         setTimeout(cleanup, 1000);
     });
 }
