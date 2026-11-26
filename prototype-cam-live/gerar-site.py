@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Gera index.html autocontido a partir de ../MAC/integracao-camlive (módulo real). Rode de novo depois de mudar os módulos."""
 import re, pathlib
 here = pathlib.Path(__file__).parent
 mod = here.parent / 'app' / 'dist'

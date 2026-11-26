@@ -8,9 +8,6 @@ try {
     console.error('[UserProfileManager] @google/generative-ai not found');
 }
 
-/**
- * Strips HTML from text
- */
 const stripHtml = (html) => {
     return (html || '')
       .replace(/<[^>]+>/g, ' ')
@@ -23,15 +20,11 @@ const stripHtml = (html) => {
       .trim();
 };
 
-/**
- * Extracts sample data from Vault (JSON + MD) and recent frontend chats
- */
 const gatherMemorySamples = (chats = []) => {
     let samples = [];
 
-    // 1. Get recent frontend chats
     if (chats && Array.isArray(chats)) {
-        const recentChats = chats.slice(0, 5); // Take last 5 chats
+        const recentChats = chats.slice(0, 5);
         recentChats.forEach(chat => {
             const msgs = chat.messages || [];
             const chatText = msgs.map(m => `${m.role === 'user' ? 'User' : 'NOVA'}: ${m.text}`).join('\n');
@@ -39,7 +32,6 @@ const gatherMemorySamples = (chats = []) => {
         });
     }
 
-    // 2. Sample from MyActivity.json
     const activityJsonPath = path.join(
         path.dirname(app.getPath('exe')),
         'Nova_Vault', 'MyActivity.json'
@@ -55,7 +47,6 @@ const gatherMemorySamples = (chats = []) => {
         try {
             const rawJson = fs.readFileSync(jsonPath, 'utf8');
             const activities = JSON.parse(rawJson);
-            // Take the most recent 100 activities to prevent payload overload
             const recentActivities = activities.slice(0, 100);
             
             recentActivities.forEach(entry => {
@@ -70,14 +61,10 @@ const gatherMemorySamples = (chats = []) => {
         }
     }
 
-    // Combine and truncate if somehow still too massive (approx 50k chars limit)
     const combined = samples.join('\n\n');
     return combined.length > 50000 ? combined.substring(0, 50000) : combined;
 };
 
-/**
- * Analyzes the user's graph and generates a dynamic UserContext string
- */
 const analyzeUserGraph = async (apiKey, chats = []) => {
     if (!apiKey) {
         console.warn('[UserProfileManager] No API key provided for context sync.');
@@ -93,13 +80,10 @@ const analyzeUserGraph = async (apiKey, chats = []) => {
     const modelsToTry = ['gemini-3.8-flash', 'gemini-4-argon'];
     const apiVersions = ['v1beta', 'v1'];
     
-    // Throttle check
-    // Kill-switch check: If failed 3 times, disable for this session
     if ((global.profileAnalysisFailCount || 0) >= 3) {
         return null;
     }
 
-    // Throttle check: Wait 15 minutes between attempts if not yet killed
     const lastAttemptTime = global.lastAnalysisAttemptTime || 0;
     const fifteenMinutes = 15 * 60 * 1000;
     if (Date.now() - lastAttemptTime < fifteenMinutes) {
@@ -123,7 +107,6 @@ ${sampledData}`;
             try {
                 console.log(`[UserProfileManager] Sync Attempt: ${modelName} (v1beta)`);
                 const genAI = new GoogleGenerativeAI(apiKey);
-                // Strictly use v1beta
                 const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
                 
                 const result = await model.generateContent(prompt, { 
@@ -139,7 +122,6 @@ ${sampledData}`;
                 }
             } catch (err) {
                 console.warn(`[UserProfileManager] ${modelName} failed: ${err.message.split('\n')[0]}`);
-                // Stop on 404
                 if (err.message.includes('404')) break;
             }
         }
@@ -150,7 +132,7 @@ ${sampledData}`;
                 context: profileContext.trim()
             }, null, 2));
             console.log('[UserProfileManager] ✓ User profile synced successfully.');
-            global.lastAnalysisFailureTime = 0; // Reset on success
+            global.lastAnalysisFailureTime = 0;
             return profileContext.trim();
         }
 
@@ -164,13 +146,9 @@ ${sampledData}`;
             console.warn(`[UserProfileManager] Attempt ${global.profileAnalysisFailCount} failed. Retrying later...`);
         }
     }
-    // NEVER throw here, so main process stays 'Online'
     return null;
 };
 
-/**
- * Retrieves the cached context from disk
- */
 const getUserContext = () => {
     const contextFilePath = path.join(app.getPath('userData'), 'nova_user_context.json');
     if (fs.existsSync(contextFilePath)) {

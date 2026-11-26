@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * geo-proxy.cjs — descobre a localização (lat/lon/cidade/fuso) do IP de saída
- * de um proxy SOCKS5, consultando o ipwho.is *através do proxy*.
- *
- * Uso:
- *   node geo-proxy.cjs                                  # sem proxy (IP da máquina)
- *   node geo-proxy.cjs "socks5://host:porta"            # proxy sem autenticação
- *   node geo-proxy.cjs "socks5://host:porta:user:pass"  # formato do Nova
- *   node geo-proxy.cjs "socks5://user:pass@host:porta"  # formato URL padrão
- *
- * Saída: uma linha JSON com ip, city, region, country, lat, lon, timezone.
- */
 'use strict';
 
 const https = require('https');
@@ -27,10 +15,6 @@ function loadAgent() {
   throw new Error('socks-proxy-agent não encontrado (instale com npm i socks-proxy-agent).');
 }
 
-/**
- * Aceita os dois formatos usados no Nova e no resto do mundo.
- * sock five?://host:porta:user:pass  |  socks5://user:pass@host:porta  |  host:porta
- */
 function toAgentUrl(raw) {
   const s = String(raw || '').trim();
   if (!s) return null;
@@ -62,21 +46,20 @@ function getJson(url, agent, timeoutMs = 15000) {
   });
 }
 
-async function main() {
-  const raw = process.argv[2] || process.env.NOVA_PROXY || '';
-  const agentUrl = toAgentUrl(raw);
-  let agent;
-  if (agentUrl) {
-    const SocksProxyAgent = loadAgent();
-    agent = new SocksProxyAgent(agentUrl);
-  }
+function agenteDoProxy(agentUrl) {
+  if (!agentUrl) return undefined;
+  const SocksProxyAgent = loadAgent();
+  return new SocksProxyAgent(agentUrl);
+}
 
-  const data = await getJson('https://ipwho.is/', agent);
+function conferirResposta(data) {
   if (!data || data.success === false) {
-    throw new Error(`ipwho.is falhou: ${(data && data.message) || 'sem detalhes'}`);
+    throw new Error(`ipwho.is falhou: ${data?.message || 'sem detalhes'}`);
   }
+}
 
-  const out = {
+function localizacao(data, agentUrl) {
+  return {
     via: agentUrl ? 'proxy' : 'direto',
     ip: data.ip,
     city: data.city,
@@ -85,9 +68,16 @@ async function main() {
     country_code: data.country_code,
     lat: data.latitude,
     lon: data.longitude,
-    timezone: (data.timezone && data.timezone.id) || null,
-    utc_offset: (data.timezone && data.timezone.utc) || null
+    timezone: data.timezone?.id || null,
+    utc_offset: data.timezone?.utc || null
   };
+}
+
+async function main() {
+  const agentUrl = toAgentUrl(process.argv[2] || process.env.NOVA_PROXY || '');
+  const data = await getJson('https://ipwho.is/', agenteDoProxy(agentUrl));
+  conferirResposta(data);
+  const out = localizacao(data, agentUrl);
   console.log(JSON.stringify(out, null, 2));
 }
 

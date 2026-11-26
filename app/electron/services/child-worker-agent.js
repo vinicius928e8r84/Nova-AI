@@ -1,17 +1,5 @@
-/**
- * ═══════════════════════════════════════════════════════════
- *  NOVA AI — Child Worker Agent (ReAct)  v4 — NOVA ALIGNED
- *  electron/services/child-worker-agent.js
- *
- *  BREAKTHROUGH FIX: Using Electron's built-in `net` module
- *  which uses Chromium's networking stack (same as renderer)
- *  instead of Node.js `https` — this is why NOVA works!
- * ═══════════════════════════════════════════════════════════
- */
-
 'use strict';
 
-// Electron net = Chromium network stack (bypasses all Node.js SSL/proxy issues)
 const { net } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
@@ -66,27 +54,19 @@ class ChildWorkerAgent {
         this.isCancelled = false;
         this.activeProcess = null;
 
-        // ReAct Configuration — NOVA aligned
         this.MAX_STEPS = 8;
-        this.STEP_DELAY_MS = 6000; // 6s between steps → max 10 req/min (free tier safe)
+        this.STEP_DELAY_MS = 6000;
 
-        // Models: try v1 STABLE IDs first (works with ALL key types including GCP-restricted keys)
-        // Then v1beta aliases as fallback. 1.5-* deprecated.
         this.GEMINI_CANDIDATES = [
-            { model: 'gemini-3.8-flash', api: 'v1beta' }, // primary flash
-            { model: 'gemini-4-argon',   api: 'v1beta' }, // frontier reasoned
+            { model: 'gemini-3.8-flash', api: 'v1beta' },
+            { model: 'gemini-4-argon',   api: 'v1beta' },
         ];
 
-        // Bind tools for context safety (NOVA logic)
         this._webSearch = this._webSearch.bind(this);
         this._browseSite = this._browseSite.bind(this);
         this._execShell = this._execShell.bind(this);
     }
 
-    /**
-     * NOVA-LEVEL NETWORKING: Using Electron's net module for Chromium stack POST/GET
-     * This ensures the agent uses the same networking bridge as the main browser.
-     */
     _electronPost(url, bodyStr = '') {
         return new Promise((resolve, reject) => {
             try {
@@ -101,11 +81,9 @@ class ChildWorkerAgent {
                     response.on('data', (chunk) => { data += chunk.toString(); });
                     response.on('end', () => {
                         try {
-                            // Attempt to parse as JSON first
                             const parsed = JSON.parse(data);
                             resolve(parsed);
                         } catch (e) {
-                            // Return as raw text if JSON parsing fails
                             resolve(data);
                         }
                     });
@@ -125,7 +103,6 @@ class ChildWorkerAgent {
         });
     }
 
-    // ─── Node.js HTTPS POST (reliable from main process) ────────────────────
     _httpsPost(url, bodyStr) {
         const https = require('https');
         const { URL } = require('url');
@@ -148,7 +125,6 @@ class ChildWorkerAgent {
                 res.on('end', () => {
                     try {
                         const parsed = JSON.parse(data);
-                        // Attach HTTP status for debug logging
                         parsed._httpStatus = res.statusCode;
                         resolve(parsed);
                     } catch (e) {
@@ -164,7 +140,6 @@ class ChildWorkerAgent {
         });
     }
 
-    // ─── Gemini API — Multi-model with smart retry ───────────────────────────
     async callGemini(apiKey, prompt) {
         const bodyStr = JSON.stringify({
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -173,19 +148,18 @@ class ChildWorkerAgent {
 
         let authFailed = false;
 
-        this._last429 = false; // reset per-call rate-limit tracker
+        this._last429 = false;
 
         for (const { model, api } of this.GEMINI_CANDIDATES) {
             if (authFailed) break;
 
-            let retries = 2; // 2 attempts per model
+            let retries = 2;
             while (retries-- > 0) {
                 try {
                     const url = `https://generativelanguage.googleapis.com/${api}/models/${model}:generateContent?key=${apiKey}`;
                     const resp = await this._httpsPost(url, bodyStr);
                     const httpStatus = resp._httpStatus || '?';
 
-                    // 400 / 403 → Key invalid or permission denied → STOP ALL
                     if (resp.error?.code === 400 || resp.error?.code === 403) {
                         authFailed = true;
                         this.log('ceo', `❌ AUTH ERROR [HTTP ${httpStatus}]: ${String(resp.error.message).substring(0, 120)}`);
@@ -193,9 +167,8 @@ class ChildWorkerAgent {
                         break;
                     }
 
-                    // 429 → Rate limited → wait and retry SAME model
                     if (resp.error?.code === 429) {
-                        this._last429 = true; // remember we hit quota
+                        this._last429 = true;
                         const details = resp.error?.details || [];
                         const retryInfo = details.find(d => d['@type']?.includes('RetryInfo'));
                         const delaySec = retryInfo?.retryDelay
@@ -206,27 +179,23 @@ class ChildWorkerAgent {
                         continue;
                     }
 
-                    // 404 → Model not available → try next model
                     if (resp.error?.code === 404 || resp.error?.status === 'NOT_FOUND') {
                         this.log('ceo', `⚠ ${model} [404] Not available. Trying next...`);
                         retries = -1;
                         break;
                     }
 
-                    // Other error → log with HTTP status and skip
                     if (resp.error) {
                         this.log('ceo', `⚠ ${model} [HTTP ${httpStatus} / code ${resp.error.code}]: ${String(resp.error.message).substring(0, 80)}`);
                         break;
                     }
 
-                    // Success
                     const text = resp.candidates?.[0]?.content?.parts?.[0]?.text;
                     if (text) {
                         this.log('ceo', `✓ Neural Engine: ${model}`);
                         return text.trim();
                     }
 
-                    // Empty / blocked response
                     const blockReason = resp.promptFeedback?.blockReason;
                     this.log('ceo', `⚠ ${model} [HTTP ${httpStatus}] Empty response${blockReason ? ` (blocked: ${blockReason})` : ''}. Trying next...`);
                     break;
@@ -239,22 +208,19 @@ class ChildWorkerAgent {
         }
 
         if (authFailed) throw new Error('AUTH_FAILED: Invalid API key. Check Sub-Agent Key in Settings.');
-        // Track whether we had any rate-limits (429) — to decide wait vs instant Groq
         if (this._last429) throw new Error('QUOTA_EXHAUSTED: All Gemini models rate-limited. Try again later.');
         throw new Error('ALL_MODELS_404: All Gemini models returned 404. Key may not have access — using Groq.');
     }
 
-    // ─── Groq fallback (completely separate quota from Gemini) ────────────────
     async callGroq(groqKey, prompt) {
         if (!groqKey || groqKey.length < 20) throw new Error('No Groq key available');
 
         const https = require('https');
-        // Current active Groq models (April 2026) — llama-3.1/mixtral decommissioned
         const modelsToTry = [
-            'llama-3.3-70b-versatile',   // replacement for llama-3.1-70b
-            'llama-3.1-8b-instant',      // fast, available
-            'gemma2-9b-it',              // Google Gemma via Groq
-            'llama3-8b-8192',            // older 8b — may still work
+            'llama-3.3-70b-versatile',
+            'llama-3.1-8b-instant',
+            'gemma2-9b-it',
+            'llama3-8b-8192',
         ];
 
         for (const model of modelsToTry) {
@@ -308,7 +274,6 @@ class ChildWorkerAgent {
         throw new Error('Groq fallback also failed. Check Groq API key in Settings → Groq Influx Key.');
     }
 
-    // ─── Smart router: Gemini → Groq fallback ────────────────────────────────
     async callAI(apiKey, groqKey, prompt, maxAttempts = 2) {
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
@@ -316,19 +281,16 @@ class ChildWorkerAgent {
             } catch (e) {
                 const msg = String(e.message);
 
-                // AUTH error → skip to Groq immediately
                 if (msg.startsWith('AUTH_FAILED')) {
                     this.log('ceo', `⚡ Gemini auth failed → switching to Groq fallback...`);
                     break;
                 }
 
-                // ALL 404 (key doesn't have model access) → no point retrying → immediate Groq
                 if (msg.startsWith('ALL_MODELS_404')) {
                     this.log('ceo', `⚡ All Gemini models unavailable (404) → trying Groq immediately...`);
                     break;
                 }
 
-                // QUOTA_EXHAUSTED → wait briefly then retry, then Groq
                 if (attempt < maxAttempts) {
                     this.log('ceo', `⏳ Gemini quota limited. Waiting 30s then retry... (${attempt}/${maxAttempts})`);
                     await new Promise(r => setTimeout(r, 30000));
@@ -338,11 +300,9 @@ class ChildWorkerAgent {
                 }
             }
         }
-        // Groq fallback
         return await this.callGroq(groqKey, prompt);
     }
 
-    // ─── Logging ─────────────────────────────────────────────────────────────
     log(agent, text) {
         if (this.mainWindow && !this.mainWindow.isDestroyed()) {
             const ts = new Date().toLocaleTimeString([], { hour12: false });
@@ -359,7 +319,6 @@ class ChildWorkerAgent {
         }
     }
 
-    // ─── Core ReAct Loop ─────────────────────────────────────────────────────
     async executeTask(task, apiKey, childModel = 'gemini-3.8-flash', groqKey = '') {
         if (this.isWorking) return { error: 'Agent already busy. Wait or cancel first.' };
 
@@ -458,7 +417,6 @@ Thought: I have gathered enough information to provide a complete answer.
 Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sources and relevant information.)`;
     }
 
-    // ─── Tool Dispatcher ─────────────────────────────────────────────────────
     async dispatchTool(name, args) {
         try {
             switch (name.toLowerCase()) {
@@ -488,7 +446,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
                     return fs.readFileSync(rPath, 'utf8').substring(0, 3000);
                 }
 
-                // ─── VISIBLE BROWSER AUTOMATION TOOLS ───
                 case 'browser_navigate':
                     await browserService.launch();
                     return await browserService.navigate(args.trim());
@@ -543,11 +500,9 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
         }
     }
 
-    // ─── Real Web Search via Google (Scraping) ──────────────────────────────
     async _webSearch(query) {
         try {
             const encoded = encodeURIComponent(query);
-            // Using Google Search (NOVA aligned)
             const url = `https://www.google.com/search?q=${encoded}`;
             
             const html = await this._electronPost(url, '');
@@ -556,7 +511,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
                 return `web_search error: Empty or invalid response from Google.`;
             }
 
-            // Extract results using a robust pattern for Google's simple HTML results
             const results = [];
             const re = /<a href="\/url\?q=(https?:\/\/[^"&]+)[^>]*><h3[^>]*>(?:<div[^>]*>)?([^<]+)(?:<\/div>)?<\/h3>/g;
             
@@ -576,7 +530,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
                 return output;
             }
 
-            // Fallback: Just return a snippet of cleaned text if scraping fails
             const cleanText = html
                 .replace(/<script[\s\S]*?<\/script>/gi, '')
                 .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -592,10 +545,8 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
         }
     }
 
-    // ─── Real Browse Site via Electron net ───────────────────────────────────
     async _browseSite(url) {
         let targetUrl = url.trim();
-        // Remove quotes if present
         targetUrl = targetUrl.replace(/^["']|["']$/g, '');
         
         if (!targetUrl.startsWith('http')) {
@@ -604,7 +555,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
 
         return new Promise((resolve) => {
             try {
-                // Set a reasonable timeout for browsing
                 const request = net.request({ 
                     method: 'GET', 
                     url: targetUrl,
@@ -613,7 +563,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
                 
                 let data = '';
                 request.on('response', (response) => {
-                    // Check for successful status codes
                     if (response.statusCode >= 400) {
                         resolve(`Browse error: Server returned status ${response.statusCode} for ${targetUrl}`);
                         return;
@@ -621,14 +570,13 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
 
                     response.on('data', chunk => { data += chunk.toString(); });
                     response.on('end', () => {
-                        // Strip HTML tags
                         const text = data
                             .replace(/<script[\s\S]*?<\/script>/gi, '')
                             .replace(/<style[\s\S]*?<\/style>/gi, '')
                             .replace(/<[^>]+>/g, ' ')
                             .replace(/\s+/g, ' ')
                             .trim()
-                            .substring(0, 4000); // Increased limit slightly
+                            .substring(0, 4000);
                         resolve(`Content from ${targetUrl}:\n${text}`);
                     });
                     response.on('error', (e) => resolve(`Browse error: ${e.message}`));
@@ -641,7 +589,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
         });
     }
 
-    // ─── Shell Execution ─────────────────────────────────────────────────────
     _execShell(cmd) {
         return new Promise((resolve) => {
             exec(cmd, { timeout: 15000 }, (error, stdout, stderr) => {
@@ -651,7 +598,6 @@ Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sour
         });
     }
 
-    // ─── UI Status Updater ───────────────────────────────────────────────────
     updateUISubAgent(action) {
         const lower = action.toLowerCase();
         if (lower.includes('search') || lower.includes('browse')) {

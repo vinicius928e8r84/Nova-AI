@@ -1,25 +1,3 @@
-/**
- * ═══════════════════════════════════════════════════
- *  Browser Manager Service (Backend) - PRODUCTION GRADE
- *  46 Total Browser Tools (upgraded from 19)
- * ═══════════════════════════════════════════════════
- *
- * All methods return STRUCTURED JSON responses.
- *
- * Response Format:
- * {
- *   success: boolean,
- *   toolName: string,
- *   result?: string,        // Human-readable summary
- *   data?: any,             // Structured data
- *   error?: string,         // Error message
- *   errorCode?: string,     // ELEMENT_NOT_FOUND, NAVIGATION_TIMEOUT, etc.
- *   errorCategory?: string, // transient, permanent, config, timeout, not_found
- *   retryable?: boolean,
- *   retrySuggestion?: string,
- *   debugInfo?: object
- * }
- */
 const { chromium } = require('playwright');
 const { getDefaultUserAgent } = require('./platform-utils');
 const {

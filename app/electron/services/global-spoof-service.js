@@ -1,10 +1,3 @@
-/**
- * GlobalSpoofService — Native Y4M Webcam Hijack Engine
- *
- * This version uses Chrome's native hardware-level video file loop
- * to inject the camera stream, bypassing CSP blocks, iframes, and CDP lag.
- */
-
 'use strict';
 
 const { spawn } = require('child_process');
@@ -14,24 +7,20 @@ const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
-// ── Helper to ensure profile has persistent stealth specifications ──
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
 
-  // CPU Cores fallback
   if (!p.cpuCores || p.cpuCores === 'Auto') {
     const coresOptions = ['4', '6', '8', '12', '16'];
     p.cpuCores = coresOptions[Math.floor(Math.random() * coresOptions.length)];
   }
 
-  // RAM Size fallback
   if (!p.ramSize || p.ramSize === 'Auto') {
     const ramOptions = ['4', '8', '12', '16', '32'];
     p.ramSize = ramOptions[Math.floor(Math.random() * ramOptions.length)];
   }
 
-  // WebGL GPU Vendors & Renderers
   if (!p.platformStr || !p.webglVendor || !p.webglRenderer) {
     if (platform === 'mac') {
       p.platformStr = 'MacIntel';
@@ -57,7 +46,7 @@ function ensureProfileStealthSpecs(p) {
       p.platformStr = 'iPhone';
       p.webglVendor = 'Apple Inc.';
       p.webglRenderer = 'Apple GPU';
-    } else { // windows
+    } else {
       p.platformStr = 'Win32';
       const winGpus = [
         'NVIDIA GeForce RTX 3060',
@@ -72,19 +61,16 @@ function ensureProfileStealthSpecs(p) {
     }
   }
 
-  // Device Name
   if (!p.deviceName || p.deviceName === 'USER-PC-X6NAGE1') {
     const rand = Math.random().toString(36).substring(2, 9).toUpperCase();
     p.deviceName = `LAPTOP-${rand}`;
   }
 
-  // MAC Address
   if (!p.macAddress || p.macAddress === '00-1B-21-29-FE-FA') {
     const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase();
     p.macAddress = `00-1B-21-${hex()}-${hex()}-${hex()}`;
   }
 
-  // Screen Resolution & Window Mode
   if (!p.screenResolution || p.screenResolution === 'Based on User-Agent') {
     if (platform === 'android' || platform === 'ios') {
       p.screenResolution = '412x915';
@@ -98,7 +84,6 @@ function ensureProfileStealthSpecs(p) {
     }
   }
 
-  // Noise seeds
   if (p.canvasNoiseSeed === undefined || p.canvasNoiseSeed === null) {
     p.canvasNoiseSeed = Math.floor(Math.random() * 200) + 1;
   }
@@ -109,7 +94,6 @@ function ensureProfileStealthSpecs(p) {
     p.audioNoiseSeed = parseFloat((Math.random() * 0.0001).toFixed(8));
   }
 
-  // Virtual Media Devices
   if (!p.virtualCamId) {
     p.virtualCamId = crypto.randomBytes(32).toString('hex');
   }
@@ -153,7 +137,6 @@ class GlobalSpoofService {
         this.ffmpegProcess  = null;
         this.ffplayProcess  = null;
 
-        // Legacy compat flags (read by VirtualCamInjector)
         this.registrySpoofed     = false;
         this.isInstallingDriver  = false;
 
@@ -162,7 +145,6 @@ class GlobalSpoofService {
         this.activeSessions  = new Set();
         this.cdpClient       = null;
 
-        // Ensure temp dir exists
         if (!fs.existsSync(this.tempDir)) fs.mkdirSync(this.tempDir, { recursive: true });
 
         console.log('[GlobalSpoof] v4.0 — Native Y4M Hijack Engine initialized.');
@@ -195,7 +177,6 @@ class GlobalSpoofService {
                 execSync('wmic process where "name=\'chrome.exe\' and CommandLine like \'%nova_webcam_hijack%\'" call terminate', { stdio: 'ignore', timeout: 3000 });
                 console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via WMIC.');
             } catch (wmicErr) {
-                // Fallback to PowerShell
                 const cleanupCmd = `Get-CimInstance Win32_Process -Filter "Name = 'chrome.exe'" | Where-Object { $_.CommandLine -like "*nova_webcam_hijack*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`;
                 execSync(`powershell -NoProfile -Command "${cleanupCmd}"`, { stdio: 'ignore', timeout: 5000 });
                 console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via PowerShell.');
@@ -204,7 +185,6 @@ class GlobalSpoofService {
             console.error('[GlobalSpoof] Failed to run Chrome cleanup:', cleanupErr.message);
         }
 
-        // ── Anti-Detect Profile Management & Helpers ──
         function getTimezoneOffset(timeZone) {
             try {
                 const date = new Date();
@@ -231,7 +211,6 @@ class GlobalSpoofService {
         let profileName = settings.profile || 'Default';
         const pPath = path.join(this.app.getPath('userData'), 'farm_profiles.json');
         
-        // If settings.profile is a custom name (doesn't start with profile_ and is not Default)
         if (profileName && !profileName.startsWith('profile_') && profileName !== 'Default') {
             let farmProfiles = [];
             if (this.browserFarmService) {
@@ -284,7 +263,6 @@ class GlobalSpoofService {
             profileName = newId;
         }
 
-        // ── Load Custom Profile Settings from farm_profiles.json ──
         let activeProfile = null;
         let farmProfiles = [];
         if (fs.existsSync(pPath)) {
@@ -336,7 +314,6 @@ class GlobalSpoofService {
             };
         }
 
-        // ── Parse Proxy Server Details ──
         let proxyServer = '';
         let proxyUser = '';
         let proxyPass = '';
@@ -377,7 +354,6 @@ class GlobalSpoofService {
         this.currentDevice   = device;
         this.currentRegional = settings.regional || {};
 
-        // ── Regional & Profile Identity ──
         const regional    = settings.regional || {};
         let tTimezone   = regional.timezone    || 'Asia/Dubai';
         let tLat        = (regional.lat        !== undefined) ? regional.lat : 25.2048;
@@ -405,7 +381,6 @@ class GlobalSpoofService {
                 }
             }
 
-            // Custom overrides/fallbacks
             if (activeProfile.timezone !== 'optimal') {
                 tTimezone = activeProfile.timezone;
             }
@@ -449,7 +424,6 @@ class GlobalSpoofService {
         if (!tLocales.includes('en')) tLocales.push('en');
         const tAcceptLang = tLocales.join(',') + ';q=0.9,en;q=0.8';
 
-        // Approve Resolutions
         let winW = 1920;
         let winH = 1080;
         
@@ -473,7 +447,6 @@ class GlobalSpoofService {
                 }
             }
         } else {
-            // Fallback default logic if activeProfile is not defined
             const fallbackPlatform = (device.id && device.id !== 'desktop') ? 'android' : 'windows';
             if (fallbackPlatform === 'android') {
                 winW = 412;
@@ -496,7 +469,6 @@ class GlobalSpoofService {
             camH = 1280;
         }
 
-        // ── Save Canvas Buffer & Generate Y4M ──
         if (!buffer) {
             return { success: false, error: 'No media buffer received from canvas.' };
         }
@@ -559,7 +531,6 @@ class GlobalSpoofService {
 
         chromeArgs.push(targetUrl || 'about:blank');
 
-        // Audio Injection
         let audioFile = settings.audioPath;
         if (!audioFile) {
             audioFile = path.join(this.tempDir, 'room_ambience.wav');
@@ -614,7 +585,6 @@ class GlobalSpoofService {
         const _doNotTrack = activeProfile ? activeProfile.doNotTrack : 'default';
         const _portScanProtection = activeProfile ? activeProfile.portScanProtection : 'enable';
 
-        // Injected JS script to spoof APIs and map camera labels
         const deepHijackScript = `
 console.log("[Nova] CDP Stealth Injector Initializing (MAIN World)...");
 try {
@@ -1169,7 +1139,6 @@ applyStealth(window);
 
         const injectNavBarStr = "";
 
-        // ── Anti-Detect Extension ──
         {
             const extDir = path.join(this.tempDir, 'anti_detect_ext');
             if (!fs.existsSync(extDir)) fs.mkdirSync(extDir, { recursive: true });
@@ -1196,7 +1165,6 @@ applyStealth(window);
             chromeArgs.push(`--disable-extensions-except=${extDir}`);
         }
 
-        // Enable Remote Debugging for Geolocation/Timezone Overrides
         const debugPort = 9222 + Math.floor(Math.random() * 1000);
         chromeArgs.push(`--remote-debugging-port=${debugPort}`);
 
@@ -1209,7 +1177,6 @@ applyStealth(window);
         this.chromeProcess.unref();
         this.chromePid = this.chromeProcess.pid;
 
-        // Establish CDP connection
         const connectCDP = async (port, retries = 30, interval = 200) => {
             const CDP = require('chrome-remote-interface');
             for (let i = 0; i < retries; i++) {
@@ -1232,7 +1199,6 @@ applyStealth(window);
                 const client = await connectCDP(debugPort);
                 this.cdpClient = client;
 
-                // ── Periodically check for logged-in email address via CDP ──
                 if (profileName && profileName.startsWith('profile_')) {
                     const checkEmailInterval = setInterval(async () => {
                         if (!this.isHijacking || !client) {
@@ -1330,7 +1296,6 @@ applyStealth(window);
                                 }
                             }
                         } catch (err) {
-                            // evaluation failed
                         }
                     }, 5000);
                     this.checkEmailInterval = checkEmailInterval;
@@ -1341,7 +1306,6 @@ applyStealth(window);
                     this.stopHijack();
                 });
 
-                // Proxy auth listeners in flat session mode
                 if (proxyUser && proxyPass) {
                     console.log('[GlobalSpoof] Setting up proxy auth handlers for credentials:', proxyUser);
                     client.Fetch.authRequired(async (params, sessionId) => {
@@ -1379,7 +1343,6 @@ applyStealth(window);
                     await client.Browser.grantPermissions({ permissions: ['geolocation'] });
                 } catch (pe) {}
 
-                // Enable Auto-Attach to handle subframes
                 client.on('Target.attachedToTarget', async (params) => {
                     const { sessionId, targetInfo, waitingForDebugger } = params;
                     if (targetInfo.type === 'page' || targetInfo.type === 'iframe') {
@@ -1486,7 +1449,6 @@ applyStealth(window);
             this.checkEmailInterval = null;
         }
 
-        // Kill spawned Chrome process
         if (this.chromePid) {
             try {
                 spawn('taskkill', ['/F', '/T', '/PID', String(this.chromePid)], {
@@ -1497,7 +1459,6 @@ applyStealth(window);
             this.chromeProcess = null;
         }
 
-        // Kill local audio playback (ffplay)
         if (this.ffplayProcess) {
             try {
                 this.ffplayProcess.kill();
@@ -1506,7 +1467,6 @@ applyStealth(window);
             this.ffplayProcess = null;
         }
 
-        // Close CDP client if active
         if (this.cdpClient) {
             try {
                 this.cdpClient.close();
@@ -1514,7 +1474,6 @@ applyStealth(window);
             this.cdpClient = null;
         }
 
-        // Cleanup Y4M file
         try {
             if (fs.existsSync(this.y4mPath)) fs.unlinkSync(this.y4mPath);
         } catch (_) {}
@@ -1678,7 +1637,6 @@ applyStealth(window);
         const doNavegadorPedido = primeiroCaminhoExistente(searchPaths);
         if (doNavegadorPedido) return doNavegadorPedido;
 
-        // Final fallback: if requested browser is not found, check other browsers in order
         const fallbackOrders = ['chrome', 'brave', 'vivaldi', 'firefox'];
         for (const fb of fallbackOrders) {
             if (fb === browserChoice) continue;
@@ -1691,7 +1649,6 @@ applyStealth(window);
             }
             if (fbPath && fs.existsSync(fbPath)) return fbPath;
 
-            // Fallback file checks
             let fbPaths = [];
             if (fb === 'chrome') {
                 fbPaths = [
@@ -1734,13 +1691,12 @@ applyStealth(window);
         return { success: true, message: 'Falsificação de registro não necessária no modo Y4M do Chrome.' };
     }
 
-    async revertRegistryName() { /* no-op */ }
+    async revertRegistryName() { }
     async installOBSVirtualCam() {
         return { success: false, message: 'Driver OBS não necessário. Usando modo Y4M do Chrome.' };
     }
 
     async broadcastTransform(zoom, rotate, mirror) {
-        // No-op in native Y4M mode
     }
 
     async updateRegional(regional) {
@@ -1749,7 +1705,6 @@ applyStealth(window);
     }
 
     writeChunk(buffer) {
-        // Legacy frame writer stub — frames are handled natively by Chrome reading fake_cam.y4m.
     }
 
     _emitStatus() {

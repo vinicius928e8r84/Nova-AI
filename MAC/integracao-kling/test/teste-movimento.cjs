@@ -1,4 +1,3 @@
-// Valida que TODOS os presets produzem movimento real em vários tipos de imagem
 const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const FF = '/Applications/Nova AI Mac.app/Contents/Resources/bin/ffmpeg';
@@ -12,7 +11,6 @@ const imgs = {
   'jpg-pequeno': mk('/tmp/mv-peq.jpg', ['-f','lavfi','-i','testsrc2=size=800x600:duration=1','-frames:v','1','-q:v','2']),
   'jpg-12mp': mk('/tmp/mv-12mp.jpg', ['-f','lavfi','-i','testsrc2=size=4032x3024:duration=1','-frames:v','1','-q:v','3']),
 };
-// webp via sips (ffmpeg embutido decodifica, mas não codifica webp)
 try { execFileSync('sips', ['-s','format','webp','/tmp/mv-img.png','--out','/tmp/mv-img.webp'], { stdio: 'ignore' }); imgs['webp'] = '/tmp/mv-img.webp'; } catch {}
 
 const psnr = (a, b) => { const r = spawnSync(FF, ['-i', a, '-i', b, '-filter_complex', 'psnr', '-f', 'null', '-'], { encoding: 'utf8' }); const m = (r.stderr || '').match(/average:([0-9.inf]+)/); return m ? parseFloat(m[1]) : Infinity; };

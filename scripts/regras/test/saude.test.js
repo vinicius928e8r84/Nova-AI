@@ -444,5 +444,5 @@ test('--atualizar-linha-de-base do limite de linhas mantém a chave saude-do-cod
   const dados = JSON.parse(fs.readFileSync(path.join(repo.raiz, LINHA_DE_BASE), 'utf8'));
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);
-  assert.deepEqual(dados, { arquivos: { 'app/grande.js': 1100 }, 'saude-do-codigo': FOLGA });
+  assert.deepEqual(dados, { arquivos: { 'app/grande.js': 1100 }, 'saude-do-codigo': FOLGA, comentarios: {} });
 });
