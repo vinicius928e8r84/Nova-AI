@@ -8,7 +8,6 @@ Arquivos abaixo de 10 no painel e com pontos na catraca. As colunas de achados c
 
 | # | Arquivo | Nota | Pontos | Achados de função no painel | Mesma função | Dentro de função maior | Catraca não vê | Duplicação | Regras de arquivo só do painel |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `app/dist/cam-live.js` | 1,65 | 356 | 65 | 60 | 5 | 0 | 0 | Many Conditionals |
 | 2 | `app/electron/main.js` | 2,44 | 4095 | 66 | 7 | 33 | 0 | 26 | Modularity Issue |
 | 3 | `app/electron/services/browserFarmService.js` | 2,64 | 1031 | 30 | 28 | 0 | 0 | 2 | Brain Method, File Size Issue, Overall Code Complexity |
