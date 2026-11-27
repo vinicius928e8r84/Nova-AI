@@ -20,6 +20,10 @@ _Evitar_: lista fixa de testes
 O `.deb` que o Nova instala no aparelho: a câmera, o proxy, o idioma e o modelo.
 _Evitar_: tweak, integração
 
+**Retrato do pacote**:
+O arquivo JSON que `iphone/retrato/retrato-do-pacote.js` tira de um pacote do iPhone: o controle, a lista de arquivos com modo e conteúdo, e, de cada binário, os símbolos, as bibliotecas ligadas, os textos, os seletores e os direitos. Dois retratos, antes e depois de um corte, dizem o que mudou.
+_Evitar_: snapshot, diff do pacote
+
 **Patch da interface**:
 O script que reescreve o bundle da tela do app, que não tem código-fonte.
 _Evitar_: aplicador, integração
