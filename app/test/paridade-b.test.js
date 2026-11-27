@@ -96,20 +96,17 @@ test('instalacaoPorSistema: sistema que nao e Mac nem Windows nao recebe receita
   assert.strictEqual(instalacaoPorSistema('linux'), '');
 });
 
-test('main.js: atualizador sem ramo por sistema e sem linha em branco dupla na configuração', () => {
-  const fonte = fs.readFileSync(path.join(__dirname, '../electron/main.js'), 'utf8');
-  const ipcs = ['check-for-update', 'download-update', 'install-update'];
-  for (const canal of ipcs) {
-    const inicio = fonte.indexOf(`ipcMain.handle('${canal}'`);
-    assert.ok(inicio > 0, canal);
-    const corpo = fonte.slice(inicio, fonte.indexOf('\n  });', inicio));
-    assert.ok(!corpo.includes('process.platform'), canal);
+test('main.atualizador.js: atualizador sem ramo por sistema e sem linha em branco dupla na configuração', () => {
+  const fonte = fs.readFileSync(path.join(__dirname, '../electron/main.atualizador.js'), 'utf8');
+  assert.ok(!fonte.includes('process.platform'));
+  for (const canal of ['check-for-update', 'download-update', 'install-update']) {
+    assert.ok(fonte.indexOf(`ipcMain.handle('${canal}'`) > 0, canal);
   }
   const chamadaDaAbertura = fonte.indexOf('autoUpdater.checkForUpdates().catch');
   assert.ok(chamadaDaAbertura > 0);
   assert.strictEqual(fonte.lastIndexOf('autoUpdater.checkForUpdates().catch'), chamadaDaAbertura);
-  const inicioDaAbertura = fonte.lastIndexOf('if (app.isPackaged) {', chamadaDaAbertura);
-  const fimDaAbertura = fonte.indexOf('}, 5000);', chamadaDaAbertura);
+  const inicioDaAbertura = fonte.lastIndexOf('function buscarAtualizacaoSeHouverFeed', chamadaDaAbertura);
+  const fimDaAbertura = fonte.indexOf('\n}', chamadaDaAbertura);
   assert.ok(inicioDaAbertura > 0 && fimDaAbertura > chamadaDaAbertura);
   assert.ok(!fonte.slice(inicioDaAbertura, fimDaAbertura).includes('process.platform'));
   const marca = fonte.indexOf('autoUpdater.autoInstallOnAppQuit');

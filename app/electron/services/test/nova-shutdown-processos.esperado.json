@@ -1,0 +1,625 @@
+{
+  "filhos do Nova são sinalizados e quem não desce dele é poupado": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      200,
+      "SIGTERM"
+    ],
+    [
+      "kill",
+      201,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "helper do Electron não é sinalizado, mas o que desce dele é": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      211,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "órfão com a marca do dono é adotado e o órfão sem marca, de outro usuário, helper ou zumbi é poupado": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 220,221",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      220,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "órfão já inspecionado com a mesma identidade não é inspecionado de novo": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 230",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "órfão que reaproveitou o pid com outra identidade é inspecionado de novo": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 240",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 240",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      240,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "sem órfão novo a varredura não chama o ps de ambiente": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "falha do ps de ambiente é registrada com o código e os filhos ainda são coletados": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 251",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "console.error",
+      "[Shutdown] Orphan scan failed:",
+      "ETIMEDOUT"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 251",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "console.error",
+      "[Shutdown] Orphan scan failed:",
+      "ETIMEDOUT"
+    ],
+    [
+      "kill",
+      250,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 251",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "console.error",
+      "[Shutdown] Orphan scan failed:",
+      "ETIMEDOUT"
+    ]
+  ],
+  "falha do ps de ambiente sem código registra o status": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "eww -p 252",
+      "timeout=1000 maxBuffer=8388608 LC_ALL=(sem)"
+    ],
+    [
+      "console.error",
+      "[Shutdown] Orphan scan failed:",
+      1
+    ]
+  ],
+  "dono que sumiu ou trocou de identidade deixa de ser sinalizado": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ]
+  ],
+  "processo que ignora o SIGTERM recebe SIGKILL e, se continua, é registrado": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      270,
+      "SIGTERM"
+    ],
+    [
+      "kill",
+      271,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      270,
+      "SIGKILL"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "console.error",
+      "[Shutdown] Processes still present:",
+      [
+        270
+      ]
+    ]
+  ],
+  "ESRCH é ignorado e outro erro do kill é registrado sem parar os demais": [
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGTERM"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGTERM",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGTERM"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "kill",
+      280,
+      "SIGKILL"
+    ],
+    [
+      "console.error",
+      "[Shutdown]",
+      "SIGKILL",
+      280,
+      "operation not permitted"
+    ],
+    [
+      "kill",
+      281,
+      "SIGKILL"
+    ],
+    [
+      "ps",
+      "-axww -o",
+      "timeout=1000 maxBuffer=4194304 LC_ALL=C"
+    ],
+    [
+      "console.error",
+      "[Shutdown] Processes still present:",
+      [
+        280,
+        281
+      ]
+    ]
+  ]
+}
