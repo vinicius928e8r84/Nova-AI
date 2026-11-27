@@ -2,6 +2,9 @@
   "name": "nova-ai-analisador",
   "private": true,
   "description": "O analisador de JavaScript da regra saude-do-codigo (scripts/regras/regra-saude.js)",
+  "scripts": {
+    "prepare": "node ligar-ganchos.js"
+  },
   "dependencies": {
     "acorn": "8.19.0"
   }
