@@ -49,13 +49,7 @@ const receitaDaChaveDoGemini = {
   semArquivo: doAmbienteOuNulo('GEMINI_API_KEY'),
 };
 
-function avisarFalhaDaChaveDoGemini(erro) {
-  console.error('[Brain-Link] Error fetching token:', erro);
-  return process.env.GEMINI_API_KEY || null;
-}
-
 const lerChaveDoGemini = criarLeitor(receitaDaChaveDoGemini);
-const lerChaveDoGeminiParaOsAgentes = criarLeitor({ ...receitaDaChaveDoGemini, noErro: avisarFalhaDaChaveDoGemini });
 
 function dadosAtuaisDaChaveDoGemini(arquivo) {
   if (!fs.existsSync(arquivo)) return {};
@@ -237,4 +231,4 @@ function registrarConfiguracao() {
   registrarLicencaEBackup();
 }
 
-module.exports = { registrarConfiguracao, lerChaveDoGeminiParaOsAgentes };
+module.exports = { registrarConfiguracao };

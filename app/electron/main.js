@@ -102,7 +102,7 @@ const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
 const { edgeTtsBinary } = require('./services/paridade-utils');
 const { configurarAtualizador, registrarAtualizador, ligarAtualizador } = require('./main.atualizador');
-const { registrarConfiguracao, lerChaveDoGeminiParaOsAgentes } = require('./main.config');
+const { registrarConfiguracao } = require('./main.config');
 
 let mainWindow;
 let tray = null;
@@ -235,7 +235,19 @@ function createWindow() {
     }
   });
 
-  app.getGeminiToken = lerChaveDoGeminiParaOsAgentes;
+  app.getGeminiToken = async () => {
+    try {
+      const p = getSecretKeyPath();
+      if (fs.existsSync(p)) {
+        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+        return data.apiKey || data.geminiKey || process.env.GEMINI_API_KEY || null;
+      }
+      return process.env.GEMINI_API_KEY || null;
+    } catch (e) {
+      console.error('[Brain-Link] Error fetching token:', e);
+      return process.env.GEMINI_API_KEY || null;
+    }
+  };
 
   if (!ytdlpManager) {
     ytdlpManager = new YtDlpManager(mainWindow, app);

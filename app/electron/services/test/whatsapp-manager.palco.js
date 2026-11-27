@@ -39,28 +39,41 @@ function paraRegistro(valor) {
   return Object.fromEntries(Object.entries(valor).map(([chave, item]) => [chave, paraRegistro(item)]));
 }
 
+const entradasNormalizadas = entradas => new Map(Object.entries(entradas || {}).map(([caminho, valor]) => [normalizar(caminho), valor]));
+
+function falharSe(condicao, mensagem) {
+  if (condicao) throw new Error(mensagem);
+}
+
+function listagemFalsa(ambiente, pastas) {
+  return (caminho, opcoes) => {
+    ambiente.anotar('fs.readdirSync', caminho, opcoes);
+    falharSe(ambiente.cena.falhaAoListar, 'sem permissão');
+    return (pastas.get(normalizar(caminho)) || []).map(nome => ({ name: nome, isDirectory: () => !nome.endsWith('.txt') }));
+  };
+}
+
+function leituraFalsa(ambiente, arquivos) {
+  return (caminho, codificacao) => {
+    ambiente.anotar('fs.readFileSync', caminho, codificacao);
+    return arquivos.get(normalizar(caminho));
+  };
+}
+
 function sistemaDeArquivosFalso(ambiente) {
-  const cena = ambiente.cena;
-  const arquivos = new Map(Object.entries(cena.arquivos || {}).map(([caminho, conteudo]) => [normalizar(caminho), conteudo]));
-  const pastas = new Map(Object.entries(cena.pastas || {}).map(([caminho, nomes]) => [normalizar(caminho), nomes]));
+  const arquivos = entradasNormalizadas(ambiente.cena.arquivos);
+  const pastas = entradasNormalizadas(ambiente.cena.pastas);
   const existe = caminho => arquivos.has(normalizar(caminho)) || pastas.has(normalizar(caminho));
   return {
     existsSync: caminho => { const achou = existe(caminho); ambiente.anotar('fs.existsSync', caminho, achou); return achou; },
     mkdirSync: (caminho, opcoes) => { ambiente.anotar('fs.mkdirSync', caminho, opcoes); },
     unlinkSync: caminho => {
       ambiente.anotar('fs.unlinkSync', caminho);
-      if (cena.falhaAoRemover) throw new Error('arquivo em uso');
+      falharSe(ambiente.cena.falhaAoRemover, 'arquivo em uso');
     },
-    readFileSync: (caminho, codificacao) => {
-      ambiente.anotar('fs.readFileSync', caminho, codificacao);
-      return arquivos.get(normalizar(caminho));
-    },
+    readFileSync: leituraFalsa(ambiente, arquivos),
     writeFileSync: (caminho, conteudo) => { ambiente.anotar('fs.writeFileSync', caminho, conteudo); },
-    readdirSync: (caminho, opcoes) => {
-      ambiente.anotar('fs.readdirSync', caminho, opcoes);
-      if (cena.falhaAoListar) throw new Error('sem permissão');
-      return (pastas.get(normalizar(caminho)) || []).map(nome => ({ name: nome, isDirectory: () => !nome.endsWith('.txt') }));
-    },
+    readdirSync: listagemFalsa(ambiente, pastas),
   };
 }
 

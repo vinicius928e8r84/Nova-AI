@@ -127,23 +127,34 @@ const GRAVADORES = [
 
 const VARIAVEIS_DE_AMBIENTE = ['GEMINI_API_KEY', 'GROQ_API_KEY', 'OPENROUTER_API_KEY', 'GOOGLE_API_KEY', 'WA_API_KEY'];
 
+function guardarAmbiente() {
+  return Object.fromEntries(VARIAVEIS_DE_AMBIENTE.map((nome) => [nome, process.env[nome]]));
+}
+
+function trocarVariavel(nome, valor) {
+  if (valor === undefined) delete process.env[nome];
+  else process.env[nome] = valor;
+}
+
+function restaurarAmbiente(antes) {
+  for (const nome of VARIAVEIS_DE_AMBIENTE) trocarVariavel(nome, antes[nome]);
+}
+
+function ehPromessa(resultado) {
+  return Boolean(resultado) && typeof resultado.then === 'function';
+}
+
 function comAmbiente(valores, funcao) {
-  const antes = Object.fromEntries(VARIAVEIS_DE_AMBIENTE.map((nome) => [nome, process.env[nome]]));
-  for (const nome of VARIAVEIS_DE_AMBIENTE) delete process.env[nome];
-  for (const [nome, valor] of Object.entries(valores)) if (valor !== undefined) process.env[nome] = valor;
-  const restaurar = () => {
-    for (const nome of VARIAVEIS_DE_AMBIENTE) {
-      if (antes[nome] === undefined) delete process.env[nome];
-      else process.env[nome] = antes[nome];
-    }
-  };
+  const antes = guardarAmbiente();
+  restaurarAmbiente({});
+  for (const [nome, valor] of Object.entries(valores)) trocarVariavel(nome, valor);
   try {
     const resultado = funcao();
-    if (resultado && typeof resultado.then === 'function') return resultado.finally(restaurar);
-    restaurar();
+    if (ehPromessa(resultado)) return resultado.finally(() => restaurarAmbiente(antes));
+    restaurarAmbiente(antes);
     return resultado;
   } catch (erro) {
-    restaurar();
+    restaurarAmbiente(antes);
     throw erro;
   }
 }
