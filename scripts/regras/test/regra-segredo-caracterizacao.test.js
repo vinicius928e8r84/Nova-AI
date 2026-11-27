@@ -28,6 +28,8 @@ const ARROBA = String.fromCharCode(64);
 const urlCom = (senha, host = 'db.interno.com') => `postgres://admin:${senha}${ARROBA}${host}/x`;
 const HEX_MISTO = juntar('0123456789abcdef', '0123456789ABCDEF');
 const MISTO_CURTO = juntar('Abcdefgh', '12345678');
+const OITO_DIFERENTES = juntar('Ab1$Cd2%', 'Ab1$Cd2%');
+const SETE_DIFERENTES = juntar('Ab1$Cd2A', 'b1$Cd2AA');
 
 const LINHAS = [
   [`const k = "${CHAVE_PRIVADA}";`, 'chave privada'],
@@ -72,6 +74,8 @@ const LINHAS = [
   ['password: "0123456789abcdef0123456789abcde"', null],
   ['password: "abcdefgh1234567"', null],
   [`password: "${MISTO_CURTO}"`, 'valor literal em campo de segredo'],
+  [`password: "${OITO_DIFERENTES}"`, 'valor literal em campo de segredo'],
+  [`password: "${SETE_DIFERENTES}"`, null],
   ['password: "Abab1212Abab1212"', null],
   ['password: "Ab1$Ab1$Ab1$Ab1$"', null],
   [`password: "${VALOR_MISTO}example"`, null],
@@ -124,7 +128,7 @@ const SEGREDO_VELHO = `const velho = "${AWS}";\n`;
 const BASE = {
   'app/estavel.dat': comNulos(AWS),
   'app/limpo-antes.dat': comNulos('nada de mais'),
-  'app/velho.dat': comNulos(AWS, 'x'.repeat(300)),
+  'app/velho.dat': comNulos(AWS, ' ', 'x'.repeat(300)),
   'app/velho-limpo.dat': comNulos('y'.repeat(300)),
   'app/velho.js': `${SEGREDO_VELHO}const a = 1;\nconst b = 2;\n`,
   'app/outro.js': 'a\nb\nc\nd\ne\n',
@@ -140,7 +144,7 @@ const MUDANCAS = {
   'app/estavel.dat': comNulos(AWS, ' e mais um pouco'),
   'app/limpo-antes.dat': comNulos('nada de mais', ' ', AWS),
   'app/velho.dat': null,
-  'app/renomeado.dat': comNulos(AWS, 'x'.repeat(300)),
+  'app/renomeado.dat': comNulos(AWS, ' ', 'x'.repeat(300)),
   'app/velho-limpo.dat': null,
   'app/renomeado-sujo.dat': comNulos('y'.repeat(300), ' ', AWS),
   'app/velho.js': `${SEGREDO_VELHO}const a = 1;\nconst b = 2;\nconst c = "${AWS}";\n`,
