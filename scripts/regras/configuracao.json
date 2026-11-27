@@ -63,6 +63,14 @@
   },
   "tamanhoDeArquivo": {
     "bytesMaximos": 20000,
-    "bytesPorToken": 4
+    "bytesPorToken": 4,
+    "foraDoTeto": [
+      {"glob": "test/", "motivo": "testes e os dados deles (decisão do dono na issue 136, Q1)"},
+      {"glob": "tests/", "motivo": "testes e os dados deles (decisão do dono na issue 136, Q1)"},
+      {"glob": "teste/", "motivo": "testes e os dados deles (decisão do dono na issue 136, Q1)"},
+      {"glob": "testes/", "motivo": "testes e os dados deles (decisão do dono na issue 136, Q1)"},
+      {"glob": "fixtures/", "motivo": "dados de teste, como as caracterizações .esperado.json"},
+      {"glob": "*.test.*", "motivo": "arquivo de teste fora de pasta de teste"}
+    ]
   }
 }

@@ -3,6 +3,7 @@
 const { bytesDaBase } = require('./git');
 const { arquivosJulgados } = require('./commits-da-pr');
 const { ignoradoComoCodigo } = require('./escopo');
+const { casaAlgum } = require('./globs');
 
 const id = 'limite-de-tamanho';
 const titulo = 'Arquivo de texto com no máximo 20000 bytes (5000 tokens)';
@@ -16,13 +17,15 @@ const bytesComFimDeLinhaLf = buffer => {
   return total;
 };
 
+const foraDoTeto = (config, caminho) => ignoradoComoCodigo(config, caminho) || casaAlgum(config.tamanhoDeArquivo.foraDoTeto, caminho);
+
 const tokensDe = (bytes, config) => Math.ceil(bytes / config.bytesPorToken);
 
 const medida = (bytes, config) => `${bytes} bytes (${tokensDe(bytes, config)} tokens)`;
 
 function origemNaBase(ctx, item) {
   if (item.status === 'M') return item.caminho;
-  if (item.status === 'R' && !ignoradoComoCodigo(ctx.config, item.antigo)) return item.antigo;
+  if (item.status === 'R' && !foraDoTeto(ctx.config, item.antigo)) return item.antigo;
   return null;
 }
 
@@ -52,7 +55,7 @@ function verificar(ctx) {
   const julgados = arquivosJulgados(ctx);
   const achados = [];
   for (const item of ctx.arquivos) {
-    if (!julgados.has(item.caminho) || ignoradoComoCodigo(ctx.config, item.caminho)) continue;
+    if (!julgados.has(item.caminho) || foraDoTeto(ctx.config, item.caminho)) continue;
     const arquivo = ctx.ler(item.caminho);
     if (!textoGrande(arquivo, bytesMaximos)) continue;
     const bytes = bytesComFimDeLinhaLf(arquivo.buffer);
