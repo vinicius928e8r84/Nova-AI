@@ -34,6 +34,14 @@ const cenasDeEspecificacoes = PLATAFORMAS.map(plataforma => ({
   roteiro: carregar,
 }));
 
+const doze = plataforma => Array.from({ length: 12 }, (_, i) => ({ id: `profile_${i + 1}`, platform: plataforma }));
+
+const cenasDeVariasEspecificacoes = ['windows', 'android'].map(plataforma => ({
+  nome: `especificações: doze perfis vazios do ${plataforma} cobrem as listas de sorteio`,
+  arquivo: arquivoComPerfis(doze(plataforma)),
+  roteiro: carregar,
+}));
+
 const cenasDeSorteioPorCampo = [
   ['núcleos e memória Auto são sorteados de novo', { cpuCores: 'Auto', ramSize: 'Auto' }],
   ['nome, MAC e resolução antigos são trocados', { deviceName: 'USER-PC-X6NAGE1', macAddress: '00-1B-21-29-FE-FA', screenResolution: 'Based on User-Agent' }],
@@ -189,6 +197,7 @@ const cenasDeIdioma = [
 
 const CENAS = [
   ...cenasDeEspecificacoes,
+  ...cenasDeVariasEspecificacoes,
   ...cenasDeSorteioPorCampo,
   ...cenasDeResolucaoPadrao,
   ...cenasDeJanela,
