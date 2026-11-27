@@ -129,3 +129,57 @@ test('perfil salvo com fuso e idioma fixos continua mandando mais que o regional
   assert.match(inject, /var _tTimezone = "Europe\/Lisbon";/);
   assert.match(inject, /var _tLocale = "pt-PT";/);
 });
+
+async function esperarAte(condicao) {
+  for (let tentativa = 0; tentativa < 100 && !condicao(); tentativa++) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.ok(condicao(), 'o CDP falso não foi ligado a tempo');
+}
+
+async function abrirComUrl(url) {
+  usarPlataforma('win32');
+  const { servico } = criarServico();
+  await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default', url }));
+  await esperarAte(() => palco.cliente.ligado);
+  return palco.cliente;
+}
+
+async function anexarAlvo(cliente, sessionId, targetInfo) {
+  await cliente.ouvintes['Target.attachedToTarget']({ sessionId, targetInfo, waitingForDebugger: false });
+}
+
+const metodosDaSessao = (cliente, sessao) => cliente.enviados.filter((e) => e.sessao === sessao).map((e) => e.metodo);
+
+test('o Chrome abre em about:blank e a URL pedida só carrega depois do disfarce registrado na aba', async () => {
+  const url = 'https://example.com/pagina';
+  const cliente = await abrirComUrl(url);
+  const argumentosDoChrome = palco.spawns.find((s) => s.comando === 'chrome-falso').args;
+  assert.ok(argumentosDoChrome.includes('about:blank'));
+  assert.ok(!argumentosDoChrome.some((a) => a.includes('example.com')));
+  await anexarAlvo(cliente, 'aba-1', { type: 'page', url: 'about:blank' });
+  const metodos = metodosDaSessao(cliente, 'aba-1');
+  assert.ok(metodos.indexOf('Page.addScriptToEvaluateOnNewDocument') >= 0);
+  assert.ok(metodos.indexOf('Page.navigate') > metodos.indexOf('Page.addScriptToEvaluateOnNewDocument'));
+  const navegacao = cliente.enviados.find((e) => e.metodo === 'Page.navigate');
+  assert.deepStrictEqual(navegacao.params, { url });
+});
+
+test('só a primeira aba em branco navega: iframe e janela aberta por outra página ficam como estão', async () => {
+  const cliente = await abrirComUrl('https://example.com/pagina');
+  await anexarAlvo(cliente, 'quadro-1', { type: 'iframe', url: 'about:blank' });
+  await anexarAlvo(cliente, 'popup-1', { type: 'page', url: 'about:blank', openerId: 'aba-1' });
+  await anexarAlvo(cliente, 'aba-2', { type: 'page', url: 'https://example.org/' });
+  assert.ok(!cliente.enviados.some((e) => e.metodo === 'Page.navigate'));
+});
+
+test('se o disfarce não for registrado na aba, a URL pedida não é aberta (a aba fica em branco)', async () => {
+  const cliente = await abrirComUrl('https://example.com/pagina');
+  const enviar = cliente.send;
+  cliente.send = async (metodo, params, sessao) => {
+    if (metodo === 'Page.addScriptToEvaluateOnNewDocument') throw new Error('sem disfarce');
+    return enviar(metodo, params, sessao);
+  };
+  await anexarAlvo(cliente, 'aba-1', { type: 'page', url: 'about:blank' });
+  assert.ok(!cliente.enviados.some((e) => e.metodo === 'Page.navigate'));
+});

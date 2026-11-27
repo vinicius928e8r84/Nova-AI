@@ -7,6 +7,7 @@ const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
+const { prepararPagina, abrirUrlPedida } = require('./global-spoof-abertura');
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
@@ -529,7 +530,7 @@ class GlobalSpoofService {
             }
         }
 
-        chromeArgs.push(targetUrl || 'about:blank');
+        chromeArgs.push('about:blank');
 
         let audioFile = settings.audioPath;
         if (!audioFile) {
@@ -1376,11 +1377,7 @@ applyStealth(window);
                             await client.send('Emulation.setTimezoneOverride', { timezoneId: tTimezone }, sessionId);
                             await client.send('Emulation.setGeolocationOverride', { latitude: tLat, longitude: tLng, accuracy: 15 }, sessionId);
 
-                            try {
-                                await client.send('Page.enable', {}, sessionId);
-                                await client.send('Page.setBypassCSP', { enabled: true }, sessionId);
-                                await client.send('Page.addScriptToEvaluateOnNewDocument', { source: deepHijackScript }, sessionId);
-                            } catch (pageErr) {}
+                            const disfarcada = await prepararPagina(client, sessionId, deepHijackScript);
 
                             if (targetInfo.type === 'page' && isMobile) {
                                 try {
@@ -1398,6 +1395,7 @@ applyStealth(window);
                             if (waitingForDebugger) {
                                 await client.send('Runtime.runIfWaitingForDebugger', {}, sessionId);
                             }
+                            if (disfarcada) await abrirUrlPedida(client, sessionId, targetInfo, targetUrl);
                         } catch (err) {
                             if (waitingForDebugger) {
                                 try { await client.send('Runtime.runIfWaitingForDebugger', {}, sessionId); } catch (_) {}
