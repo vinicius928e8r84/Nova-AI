@@ -11,7 +11,26 @@ const Module = require('module');
 
 const processosReais = require('child_process');
 const carregarOriginal = Module._load;
+const abaQueRecusaOAgente = { pedida: false, sessao: null };
+
+function recusarOAgenteNaAbaPedida(cliente) {
+  const enviar = cliente.send.bind(cliente);
+  cliente.on('Target.attachedToTarget', ({ sessionId, targetInfo }) => {
+    if (abaQueRecusaOAgente.pedida && targetInfo.openerId) abaQueRecusaOAgente.sessao = sessionId;
+  });
+  cliente.send = (metodo, params, sessao, ...resto) => {
+    const recusar = metodo === 'Network.setUserAgentOverride' && sessao === abaQueRecusaOAgente.sessao;
+    return enviar(metodo, recusar ? { ...params, userAgent: undefined } : params, sessao, ...resto);
+  };
+  return cliente;
+}
+
+function comAbaQueRecusaOAgente(CDP) {
+  return Object.assign(async (...args) => recusarOAgenteNaAbaPedida(await CDP(...args)), CDP);
+}
+
 Module._load = function (pedido, ...resto) {
+  if (pedido === 'chrome-remote-interface') return comAbaQueRecusaOAgente(carregarOriginal.call(this, pedido, ...resto));
   if (pedido !== 'child_process') return carregarOriginal.call(this, pedido, ...resto);
   const semLimpezaDeOrfaos = { execSync: () => '', spawnSync: () => ({ status: 0 }) };
   const eOChrome = (args) => args.some((argumento) => argumento.startsWith('--remote-debugging-port='));
@@ -45,7 +64,7 @@ function abrirServidor() {
   servidor = http.createServer((requisicao, resposta) => {
     pedidos.push(requisicao.url);
     resposta.setHeader('content-type', 'text/html');
-    resposta.end(paginaQueRegistraODisfarce(requisicao.url === '/segunda' ? 'segunda' : 'primeira'));
+    resposta.end(paginaQueRegistraODisfarce(requisicao.url.slice(1) || 'primeira'));
   });
   return new Promise((resolve) => servidor.listen(0, '127.0.0.1', () => resolve(servidor.address().port)));
 }
@@ -119,8 +138,11 @@ after(async () => {
   await esperarAte(() => apagar(raiz), 100, () => `não deu para apagar ${raiz}`);
 });
 
-test('a aba aberta com window.open e noopener carrega a URL e já recebe o disfarce na primeira carga', async (t) => {
+const chromeDoSpoof = { origem: null, porta: null, primeira: null };
+
+async function abrirChromeDoSpoof(t) {
   if (process.platform !== 'win32') return t.skip('só roda no Windows: nos outros sistemas o Chrome do spoof é achado e encerrado de outro jeito');
+  if (chromeDoSpoof.primeira) return true;
   criarServico();
   const caminhoDoChrome = servico._findChrome();
   if (!caminhoDoChrome || !fs.existsSync(caminhoDoChrome)) return t.skip('sem Chrome instalado nesta máquina');
@@ -128,11 +150,31 @@ test('a aba aberta com window.open e noopener carrega a URL e já recebe o disfa
   const porta = await acharPortaDeDepuracaoLivre();
   const aberto = await abrirServicoNaPorta(porta, { device: { id: 'desktop' }, url: `${origem}/`, profile: 'Default', audioPath: path.join(raiz, 'sem-audio.wav') });
   assert.strictEqual(aberto.success, true);
-  const primeira = await esperarAte(async () => (await abasAbertas(porta).catch(() => [])).find((aba) => aba.url === `${origem}/`), 100, () => 'a primeira aba não carregou a URL pedida');
+  chromeDoSpoof.primeira = await esperarAte(async () => (await abasAbertas(porta).catch(() => [])).find((aba) => aba.url === `${origem}/`), 100, () => 'a primeira aba não carregou a URL pedida');
+  Object.assign(chromeDoSpoof, { origem, porta });
+  return true;
+}
+
+test('a aba aberta com window.open e noopener carrega a URL e já recebe o disfarce na primeira carga', async (t) => {
+  if (!await abrirChromeDoSpoof(t)) return;
+  const { origem, porta, primeira } = chromeDoSpoof;
 
   await abrirComNoopener(primeira, `${origem}/segunda`);
 
   const segunda = await esperarAte(async () => (await abasAbertas(porta)).find((aba) => aba.url === `${origem}/segunda`), 40, async () => `a aba aberta com noopener ficou em branco: abas ${JSON.stringify((await abasAbertas(porta)).map((aba) => aba.url))}`);
   assert.strictEqual(segunda.title, 'segunda disfarce=true');
   assert.strictEqual(pedidos.filter((url) => url === '/segunda').length, 1);
+});
+
+test('se o Chrome recusa o disfarce na aba aberta com noopener, o site não recebe nenhum pedido e a aba fica em branco', async (t) => {
+  if (!await abrirChromeDoSpoof(t)) return;
+  const { origem, porta, primeira } = chromeDoSpoof;
+  abaQueRecusaOAgente.pedida = true;
+
+  await abrirComNoopener(primeira, `${origem}/terceira`);
+
+  await esperarAte(() => abaQueRecusaOAgente.sessao, 40, () => 'a aba nova não foi anexada');
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  assert.deepStrictEqual(pedidos.filter((url) => url === '/terceira'), []);
+  assert.deepStrictEqual((await abasAbertas(porta)).map((aba) => aba.url).sort(), ['', `${origem}/`, `${origem}/segunda`]);
 });
