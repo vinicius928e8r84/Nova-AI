@@ -523,12 +523,12 @@ O modal Conectar mostrava o dump cru do `dpkg` (`rm command for cleanup subproce
 
 Sintoma: no modal Conectar iPhone por USB a senha era aceita e a mensagem em vermelho dizia que a chave de acesso não foi validada (parecia senha errada). Não era a senha nem o `known_hosts` em si.
 
-Causa: em `electron/services/iphone-ssh.js` → `sshOptions()` a opção ia sem aspas: `UserKnownHostsFile=/Users/…/Application Support/nova_dsktp/iphone-ssh/known_hosts`. O parser de configuração do `ssh` **separa por espaço**, então ele lia o arquivo `/Users/aquilesneri/Library/Application` (um resto de 98 bytes com a chave de host **velha**, de 04/11) e recusava com `Host key for [127.0.0.1]:2222 has changed and you have requested strict checking`. A verificação `iosSsh('test -d /var/jb')` falhava e o app mostrava a mensagem enganosa.
+Causa: em `electron/services/iphone-ssh.js` → `sshOptions()` a opção ia sem aspas: `UserKnownHostsFile=/Users/…/Application Support/nova_dsktp/iphone-ssh/known_hosts`. O parser de configuração do `ssh` **separa por espaço**, então ele lia o arquivo `~/Library/Application` (um resto de 98 bytes com a chave de host **velha**, de 04/11) e recusava com `Host key for [127.0.0.1]:2222 has changed and you have requested strict checking`. A verificação `iosSsh('test -d /var/jb')` falhava e o app mostrava a mensagem enganosa.
 
 - Correção: o valor de `UserKnownHostsFile` agora recebe aspas quando o caminho tem espaço (`MAC/integracao-iphone/iphone-ssh.js`).
 - Verificado com as mesmas opções do app via `execFile`: `CONECTOU` / `JB_OK` / `mobile` — ou seja, a chave do app **já estava** instalada no aparelho; só a checagem estava quebrada.
 - App instalado corrigido com backup ao lado: `electron/services/iphone-ssh.js.bak-20261106-182841`. Branch `agent/frontend/conectar-known-hosts-20261106`, sem merge e sem push.
-- Sobra do bug no Mac: o arquivo `/Users/aquilesneri/Library/Application` (98 bytes, chave de host antiga). Com a correção não é mais lido; pode ser removido com o OK do usuário.
+- Sobra do bug no Mac: o arquivo `~/Library/Application` (98 bytes, chave de host antiga). Com a correção não é mais lido; pode ser removido com o OK do usuário.
 
 ### Conectar: senha digitada uma vez só neste modal
 

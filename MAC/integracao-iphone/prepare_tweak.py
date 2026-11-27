@@ -1,11 +1,12 @@
 from pathlib import Path
+import re
 import shutil
 root=Path(__file__).parent/'tweak'
-src=Path('/Users/aquilesneri/Desktop/jailbreak/tweaks/vcamcaptura-consistente')
+src=Path.home()/'Desktop/jailbreak/tweaks/vcamcaptura-consistente'
 s=(src/'Tweak.x').read_text()
 s=s[s.index('#import <AVFoundation'):s.index('// ---- Vídeo:')]
 s=s.replace('VCamCaptura','NovaCamBridge').replace('VCCapturaMJPEG','NovaMJPEG')
-s=s.replace('return @[@"http://10.0.0.245:8899/live.mjpg",\n             @"http://192.168.0.2:8899/live.mjpg"];','return @[@"http://127.0.0.1:18999/live.mjpg"];')
+s=re.sub(r'return @\[@"http://[^"]+/live\.mjpg",\n\s+@"http://[^"]+/live\.mjpg"\];','return @[@"http://127.0.0.1:18999/live.mjpg"];',s)
 s=s.replace('@synchronized (_lock) { return _latest ? CGImageRetain(_latest) : NULL; }','@synchronized (_lock) { return (_latest && CACurrentMediaTime() - _lastFrameAt < 2.0) ? CGImageRetain(_latest) : NULL; }')
 s=s.replace('        _latest = img;\n    }\n    _lastFrameAt = CACurrentMediaTime();','        _latest = img;\n        _lastFrameAt = CACurrentMediaTime();\n    }')
 s += '''

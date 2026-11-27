@@ -19,7 +19,7 @@ Aba **Sequestro de Câmera** (janela Controle do Celular – Suíte de Hardware)
 `electron/services/ios-camera.js` reescrito:
 
 - **Ligar** (sem vídeo): `./phone.sh enable-photo` no
-  `/Users/aquilesneri/Desktop/jailbreak/obs-camera-source/bridge` — túnel USB +
+  `~/Desktop/jailbreak/obs-camera-source/bridge` — túnel USB +
   injeção contínua de visor, foto, vídeo e áudio do OBS na Câmera nativa.
 - **Desligar**: `./phone.sh disable` (equivalente: escreve `{"mode":"observe"}`
   por SSH com a chave `~/.ssh/id_iphone`) e encerra servidor/túnel locais.
