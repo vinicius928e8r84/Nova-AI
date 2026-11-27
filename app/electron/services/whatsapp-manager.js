@@ -9,14 +9,98 @@ const { spawnSync } = require('child_process');
 const axios = require('axios');
 const FormData = require('form-data');
 const screenshot = require('screenshot-desktop');
+const {
+    ASSINATURA_DO_ROBO,
+    ehMensagemDeVoz,
+    descreverMensagem,
+    dadosDaMensagemRecebida,
+    textoDaTranscricao,
+    motivoDaFalhaNaTranscricao,
+    mensagemDoErro,
+    deveDescartar,
+    motivoDoAlertaDeGrupo,
+    ehUrgenteParaContato,
+    nomeDoRemetente,
+    resumoDaNotificacao,
+    duracaoDaDigitacao,
+    envioInvalido,
+    comAssinatura
+} = require('./whatsapp-mensagem');
+const { reconhecerComandoDoDono, enderecoCompleto, relatorioDoSistema } = require('./whatsapp-comandos');
 
-const BOT_SIGNATURE = '[NOVA_AI_BOT]';
-
-const SCREENSHOT_TRIGGERS = [
-    'screenshot', 'take ss', 'screen dikhao', 'capture screen',
-    'ss lo', 'screen lo', 'screen capture', 'pc screen', 'screen bhejo',
-    'screen short', 'tasveer bhejo', 'pc screen dikhao', 'photo bhejo'
+const ARGUMENTOS_DO_NAVEGADOR = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu'
 ];
+
+const TRECHOS_DE_PERFIL_TRAVADO = ['already running for', 'SingletonLock', 'userDataDir'];
+
+const NAVEGADORES_INSTALADOS_NO_WINDOWS = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+];
+
+const esperar = milissegundos => new Promise(resolver => setTimeout(resolver, milissegundos));
+
+const ehPerfilTravado = mensagem => TRECHOS_DE_PERFIL_TRAVADO.some(trecho => mensagem.includes(trecho));
+
+function primeiroNavegadorQueExiste(candidatos) {
+    const encontrado = candidatos.find(candidato => candidato && fs.existsSync(candidato));
+    if (encontrado) {
+        console.info('[WhatsApp] Browser executable:', encontrado);
+        return encontrado;
+    }
+
+    console.warn('[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used.');
+    return null;
+}
+
+function formularioDeAudio(base64Data) {
+    const form = new FormData();
+    form.append('file', Buffer.from(base64Data, 'base64'), {
+        filename: 'audio.ogg',
+        contentType: 'audio/ogg'
+    });
+    form.append('model', 'whisper-large-v3');
+    form.append('response_format', 'json');
+    return form;
+}
+
+function soltarOuvintes(client) {
+    try {
+        client.removeAllListeners();
+    } catch (_error) { }
+}
+
+async function sairDaSessao(client, preserveSession) {
+    try {
+        if (!preserveSession && typeof client.logout === 'function') {
+            await client.logout();
+        }
+    } catch (error) {
+        console.warn('[WhatsApp] Logout during destroy failed:', error.message || error);
+    }
+}
+
+async function fecharNavegador(client) {
+    try {
+        await client.destroy();
+    } catch (error) {
+        console.warn('[WhatsApp] Destroy failed:', error.message || error);
+    }
+}
+
+async function encerrarCliente(client, preserveSession) {
+    soltarOuvintes(client);
+    await sairDaSessao(client, preserveSession);
+    await fecharNavegador(client);
+}
 
 function navegadorDoAmbienteSeExistir() {
     const doAmbiente = process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -230,50 +314,42 @@ class WhatsAppManager {
             return this.resolverNavegadorNoMac();
         }
 
-        const candidates = [];
+        const candidatos = [
+            ...[process.env.PUPPETEER_EXECUTABLE_PATH].filter(Boolean),
+            ...this.pastasDeNavegadores().flatMap(pasta => this.chromiumsDaPasta(pasta)),
+            ...NAVEGADORES_INSTALADOS_NO_WINDOWS
+        ];
 
-        if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-            candidates.push(process.env.PUPPETEER_EXECUTABLE_PATH);
-        }
+        return primeiroNavegadorQueExiste(candidatos);
+    }
 
-        const browserRoots = [
+    pastasDeNavegadores() {
+        return [
             process.resourcesPath ? path.join(process.resourcesPath, 'browsers') : null,
             path.join(process.cwd(), 'browsers'),
             path.join(this.app.getPath('userData'), 'browsers')
         ].filter(Boolean);
+    }
 
-        for (const root of browserRoots) {
-            if (!fs.existsSync(root)) continue;
+    chromiumsDaPasta(pasta) {
+        if (!fs.existsSync(pasta)) return [];
 
-            candidates.push(path.join(root, 'chromium-1208', 'chrome-win64', 'chrome.exe'));
+        const candidatos = [path.join(pasta, 'chromium-1208', 'chrome-win64', 'chrome.exe')];
 
-            try {
-                const chromiumDirs = fs.readdirSync(root, { withFileTypes: true })
-                    .filter(entry => entry.isDirectory() && entry.name.startsWith('chromium-'))
-                    .map(entry => entry.name)
-                    .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+        try {
+            const chromiumDirs = fs.readdirSync(pasta, { withFileTypes: true })
+                .filter(entry => entry.isDirectory() && entry.name.startsWith('chromium-'))
+                .map(entry => entry.name)
+                .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
 
-                for (const dirName of chromiumDirs) {
-                    candidates.push(path.join(root, dirName, 'chrome-win64', 'chrome.exe'));
-                }
-            } catch (error) {
-                console.warn('[WhatsApp] Failed scanning browser directory:', root, error.message);
+            for (const dirName of chromiumDirs) {
+                candidatos.push(path.join(pasta, dirName, 'chrome-win64', 'chrome.exe'));
             }
+        } catch (error) {
+            console.warn('[WhatsApp] Failed scanning browser directory:', pasta, error.message);
         }
 
-        candidates.push('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
-        candidates.push('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe');
-        candidates.push('C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe');
-
-        for (const candidate of candidates) {
-            if (candidate && fs.existsSync(candidate)) {
-                console.log('[WhatsApp] Browser executable:', candidate);
-                return candidate;
-            }
-        }
-
-        console.warn('[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used.');
-        return null;
+        return candidatos;
     }
 
     async destroyClient({ preserveSession = true } = {}) {
@@ -284,40 +360,39 @@ class WhatsAppManager {
         this.client = null;
 
         try {
-            client.removeAllListeners();
-        } catch (_error) { }
-
-        try {
-            if (!preserveSession && typeof client.logout === 'function') {
-                await client.logout();
-            }
-        } catch (error) {
-            console.warn('[WhatsApp] Logout during destroy failed:', error.message || error);
-        }
-
-        try {
-            await client.destroy();
-        } catch (error) {
-            console.warn('[WhatsApp] Destroy failed:', error.message || error);
+            await encerrarCliente(client, preserveSession);
         } finally {
             this.destroying = false;
         }
     }
 
-    async initialize(options = {}) {
-        const { isReconnect = false } = options;
-
+    async initialize({ isReconnect = false } = {}) {
         if (this.isInitializing) {
             console.log('[WhatsApp] Initialize skipped (already initializing).');
             return;
         }
 
-        if (this.client && this.isReady) {
+        if (this.estaConectado()) {
             console.log('[WhatsApp] Initialize skipped (already connected).');
             this.setStatus('connected');
             return;
         }
 
+        await this.prepararParaIniciar(isReconnect);
+
+        const cliente = this.criarCliente();
+        this.client = cliente;
+        this.registerClientEvents(cliente);
+
+        try {
+            await cliente.initialize();
+        } catch (error) {
+            if (this.client !== cliente) return;
+            await this.tratarFalhaAoIniciar(mensagemDoErro(error));
+        }
+    }
+
+    async prepararParaIniciar(isReconnect) {
         this.manualLogout = false;
         this.ensureRuntimeDirectories();
         this.clearReconnectTimer();
@@ -337,26 +412,17 @@ class WhatsAppManager {
         });
 
         this.startInitTimeout();
+    }
 
+    criarCliente() {
         const executablePath = this.resolveBrowserExecutable();
-        const puppeteerOptions = {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu'
-            ]
-        };
+        const puppeteerOptions = { headless: true, args: [...ARGUMENTOS_DO_NAVEGADOR] };
 
         if (executablePath) {
             puppeteerOptions.executablePath = executablePath;
         }
 
-        this.client = new Client({
+        return new Client({
             authStrategy: new LocalAuth({
                 clientId: 'nova-desktop-client',
                 dataPath: this.sessionPath
@@ -371,40 +437,43 @@ class WhatsAppManager {
             },
             puppeteer: puppeteerOptions
         });
+    }
 
-        this.registerClientEvents(this.client);
+    async tratarFalhaAoIniciar(errorMessage) {
+        console.error('[WhatsApp] Initialize error:', errorMessage);
+        this.clearInitTimeout();
+        this.isInitializing = false;
+        this.isReady = false;
 
-        const cliente = this.client;
-        try {
-            await cliente.initialize();
-        } catch (error) {
-            if (this.client !== cliente) return;
-            const errorMessage = String(error?.message || error || '');
-            console.error('[WhatsApp] Initialize error:', errorMessage);
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.isReady = false;
-
-            const isProfileLockError =
-                errorMessage.includes('already running for') ||
-                errorMessage.includes('SingletonLock') ||
-                errorMessage.includes('userDataDir');
-
-            if (isProfileLockError) {
-                this.setStatus('reconnecting', { reason: 'profile-lock' });
-                await this.recoverFromProfileLock(errorMessage);
-                this.scheduleReconnect('profile-lock');
-                return;
-            }
-
-            this.setStatus('disconnected', { reason: errorMessage || 'init-error' });
-
-            await this.destroyClient({ preserveSession: true });
-            this.scheduleReconnect('init-error');
+        if (ehPerfilTravado(errorMessage)) {
+            this.setStatus('reconnecting', { reason: 'profile-lock' });
+            await this.recoverFromProfileLock(errorMessage);
+            this.scheduleReconnect('profile-lock');
+            return;
         }
+
+        this.setStatus('disconnected', { reason: errorMessage || 'init-error' });
+
+        await this.destroyClient({ preserveSession: true });
+        this.scheduleReconnect('init-error');
     }
 
     registerClientEvents(client) {
+        this.registrarEventosDeConexao(client);
+        this.registrarEventosDeQueda(client);
+
+        client.on('message', async (msg) => {
+            await this.handleIncomingMessage(msg);
+        });
+
+        client.on('message_create', async (msg) => {
+            if (msg.fromMe) {
+                await this.handleIncomingMessage(msg);
+            }
+        });
+    }
+
+    registrarEventosDeConexao(client) {
         client.on('qr', async (qr) => {
             if (this.lastQr === qr) return;
             this.lastQr = qr;
@@ -437,10 +506,10 @@ class WhatsAppManager {
             this.status = 'connected';
             this.isReady = true;
             this.qrCode = '';
-            
+
             this.bossName = this.client?.info?.pushname || 'Boss';
             console.log(`[WhatsApp] 🤖 Authenticated as: ${this.bossName}`);
-            
+
             this.sendToFrontend('whatsapp-event', { event: 'ready', data: { status: 'connected', bossName: this.bossName } });
             this.reconnectAttempts = 0;
             this.setStatus('connected');
@@ -450,14 +519,12 @@ class WhatsAppManager {
         client.on('remote_session_saved', () => {
             console.log('[WhatsApp] Remote session saved');
         });
+    }
 
+    registrarEventosDeQueda(client) {
         client.on('auth_failure', async (msg) => {
             console.error('[WhatsApp] Auth failure:', msg);
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.isReady = false;
-            this.qrCode = null;
-            this.lastQr = null;
+            this.marcarConexaoPerdida();
             this.setStatus('auth_failure', { reason: msg });
 
             await this.destroyClient({ preserveSession: true });
@@ -466,226 +533,181 @@ class WhatsAppManager {
 
         client.on('disconnected', async (reason) => {
             console.warn('[WhatsApp] Disconnected:', reason);
-            this.clearInitTimeout();
-            this.isInitializing = false;
-            this.isReady = false;
-            this.qrCode = null;
-            this.lastQr = null;
+            this.marcarConexaoPerdida();
             this.setStatus('disconnected', { reason });
 
             await this.destroyClient({ preserveSession: true });
             this.scheduleReconnect(reason || 'disconnected');
         });
+    }
 
-        client.on('message', async (msg) => {
-            await this.handleIncomingMessage(msg);
-        });
+    marcarConexaoPerdida() {
+        this.clearInitTimeout();
+        this.isInitializing = false;
+        this.isReady = false;
+        this.qrCode = null;
+        this.lastQr = null;
+    }
 
-        client.on('message_create', async (msg) => {
-            if (msg.fromMe) {
-                await this.handleIncomingMessage(msg);
+    estaConectado() {
+        return Boolean(this.client && this.isReady);
+    }
+
+    lembrarPorUmTempo(id, milissegundos) {
+        this.processedMessageIds.add(id);
+        setTimeout(() => this.processedMessageIds.delete(id), milissegundos);
+    }
+
+    ehRepetida({ messageId, targetId, body }) {
+        if (this.processedMessageIds.has(messageId)) return true;
+        if (messageId) this.processedMessageIds.add(messageId);
+
+        const chaveDoTexto = `${targetId}:${body}`;
+        if (this.processedMessageIds.has(chaveDoTexto)) return true;
+        this.lembrarPorUmTempo(chaveDoTexto, 5000);
+        return false;
+    }
+
+    async transcreverMensagemDeVoz(msg) {
+        if (!ehMensagemDeVoz(msg)) return;
+
+        console.info('[WhatsApp] Voice message detected. Downloading media...');
+        try {
+            const media = await msg.downloadMedia();
+            if (!media?.data) return;
+
+            console.info('[WhatsApp] Voice buffer downloaded. Sending to Whisper...');
+            const transcript = await this.transcribeAudio(media.data);
+            if (!transcript) {
+                console.warn('[WhatsApp] Transcription failed or empty.');
+                return;
             }
-        });
+
+            console.info(`[WhatsApp] Voice message transcribed: "${transcript}"`);
+            msg.body = transcript;
+        } catch (err) {
+            console.error('[WhatsApp] Voice processing error:', err.message);
+        }
     }
 
     async handleIncomingMessage(msg) {
         if (!msg) return;
 
-        if (msg.hasMedia && (msg.type === 'ptt' || msg.type === 'audio')) {
-            console.log('[WhatsApp] Voice message detected. Downloading media...');
-            try {
-                const media = await msg.downloadMedia();
-                if (media && media.data) {
-                    console.log('[WhatsApp] Voice buffer downloaded. Sending to Whisper...');
-                    const transcript = await this.transcribeAudio(media.data);
-                    if (transcript) {
-                        console.log(`[WhatsApp] Voice message transcribed: "${transcript}"`);
-                        msg.body = transcript;
-                    } else {
-                        console.warn('[WhatsApp] Transcription failed or empty.');
-                    }
-                }
-            } catch (err) {
-                console.error('[WhatsApp] Voice processing error:', err.message);
-            }
-        }
+        await this.transcreverMensagemDeVoz(msg);
 
-        const body   = String(msg.body || '').trim();
-        const myId   = this.client?.info?.wid?._serialized || '';
-        const fromId = msg?.from || '';
-        const toId   = msg?.to || '';
+        const mensagem = descreverMensagem(msg);
+        const { body, targetId, conversaComigo } = mensagem;
 
-        const isGroup = fromId.includes('@g.us') || toId.includes('@g.us');
+        console.info(`[WA-Bridge] body="${body.substring(0, 20)}" | fromMe=${msg.fromMe} | isSelf=${conversaComigo} | targetId=${targetId}`);
 
-        const isSelfChat = msg.from === msg.to;
+        if (this.ehRepetida(mensagem)) return;
+        if (deveDescartar(mensagem)) return;
 
-        const targetId = msg.fromMe ? toId : fromId;
+        if (conversaComigo && await this.tratarComandoDoDono(mensagem)) return;
 
-        console.log(`[WA-Bridge] body="${body.substring(0, 20)}" | fromMe=${msg.fromMe} | isSelf=${isSelfChat} | targetId=${targetId}`);
-
-        const messageId = msg?.id?._serialized;
-        if (messageId && this.processedMessageIds.has(messageId)) return;
-        if (messageId) this.processedMessageIds.add(messageId);
-
-        const bodyKey = `${targetId}:${body}`;
-        if (this.processedMessageIds.has(bodyKey)) return;
-        this.processedMessageIds.add(bodyKey);
-        setTimeout(() => this.processedMessageIds.delete(bodyKey), 5000); 
-
-        if (body.includes('[NOVA_AI_BOT]') || body.includes('🤖') || body.includes('\u200B')) {
+        if (mensagem.ehGrupo) {
+            this.alertarSobreGrupo(mensagem);
             return;
         }
 
-        if (msg.fromMe && !isSelfChat) {
-            return;
-        }
+        if (!conversaComigo) await this.observarContato(msg, mensagem);
 
-        if (!body) return;
+        this.sendToFrontend('mobile-message', dadosDaMensagemRecebida(msg, mensagem, this.bossName));
+    }
 
-        const lowerMsg = body.toLowerCase();
-        
-        if (isSelfChat) {
-            this.sendToFrontend('whatsapp-event', { event: 'root-pulse', data: { command: body } });
+    async tratarComandoDoDono({ body, targetId }) {
+        this.sendToFrontend('whatsapp-event', { event: 'root-pulse', data: { command: body } });
 
-            const isLockCmd = lowerMsg === '!lock' || /(?:pc|laptop|computer|liptop|system) (?:lock|band)/i.test(lowerMsg) || /^(?:lock|lock pc|lock laptop)$/i.test(lowerMsg);
-            if (isLockCmd) {
-                console.log('[ROOT_CMD] 🔒 Instant System Lock Triggered');
-                if (process.platform === 'darwin') require('./mac-native').run('/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession',['-suspend']).catch(console.error); else require('child_process').exec('rundll32.exe user32.dll,LockWorkStation');
-                await this.sendReplyWithMimicry(targetId, '🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!', false);
-                return;
+        const comando = reconhecerComandoDoDono(body);
+        if (!comando) return false;
+
+        await this[comando.metodo](targetId, comando.argumento);
+        return true;
+    }
+
+    async trancarComputador(targetId) {
+        console.info('[ROOT_CMD] 🔒 Instant System Lock Triggered');
+        if (process.platform === 'darwin') require('./mac-native').run('/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession',['-suspend']).catch(console.error); else require('child_process').exec('rundll32.exe user32.dll,LockWorkStation');
+        await this.sendReplyWithMimicry(targetId, '🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!', false);
+    }
+
+    async abrirNavegador(targetId, endereco) {
+        const fullUrl = enderecoCompleto(endereco);
+        console.info(`[ROOT_CMD] 🌐 Opening browser: ${fullUrl}`);
+        require('electron').shell.openExternal(fullUrl);
+        await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Browser mein kholna shuru kar diya:\n${fullUrl}`, false);
+    }
+
+    async responderStatus(targetId) {
+        console.info('[ROOT_CMD] 📊 Status request');
+        const info = relatorioDoSistema({ os, nomeDoDono: this.bossName, ocupado: this.busyModeEnabled });
+        await this.sendReplyWithMimicry(targetId, info, false);
+    }
+
+    async ligarOcupado(targetId) {
+        this.busyModeEnabled = true;
+        this._saveBusySettings();
+        await this.sendReplyWithMimicry(targetId, '✅ *[ROOT_CMD]* Busy Mode *ACTIVE*. Guests ko auto-reply milega.', false);
+    }
+
+    async desligarOcupado(targetId) {
+        this.busyModeEnabled = false;
+        this._saveBusySettings();
+        await this.sendReplyWithMimicry(targetId, '✅ *[ROOT_CMD]* Busy Mode *DISABLED*.', false);
+    }
+
+    async definirOcupado(targetId, { texto, rotulo }) {
+        this.busyModeEnabled = true;
+        this.busyStatusText = texto;
+        this._saveBusySettings();
+        await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* ${rotulo} set: "${texto}"`, false);
+    }
+
+    capturarTela(targetId) {
+        console.info('[ROOT_CMD] 📸 Screenshot command');
+        this.handleScreenshotCommand(targetId).catch(err =>
+            console.error('[WA-Intelligence] handleScreenshotCommand failed:', err.message)
+        );
+    }
+
+    alertarSobreGrupo({ body, targetId, fromId }) {
+        const reason = motivoDoAlertaDeGrupo(body, this.bossName);
+        if (!reason) return;
+
+        console.info(`[WA-Monitor] 🔔 Group Alert in ${targetId}: ${body.substring(0, 40)}`);
+        this.sendToFrontend('whatsapp-event', {
+            event: 'group-alert',
+            data: {
+                chatId: targetId,
+                message: body,
+                sender: fromId,
+                reason,
+                bossName: this.bossName
             }
-
-            if (lowerMsg.startsWith('!browser ')) {
-                const url = body.substring('!browser '.length).trim();
-                const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-                console.log(`[ROOT_CMD] 🌐 Opening browser: ${fullUrl}`);
-                require('electron').shell.openExternal(fullUrl);
-                await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Browser mein kholna shuru kar diya:\n${fullUrl}`, false);
-                return;
-            }
-
-            if (lowerMsg === '!sysinfo' || lowerMsg === 'sysinfo' || lowerMsg === '!status') {
-                console.log('[ROOT_CMD] 📊 Status request');
-                const os = require('os');
-                const totalMem = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
-                const freeMem = (os.freemem() / 1024 / 1024 / 1024).toFixed(2);
-                const cpuLoad = os.loadavg()[0].toFixed(2);
-                const info = `*🖥️ NOVA SYSTEM STATUS*\n\n` +
-                             `*CPU:* ${os.cpus()[0].model}\n` +
-                             `*CPU Load:* ${cpuLoad}%\n` +
-                             `*RAM:* ${freeMem} GB Free / ${totalMem} GB Total\n` +
-                             `*Platform:* ${os.platform()} ${os.release()}\n` +
-                             `*Boss Name:* ${this.bossName}\n` +
-                             `*Busy Mode:* ${this.busyModeEnabled ? '🟢 ON' : '🔴 OFF'}`;
-                await this.sendReplyWithMimicry(targetId, info, false);
-                return;
-            }
-
-            if (lowerMsg === '!busy on') {
-                this.busyModeEnabled = true;
-                this._saveBusySettings();
-                await this.sendReplyWithMimicry(targetId, '✅ *[ROOT_CMD]* Busy Mode *ACTIVE*. Guests ko auto-reply milega.', false);
-                return;
-            }
-            if (lowerMsg === '!busy off') {
-                this.busyModeEnabled = false;
-                this._saveBusySettings();
-                await this.sendReplyWithMimicry(targetId, '✅ *[ROOT_CMD]* Busy Mode *DISABLED*.', false);
-                return;
-            }
-
-            const BUSY_PRESETS = {
-                'driving':    'The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein.',
-                'sick':       'The Carl Moon sir ki tabiyat theek nahi 🤒, get well soon duaen karein.',
-                'meeting':    'The Carl Moon sir abhi meeting mein hain 📋, baad mein available honge.',
-                'sleeping':   'The Carl Moon sir so rahe hain 😴, subah contact karein.',
-                'sleep':      'The Carl Moon sir so rahe hain 😴, subah contact karein.',
-                'travelling': 'The Carl Moon sir safar par hain ✈️, wapas aa kar reply karenge.',
-                'travel':     'The Carl Moon sir safar par hain ✈️, wapas aa kar reply karenge.',
-                'busy':       'The Carl Moon sir abhi busy hain ⏳, thodi der baad try karein.',
-            };
-
-            if (lowerMsg.startsWith('!busy ')) {
-                const param = lowerMsg.substring(6).trim();
-                if (BUSY_PRESETS[param]) {
-                    this.busyModeEnabled = true;
-                    this.busyStatusText = BUSY_PRESETS[param];
-                    this._saveBusySettings();
-                    await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Status set: "${this.busyStatusText}"`, false);
-                    return;
-                }
-                if (param.length > 3) {
-                    this.busyModeEnabled = true;
-                    this.busyStatusText = param;
-                    this._saveBusySettings();
-                    await this.sendReplyWithMimicry(targetId, `✅ *[ROOT_CMD]* Custom Status set: "${param}"`, false);
-                    return;
-                }
-            }
-
-            const isScreenshotCmd = lowerMsg === '!ss' || SCREENSHOT_TRIGGERS.some(t => lowerMsg.includes(t));
-            if (isScreenshotCmd) {
-                console.log('[ROOT_CMD] 📸 Screenshot command');
-                this.handleScreenshotCommand(targetId).catch(err =>
-                    console.error('[WA-Intelligence] handleScreenshotCommand failed:', err.message)
-                );
-                return;
-            }
-        }
-
-        if (isGroup) {
-            const urgentKeywords = ['payment', 'meeting', 'urgent', 'emergency', 'jaldi', 'zaroori', 'paisa'];
-            const bossMentioned = body.toLowerCase().includes(this.bossName.toLowerCase());
-            const hasUrgentKeyword = urgentKeywords.some(k => body.toLowerCase().includes(k));
-
-            if (bossMentioned || hasUrgentKeyword) {
-                console.log(`[WA-Monitor] 🔔 Group Alert in ${targetId}: ${body.substring(0, 40)}`);
-                this.sendToFrontend('whatsapp-event', {
-                    event: 'group-alert',
-                    data: {
-                        chatId: targetId,
-                        message: body,
-                        sender: fromId,
-                        reason: bossMentioned ? 'MENTION' : 'URGENT_KEYWORD',
-                        bossName: this.bossName
-                    }
-                });
-            }
-            return; 
-        }
-
-        if (!isSelfChat) {
-            const urgentKeywords = ['urgent', 'emergency', 'call me', 'jaldi', 'zaroori'];
-            const isUrgent = urgentKeywords.some(k => lowerMsg.includes(k));
-
-            if (isUrgent) {
-                console.log(`[WA-Intelligence] 🚨 URGENT message detected from ${fromId}`);
-                const { Notification } = require('electron');
-                try {
-                    const chat = await msg.getChat();
-                    const contact = await msg.getContact();
-                    const name = contact?.name || contact?.pushname || chat.name || 'Someone';
-                    new Notification({
-                        title: `🚨 URGENT: WhatsApp from ${name}`,
-                        body: body.length > 50 ? body.substring(0, 50) + '...' : body,
-                    }).show();
-                } catch (e) { console.error('Notification error', e); }
-            }
-
-            if (this.busyModeEnabled) {
-                console.log(`[WA-Intelligence] 💤 Busy Mode Active. Auto-replying to ${fromId}`);
-            }
-        }
-
-        this.sendToFrontend('mobile-message', {
-            message:    body,
-            chatId:     targetId,
-            fromMe:     msg.fromMe === true,
-            isSelfChat: isSelfChat,
-            bossName:   this.bossName,
-            timestamp:  msg.timestamp,
-            messageId:  messageId || `msg-${Date.now()}`
         });
+    }
+
+    async observarContato(msg, mensagem) {
+        if (ehUrgenteParaContato(mensagem.body)) {
+            await this.notificarUrgencia(msg, mensagem);
+        }
+
+        if (this.busyModeEnabled) {
+            console.info(`[WA-Intelligence] 💤 Busy Mode Active. Auto-replying to ${mensagem.fromId}`);
+        }
+    }
+
+    async notificarUrgencia(msg, { body, fromId }) {
+        console.info(`[WA-Intelligence] 🚨 URGENT message detected from ${fromId}`);
+        const { Notification } = require('electron');
+        try {
+            const chat = await msg.getChat();
+            const contact = await msg.getContact();
+            new Notification({
+                title: `🚨 URGENT: WhatsApp from ${nomeDoRemetente(contact, chat)}`,
+                body: resumoDaNotificacao(body),
+            }).show();
+        } catch (e) { console.error('Notification error', e); }
     }
 
     async handleScreenshotCommand(targetChatId) {
@@ -710,10 +732,7 @@ class WhatsAppManager {
             });
 
             const sentId = sentMsg?.id?._serialized;
-            if (sentId) {
-                this.processedMessageIds.add(sentId);
-                setTimeout(() => this.processedMessageIds.delete(sentId), 120000);
-            }
+            if (sentId) this.lembrarPorUmTempo(sentId, 120000);
 
             console.log('[WA-Screenshot] ✅ Screenshot sent to self-chat');
 
@@ -722,36 +741,34 @@ class WhatsAppManager {
             try {
                 await this.client.sendMessage(
                     targetChatId,
-                    `❌ Screenshot failed: ${err.message}\n\n_${BOT_SIGNATURE}_`
+                    `❌ Screenshot failed: ${err.message}\n\n_${ASSINATURA_DO_ROBO}_`
                 );
             } catch (_) { }
         }
     }
 
+    chaveDaGroq() {
+        let apiKey = process.env.GROQ_API_KEY;
+        const keyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
+
+        if (fs.existsSync(keyPath)) {
+            const data = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
+            if (data.apiKey) apiKey = data.apiKey;
+        }
+
+        return apiKey;
+    }
+
     async transcribeAudio(base64Data) {
         try {
-            let apiKey = process.env.GROQ_API_KEY;
-            const keyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
-
-            if (fs.existsSync(keyPath)) {
-                const data = JSON.parse(fs.readFileSync(keyPath, 'utf8'));
-                if (data.apiKey) apiKey = data.apiKey;
-            }
+            const apiKey = this.chaveDaGroq();
 
             if (!apiKey) {
                 console.error('[WhatsApp] Groq API key missing for transcription.');
                 return null;
             }
 
-            const audioBuffer = Buffer.from(base64Data, 'base64');
-            const form = new FormData();
-            form.append('file', audioBuffer, {
-                filename: 'audio.ogg',
-                contentType: 'audio/ogg'
-            });
-            form.append('model', 'whisper-large-v3');
-            form.append('response_format', 'json');
-
+            const form = formularioDeAudio(base64Data);
             const response = await axios.post(
                 'https://api.groq.com/openai/v1/audio/transcriptions',
                 form,
@@ -765,16 +782,22 @@ class WhatsAppManager {
                 }
             );
 
-            const text = String(response?.data?.text || '').trim();
-            return text || null;
+            return textoDaTranscricao(response);
         } catch (error) {
-            console.error('[WhatsApp] Transcription error:', error?.response?.data || error.message || error);
+            console.error('[WhatsApp] Transcription error:', motivoDaFalhaNaTranscricao(error));
             return null;
         }
     }
 
+    async enviarELembrar(chatId, texto) {
+        const sentMsg = await this.client.sendMessage(chatId, texto);
+
+        const sentId = sentMsg?.id?._serialized;
+        if (sentId) this.lembrarPorUmTempo(sentId, 120000);
+    }
+
     async sendReply(chatId, text, removeSignature = false) {
-        if (!this.client || !this.isReady) {
+        if (!this.estaConectado()) {
             console.warn('[WhatsApp] Send skipped. Client not ready.');
             return false;
         }
@@ -782,22 +805,13 @@ class WhatsAppManager {
         const targetChatId = String(chatId || '').trim();
         const messageText  = String(text   || '').trim();
 
-        if (!targetChatId || targetChatId === 'self' || !messageText) {
+        if (envioInvalido(targetChatId, messageText)) {
             console.warn('[WhatsApp] sendReply: invalid chatId or empty message. chatId:', targetChatId);
             return false;
         }
 
         try {
-            const replyText = removeSignature ? messageText : `${messageText}\n\n_${BOT_SIGNATURE}_`;
-            const sentMsg   = await this.client.sendMessage(targetChatId, replyText);
-
-            const sentId = sentMsg?.id?._serialized;
-
-            if (sentId) {
-                this.processedMessageIds.add(sentId);
-                setTimeout(() => this.processedMessageIds.delete(sentId), 120000);
-            }
-
+            await this.enviarELembrar(targetChatId, comAssinatura(messageText, removeSignature));
             return true;
         } catch (error) {
             console.error('[WhatsApp] Send error:', error.message || error);
@@ -845,30 +859,22 @@ class WhatsAppManager {
     }
 
     async sendReplyWithMimicry(chatId, text, addSignature = true) {
-        if (!this.client || !this.isReady) return false;
+        if (!this.estaConectado()) return false;
 
         const targetChatId = String(chatId || '').trim();
         if (!targetChatId) return false;
 
         try {
             const chat = await this.client.getChatById(targetChatId);
-            
+
             const initialDelay = Math.random() * 1500 + 1000;
-            await new Promise(r => setTimeout(r, initialDelay));
-            
+            await esperar(initialDelay);
+
             await chat.sendStateTyping();
-            
-            const typingDuration = Math.min(Math.max(text.length * 20, 1000), 4000);
-            await new Promise(r => setTimeout(r, typingDuration));
 
-            const finalMessage = addSignature ? `${text}\n\n_${BOT_SIGNATURE}_` : text;
-            const sentMsg = await this.client.sendMessage(targetChatId, finalMessage);
+            await esperar(duracaoDaDigitacao(text));
 
-            const sentId = sentMsg?.id?._serialized;
-            if (sentId) {
-                this.processedMessageIds.add(sentId);
-                setTimeout(() => this.processedMessageIds.delete(sentId), 120000);
-            }
+            await this.enviarELembrar(targetChatId, comAssinatura(text, !addSignature));
             return true;
         } catch (error) {
             console.error('[WA-Intelligence] Mimicry Send error:', error.message || error);
