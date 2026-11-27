@@ -663,11 +663,9 @@ class BrowserFarmService {
 
       let exePath = null;
       let playLauncher = chromium;
-      const browserChoice = profile.browser || 'aloha';
+      const browserChoice = profile.browser || 'chrome';
 
-      if (browserChoice === 'aloha') {
-        exePath = this.getAlohaExecutablePath();
-      } else if (browserChoice === 'chrome') {
+      if (browserChoice === 'chrome') {
         exePath = this.getChromeExecutablePath();
       } else if (browserChoice === 'brave') {
         exePath = this.getBraveExecutablePath();
