@@ -16,7 +16,7 @@ static BOOL VCPInjectionAllowed(id parsed, NSString *session, NSTimeInterval now
     if (![parsed isKindOfClass:[NSDictionary class]]) return NO;
     NSDictionary *config = parsed;
     id mode = config[@"mode"], instance = config[@"session"], expiry = config[@"expiresAt"];
-    id address = config[@"url"] ?: @"http://10.0.0.245:8900/frame.jpg";
+    id address = config[@"url"] ?: @"http://192.0.2.1:8900/frame.jpg";
     id angle = config[@"rotation"] ?: @0;
     if (![mode isKindOfClass:[NSString class]] || ![mode isEqual:@"inject"] ||
         ![instance isKindOfClass:[NSString class]] || ![instance isEqual:session] ||

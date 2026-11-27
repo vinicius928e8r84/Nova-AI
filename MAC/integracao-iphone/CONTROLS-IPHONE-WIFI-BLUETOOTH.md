@@ -123,7 +123,7 @@ O Bluetooth seguiu a mesma lógica: `BluetoothManager.setPoweredEnabled:` não e
   (não `setPoweredEnabled:`); `CBController` (CoreBluetooth) tem
   `activateWithCompletion:`/`setPowerState:completion:`/`getPowerStateWithCompletion:`.
 - **Verdade de terreno sem tocar no aparelho**: Bonjour (`dns-sd -G v4 iPhone-8-Plus.local`)
-  resolve `10.0.0.24` quando o Wi-Fi está on; `ping 10.0.0.24` confirma rádio ativo.
+  resolve `192.0.2.24` quando o Wi-Fi está on; `ping 192.0.2.24` confirma rádio ativo.
 - **Entitlements no Theos**: `novactl_CODESIGN_FLAGS = -Sentitlements.plist` (assina na
   staging; verificar com `ldid -e .theos/_/var/jb/usr/bin/<tool>`).
 
@@ -140,7 +140,7 @@ O Bluetooth seguiu a mesma lógica: `BluetoothManager.setPoweredEnabled:` não e
 | 2026-11-03 | Fase 2 | Testes 0.1 mobile+root: Wi-Fi sem efeito; BT sem `setPoweredEnabled:` | Wi-Fi exige entitlement; BT mudou de API | rebuild |
 | 2026-11-03 | Fase 0 | 0.2 com entitlements + probe; instalada | Probe revelou `setPowered:` legado + CBController completo | rebuild 0.3 |
 | 2026-11-03 | Fase 0 | 0.3 com duas vias BT + Wi-Fi runloop pendente; instalada | Wi-Fi dá erros variados (UB); BT rc=0 sem efeito | calibrar |
-| 2026-11-03 | Fase 2 | Calibração Bonjour: iPhone em 10.0.0.24 com Wi-Fi **ligado** enquanto CLI dizia "off" | Leitura também errada → falta de runloop | rebuild 0.4 |
+| 2026-11-03 | Fase 2 | Calibração Bonjour: iPhone em 192.0.2.24 com Wi-Fi **ligado** enquanto CLI dizia "off" | Leitura também errada → falta de runloop | rebuild 0.4 |
 | 2026-11-03 | Fase 0/2 | 0.4 (runloop) instalada: GetPower agora correto (=1, ligado); `wifi off` com ping de prova **não desligou** | Escrita MobileWiFi externa neutralizada no iOS 16 (tweaks usam hook SBWifiManager) | decisão de arquitetura |
 | 2026-11-03 | Fase 3 | **Híbrida**: patch `iosToggleSetting` (Atalho via uiopen) aplicado no app; reserva salva; sintaxe OK; app reiniciado; túnel/iPhone OK | Integração pronta | usuário cria 4 atalhos → teste final |
 

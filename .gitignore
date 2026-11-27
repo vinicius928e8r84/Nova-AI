@@ -40,3 +40,7 @@ data/*
 
 # rascunhos recriados por verificar-binarios.py (symlinks)
 MAC/integracao-iphone/distribuicao/inspecao-binarios/
+
+*.log
+__pycache__/
+*.py[cod]

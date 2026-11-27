@@ -47,7 +47,7 @@ Bundle instalado: `/Applications/Nova AI Mac.app/Contents/Resources/app/dist/ass
 Reaplicar (depois de uma atualização do app, se o nome do bundle continuar o mesmo):
 
 ```sh
-cd "/Users/aquilesneri/Desktop/Nova-AI/MAC/controle-celular-plataformas"
+cd "$HOME/Desktop/Nova-AI/MAC/controle-celular-plataformas"
 git show 1b45c3f:MAC/controle-celular-plataformas/reservas/index-Dun7lr2S.antes-20261104.js > /tmp/original.js
 python3 aplicar.py /tmp/original.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"

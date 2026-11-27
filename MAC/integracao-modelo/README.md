@@ -5,7 +5,7 @@ Faz o iPhone (iOS 16.7.16, palera1n rootless) reportar **outro modelo** — ex. 
 instantâneo. É a contraparte iOS do spoofing de identidade que hoje só existe em Android
 (Magisk/resetprop). **Só modelo** — sem IMEI/serial/baseband.
 
-Contrato com o app: `/Users/aquilesneri/OpenBot/Shared/NOVA-AI-MODELO-SPOOF-SPEC.md`.
+Contrato com o app: `~/OpenBot/Shared/NOVA-AI-MODELO-SPOOF-SPEC.md`.
 
 ## O que entrega
 
@@ -53,8 +53,8 @@ A CLI `novamodel` roda **sem** o tweak (o `%ctor` a ignora), então `status` sem
 ## Compilar
 
 ```sh
-export THEOS=/Users/aquilesneri/theos
-cd "/Users/aquilesneri/Desktop/Nova-AI/MAC/integracao-modelo"
+export THEOS=~/theos
+cd "$HOME/Desktop/Nova-AI/MAC/integracao-modelo"
 make clean && make package
 # saída: packages/com.aquiles.novamodel_0.1-*.deb
 ```
