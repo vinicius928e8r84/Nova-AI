@@ -203,7 +203,7 @@ class Palco {
     const registrar = rotulo => (...partes) => this.anotar(rotulo, ...partes);
     const respostas = [...(this.cena.digitado || [])];
     const contexto = {
-      console: { log: registrar('console.log'), error: registrar('console.error') },
+      console: { log: registrar('console.log'), info: registrar('console.log'), error: registrar('console.error') },
       document: this.documento(),
       navigator: this.navegador(),
       localStorage: this.localStorage,
