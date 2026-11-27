@@ -13,3 +13,13 @@ _Evitar_: linha de base, limite (para o arquivo que já passava)
 **Portão dos testes**:
 A lista dos grupos de teste que a CI roda. Todo arquivo de teste do repositório está num grupo ou numa lista de fora, com o motivo escrito.
 _Evitar_: lista fixa de testes
+
+### O que fica fora do app
+
+**Pacote do iPhone**:
+O `.deb` que o Nova instala no aparelho: a câmera, o proxy, o idioma e o modelo.
+_Evitar_: tweak, integração
+
+**Patch da interface**:
+O script que reescreve o bundle da tela do app, que não tem código-fonte.
+_Evitar_: aplicador, integração
