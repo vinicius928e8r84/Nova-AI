@@ -119,21 +119,25 @@ function criarExecutavel(arquivo, modo = 0o755) {
 }
 
 function comAmbiente({ resources, home, pathDoSistema }, acao) {
-  const antes = { resources: process.resourcesPath, home: process.env.HOME, path: process.env.PATH };
+  const antes = { resources: process.resourcesPath, home: process.env.HOME, perfil: process.env.USERPROFILE, path: process.env.PATH };
   const existsOriginal = fs.existsSync;
   fs.existsSync = (p) => String(p).startsWith(path.dirname(home)) && existsOriginal(p);
   process.env.HOME = home;
+  process.env.USERPROFILE = home;
   process.env.PATH = pathDoSistema;
   if (resources) process.resourcesPath = resources; else delete process.resourcesPath;
   try { return acao(); } finally {
     fs.existsSync = existsOriginal;
     process.env.HOME = antes.home;
+    if (antes.perfil === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = antes.perfil;
     process.env.PATH = antes.path;
     if (antes.resources === undefined) delete process.resourcesPath; else process.resourcesPath = antes.resources;
   }
 }
 
-test('tool: primeira pasta com o executável, resources/bin antes do PATH', () => {
+const soEmPosix = { skip: process.platform === 'win32' };
+
+test('tool: primeira pasta com o executável, resources/bin antes do PATH (só Mac e Linux: o Windows não tem bit de execução nem PATH com ":")', soEmPosix, () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mac-native-'));
   const modulo = novaCena();
   const noPath = criarExecutavel(path.join(base, 'p2', 'nova-ferramenta-de-teste'));
