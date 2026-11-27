@@ -106,7 +106,7 @@ test('main.atualizador.js: atualizador sem ramo por sistema e sem linha em branc
   assert.ok(chamadaDaAbertura > 0);
   assert.strictEqual(fonte.lastIndexOf('autoUpdater.checkForUpdates().catch'), chamadaDaAbertura);
   const inicioDaAbertura = fonte.lastIndexOf('function buscarAtualizacaoSeHouverFeed', chamadaDaAbertura);
-  const fimDaAbertura = fonte.indexOf('\n}\n', chamadaDaAbertura);
+  const fimDaAbertura = fonte.indexOf('\n}', chamadaDaAbertura);
   assert.ok(inicioDaAbertura > 0 && fimDaAbertura > chamadaDaAbertura);
   assert.ok(!fonte.slice(inicioDaAbertura, fimDaAbertura).includes('process.platform'));
   const marca = fonte.indexOf('autoUpdater.autoInstallOnAppQuit');
