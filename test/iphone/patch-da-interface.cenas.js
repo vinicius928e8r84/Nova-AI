@@ -5,6 +5,7 @@ const path = require('path');
 const FIXTURES = {
   sequestro: 'bundle-sequestro-de-camera.txt',
   controle: 'bundle-controle-do-celular.txt',
+  localizacao: 'bundle-localizacao-pela-proxy.txt',
 };
 
 const trocarNaPosicao = posicao => texto => {
@@ -85,6 +86,16 @@ const CONTROLE_QUEBRAS = [
   ['sem o trecho de "efeitos de plataforma/seleção"', 54669]
 ];
 
+const LOCALIZACAO_QUEBRAS = [
+  ['sem o trecho de "parar restaura idioma/fuso"', 7551],
+  ['sem o trecho de "useEffect geo ao abrir"', 11070],
+  ['sem o trecho de "helper pGeoApply"', 12759],
+  ['sem o trecho de "geo ao salvar proxy"', 13470],
+  ['sem o trecho de "geo ao salvar identidade"', 14496],
+  ['com um delimitador do botão GPS trocado', 58470],
+  ['sem o botão "Fixar GPS Falso"', 58452]
+];
+
 const PRIMEIRO_CARTAO = 'b.jsxs("div",{className:"bg-white/[0.02] border border-white/8 rounded-2xl p-5 space-y-3",children:[b.jsxs("div",{className:"flex items-center justify-between"';
 const FIM_DO_COMO_FUNCIONA = ']})]});return Fl?b.jsx';
 
@@ -133,4 +144,21 @@ const CONTROLE = {
   ],
 };
 
-module.exports = { patches: [SEQUESTRO, CONTROLE] };
+const LOCALIZACAO = {
+  nome: 'aplicar-geo',
+  pasta: 'interface/controle-do-celular/localizacao-pela-proxy',
+  script: 'aplicar-geo.py',
+  fixture: FIXTURES.localizacao,
+  argumentos: caminhos => [caminhos.entrada, caminhos.saida],
+  saidas: caminhos => ({ saida: caminhos.saida }),
+  cenas: [
+    { nome: 'bundle completo' },
+    { nome: 'sem os dois caminhos', argumentos: () => [] },
+    { nome: 'com um caminho só', argumentos: caminhos => [caminhos.entrada] },
+    { nome: 'com a origem inexistente', argumentos: SEM_ORIGEM },
+    { nome: 'com a sintaxe quebrada no fim', entrada: acrescentar(')') },
+    ...quebras(LOCALIZACAO_QUEBRAS),
+  ],
+};
+
+module.exports = { patches: [SEQUESTRO, CONTROLE, LOCALIZACAO] };

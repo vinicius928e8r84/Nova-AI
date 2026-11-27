@@ -595,5 +595,106 @@
     "saida": null
    }
   }
+ },
+ "aplicar-geo": {
+  "bundle completo": {
+   "codigo": 0,
+   "stdout": "ok: 6 passos, 68832 bytes (origem 67698)\n  - helper pGeoApply\n  - useEffect geo ao abrir\n  - geo ao salvar proxy\n  - geo ao salvar identidade\n  - parar restaura idioma/fuso\n  - remove botão Fixar GPS\n",
+   "erro": "",
+   "saidas": {
+    "saida": {
+     "bytes": 69032,
+     "sha256": "1c17da574f63dd498ab14b55a3b41e556c7e533f70141a131e41447acebb92ba"
+    }
+   }
+  },
+  "sem os dois caminhos": {
+   "codigo": 2,
+   "stdout": "uso: aplicar-geo.py <origem.js> <saida.js>\n",
+   "erro": "",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com um caminho só": {
+   "codigo": 2,
+   "stdout": "uso: aplicar-geo.py <origem.js> <saida.js>\n",
+   "erro": "",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a origem inexistente": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/scripts/nao-existe.txt'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a sintaxe quebrada no fim": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "quebrou em [final]: SyntaxError…",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"parar restaura idioma/fuso\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[parar restaura idioma/fuso] esperava 1 ocorrência(s), achei 0: 'Ul=async()=>{if(!(!W||!SI))try{await SI.invoke(\"spoofer:stop-gps\",{deviceId:W}),M(\"idle\"),'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"useEffect geo ao abrir\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[useEffect geo ao abrir] esperava 1 ocorrência(s), achei 0: 'F.useEffect(()=>{c===\"spoofer\"&&Object.keys(lI).length===0&&Vl()},[c]);'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"helper pGeoApply\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[helper pGeoApply] esperava 1 ocorrência(s), achei 0: 'pSaveProxy=async()=>{const pV=pProxy.trim();'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"geo ao salvar proxy\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[geo ao salvar proxy] esperava 1 ocorrência(s), achei 0: 'pSetProxyMsg(\"Proxy aplicado no iPhone.\"),pSetProxyStatus(\"ok\")}'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"geo ao salvar identidade\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[geo ao salvar identidade] esperava 1, achei 0",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com um delimitador do botão GPS trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "delimitador não fechou",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o botão \"Fixar GPS Falso\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[botões GPS] não achei \"Fixar GPS Falso\"",
+   "saidas": {
+    "saida": null
+   }
+  }
  }
 }
