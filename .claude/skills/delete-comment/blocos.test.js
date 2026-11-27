@@ -45,8 +45,11 @@ test('diretiva, shebang e licença não aparecem na lista', () => {
   assert.deepEqual(blocosDe('a.js', fonte).map(b => b.texto), ['nota']);
 });
 
-test('shell e Python: # em string e em expansão não é comentário', () => {
+test('shell: # em string e em expansão não é comentário', () => {
   assert.deepEqual(blocosDe('a.sh', 'echo "$#" "${#PATH}"\n# nota\n').map(b => b.texto), ['nota']);
+});
+
+test('Python: # em string não é comentário', comPython, () => {
   assert.deepEqual(blocosDe('a.py', 'x = "# nao"\n# nota\n', PYTHON).map(b => b.texto), ['nota']);
 });
 
