@@ -1,5 +1,5 @@
 {
-  "descricao": "O portão dos testes. Em grupos ficam os arquivos que a CI roda com node --test; o job diz em qual job do workflow o grupo roda. Em fora ficam os arquivos de teste que a CI não roda, cada um com o motivo (e a issue, quando o motivo é uma falha). Um teste confere que todo arquivo de teste do repositório está em exatamente um lugar daqui.",
+  "descricao": "O portão dos testes. Em grupos ficam os arquivos que a CI roda com node --test; o job diz em qual job do workflow o grupo roda. Um grupo com executar roda só os arquivos de executar, um por um, com o programa de com, e cobre em arquivos também os que eles chamam. Em fora ficam os arquivos de teste que a CI não roda, cada um com o motivo (e a issue, quando o motivo é uma falha). Um teste confere que todo arquivo de teste do repositório está em exatamente um lugar daqui.",
   "grupos": [
     {
       "nome": "app",
