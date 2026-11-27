@@ -166,6 +166,14 @@ test('auditoria: trava nova, na raiz ou em duas pastas, audita só o ramo ou cad
   assert.deepEqual(duas.saida, ['✗ a/package-lock.json: velho (high, <1.0.0) antiga', '✗ b/package-lock.json: velho (high) ', CONSERTO]);
 });
 
+test('auditoria: a base só é auditada quando tem a trava e o package.json', () => {
+  const semPacoteNaBase = cenario({ 'app/package-lock.json': COM_VELHA }, { 'app/package.json': PACOTE, 'app/package-lock.json': COM_LEVE });
+  assert.deepEqual([semPacoteNaBase.codigo, semPacoteNaBase.chamadas], [1, [`${AUDIT} @ ramo-0`]]);
+  assert.equal(semPacoteNaBase.saida[0], '✗ app/package-lock.json: velho (high) ');
+  const semTravaNaBase = cenario({ 'app/package.json': PACOTE }, { 'app/package-lock.json': COM_LEVE });
+  assert.deepEqual([semTravaNaBase.codigo, semTravaNaBase.chamadas], [1, [`${AUDIT} @ ramo-0`]]);
+});
+
 test('auditoria: trava renomeada é comparada com a trava e o package.json do lugar antigo', () => {
   const base = { 'velho/package.json': PACOTE, 'velho/package-lock.json': COM_VELHA };
   const r = cenario(base, { 'velho/package.json': null, 'velho/package-lock.json': null, 'novo/package.json': PACOTE, 'novo/package-lock.json': COM_VELHA });
