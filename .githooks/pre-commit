@@ -20,7 +20,8 @@ node "$regras" --raiz "$raiz" --base "$base" \
   --regra sintaxe-valida \
   --regra eslint-nas-linhas-novas \
   --regra saude-do-codigo \
-  --regra limite-de-tamanho || {
+  --regra limite-de-tamanho \
+  --regra sem-config-do-codescene || {
   echo "Commit barrado: conserte o que está acima (o CI barraria igual) ou use git commit --no-verify." >&2
   exit 1
 }
