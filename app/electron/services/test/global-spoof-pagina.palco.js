@@ -89,21 +89,35 @@ async function esperarAte(condicao) {
   if (!condicao()) throw new Error('o CDP falso não foi ligado a tempo');
 }
 
-function criarServico(raiz) {
+function farmFalso(userData, { perfis, grava }) {
+  const arquivo = path.join(userData, 'farm_profiles.json');
+  const farm = {
+    profiles: perfis,
+    gravacoes: 0,
+    _saveProfiles() {
+      farm.gravacoes++;
+      if (grava) fs.writeFileSync(arquivo, JSON.stringify(farm.profiles, null, 2));
+    },
+  };
+  return farm;
+}
+
+function criarServico(raiz, cenaDoFarm) {
   const userData = path.join(raiz, 'userData');
   fs.mkdirSync(userData);
+  const farm = cenaDoFarm ? farmFalso(userData, cenaDoFarm) : null;
   const tmpdirOriginal = os.tmpdir;
   os.tmpdir = () => raiz;
   let servico;
   try {
-    servico = new GlobalSpoofService(null, { getPath: () => userData }, null);
+    servico = new GlobalSpoofService(null, { getPath: () => userData }, farm);
   } finally {
     os.tmpdir = tmpdirOriginal;
   }
   servico.ffmpegPath = 'ffmpeg-falso';
   servico._findChrome = () => 'chrome-falso';
   servico._generateY4M = async () => {};
-  return { servico, userData };
+  return { servico, userData, farm };
 }
 
 async function scriptEnviadoAoCdp() {
@@ -119,6 +133,28 @@ function lerExtensao(tempDir) {
     manifest: JSON.parse(fs.readFileSync(path.join(pasta, 'manifest.json'), 'utf8')),
     inject: impressao(fs.readFileSync(path.join(pasta, 'inject.js'), 'utf8')),
   };
+}
+
+function gravarPerfisDaCena(userData, cena) {
+  const arquivo = path.join(userData, 'farm_profiles.json');
+  if (cena.perfil) fs.writeFileSync(arquivo, JSON.stringify([{ id: 'profile_01', name: 'Fixo', ...cena.perfil }]));
+  if (cena.perfis) fs.writeFileSync(arquivo, JSON.stringify(cena.perfis));
+  if (cena.arquivoBruto !== undefined) fs.writeFileSync(arquivo, cena.arquivoBruto);
+}
+
+async function abrirDaCena(servico, ajustes, diario) {
+  try {
+    return await servico.startHijack(Buffer.alloc(0), ajustes);
+  } catch (erro) {
+    diario.erro = erro.name;
+    return { success: false };
+  }
+}
+
+function anotarDoPerfil(diario, cena, { farm, ajustes, servico }) {
+  if (cena.farm) diario.farm = { perfis: farm.profiles, gravacoes: farm.gravacoes };
+  if (cena.registrarDispositivo) diario.dispositivo = ajustes.device;
+  if (cena.listar) diario.lista = servico.listProfiles();
 }
 
 async function rodarCena(cena) {
@@ -139,10 +175,16 @@ async function rodarCena(cena) {
   palco.spawns = [];
   palco.cliente = clienteCdpFalso();
   try {
-    const { servico, userData } = criarServico(raiz);
-    if (cena.perfil) fs.writeFileSync(path.join(userData, 'farm_profiles.json'), JSON.stringify([{ id: 'profile_01', name: 'Fixo', ...cena.perfil }]));
-    const retorno = await servico.startHijack(Buffer.alloc(0), { url: 'about:blank', ...cena.ajustes });
-    const diario = { retorno };
+    const { servico, userData, farm } = criarServico(raiz, cena.farm);
+    gravarPerfisDaCena(userData, cena);
+    const ajustes = structuredClone({ url: 'about:blank', ...cena.ajustes });
+    const diario = {};
+    if (cena.semAbrir) {
+      anotarDoPerfil(diario, cena, { farm, ajustes, servico });
+      return diario;
+    }
+    const retorno = await abrirDaCena(servico, ajustes, diario);
+    diario.retorno = retorno;
     if (retorno.success) {
       const cdp = await scriptEnviadoAoCdp();
       const chrome = palco.spawns.find((s) => s.comando === 'chrome-falso');
@@ -155,6 +197,7 @@ async function rodarCena(cena) {
     }
     await servico.stopHijack();
     diario.estadoFinal = { isHijacking: servico.isHijacking, status: servico.getStatus() };
+    anotarDoPerfil(diario, cena, { farm, ajustes, servico });
     return diario;
   } finally {
     global.Date = DataReal;

@@ -1,0 +1,1840 @@
+{
+  "nome livre sem arquivo nem farm cria o profile_01 e abre com ele": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22977,
+        "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22977,
+      "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n    \"proxy\": \"\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"windows\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Win32\",\n    \"webglVendor\": \"Google Inc. (NVIDIA)\",\n    \"webglRenderer\": \"AMD Radeon(TM) RX 6700 XT\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "desktop",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+  },
+  "nome livre em iPhone com proxy de usuário e senha, navegador firefox e latitude do regional": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=412,915",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--proxy-server=203.0.113.5:8080",
+      "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+      "--force-device-scale-factor=1",
+      "--high-dpi-support=1",
+      "--touch-events=enabled",
+      "--enable-touch-drag-drop",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22913,
+        "sha256": "1f9c1a29bca4269f5594b47f193420f0fa32da0e7db6bd33b881d9a58d4f3131"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22913,
+      "sha256": "1f9c1a29bca4269f5594b47f193420f0fa32da0e7db6bd33b881d9a58d4f3131"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"firefox\",\n    \"ua\": \"Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)\",\n    \"proxy\": \"ana:segredo@203.0.113.5:8080\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"android\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "iphone-15",
+      "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+    }
+  },
+  "nome livre em Android com proxy sem usuário e sem regional": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=412,915",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--proxy-server=203.0.113.6:3128",
+      "--user-agent=Mozilla/5.0 (Linux; Android 14; Pixel 8)",
+      "--force-device-scale-factor=1",
+      "--high-dpi-support=1",
+      "--touch-events=enabled",
+      "--enable-touch-drag-drop",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22888,
+        "sha256": "6287d35d1b68d1831224ff0e04387b8c4476e36e83eedf4ca59fa5dfd7ccc629"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22888,
+      "sha256": "6287d35d1b68d1831224ff0e04387b8c4476e36e83eedf4ca59fa5dfd7ccc629"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Linux; Android 14; Pixel 8)\",\n    \"proxy\": \"203.0.113.6:3128\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"android\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": null,\n    \"longitude\": null,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "pixel-8",
+      "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 8)"
+    }
+  },
+  "nome livre com o arquivo cheio: o número é o maior mais um e ids fora do padrão contam zero": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_08",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22977,
+        "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22977,
+      "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_03\",\n    \"name\": \"a\"\n  },\n  {\n    \"id\": \"sem-padrao\",\n    \"name\": \"b\"\n  },\n  {\n    \"name\": \"sem id\"\n  },\n  {\n    \"id\": \"profile_07\",\n    \"name\": \"c\"\n  },\n  {\n    \"id\": \"profile_08\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n    \"proxy\": \"\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"windows\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Win32\",\n    \"webglVendor\": \"Google Inc. (NVIDIA)\",\n    \"webglRenderer\": \"AMD Radeon(TM) RX 6700 XT\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "nome livre com o arquivo cheio de ids fora do padrão começa no profile_01": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22977,
+        "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22977,
+      "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"abc\",\n    \"name\": \"a\"\n  },\n  {\n    \"name\": \"sem id\"\n  },\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n    \"proxy\": \"\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"windows\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Win32\",\n    \"webglVendor\": \"Google Inc. (NVIDIA)\",\n    \"webglRenderer\": \"AMD Radeon(TM) RX 6700 XT\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "nome livre com o arquivo quebrado recomeça a lista só com o perfil novo": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22977,
+        "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22977,
+      "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n    \"proxy\": \"\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"windows\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Win32\",\n    \"webglVendor\": \"Google Inc. (NVIDIA)\",\n    \"webglRenderer\": \"AMD Radeon(TM) RX 6700 XT\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "nome livre com o arquivo vazio de perfis grava a lista com o perfil novo": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22977,
+        "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22977,
+      "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n    \"proxy\": \"\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"windows\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Win32\",\n    \"webglVendor\": \"Google Inc. (NVIDIA)\",\n    \"webglRenderer\": \"AMD Radeon(TM) RX 6700 XT\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "nome livre com o farm que grava: o perfil entra na lista do farm e a abertura usa o perfil gravado": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_03",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9455"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22977,
+        "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22977,
+      "sha256": "5940006f73ade4e0e8f572137b44c61c9b4788d106fcaa4f74e44ff2c6776972"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_02\",\n    \"name\": \"do farm\"\n  },\n  {\n    \"id\": \"profile_03\",\n    \"name\": \"Meu perfil\",\n    \"browser\": \"chrome\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\",\n    \"proxy\": \"\",\n    \"email\": \"\",\n    \"status\": \"idle\",\n    \"battery\": 72,\n    \"anonymityScore\": 74,\n    \"lastRun\": null,\n    \"platform\": \"windows\",\n    \"timezone\": \"optimal\",\n    \"locale\": \"optimal\",\n    \"latitude\": -23.55,\n    \"longitude\": -46.63,\n    \"canvasNoise\": true,\n    \"webglNoise\": true,\n    \"audioNoise\": true,\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"32\",\n    \"platformStr\": \"Win32\",\n    \"webglVendor\": \"Google Inc. (NVIDIA)\",\n    \"webglRenderer\": \"AMD Radeon(TM) RX 6700 XT\",\n    \"deviceName\": \"LAPTOP-O8D8RJA\",\n    \"macAddress\": \"00-1B-21-2C-E2-B5\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\",\n    \"canvasNoiseSeed\": 166,\n    \"webglNoiseSeed\": 148,\n    \"audioNoiseSeed\": 0.00003377,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (Realtek High Definition Audio)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "farm": {
+      "perfis": [
+        {
+          "id": "profile_02",
+          "name": "do farm"
+        },
+        {
+          "id": "profile_03",
+          "name": "Meu perfil",
+          "browser": "chrome",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "proxy": "",
+          "email": "",
+          "status": "idle",
+          "battery": 72,
+          "anonymityScore": 74,
+          "lastRun": null,
+          "platform": "windows",
+          "timezone": "optimal",
+          "locale": "optimal",
+          "latitude": -23.55,
+          "longitude": -46.63,
+          "canvasNoise": true,
+          "webglNoise": true,
+          "audioNoise": true,
+          "cpuCores": "12",
+          "ramSize": "32",
+          "platformStr": "Win32",
+          "webglVendor": "Google Inc. (NVIDIA)",
+          "webglRenderer": "AMD Radeon(TM) RX 6700 XT",
+          "deviceName": "LAPTOP-O8D8RJA",
+          "macAddress": "00-1B-21-2C-E2-B5",
+          "screenResolution": "1920x1080",
+          "windowMode": "maximized",
+          "canvasNoiseSeed": 166,
+          "webglNoiseSeed": 148,
+          "audioNoiseSeed": 0.00003377,
+          "virtualCamId": "0707070707070707070707070707070707070707070707070707070707070707",
+          "virtualCamLabel": "FaceTime HD Camera",
+          "virtualMicId": "0707070707070707070707070707070707070707070707070707070707070707",
+          "virtualMicLabel": "Microphone (Realtek High Definition Audio)",
+          "virtualSpeakerId": "0707070707070707070707070707070707070707070707070707070707070707",
+          "virtualSpeakerLabel": "Headphones (Realtek High Definition Audio)"
+        }
+      ],
+      "gravacoes": 1
+    },
+    "dispositivo": {
+      "id": "desktop",
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+  },
+  "nome livre com o farm que não grava no arquivo: o perfil entra na lista do farm e a abertura cai no perfil temporário": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9650"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22807,
+        "sha256": "17280b98b38340d314113ba0aa19e8d317dc99493e3c4ae879dc9c3de406947f"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22807,
+      "sha256": "17280b98b38340d314113ba0aa19e8d317dc99493e3c4ae879dc9c3de406947f"
+    },
+    "perfisGravados": null,
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "farm": {
+      "perfis": [
+        {
+          "id": "profile_01",
+          "name": "Meu perfil",
+          "browser": "chrome",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "proxy": "",
+          "email": "",
+          "status": "idle",
+          "battery": 72,
+          "anonymityScore": 74,
+          "lastRun": null,
+          "platform": "windows",
+          "timezone": "optimal",
+          "locale": "optimal",
+          "latitude": -23.55,
+          "longitude": -46.63,
+          "canvasNoise": true,
+          "webglNoise": true,
+          "audioNoise": true,
+          "cpuCores": "12",
+          "ramSize": "32",
+          "platformStr": "Win32",
+          "webglVendor": "Google Inc. (NVIDIA)",
+          "webglRenderer": "AMD Radeon(TM) RX 6700 XT",
+          "deviceName": "LAPTOP-O8D8RJA",
+          "macAddress": "00-1B-21-2C-E2-B5",
+          "screenResolution": "1920x1080",
+          "windowMode": "maximized",
+          "canvasNoiseSeed": 166,
+          "webglNoiseSeed": 148,
+          "audioNoiseSeed": 0.00003377,
+          "virtualCamId": "0707070707070707070707070707070707070707070707070707070707070707",
+          "virtualCamLabel": "FaceTime HD Camera",
+          "virtualMicId": "0707070707070707070707070707070707070707070707070707070707070707",
+          "virtualMicLabel": "Microphone (Realtek High Definition Audio)",
+          "virtualSpeakerId": "0707070707070707070707070707070707070707070707070707070707070707",
+          "virtualSpeakerLabel": "Headphones (Realtek High Definition Audio)"
+        }
+      ],
+      "gravacoes": 1
+    },
+    "dispositivo": {
+      "id": "desktop"
+    }
+  },
+  "profile_NN com campos faltando é regravado completo e o user agent do perfil vale para o dispositivo": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=412,915",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (X11; Linux x86_64) do perfil",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9414"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22840,
+        "sha256": "57f848d174d8cb37c6d7dacf91587f9f7670fbb18b7d40a2e0f9ace5cef37f03"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22840,
+      "sha256": "57f848d174d8cb37c6d7dacf91587f9f7670fbb18b7d40a2e0f9ace5cef37f03"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"ua\": \"Mozilla/5.0 (X11; Linux x86_64) do perfil\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"deviceName\": \"LAPTOP-ZUNTSP2\",\n    \"macAddress\": \"00-1B-21-AD-AC-2C\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 177,\n    \"webglNoiseSeed\": 142,\n    \"audioNoiseSeed\": 0.00008275,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Internal Microphone\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Built-in Output\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "pixel-8",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) do perfil"
+    }
+  },
+  "profile_NN completo deixa o arquivo exatamente como estava": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1366,768",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0) do completo",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9877"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22632,
+        "sha256": "582244dc454dec4678cb9db9b48e117e05f1e7a3722b866e6b56cd6db3e9bf4c"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22632,
+      "sha256": "582244dc454dec4678cb9db9b48e117e05f1e7a3722b866e6b56cd6db3e9bf4c"
+    },
+    "perfisGravados": "[{\"id\":\"profile_01\",\"name\":\"Completo\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0) do completo\",\"platform\":\"windows\",\"timezone\":\"Europe/Lisbon\",\"locale\":\"pt-PT\",\"platformStr\":\"Win32\",\"cpuCores\":\"12\",\"ramSize\":\"16\",\"webglVendor\":\"Google Inc. (AMD)\",\"webglRenderer\":\"AMD Radeon RX 6600\",\"deviceName\":\"LAPTOP-FIXO\",\"macAddress\":\"00-1B-21-AA-BB-CC\",\"screenResolution\":\"1366x768\",\"windowMode\":\"custom\",\"canvasNoiseSeed\":7,\"webglNoiseSeed\":9,\"audioNoiseSeed\":0.5,\"virtualCamId\":\"cam_id_x\",\"virtualMicId\":\"mic_id_x\",\"virtualSpeakerId\":\"spk_id_x\",\"virtualCamLabel\":\"Cam Um\",\"virtualMicLabel\":\"Mic Dois\",\"virtualSpeakerLabel\":\"Spk Tres\"}]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "iphone-15",
+      "ua": "Mozilla/5.0 (Windows NT 10.0) do completo"
+    }
+  },
+  "profile_NN completo sem user agent não muda o do dispositivo": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1366,768",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9877"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22645,
+        "sha256": "0ed3cf01f86bd7e352220693b740bbee1652e30257eb40cdbd88e497080db9e9"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22645,
+      "sha256": "0ed3cf01f86bd7e352220693b740bbee1652e30257eb40cdbd88e497080db9e9"
+    },
+    "perfisGravados": "[{\"id\":\"profile_01\",\"name\":\"Completo\",\"ua\":\"\",\"platform\":\"windows\",\"timezone\":\"Europe/Lisbon\",\"locale\":\"pt-PT\",\"platformStr\":\"Win32\",\"cpuCores\":\"12\",\"ramSize\":\"16\",\"webglVendor\":\"Google Inc. (AMD)\",\"webglRenderer\":\"AMD Radeon RX 6600\",\"deviceName\":\"LAPTOP-FIXO\",\"macAddress\":\"00-1B-21-AA-BB-CC\",\"screenResolution\":\"1366x768\",\"windowMode\":\"custom\",\"canvasNoiseSeed\":7,\"webglNoiseSeed\":9,\"audioNoiseSeed\":0.5,\"virtualCamId\":\"cam_id_x\",\"virtualMicId\":\"mic_id_x\",\"virtualSpeakerId\":\"spk_id_x\",\"virtualCamLabel\":\"Cam Um\",\"virtualMicLabel\":\"Mic Dois\",\"virtualSpeakerLabel\":\"Spk Tres\"}]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "iphone-15",
+      "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+    }
+  },
+  "com dois perfis só o escolhido é completado": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_02",
+      "--window-size=412,915",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Linux; Android 14; Pixel 8)",
+      "--force-device-scale-factor=1",
+      "--high-dpi-support=1",
+      "--touch-events=enabled",
+      "--enable-touch-drag-drop",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9414"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22846,
+        "sha256": "881dcecb1a658303df723e75c673fd1cdba0b1fe178d0195b9f92a55a3af6706"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22846,
+      "sha256": "881dcecb1a658303df723e75c673fd1cdba0b1fe178d0195b9f92a55a3af6706"
+    },
+    "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Completo\",\n    \"ua\": \"Mozilla/5.0 (Windows NT 10.0) do completo\",\n    \"platform\": \"windows\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"platformStr\": \"Win32\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"16\",\n    \"webglVendor\": \"Google Inc. (AMD)\",\n    \"webglRenderer\": \"AMD Radeon RX 6600\",\n    \"deviceName\": \"LAPTOP-FIXO\",\n    \"macAddress\": \"00-1B-21-AA-BB-CC\",\n    \"screenResolution\": \"1366x768\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 7,\n    \"webglNoiseSeed\": 9,\n    \"audioNoiseSeed\": 0.5,\n    \"virtualCamId\": \"cam_id_x\",\n    \"virtualMicId\": \"mic_id_x\",\n    \"virtualSpeakerId\": \"spk_id_x\",\n    \"virtualCamLabel\": \"Cam Um\",\n    \"virtualMicLabel\": \"Mic Dois\",\n    \"virtualSpeakerLabel\": \"Spk Tres\"\n  },\n  {\n    \"id\": \"profile_02\",\n    \"name\": \"Segundo\",\n    \"platform\": \"android\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"deviceName\": \"LAPTOP-ZUNTSP2\",\n    \"macAddress\": \"00-1B-21-AD-AC-2C\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 177,\n    \"webglNoiseSeed\": 142,\n    \"audioNoiseSeed\": 0.00008275,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Internal Microphone\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Built-in Output\"\n  }\n]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "com dois perfis o escolhido completo não mexe no outro incompleto": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1366,768",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0) do completo",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9877"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22630,
+        "sha256": "4a98ebc756a3a8edc8025d6b31e06c9f3a97718cee99a7a1a7047888484edb12"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22630,
+      "sha256": "4a98ebc756a3a8edc8025d6b31e06c9f3a97718cee99a7a1a7047888484edb12"
+    },
+    "perfisGravados": "[{\"id\":\"profile_01\",\"name\":\"Completo\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0) do completo\",\"platform\":\"windows\",\"timezone\":\"Europe/Lisbon\",\"locale\":\"pt-PT\",\"platformStr\":\"Win32\",\"cpuCores\":\"12\",\"ramSize\":\"16\",\"webglVendor\":\"Google Inc. (AMD)\",\"webglRenderer\":\"AMD Radeon RX 6600\",\"deviceName\":\"LAPTOP-FIXO\",\"macAddress\":\"00-1B-21-AA-BB-CC\",\"screenResolution\":\"1366x768\",\"windowMode\":\"custom\",\"canvasNoiseSeed\":7,\"webglNoiseSeed\":9,\"audioNoiseSeed\":0.5,\"virtualCamId\":\"cam_id_x\",\"virtualMicId\":\"mic_id_x\",\"virtualSpeakerId\":\"spk_id_x\",\"virtualCamLabel\":\"Cam Um\",\"virtualMicLabel\":\"Mic Dois\",\"virtualSpeakerLabel\":\"Spk Tres\"},{\"id\":\"profile_02\",\"name\":\"Segundo\"}]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "profile_NN que não está no arquivo abre com perfil temporário de desktop": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_09",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9801"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22835,
+        "sha256": "c8f893ffec260c32a4409e7a3cc6e715f557ffb756fb4f118ce54730469d6944"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22835,
+      "sha256": "c8f893ffec260c32a4409e7a3cc6e715f557ffb756fb4f118ce54730469d6944"
+    },
+    "perfisGravados": "[{\"id\":\"profile_01\",\"name\":\"Completo\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0) do completo\",\"platform\":\"windows\",\"timezone\":\"Europe/Lisbon\",\"locale\":\"pt-PT\",\"platformStr\":\"Win32\",\"cpuCores\":\"12\",\"ramSize\":\"16\",\"webglVendor\":\"Google Inc. (AMD)\",\"webglRenderer\":\"AMD Radeon RX 6600\",\"deviceName\":\"LAPTOP-FIXO\",\"macAddress\":\"00-1B-21-AA-BB-CC\",\"screenResolution\":\"1366x768\",\"windowMode\":\"custom\",\"canvasNoiseSeed\":7,\"webglNoiseSeed\":9,\"audioNoiseSeed\":0.5,\"virtualCamId\":\"cam_id_x\",\"virtualMicId\":\"mic_id_x\",\"virtualSpeakerId\":\"spk_id_x\",\"virtualCamLabel\":\"Cam Um\",\"virtualMicLabel\":\"Mic Dois\",\"virtualSpeakerLabel\":\"Spk Tres\"}]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "desktop"
+    }
+  },
+  "profile_NN que não está no arquivo abre com perfil temporário de iPhone": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_09",
+      "--window-size=412,915",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion,AudioServiceSandbox",
+      "--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)",
+      "--force-device-scale-factor=1",
+      "--high-dpi-support=1",
+      "--touch-events=enabled",
+      "--enable-touch-drag-drop",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9414"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22843,
+        "sha256": "22ac96372dea4a0c2f845f5aa949e5774d167a84786a94f5572394ce2b8bd1d6"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22843,
+      "sha256": "22ac96372dea4a0c2f845f5aa949e5774d167a84786a94f5572394ce2b8bd1d6"
+    },
+    "perfisGravados": "[{\"id\":\"profile_01\",\"name\":\"Completo\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0) do completo\",\"platform\":\"windows\",\"timezone\":\"Europe/Lisbon\",\"locale\":\"pt-PT\",\"platformStr\":\"Win32\",\"cpuCores\":\"12\",\"ramSize\":\"16\",\"webglVendor\":\"Google Inc. (AMD)\",\"webglRenderer\":\"AMD Radeon RX 6600\",\"deviceName\":\"LAPTOP-FIXO\",\"macAddress\":\"00-1B-21-AA-BB-CC\",\"screenResolution\":\"1366x768\",\"windowMode\":\"custom\",\"canvasNoiseSeed\":7,\"webglNoiseSeed\":9,\"audioNoiseSeed\":0.5,\"virtualCamId\":\"cam_id_x\",\"virtualMicId\":\"mic_id_x\",\"virtualSpeakerId\":\"spk_id_x\",\"virtualCamLabel\":\"Cam Um\",\"virtualMicLabel\":\"Mic Dois\",\"virtualSpeakerLabel\":\"Spk Tres\"}]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "iphone-15",
+      "ua": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)"
+    }
+  },
+  "profile_NN que não está no arquivo abre com perfil temporário de Android": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_09",
+      "--window-size=412,915",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=Mozilla/5.0 (Linux; Android 14; Pixel 8)",
+      "--force-device-scale-factor=1",
+      "--high-dpi-support=1",
+      "--touch-events=enabled",
+      "--enable-touch-drag-drop",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9801"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22868,
+        "sha256": "0c5fe028d6622aa8674b4e023af1d6563f6b90db239c917362116328f012b4a5"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22868,
+      "sha256": "0c5fe028d6622aa8674b4e023af1d6563f6b90db239c917362116328f012b4a5"
+    },
+    "perfisGravados": "[{\"id\":\"profile_01\",\"name\":\"Completo\",\"ua\":\"Mozilla/5.0 (Windows NT 10.0) do completo\",\"platform\":\"windows\",\"timezone\":\"Europe/Lisbon\",\"locale\":\"pt-PT\",\"platformStr\":\"Win32\",\"cpuCores\":\"12\",\"ramSize\":\"16\",\"webglVendor\":\"Google Inc. (AMD)\",\"webglRenderer\":\"AMD Radeon RX 6600\",\"deviceName\":\"LAPTOP-FIXO\",\"macAddress\":\"00-1B-21-AA-BB-CC\",\"screenResolution\":\"1366x768\",\"windowMode\":\"custom\",\"canvasNoiseSeed\":7,\"webglNoiseSeed\":9,\"audioNoiseSeed\":0.5,\"virtualCamId\":\"cam_id_x\",\"virtualMicId\":\"mic_id_x\",\"virtualSpeakerId\":\"spk_id_x\",\"virtualCamLabel\":\"Cam Um\",\"virtualMicLabel\":\"Mic Dois\",\"virtualSpeakerLabel\":\"Spk Tres\"}]",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "pixel-8",
+      "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 8)"
+    }
+  },
+  "profile_NN com o arquivo quebrado abre com perfil temporário": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/profile_01",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9801"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22835,
+        "sha256": "c8f893ffec260c32a4409e7a3cc6e715f557ffb756fb4f118ce54730469d6944"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22835,
+      "sha256": "c8f893ffec260c32a4409e7a3cc6e715f557ffb756fb4f118ce54730469d6944"
+    },
+    "perfisGravados": "{quebrado",
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "Default em desktop com user agent próprio mantém o user agent": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/Default",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--user-agent=UA do dispositivo",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9801"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22860,
+        "sha256": "3281db8a1b8a9ace042d8de79a8e9979d2c92113e55ca876f55387230a6127ef"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22860,
+      "sha256": "3281db8a1b8a9ace042d8de79a8e9979d2c92113e55ca876f55387230a6127ef"
+    },
+    "perfisGravados": null,
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "desktop",
+      "ua": "UA do dispositivo"
+    }
+  },
+  "sem profile nos ajustes abre como Default": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/Default",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9801"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22835,
+        "sha256": "c8f893ffec260c32a4409e7a3cc6e715f557ffb756fb4f118ce54730469d6944"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22835,
+      "sha256": "c8f893ffec260c32a4409e7a3cc6e715f557ffb756fb4f118ce54730469d6944"
+    },
+    "perfisGravados": null,
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    },
+    "dispositivo": {
+      "id": "desktop"
+    }
+  },
+  "sem dispositivo nos ajustes abre com o dispositivo de desktop": {
+    "retorno": {
+      "success": true,
+      "mode": "chrome-y4m",
+      "deviceName": "Chrome Y4M Injector",
+      "message": "Chrome alterado aberto! A câmera agora usa o vídeo Y4M como fonte nativa."
+    },
+    "argumentosDoChrome": [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      "--use-file-for-fake-video-capture=<raiz>/nova_webcam_hijack/fake_cam.y4m",
+      "--user-data-dir=<raiz>/userData/farm_profiles/Default",
+      "--window-size=1920,1080",
+      "--window-position=100,100",
+      "--disable-notifications",
+      "--hide-scrollbars",
+      "--lang=en-US",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-blink-features=AutomationControlled",
+      "--force-webrtc-ip-handling-policy=default_public_interface_only",
+      "--password-store=basic",
+      "--use-mock-keychain",
+      "--disable-background-mode",
+      "--disable-background-networking",
+      "--disable-features=CalculateNativeWinOcclusion",
+      "--start-maximized",
+      "about:blank",
+      "--use-file-for-fake-audio-capture=<raiz>/nova_webcam_hijack/room_ambience.wav",
+      "--load-extension=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--disable-extensions-except=<raiz>/nova_webcam_hijack/anti_detect_ext",
+      "--remote-debugging-port=9801"
+    ],
+    "extensao": {
+      "manifest": {
+        "manifest_version": 3,
+        "name": "Nova Stealth Injector",
+        "version": "4.0",
+        "content_scripts": [
+          {
+            "matches": [
+              "<all_urls>"
+            ],
+            "js": [
+              "inject.js"
+            ],
+            "run_at": "document_start",
+            "world": "MAIN",
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true
+          }
+        ]
+      },
+      "inject": {
+        "bytes": 22860,
+        "sha256": "4d21aeafe153c40eb6a078dbdc33893d1f5af39db421c093bd190f601d6fd54c"
+      }
+    },
+    "scriptDoCdp": {
+      "bytes": 22860,
+      "sha256": "4d21aeafe153c40eb6a078dbdc33893d1f5af39db421c093bd190f601d6fd54c"
+    },
+    "perfisGravados": null,
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "dispositivo sem id lança TypeError ao montar o perfil temporário": {
+    "erro": "TypeError",
+    "retorno": {
+      "success": false
+    },
+    "estadoFinal": {
+      "isHijacking": false,
+      "status": {
+        "isActive": false,
+        "mode": null,
+        "deviceName": null,
+        "pid": null,
+        "isInstallingDriver": false
+      }
+    }
+  },
+  "a lista de perfis sem arquivo só tem o Default": {
+    "lista": [
+      {
+        "id": "Default",
+        "name": "Default",
+        "email": "",
+        "platform": "windows",
+        "proxy": ""
+      }
+    ]
+  },
+  "a lista de perfis completa os campos que faltam e põe o Default na frente": {
+    "lista": [
+      {
+        "id": "Default",
+        "name": "Default",
+        "email": "",
+        "platform": "windows",
+        "proxy": ""
+      },
+      {
+        "id": "profile_01",
+        "name": "Completo",
+        "email": "",
+        "platform": "windows",
+        "proxy": "",
+        "anonymityScore": 75
+      },
+      {
+        "id": "profile_02",
+        "name": "Vazio",
+        "email": "",
+        "platform": "android",
+        "proxy": "",
+        "anonymityScore": 75
+      },
+      {
+        "id": "profile_03",
+        "name": "Com e-mail",
+        "email": "a@example.com",
+        "platform": "ios",
+        "proxy": "p:1",
+        "anonymityScore": 90
+      }
+    ]
+  },
+  "a lista de perfis com o arquivo quebrado só tem o Default": {
+    "lista": [
+      {
+        "id": "Default",
+        "name": "Default",
+        "email": "",
+        "platform": "windows",
+        "proxy": ""
+      }
+    ]
+  },
+  "a lista de perfis com o arquivo que não é lista só tem o Default": {
+    "lista": [
+      {
+        "id": "Default",
+        "name": "Default",
+        "email": "",
+        "platform": "windows",
+        "proxy": ""
+      }
+    ]
+  },
+  "a lista de perfis com o arquivo vazio de perfis só tem o Default": {
+    "lista": [
+      {
+        "id": "Default",
+        "name": "Default",
+        "email": "",
+        "platform": "windows",
+        "proxy": ""
+      }
+    ]
+  }
+}
