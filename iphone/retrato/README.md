@@ -86,10 +86,10 @@ rm -rf /tmp/nova-clone && git clone https://github.com/vinicius928e8r84/Nova-AI.
 git -C /tmp/nova-clone checkout <commit>
 sed -i "" 's/aguardando configuração\.\.\./aguardando a configuração.../' /tmp/nova-clone/iphone/proxy/tool/main.m
 sed -i "" 's/return \[ok containsObject:s\];/return [ok member:s] != nil;/' /tmp/nova-clone/iphone/proxy/tool/ProxyConfig.m
-sh iphone/retrato/montar-pacotes.sh /tmp/nova-clone /tmp/nova-pacotes-alterado
+sh /tmp/nova-clone/iphone/retrato/montar-pacotes.sh /tmp/nova-clone /tmp/nova-pacotes-alterado
 ```
 
-A comparação do `proxy` mostra `texto acrescentado`, `texto removido`, `seletor acrescentado: "member:"` e `seletor removido: "containsObject:"`; os outros três pacotes saem iguais. Apague o clone depois: a alteração nunca entra no repositório. Montar o mesmo commit duas vezes, cada uma num clone novo, dá retratos iguais nos quatro pacotes (os `.deb` têm bytes diferentes por causa da data dos arquivos e do UUID).
+Traga os `.deb` de `/tmp/nova-pacotes-alterado` como no passo 2, tire o retrato de cada um e compare com o do mesmo commit sem alteração, como no passo 3, com `--ignorar bytes`. A comparação do `proxy` mostra `texto acrescentado`, `texto removido`, `seletor acrescentado: "member:"` e `seletor removido: "containsObject:"`; os outros três pacotes saem iguais. Apague o clone depois: a alteração nunca entra no repositório. Montar o mesmo commit duas vezes, cada uma num clone novo, dá retratos iguais nos quatro pacotes (os `.deb` têm bytes diferentes por causa da data dos arquivos e do UUID).
 
 ## O que o retrato não vê
 
