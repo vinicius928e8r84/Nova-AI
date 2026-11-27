@@ -1,0 +1,722 @@
+{
+ "patch_bundle": {
+  "bundle completo": {
+   "codigo": 0,
+   "stdout": "bundle patcheado: <raiz>/instalado/app/dist/assets/index-Dun7lr2S.js\ncópia do projeto: <raiz>/scripts/index-Dun7lr2S.patched.js\ntamanho final: 55571\n",
+   "erro": "",
+   "saidas": {
+    "instalado": {
+     "bytes": 55723,
+     "sha256": "df91c53581c7d1d7985048268b396fd3dd1c6d2d80207cc7ba780353b45dfc21"
+    },
+    "copia": {
+     "bytes": 55723,
+     "sha256": "df91c53581c7d1d7985048268b396fd3dd1c6d2d80207cc7ba780353b45dfc21"
+    }
+   }
+  },
+  "sem o caminho do bundle": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "IndexError: list index out of range",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "com a origem inexistente": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/scripts/nao-existe.txt'",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "com o primeiro cartão no começo de uma lista": {
+   "codigo": 0,
+   "stdout": "bundle patcheado: <raiz>/instalado/app/dist/assets/index-Dun7lr2S.js\ncópia do projeto: <raiz>/scripts/index-Dun7lr2S.patched.js\ntamanho final: 55572\n",
+   "erro": "",
+   "saidas": {
+    "instalado": {
+     "bytes": 55724,
+     "sha256": "26725934fd179d0e0b99752a00b138bd6ac4fb7d099157ee54c2ea51757ac5e1"
+    },
+    "copia": {
+     "bytes": 55724,
+     "sha256": "26725934fd179d0e0b99752a00b138bd6ac4fb7d099157ee54c2ea51757ac5e1"
+    }
+   }
+  },
+  "com o Como Funciona seguido de outro caractere": {
+   "codigo": 0,
+   "stdout": "bundle patcheado: <raiz>/instalado/app/dist/assets/index-Dun7lr2S.js\ncópia do projeto: <raiz>/scripts/index-Dun7lr2S.patched.js\ntamanho final: 55572\n",
+   "erro": "",
+   "saidas": {
+    "instalado": {
+     "bytes": 55724,
+     "sha256": "c9853b02bd4c9458ef01ca2bba4a38ad6d0cff57a2de0ef0affafff5c2924212"
+    },
+    "copia": {
+     "bytes": 55724,
+     "sha256": "c9853b02bd4c9458ef01ca2bba4a38ad6d0cff57a2de0ef0affafff5c2924212"
+    }
+   }
+  },
+  "sem o trecho da mensagem do módulo instalado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: substituição esperava 1 ocorrência, achei 0: vl(eI.installed||!1),bl(eI.message||eI.error||(eI.installed?\"✓ Módulo",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem o trecho do início do Ligar": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: substituição esperava 1 ocorrência, achei 0: if(!ll.trim()){bl(\"⚠ Please select a video file first!\");return}UI(\"st",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem o trecho do sucesso do Ligar": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: substituição esperava 1 ocorrência, achei 0: eI.success?(UI(\"active\"),bl(\"🎥 \"+eI.message))",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem o trecho do Desligar": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: substituição esperava 1 ocorrência, achei 0: UI(\"stopping\"),bl(\"⏳ Restoring real camera...\");",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem o texto da legenda do Android": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: substituição esperava 1 ocorrência, achei 0: children:\"Android: módulo LSPosed. iPhone USB: Câmera nativa (prévia e",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "com o prefixo do primeiro cartão trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: cartão não encontrado: b.jsxs(\"div\",{className:\"bg-white/[0.02] border border-white",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "com o prefixo do segundo cartão trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: cartão não encontrado: b.jsxs(\"div\",{className:\"bg-white/[0.02] border border-white",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "com um parêntese de cartão trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: parêntese sem fechamento",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem o item 3": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: item 3 não encontrado",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem a âncora do item 1": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: âncora não encontrada: item1",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem a âncora do item 2": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: âncora não encontrada: item2",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem a grade de botões do item 3": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: grade de botões do item 3 não encontrada",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem o trecho do botão Ligar desabilitado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: substituição esperava 1 ocorrência, achei 0: disabled:HI===\"active\"||HI===\"starting\"||!ll.trim(),",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "com o prefixo do cartão Como Funciona trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: cartão não encontrado: b.jsxs(\"div\",{className:\"bg-white/[0.01] border border-white",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  },
+  "sem a âncora do Como Funciona": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: âncora não encontrada: como",
+   "saidas": {
+    "instalado": null,
+    "copia": null
+   }
+  }
+ },
+ "aplicar": {
+  "bundle completo": {
+   "codigo": 0,
+   "stdout": "ok: entrada.txt → saida.js  (55886 → 67698 bytes, +11812)\n  · estados pPlat/pUserPicked\n  · abas filtradas (11 usos de e.length)\n  · lista filtrada + ícones\n  · efeitos de plataforma/seleção\n  · seletor iPhone | Android\n  · Reparar ADB só no Android\n  · faixa Modo iPhone\n  · título dos dispositivos\n  · estado vazio por plataforma\n  · texto vazio (título)\n  · texto vazio (dica)\n  · cartões de dispositivo filtrados\n  · modos de conexão esmaecidos no iOS\n  · busca na rede desabilitada no iOS\n  · form direto oculto no iOS\n  · form pareamento oculto no iOS\n  · guia Android oculto no iOS\n  · aviso Exclusivo Android na conexão\n  · guia do iPhone\n  · selo Android nos comandos root\n  · dica dos atalhos no iPhone\n  · reiniciar desabilitado no iOS\n  · desligar desabilitado no iOS\n  · Marca escondida no iPhone\n  · select de modelo do iPhone (7 a 18)\n  · campo de proxy do iPhone\n  · ação do botão no iPhone\n  · rótulo do botão no iPhone\n  · painel aplicado: iPhone\n  · painel aplicado: fecha lista Android\n  · cor do campo Modelo\n  · soft reboot escondido no iPhone\n  · verificação Android escondida no iPhone\n  · Restaurar vira Remover no iPhone\n  · chips de segurança escondidos no iPhone\n  · Play Integrity escondido no iPhone\n  · IMEI duplo escondido no iPhone\n  · certificação Play Store escondida no iPhone\n",
+   "erro": "",
+   "saidas": {
+    "saida": {
+     "bytes": 67888,
+     "sha256": "c20b7ca03a561f0446a882ab4839e56401b4e685f32575f71e3978a5f3ec7f4a"
+    }
+   }
+  },
+  "bundle completo com a sintaxe conferida a cada passo: para no painel aplicado, onde o texto ainda está pela metade": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "quebrou em [painel aplicado: iPhone]: SyntaxError…",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem os dois caminhos": {
+   "codigo": 2,
+   "stdout": "uso: aplicar.py <origem.js> <saida.js>\n",
+   "erro": "",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com um caminho só": {
+   "codigo": 2,
+   "stdout": "uso: aplicar.py <origem.js> <saida.js>\n",
+   "erro": "",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a origem inexistente": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/scripts/nao-existe.txt'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a origem e a saída no mesmo arquivo": {
+   "codigo": 0,
+   "stdout": "ok: entrada.txt → entrada.txt  (55886 → 67698 bytes, +11812)\n  · estados pPlat/pUserPicked\n  · abas filtradas (11 usos de e.length)\n  · lista filtrada + ícones\n  · efeitos de plataforma/seleção\n  · seletor iPhone | Android\n  · Reparar ADB só no Android\n  · faixa Modo iPhone\n  · título dos dispositivos\n  · estado vazio por plataforma\n  · texto vazio (título)\n  · texto vazio (dica)\n  · cartões de dispositivo filtrados\n  · modos de conexão esmaecidos no iOS\n  · busca na rede desabilitada no iOS\n  · form direto oculto no iOS\n  · form pareamento oculto no iOS\n  · guia Android oculto no iOS\n  · aviso Exclusivo Android na conexão\n  · guia do iPhone\n  · selo Android nos comandos root\n  · dica dos atalhos no iPhone\n  · reiniciar desabilitado no iOS\n  · desligar desabilitado no iOS\n  · Marca escondida no iPhone\n  · select de modelo do iPhone (7 a 18)\n  · campo de proxy do iPhone\n  · ação do botão no iPhone\n  · rótulo do botão no iPhone\n  · painel aplicado: iPhone\n  · painel aplicado: fecha lista Android\n  · cor do campo Modelo\n  · soft reboot escondido no iPhone\n  · verificação Android escondida no iPhone\n  · Restaurar vira Remover no iPhone\n  · chips de segurança escondidos no iPhone\n  · Play Integrity escondido no iPhone\n  · IMEI duplo escondido no iPhone\n  · certificação Play Store escondida no iPhone\n",
+   "erro": "",
+   "saidas": {
+    "entrada": {
+     "bytes": 67888,
+     "sha256": "c20b7ca03a561f0446a882ab4839e56401b4e685f32575f71e3978a5f3ec7f4a"
+    }
+   }
+  },
+  "com a sintaxe quebrada no fim": {
+   "codigo": 1,
+   "stdout": "<mensagem do node com SyntaxError>\n",
+   "erro": "sintaxe inválida — nada foi gravado",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a sintaxe quebrada no fim, conferindo a cada passo": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "quebrou em [estados pPlat/pUserPicked]: SyntaxError…",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"ação do botão no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[ação do botão no iPhone] esperava 1 ocorrência(s), achei 0: 'onClick:el,disabled:uI===\"applying\"||!D,'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem a marca \"function III({onClose:I})\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "bundle inesperado, falta: function III({onClose:I})",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"estados pPlat/pUserPicked\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[estados pPlat/pUserPicked] esperava 1 ocorrência(s), achei 0: ',[dl,Jl]=F.useState({width:900,height:620,x:120,y:60}),SI=window.electronAPI'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"lista filtrada + ícones\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[lista filtrada + ícones] esperava 1 ocorrência(s), achei 0: '},[c]);const gG=e.find(eI=>eI.id===W)'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem a marca \"Suíte de Hardware\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "bundle inesperado, falta: Suíte de Hardware",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"Reparar ADB só no Android\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[Reparar ADB só no Android] esperava 1 ocorrência(s), achei 0: 'b.jsx(\"button\",{onClick:XG,disabled:v,className:\"hidden sm:block px-2 py-1 bg-white/5 bord'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem a região das abas": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "não achei a região das abas",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com 10 usos de e.length nas abas": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "abas: esperava 11 e.length, achei 10",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"título dos dispositivos\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[título dos dispositivos] esperava 1 ocorrência(s), achei 0: 'children:\"DISPOSITIVOS REAIS CONECTADOS\"'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem a marca \"DISPOSITIVOS REAIS CONECTADOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "bundle inesperado, falta: DISPOSITIVOS REAIS CONECTADOS",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"estado vazio por plataforma\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[estado vazio por plataforma] esperava 1 ocorrência(s), achei 0: 'children:pIsIos?\"IPHONES CONECTADOS\":\"ANDROIDS CONECTADOS\"}),e.length===0?'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"texto vazio (título)\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[texto vazio (título)] esperava 1 ocorrência(s), achei 0: 'children:\"Nenhum dispositivo USB ou Wi-Fi detectado.\"'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"texto vazio (dica)\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[texto vazio (dica)] esperava 1 ocorrência(s), achei 0: 'children:\"Conecte seu celular via USB com a depuração USB ativada.\"'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"cartões de dispositivo filtrados\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[cartões de dispositivo filtrados] esperava 1 ocorrência(s), achei 0: 'children:e.map('",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o bloco de conexão": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "não achei o bloco de conexão",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com o parêntese do bloco de conexão trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "ValueError: parêntese sem fechamento",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"modos de conexão esmaecidos no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[modos de conexão esmaecidos no iOS] esperava 1 ocorrência(s), achei 0: 'children:[b.jsxs(\"div\",{className:\"flex items-center gap-2\",children:[b.jsx(\"button\",{onCl'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"busca na rede desabilitada no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[busca na rede desabilitada no iOS] esperava 1 ocorrência(s), achei 0: 'onClick:yG,disabled:v,className:\"px-4 py-2 bg-j-cyan/10'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"form direto oculto no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[form direto oculto no iOS] esperava 1 ocorrência(s), achei 0: 'Q===\"direct\"&&'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"aviso Exclusivo Android na conexão\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[aviso Exclusivo Android na conexão] esperava 1 ocorrência(s), achei 0: ',!pIsIos&&Q===\"direct\"&&b.jsxs(\"form\"'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"form pareamento oculto no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[form pareamento oculto no iOS] esperava 1 ocorrência(s), achei 0: 'Q===\"pair\"&&'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"guia Android oculto no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[guia Android oculto no iOS] esperava 1 ocorrência(s), achei 0: 'Q===\"guide\"&&'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com o fim do bloco de conexão trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "fim inesperado do bloco de conexão: ]})]})]})]§)",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"dica dos atalhos no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[dica dos atalhos no iPhone] esperava 1 ocorrência(s), achei 0: 'children:b.jsx(\"div\",{className:`w-4 h-4 rounded-full bg-black transition-all ${B?\"transla'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"selo Android nos comandos root\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[selo Android nos comandos root] esperava 1 ocorrência(s), achei 0: 'children:\"DISPARADORES DE COMANDOS ROOT\"}),b.jsxs(\"div\",{className:\"flex gap-3\"'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"reiniciar desabilitado no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[reiniciar desabilitado no iOS] esperava 1 ocorrência(s), achei 0: 'b.jsx(\"button\",{onClick:async()=>{SI&&(await SI.invoke(\"physical-mobile:control-app\",{id:W'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"desligar desabilitado no iOS\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[desligar desabilitado no iOS] esperava 1 ocorrência(s), achei 0: 'b.jsx(\"button\",{onClick:async()=>{SI&&(await SI.invoke(\"physical-mobile:control-app\",{id:W'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"chips de segurança escondidos no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[chips de segurança escondidos no iPhone] esperava 1 ocorrência(s), achei 0: 'b.jsxs(\"div\",{className:\"flex items-center gap-2 px-3 py-2 bg-black/30 border border-white'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"Marca escondida no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[Marca escondida no iPhone] esperava 1 ocorrência(s), achei 0: 'b.jsxs(\"div\",{children:[b.jsx(\"label\",{className:\"text-[9px] font-bold text-white/40 track'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"select de modelo do iPhone (7 a 18)\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[select de modelo do iPhone (7 a 18)] esperava 1 ocorrência(s), achei 0: 'b.jsx(\"select\",{value:D,onChange:eI=>dI(eI.target.value),className:\"w-full bg-white/[0.03]'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"campo de proxy do iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[campo de proxy do iPhone] esperava 1 ocorrência(s), achei 0: ',b.jsxs(\"button\",{onClick:el,disabled:uI===\"applying\"||!D'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"rótulo do botão no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[rótulo do botão no iPhone] esperava 1 ocorrência(s), achei 0: 'uI===\"applying\"?\"Aplicando Falsificação Profunda de IMEI...\":\"Aplicar Perfil de Falsificaç'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"soft reboot escondido no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[soft reboot escondido no iPhone] esperava 1 ocorrência(s), achei 0: 'uI===\"success\"&&b.jsxs(\"button\",{onClick:sG'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"verificação Android escondida no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[verificação Android escondida no iPhone] esperava 1 ocorrência(s), achei 0: '(uI===\"success\"||k)&&b.jsxs(\"button\",{onClick:Kl'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"Restaurar vira Remover no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[Restaurar vira Remover no iPhone] esperava 1 ocorrência(s), achei 0: 'b.jsxs(\"button\",{onClick:fI,disabled:uI===\"applying\",className:\"w-full py-2 bg-white/[0.03'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"Play Integrity escondido no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[Play Integrity escondido no iPhone] esperava 1 ocorrência(s), achei 0: 'b.jsxs(\"div\",{className:\"mt-1 space-y-1.5\",children:[b.jsx(\"span\",{className:\"text-[9px] f'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"IMEI duplo escondido no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[IMEI duplo escondido no iPhone] esperava 1 ocorrência(s), achei 0: 'b.jsxs(\"div\",{className:\"mt-2 p-3 bg-yellow-500/5 border border-yellow-500/20 rounded-xl s'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"painel aplicado: iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[painel aplicado: iPhone] esperava 1 ocorrência(s), achei 0: 'children:[[\"Model\",k.model],'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"painel aplicado: fecha lista Android\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[painel aplicado: fecha lista Android] esperava 1 ocorrência(s), achei 0: '[\"IMSI\",k.imsi]].map('",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"cor do campo Modelo\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[cor do campo Modelo] esperava 1 ocorrência(s), achei 0: 'eI===\"Model\"?\"text-white font-bold\"'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"certificação Play Store escondida no iPhone\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[certificação Play Store escondida no iPhone] esperava 1 ocorrência(s), achei 0: 'b.jsxs(\"div\",{className:\"mt-2 p-4 bg-gradient-to-r from-blue-900/10 to-purple-900/10 borde'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"efeitos de plataforma/seleção\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[efeitos de plataforma/seleção] esperava 1 ocorrência(s), achei 0: ';return Fl?b.jsx(\"div\",{className:\"fixed inset-0 z-[9990]'",
+   "saidas": {
+    "saida": null
+   }
+  }
+ },
+ "aplicar-geo": {
+  "bundle completo": {
+   "codigo": 0,
+   "stdout": "ok: 6 passos, 68832 bytes (origem 67698)\n  - helper pGeoApply\n  - useEffect geo ao abrir\n  - geo ao salvar proxy\n  - geo ao salvar identidade\n  - parar restaura idioma/fuso\n  - remove botão Fixar GPS\n",
+   "erro": "",
+   "saidas": {
+    "saida": {
+     "bytes": 69032,
+     "sha256": "1c17da574f63dd498ab14b55a3b41e556c7e533f70141a131e41447acebb92ba"
+    }
+   }
+  },
+  "sem os dois caminhos": {
+   "codigo": 2,
+   "stdout": "uso: aplicar-geo.py <origem.js> <saida.js>\n",
+   "erro": "",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com um caminho só": {
+   "codigo": 2,
+   "stdout": "uso: aplicar-geo.py <origem.js> <saida.js>\n",
+   "erro": "",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a origem inexistente": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/scripts/nao-existe.txt'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com a origem e a saída no mesmo arquivo": {
+   "codigo": 0,
+   "stdout": "ok: 6 passos, 68832 bytes (origem 68832)\n  - helper pGeoApply\n  - useEffect geo ao abrir\n  - geo ao salvar proxy\n  - geo ao salvar identidade\n  - parar restaura idioma/fuso\n  - remove botão Fixar GPS\n",
+   "erro": "",
+   "saidas": {
+    "entrada": {
+     "bytes": 69032,
+     "sha256": "1c17da574f63dd498ab14b55a3b41e556c7e533f70141a131e41447acebb92ba"
+    }
+   }
+  },
+  "com a sintaxe quebrada no fim": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "quebrou em [final]: SyntaxError…",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"parar restaura idioma/fuso\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[parar restaura idioma/fuso] esperava 1 ocorrência(s), achei 0: 'Ul=async()=>{if(!(!W||!SI))try{await SI.invoke(\"spoofer:stop-gps\",{deviceId:W}),M(\"idle\"),'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"useEffect geo ao abrir\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[useEffect geo ao abrir] esperava 1 ocorrência(s), achei 0: 'F.useEffect(()=>{c===\"spoofer\"&&Object.keys(lI).length===0&&Vl()},[c]);'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"helper pGeoApply\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[helper pGeoApply] esperava 1 ocorrência(s), achei 0: 'pSaveProxy=async()=>{const pV=pProxy.trim();'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"geo ao salvar proxy\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[geo ao salvar proxy] esperava 1 ocorrência(s), achei 0: 'pSetProxyMsg(\"Proxy aplicado no iPhone.\"),pSetProxyStatus(\"ok\")}'",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o trecho de \"geo ao salvar identidade\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[geo ao salvar identidade] esperava 1, achei 0",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "com um delimitador do botão GPS trocado": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "delimitador não fechou",
+   "saidas": {
+    "saida": null
+   }
+  },
+  "sem o botão \"Fixar GPS Falso\"": {
+   "codigo": 1,
+   "stdout": "",
+   "erro": "[botões GPS] não achei \"Fixar GPS Falso\"",
+   "saidas": {
+    "saida": null
+   }
+  }
+ }
+}

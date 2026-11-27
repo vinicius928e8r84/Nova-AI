@@ -166,6 +166,9 @@ preservada); pausa do CAM LIVE com ponte simulada (sessão viva, sem erro).
 - `controles-independentes.test.cjs` — testa `ios-camera.js` e
   `cam-live-iphone.js` de `app/electron/services/`, a fonte do app.
 - `patch_bundle.py`, `patch_transmissao.py` — cirurgias (rodam sobre as reservas).
+  O `patch_bundle.py` é só a entrada: `cartoes_do_bundle.py` acha e apaga os três cartões,
+  `delimitadores.py` acha o parêntese que fecha cada um e `textos_do_sequestro.py` guarda o
+  texto novo e as seis trocas. Os módulos moram na mesma pasta, que é onde o Python procura.
 
 ## Para restaurar
 

@@ -84,7 +84,7 @@ Windows); no modo `npm start` é `app/resources/` (e `app/browsers/` para navega
 | `nova-cam-spoofer.apk` | `resources/nova-cam-spoofer.apk` | **fora** (binário sem fonte neste repo) | Copie do app instalado ou do pacote `.dmg`/`.exe` |
 | `.deb` do iPhone (`camera.deb`, novamodel, novalanguage) | `electron/services/iphone-setup/` | **fora** (`*.deb` no `.gitignore`) | Gere com Theos a partir de `iphone/` ou copie do app instalado |
 | Modelos de rosto, áudios, ícones | `public/`, `audio/` | **dentro** do git (pequenos, sem segredo) | — |
-| Chave do Google/Firebase de `electron/pwa/admin.html` | trecho `apiKey` | **fora**: está como `__GOOGLE_API_KEY_NEUTRALIZADA__` | Crie a sua no Google Cloud (ou use a do admin) e coloque no lugar, só na sua cópia local |
+| Chave do Google/Firebase de `electron/pwa/admin-firebase.js` | trecho `apiKey` (a `DEFAULT_FB_CONFIG`) | **fora**: está como `__GOOGLE_API_KEY_NEUTRALIZADA__` | Crie a sua no Google Cloud (ou use a do admin) e coloque no lugar, só na sua cópia local |
 | Chaves de IA, WhatsApp, Telegram, sessões | pasta de dados do usuário | **fora** | Cada pessoa configura as suas dentro do app |
 
 Nada de chave, token, senha, perfil de navegador, `.deb` ou binário de terceiros deve entrar no git.

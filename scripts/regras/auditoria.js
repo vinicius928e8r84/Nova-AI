@@ -45,51 +45,84 @@ function gravarProjeto(destino, packageJson, lock) {
   fs.writeFileSync(path.join(destino, 'package-lock.json'), lock);
 }
 
+const RAIZ_DO_REPOSITORIO = path.resolve(__dirname, '..', '..');
+
+function lerBandeira(opcoes, argv, i) {
+  const bandeira = argv[i];
+  if (bandeira === '--help') opcoes.ajuda = true;
+  else if (bandeira === '--base') opcoes.pedida = argv[i + 1];
+  else if (bandeira === '--raiz') opcoes.raiz = path.resolve(argv[i + 1]);
+  else throw new ErroDeUso(`bandeira desconhecida: ${bandeira}`);
+  return bandeira === '--base' || bandeira === '--raiz' ? i + 2 : i + 1;
+}
+
+function lerArgumentos(argv) {
+  const opcoes = { pedida: null, raiz: RAIZ_DO_REPOSITORIO, ajuda: false };
+  for (let i = 0; i < argv.length && !opcoes.ajuda;) i = lerBandeira(opcoes, argv, i);
+  return opcoes;
+}
+
+const ehTravaMudada = item => item.status !== 'D' && path.basename(item.caminho) === 'package-lock.json';
+
+function auditarABase(raiz, base, item, destino) {
+  const pastaAntiga = item.antigo ? path.dirname(item.antigo) : path.dirname(item.caminho);
+  const lockAntigo = arquivoNaBase(raiz, base.desde, item.antigo || item.caminho);
+  const jsonAntigo = arquivoNaBase(raiz, base.desde, path.posix.join(pastaAntiga, 'package.json'));
+  if (!lockAntigo || !jsonAntigo) return null;
+  gravarProjeto(destino, jsonAntigo, lockAntigo);
+  return auditar(destino);
+}
+
+function novasDaTrava(raiz, base, item, destinos) {
+  gravarProjeto(destinos.ramo, fs.readFileSync(path.join(raiz, path.dirname(item.caminho), 'package.json'), 'utf8'), fs.readFileSync(path.join(raiz, item.caminho), 'utf8'));
+  const daBase = auditarABase(raiz, base, item, destinos.base);
+  return novasAltas(daBase, auditar(destinos.ramo)).map(achado => ({ ...achado, trava: item.caminho }));
+}
+
+function auditarTravas(raiz, base, travas) {
+  const temporario = fs.mkdtempSync(path.join(os.tmpdir(), 'auditoria-'));
+  const novas = travas.flatMap((item, indice) => novasDaTrava(raiz, base, item, {
+    ramo: path.join(temporario, `ramo-${indice}`),
+    base: path.join(temporario, `base-${indice}`),
+  }));
+  fs.rmSync(temporario, { recursive: true, force: true });
+  return novas;
+}
+
+function descreverAchado(achado) {
+  const intervalo = achado.intervalo ? `, ${achado.intervalo}` : '';
+  return `✗ ${achado.trava}: ${achado.nome} (${achado.severidade}${intervalo}) ${achado.titulos.join('; ')}`;
+}
+
+function relatarNovas(novas) {
+  for (const achado of novas) console.log(descreverAchado(achado));
+  console.log('Conserto: atualize ou troque o pacote para uma versão sem a falha (npm audit mostra qual); a mudança não pode introduzir vulnerabilidade alta ou crítica.');
+  return 1;
+}
+
+function relatarSemNovas(travas) {
+  console.log(`auditoria ok: ${travas.map(t => t.caminho).join(', ')} não introduz vulnerabilidade ${configuracao.auditoria.nivelMinimo.join('/')}`);
+  return 0;
+}
+
 function main(argv, env = process.env) {
-  let pedida = null;
-  let raiz = path.resolve(__dirname, '..', '..');
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--help') {
-      console.log(AJUDA);
-      return 0;
-    }
-    if (argv[i] === '--base') pedida = argv[++i];
-    else if (argv[i] === '--raiz') raiz = path.resolve(argv[++i]);
-    else throw new ErroDeUso(`bandeira desconhecida: ${argv[i]}`);
+  const opcoes = lerArgumentos(argv);
+  if (opcoes.ajuda) {
+    console.log(AJUDA);
+    return 0;
   }
-  const base = resolverBase(raiz, pedida, env);
+  const base = resolverBase(opcoes.raiz, opcoes.pedida, env);
   if (!base) {
     console.log('aviso: sem base de comparação; nada foi auditado');
     return 0;
   }
-  const mudancas = lerMudancas(raiz, base);
-  const travas = mudancas.itens.filter(item => item.status !== 'D' && path.basename(item.caminho) === 'package-lock.json');
+  const travas = lerMudancas(opcoes.raiz, base).itens.filter(ehTravaMudada);
   if (!travas.length) {
     console.log('auditoria: nenhuma trava de pacotes mudou; nada a auditar');
     return 0;
   }
-  const temporario = fs.mkdtempSync(path.join(os.tmpdir(), 'auditoria-'));
-  const novas = [];
-  for (const [indice, item] of travas.entries()) {
-    const pasta = path.dirname(item.caminho);
-    const doRamo = path.join(temporario, `ramo-${indice}`);
-    const daBase = path.join(temporario, `base-${indice}`);
-    gravarProjeto(doRamo, fs.readFileSync(path.join(raiz, pasta, 'package.json'), 'utf8'), fs.readFileSync(path.join(raiz, item.caminho), 'utf8'));
-    const lockAntigo = arquivoNaBase(raiz, base.desde, item.antigo || item.caminho);
-    const jsonAntigo = arquivoNaBase(raiz, base.desde, path.posix.join(item.antigo ? path.dirname(item.antigo) : pasta, 'package.json'));
-    const sobre = lockAntigo && jsonAntigo ? auditar((gravarProjeto(daBase, jsonAntigo, lockAntigo), daBase)) : null;
-    for (const achado of novasAltas(sobre, auditar(doRamo))) novas.push({ ...achado, trava: item.caminho });
-  }
-  fs.rmSync(temporario, { recursive: true, force: true });
-  if (!novas.length) {
-    console.log(`auditoria ok: ${travas.map(t => t.caminho).join(', ')} não introduz vulnerabilidade ${configuracao.auditoria.nivelMinimo.join('/')}`);
-    return 0;
-  }
-  for (const achado of novas) {
-    console.log(`✗ ${achado.trava}: ${achado.nome} (${achado.severidade}${achado.intervalo ? `, ${achado.intervalo}` : ''}) ${achado.titulos.join('; ')}`);
-  }
-  console.log('Conserto: atualize ou troque o pacote para uma versão sem a falha (npm audit mostra qual); a mudança não pode introduzir vulnerabilidade alta ou crítica.');
-  return 1;
+  const novas = auditarTravas(opcoes.raiz, base, travas);
+  return novas.length ? relatarNovas(novas) : relatarSemNovas(travas);
 }
 
 function rodar(argv) {

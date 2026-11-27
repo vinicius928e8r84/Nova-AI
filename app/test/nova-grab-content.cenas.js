@@ -111,6 +111,11 @@ const CENAS_DE_TITULO = [
     const dobra = criar(documento, corpo, 'div', { id: 'above-the-fold' });
     criar(documento, criar(documento, dobra, 'div', { id: 'title' }), 'h1', { textContent: ' Dobra ' });
   })],
+  ['título de #above-the-fold vence um #title h1 que aparece antes no documento', paginaComTitulo((documento, corpo) => {
+    criar(documento, criar(documento, corpo, 'div', { id: 'title' }), 'h1', { textContent: 'Fora da dobra' });
+    const dobra = criar(documento, corpo, 'div', { id: 'above-the-fold' });
+    criar(documento, criar(documento, dobra, 'div', { id: 'title' }), 'h1', { textContent: 'Na dobra' });
+  })],
   ['título de #title h1 quando o primeiro é só espaço', paginaComTitulo((documento, corpo) => {
     const h1 = criar(documento, corpo, 'h1', { className: 'ytd-watch-metadata' });
     criar(documento, h1, 'yt-formatted-string', { textContent: '   ' });

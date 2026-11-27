@@ -91,9 +91,11 @@ function textoDasLinhas(ctx, caminho, numeros) {
   return [...numeros].map(n => todas[n - 1] || '');
 }
 
+const temLinhaAcrescentada = numeros => Boolean(numeros && numeros.size);
+
 function linhasAcrescentadasDe(ctx, caminho) {
   const numeros = ctx.mudancas.acrescentadas.get(caminho);
-  if (!numeros || !numeros.size || !temConteudoSensivel(caminho)) return [];
+  if (!temLinhaAcrescentada(numeros) || !temConteudoSensivel(caminho)) return [];
   return textoDasLinhas(ctx, caminho, numeros);
 }
 

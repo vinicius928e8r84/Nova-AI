@@ -9,6 +9,12 @@ const CAMINHO_DO_CONTENT = path.join(__dirname, '..', 'electron', 'nova-grab-ext
 const TEXTO_LONGO = 160;
 const URL_DE_VIDEO = 'https://www.youtube.com/watch?v=abc123';
 
+function scriptsDoContent(caminho) {
+  const pasta = path.dirname(caminho);
+  const manifesto = JSON.parse(fs.readFileSync(path.join(pasta, 'manifest.json'), 'utf8'));
+  return manifesto.content_scripts[0].js.map(arquivo => path.join(pasta, arquivo));
+}
+
 function resumir(texto) {
   if (texto.length <= TEXTO_LONGO) return texto;
   const resumo = crypto.createHash('sha256').update(texto).digest('hex').slice(0, 16);
@@ -125,7 +131,9 @@ class PalcoNovaGrab {
   }
 
   carregar(caminho) {
-    vm.runInContext(fs.readFileSync(caminho, 'utf8'), this.janela, { filename: caminho });
+    for (const script of scriptsDoContent(caminho)) {
+      vm.runInContext(fs.readFileSync(script, 'utf8'), this.janela, { filename: script });
+    }
   }
 
   tentar(rotulo, acao) {

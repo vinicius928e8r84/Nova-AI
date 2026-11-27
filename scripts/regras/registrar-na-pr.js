@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 'use strict';
 
-const { execFileSync } = require('child_process');
 const fs = require('fs');
-const {
-  ATENCOES, BLOQUEADA, FRASE, SECAO_DA_PROVA, atencaoValida, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, marcaDeProvaParcial, tituloDe,
-} = require('./registro-da-pr');
-
-const WORKFLOW = 'registro-da-pr.yml';
+const { BLOQUEADA, FRASE, SECAO_DA_PROVA, conferir, faltaDaProva, faltaDaRevisao, lerDoGitHub, marcaDeProvaParcial } = require('./registro-da-pr');
+const { ErroDeUso, ambiente, lerArgumentos } = require('./chamada-do-registro');
+const { corpoComAProva, secaoDaProva } = require('./secao-da-prova');
+const { cliente, execucaoDoCheck, rodarDeNovo, semExecucao } = require('./escrita-na-pr');
 
 const AJUDA = `uso: node scripts/regras/registrar-na-pr.js <comando> --pr <número> [opções]
 
@@ -30,80 +28,12 @@ const AJUDA = `uso: node scripts/regras/registrar-na-pr.js <comando> --pr <núme
 O token vem de $GITHUB_TOKEN, de $GH_TOKEN ou de \`gh auth token\`. Sai com 0 quando o check passaria, 1 quando não
 (ou quando recusou publicar) e 2 no erro de uso ou do GitHub. O revisor tem de ser outra pessoa ou outro agente que o autor.`;
 
-class ErroDeUso extends Error {}
-
 const SHA_INTEIRO = /^[0-9a-f]{40}$/;
-const COBERTURAS = ['total', 'parcial'];
-const CERCA = /^ {0,3}(`{3,}|~{3,})/;
-const nomeDoTitulo = texto => texto.replace(/[*_`]/g, '').trim().toLowerCase();
-
-function lerArgumentos(argv) {
-  const [comando, ...resto] = argv;
-  if (!comando || comando === '--help' || comando === '-h' || resto.includes('--help')) return { ajuda: true };
-  if (!['conferir', 'revisao', 'prova'].includes(comando)) throw new ErroDeUso(`comando desconhecido: ${comando}`);
-  const opcoes = { comando, veredito: 'CLEAN', publicar: false };
-  const comValor = ['pr', 'head', 'veredito', 'autor', 'revisor', 'risco', 'cobertura', 'nota', 'repo'];
-  for (let i = 0; i < resto.length; i++) {
-    const nome = resto[i].replace(/^--/, '');
-    if (resto[i] === '--publicar') opcoes.publicar = true;
-    else if (resto[i].startsWith('--') && comValor.includes(nome)) {
-      if (resto[i + 1] === undefined || resto[i + 1].startsWith('--')) throw new ErroDeUso(`${resto[i]} precisa de um valor`);
-      opcoes[nome] = resto[++i];
-    } else throw new ErroDeUso(`opção desconhecida: ${resto[i]}`);
-  }
-  if (!/^\d+$/.test(opcoes.pr || '')) throw new ErroDeUso('--pr <número> é obrigatório');
-  const pedidas = { conferir: [], revisao: ['head', 'autor', 'revisor', 'risco'], prova: ['head', 'cobertura', 'nota'] }[comando];
-  const faltam = pedidas.filter(nome => !String(opcoes[nome] || '').trim());
-  if (faltam.length) throw new ErroDeUso(`${comando} pede ${faltam.map(nome => `--${nome}`).join(', ')}`);
-  return normalizar(opcoes);
-}
-
-function riscoInformado(valor) {
-  if (valor === undefined) return undefined;
-  const risco = atencaoValida(valor.trim());
-  if (!risco) throw new ErroDeUso(`--risco é ${ATENCOES.join(', ').toLowerCase()}`);
-  return risco;
-}
-
-function coberturaInformada(valor) {
-  if (valor !== undefined && !COBERTURAS.includes(valor)) throw new ErroDeUso(`--cobertura é ${COBERTURAS.join(' ou ')}`);
-  return valor;
-}
-
-const normalizar = opcoes => ({
-  ...opcoes, risco: riscoInformado(opcoes.risco), cobertura: coberturaInformada(opcoes.cobertura), head: opcoes.head && opcoes.head.trim().toLowerCase(),
-});
 
 const registroDaRevisao = ({ veredito, head, autor, revisor, risco }, nota) => [
   'Registro de revisão independente', '', `Veredito: ${veredito}`, `Head: ${head}`, `Autor: ${autor}`, `Revisor: ${revisor}`, `Risco: ${risco}`,
   ...(nota ? ['', nota.trim()] : []),
 ].join('\n');
-
-const secaoDaProva = (head, nota, cobertura) => [
-  `## ${SECAO_DA_PROVA}`, '', cobertura === 'parcial' ? BLOQUEADA : FRASE, `Head: ${head}`, ...(nota ? ['', nota.trim()] : []),
-].join('\n');
-
-function corpoComAProva(corpo, secao) {
-  const linhas = String(corpo || '').split(/\r?\n/);
-  const visiveis = linhas.join('\n').replace(/<!--[^]*?(?:-->|$)/g, trecho => trecho.replace(/[^\n]/g, ' ')).split('\n');
-  let cerca = null;
-  let inicio = -1;
-  let fim = linhas.length;
-  for (let i = 0; i < visiveis.length; i++) {
-    const abre = CERCA.exec(visiveis[i]);
-    if (abre && !cerca) cerca = abre[1];
-    else if (abre && abre[1][0] === cerca[0] && abre[1].length >= cerca.length && visiveis[i].trim() === abre[1]) cerca = null;
-    const titulo = !cerca && !abre && tituloDe(visiveis[i]);
-    if (!titulo) continue;
-    if (inicio < 0 && nomeDoTitulo(titulo.texto) === SECAO_DA_PROVA.toLowerCase()) inicio = i;
-    else if (inicio >= 0 && titulo.nivel <= tituloDe(visiveis[inicio]).nivel) {
-      fim = i;
-      break;
-    }
-  }
-  if (inicio < 0) return `${linhas.join('\n').replace(/\s+$/, '')}\n\n${secao}\n`;
-  return [...linhas.slice(0, inicio), secao, '', ...linhas.slice(fim)].join('\n');
-}
 
 function faltaDoHeadInformado(informado, head, oQue) {
   if (informado === head) return null;
@@ -139,88 +69,69 @@ function planejarProva(opcoes, pr, nota) {
   return { corpo, secao, depois: conferir({ ...pr, corpo, head }) };
 }
 
-function cliente(env) {
-  return async (metodo, caminho, corpo) => {
-    const resposta = await fetch(`${env.GITHUB_API_URL || 'https://api.github.com'}/repos/${env.GITHUB_REPOSITORY}/${caminho}`, {
-      method: metodo,
-      headers: { accept: 'application/vnd.github+json', 'content-type': 'application/json', ...(env.GITHUB_TOKEN ? { authorization: `Bearer ${env.GITHUB_TOKEN}` } : {}) },
-      body: corpo === undefined ? undefined : JSON.stringify(corpo),
-    });
-    if (!resposta.ok) throw new Error(`o GitHub respondeu ${resposta.status} a ${metodo} ${caminho}`);
-    const texto = await resposta.text();
-    return texto ? JSON.parse(texto) : null;
-  };
+const textoDoPlano = plano => plano.comentario || plano.secao;
+
+function recusar(opcoes, plano) {
+  console.log(`✗ Nada foi publicado na PR ${opcoes.pr}: ${plano.recusa}`);
+  return 1;
 }
 
-async function execucaoDoCheck(pedir, head) {
-  const { workflow_runs: execucoes } = await pedir('GET', `actions/workflows/${WORKFLOW}/runs?head_sha=${head}&per_page=20`);
-  return execucoes.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0] || null;
+function mostrarOPlano(plano, opcoes) {
+  const onde = plano.comentario ? 'O comentário' : 'A seção que entra no corpo';
+  console.log(`${onde} da PR ${opcoes.pr}${opcoes.publicar ? '' : ' (ensaio: nada foi publicado; repita com --publicar)'}:\n\n${textoDoPlano(plano).replace(/^/gm, '    ')}\n`);
 }
 
-const semExecucao = ({ numero, repo }) => '  O check "Registro da PR" não tem execução neste head, e um comentário não cria uma. Se a PR acabou de receber '
-  + 'um commit ou uma edição, espere um minuto e confira de novo. Senão, feche e reabra a PR (o head não muda, e a revisão e a prova continuam valendo): '
-  + `gh pr close ${numero} -R ${repo} && gh pr reopen ${numero} -R ${repo}`;
-
-async function rodarDeNovo(pedir, pr, qual) {
-  const execucao = await execucaoDoCheck(pedir, pr.head);
-  if (!execucao) return semExecucao(qual);
-  if (execucao.status !== 'completed') return `  O check já está rodando neste head (execução ${execucao.id}).`;
-  await pedir('POST', `actions/runs/${execucao.id}/rerun`);
-  return `  Check rodando de novo (execução ${execucao.id}): ${execucao.html_url || ''}`.trimEnd();
+async function publicarOPlano(plano, opcoes, alvo) {
+  if (plano.comentario) await alvo.pedir('POST', `pulls/${opcoes.pr}/reviews`, { commit_id: alvo.pr.head, event: 'COMMENT', body: plano.comentario });
+  else await alvo.pedir('PATCH', `pulls/${opcoes.pr}`, { body: plano.corpo });
+  console.log(plano.comentario ? 'Registro publicado como revisão da PR (o evento de revisão já roda o check).' : 'Corpo gravado (a edição do corpo dispara o check).');
 }
 
-function ambiente(env, opcoes) {
-  const tentar = (comando, args) => {
-    try {
-      return execFileSync(comando, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    } catch {
-      return '';
-    }
-  };
-  const doRemoto = () => (/github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/.exec(tentar('git', ['remote', 'get-url', 'origin'])) || [])[1];
-  const repo = opcoes.repo || env.GITHUB_REPOSITORY || doRemoto();
-  if (!repo) throw new ErroDeUso('não sei qual é o repositório: passe --repo <dono/repo>');
-  return { ...env, GITHUB_REPOSITORY: repo, PR: opcoes.pr, GITHUB_TOKEN: env.GITHUB_TOKEN || env.GH_TOKEN || tentar('gh', ['auth', 'token']) };
+async function ensaiarOuPublicar(plano, opcoes, alvo) {
+  if (!textoDoPlano(plano)) return;
+  mostrarOPlano(plano, opcoes);
+  if (opcoes.publicar) await publicarOPlano(plano, opcoes, alvo);
+}
+
+async function relatarOCheck(plano, opcoes, alvo) {
+  console.log(`${textoDoPlano(plano) ? 'Com isso publicado, o check diz:\n' : ''}${plano.depois.mensagem}`);
+  if (plano.comentario && opcoes.publicar) console.log(await rodarDeNovo(alvo.pedir, alvo.pr, alvo.qual));
+  else if (!plano.corpo && !await execucaoDoCheck(alvo.pedir, alvo.pr.head)) console.log(semExecucao(alvo.qual));
+}
+
+async function executarComando(opcoes, env) {
+  const nota = opcoes.nota ? fs.readFileSync(opcoes.nota, 'utf8') : '';
+  const pedir = cliente(env);
+  const pr = await lerDoGitHub(env);
+  const plano = planejar(opcoes, pr, nota);
+  if (plano.recusa) return recusar(opcoes, plano);
+  const alvo = { pedir, pr, qual: { numero: opcoes.pr, repo: env.GITHUB_REPOSITORY } };
+  await ensaiarOuPublicar(plano, opcoes, alvo);
+  await relatarOCheck(plano, opcoes, alvo);
+  return plano.depois.ok ? 0 : 1;
+}
+
+function dizerEEncerrar(codigo, texto) {
+  console.log(texto);
+  return { codigo };
+}
+
+function prepararAChamada(argv, env) {
+  try {
+    const opcoes = lerArgumentos(argv);
+    if (opcoes.ajuda) return dizerEEncerrar(0, AJUDA);
+    return { opcoes, env: ambiente(env, opcoes) };
+  } catch (erro) {
+    if (!(erro instanceof ErroDeUso)) throw erro;
+    return dizerEEncerrar(2, `${erro.message}\n\n${AJUDA}`);
+  }
 }
 
 async function main(argv, env) {
-  let opcoes;
+  const chamada = prepararAChamada(argv, env);
+  if (chamada.codigo !== undefined) return chamada.codigo;
   try {
-    opcoes = lerArgumentos(argv);
-    if (opcoes.ajuda) {
-      console.log(AJUDA);
-      return 0;
-    }
-    env = ambiente(env, opcoes);
-  } catch (erro) {
-    if (!(erro instanceof ErroDeUso)) throw erro;
-    console.log(`${erro.message}\n\n${AJUDA}`);
-    return 2;
-  }
-  try {
-    const nota = opcoes.nota ? fs.readFileSync(opcoes.nota, 'utf8') : '';
-    const pedir = cliente(env);
-    const pr = await lerDoGitHub(env);
-    const plano = planejar(opcoes, pr, nota);
-    if (plano.recusa) {
-      console.log(`✗ Nada foi publicado na PR ${opcoes.pr}: ${plano.recusa}`);
-      return 1;
-    }
-    const qual = { numero: opcoes.pr, repo: env.GITHUB_REPOSITORY };
-    const texto = plano.comentario || plano.secao;
-    if (texto) {
-      const onde = plano.comentario ? 'O comentário' : 'A seção que entra no corpo';
-      console.log(`${onde} da PR ${opcoes.pr}${opcoes.publicar ? '' : ' (ensaio: nada foi publicado; repita com --publicar)'}:\n\n${texto.replace(/^/gm, '    ')}\n`);
-    }
-    if (texto && opcoes.publicar) {
-      if (plano.comentario) await pedir('POST', `pulls/${opcoes.pr}/reviews`, { commit_id: pr.head, event: 'COMMENT', body: plano.comentario });
-      else await pedir('PATCH', `pulls/${opcoes.pr}`, { body: plano.corpo });
-      console.log(plano.comentario ? 'Registro publicado como revisão da PR (o evento de revisão já roda o check).' : 'Corpo gravado (a edição do corpo dispara o check).');
-    }
-    console.log(`${texto ? 'Com isso publicado, o check diz:\n' : ''}${plano.depois.mensagem}`);
-    if (plano.comentario && opcoes.publicar) console.log(await rodarDeNovo(pedir, pr, qual));
-    else if (!plano.corpo && !await execucaoDoCheck(pedir, pr.head)) console.log(semExecucao(qual));
-    return plano.depois.ok ? 0 : 1;
+    return await executarComando(chamada.opcoes, chamada.env);
   } catch (erro) {
     console.log(`✗ ${erro.message}`);
     return 2;

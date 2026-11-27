@@ -1,5 +1,6 @@
 'use strict';
 const Module = require('module');
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const util = require('util');
@@ -185,6 +186,7 @@ class RedeFalsa {
 class Palco {
   constructor(caminhoDoModulo) {
     this.modulo = path.resolve(caminhoDoModulo);
+    this.modulos = new Set(fs.readdirSync(path.dirname(this.modulo)).filter(nome => /^kling-.*\.js$/.test(nome)).map(nome => path.join(path.dirname(this.modulo), nome)));
     this.raiz = comBarra(path.resolve(path.dirname(this.modulo), '..', '..', '..'));
     this.registro = [];
     this.disco = new DiscoFalso(this);
@@ -305,10 +307,10 @@ class Palco {
 
   instalar() {
     const falsos = this.falsos();
-    const modulo = this.modulo;
+    const modulos = this.modulos;
     const palco = this;
     Module._load = function (pedido, pai, ...resto) {
-      if (!pai || pai.filename !== modulo) return carregadorOriginal.call(this, pedido, pai, ...resto);
+      if (!pai || !modulos.has(pai.filename)) return carregadorOriginal.call(this, pedido, pai, ...resto);
       if (pedido === '@google/genai') return palco.sdkDoGoogle();
       return falsos[pedido] || carregadorOriginal.call(this, pedido, pai, ...resto);
     };
@@ -341,7 +343,7 @@ class Palco {
 
   servico() {
     process.resourcesPath = this.recursos;
-    delete require.cache[this.modulo];
+    for (const modulo of this.modulos) delete require.cache[modulo];
     const KlingVideoService = require(this.modulo);
     this.instancia = new KlingVideoService(this.app);
     this.anotar(`ffmpeg ${this.instancia.ffmpegPath}`);
