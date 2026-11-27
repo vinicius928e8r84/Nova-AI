@@ -40,11 +40,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -105,20 +122,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -307,11 +368,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -372,20 +450,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -566,11 +688,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -631,20 +770,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -805,11 +988,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           }
@@ -839,11 +1039,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           }
@@ -873,11 +1090,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           }
@@ -1124,11 +1358,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           }
@@ -1311,11 +1562,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -1376,20 +1644,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -1441,11 +1753,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -1506,20 +1835,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -1668,11 +2041,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -1750,20 +2140,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -1910,11 +2344,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -2092,11 +2543,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -2157,20 +2625,64 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
-                "audiocodecid": 10,
-                "audiosamplerate": 48000,
-                "audiosamplesize": 16,
-                "audiochannels": 2,
-                "stereo": true,
-                "audiodatarate": 128
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ],
+                  [
+                    "audiocodecid",
+                    10
+                  ],
+                  [
+                    "audiosamplerate",
+                    48000
+                  ],
+                  [
+                    "audiosamplesize",
+                    16
+                  ],
+                  [
+                    "audiochannels",
+                    2
+                  ],
+                  [
+                    "stereo",
+                    true
+                  ],
+                  [
+                    "audiodatarate",
+                    128
+                  ]
+                ]
               }
             ]
           },
@@ -2368,11 +2880,28 @@
               "connect",
               1,
               {
-                "app": "live",
-                "type": "nonprivate",
-                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
-                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
-                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+                "propriedades": [
+                  [
+                    "app",
+                    "live"
+                  ],
+                  [
+                    "type",
+                    "nonprivate"
+                  ],
+                  [
+                    "flashVer",
+                    "FMLE/3.0 (compatible; FMSc/1.0)"
+                  ],
+                  [
+                    "swfUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ],
+                  [
+                    "tcUrl",
+                    "rtmp://127.0.0.1:<porta>/live"
+                  ]
+                ]
               }
             ]
           },
@@ -2433,14 +2962,40 @@
               "@setDataFrame",
               "onMetaData",
               {
-                "duration": 0,
-                "fileSize": 0,
-                "width": 640,
-                "height": 360,
-                "videocodecid": 7,
-                "videodatarate": 600,
-                "framerate": 30,
-                "encoder": "CAM LIVE (reconstrução do MiniOBS)"
+                "propriedades": [
+                  [
+                    "duration",
+                    0
+                  ],
+                  [
+                    "fileSize",
+                    0
+                  ],
+                  [
+                    "width",
+                    640
+                  ],
+                  [
+                    "height",
+                    360
+                  ],
+                  [
+                    "videocodecid",
+                    7
+                  ],
+                  [
+                    "videodatarate",
+                    600
+                  ],
+                  [
+                    "framerate",
+                    30
+                  ],
+                  [
+                    "encoder",
+                    "CAM LIVE (reconstrução do MiniOBS)"
+                  ]
+                ]
               }
             ]
           },

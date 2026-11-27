@@ -38,14 +38,14 @@ function lerAmf(b, p) {
 }
 
 function lerPropriedades(b, inicio) {
-  const objeto = {};
+  const propriedades = [];
   let p = inicio;
   for (;;) {
     const n = b.readUInt16BE(p);
-    if (n === 0) return [objeto, p + 3];
+    if (n === 0) return [{ propriedades }, p + 3];
     const chave = b.toString('utf8', p + 2, p + 2 + n);
     const [valor, depois] = lerAmf(b, p + 2 + n);
-    objeto[chave] = valor;
+    propriedades.push([chave, valor]);
     p = depois;
   }
 }
