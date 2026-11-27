@@ -178,10 +178,10 @@ test('Python: 601 linhas de código passam dois do limite 599; comentário e lin
 });
 
 test('mede JS e Python de código; fica de fora o que configuracao.json isenta', () => {
-  for (const caminho of ['app/electron/main.js', 'app/x.mjs', 'MAC/a/b.cjs', 'app/wake_word_bg.py', 'app/electron/dist/x.js', 'vendor/x.js']) {
+  for (const caminho of ['app/electron/main.js', 'app/x.mjs', 'MAC/a/b.cjs', 'app/wake_word_bg.py', 'app/electron/dist/x.js', 'vendor/x.js', 'MAC/x/reservas/a.js']) {
     assert.equal(regra.seAplica(CONFIG, caminho), true, caminho);
   }
-  for (const caminho of ['app/dist/assets/a.js', 'MAC/x/dist/a.js', 'MAC/x/reservas/a.js', 'backup-antes-traducao/a.js', 'app/electron/pwa/marked.min.js', 'a.css', 'a.json', 'a.ts']) {
+  for (const caminho of ['app/dist/assets/a.js', 'MAC/x/dist/a.js', 'backup-antes-traducao/a.js', 'app/electron/pwa/marked.min.js', 'a.css', 'a.json', 'a.ts']) {
     assert.equal(regra.seAplica(CONFIG, caminho), false, caminho);
   }
 });

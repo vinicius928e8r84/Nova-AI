@@ -119,9 +119,9 @@ test('diretiva, shebang e licença não contam', () => {
   assert.equal(r.codigo, 0, r.saida);
 });
 
-test('arquivos isentos (reservas, dist) não entram na conta', () => {
-  const repo = repoCom({ 'MAC/x/reservas/a.js': comComentarios(4) }, {});
-  repo.escrever({ 'MAC/x/reservas/a.js': comComentarios(5) });
+test('arquivos isentos (dist) não entram na conta', () => {
+  const repo = repoCom({ 'MAC/x/dist/a.js': comComentarios(4) }, {});
+  repo.escrever({ 'MAC/x/dist/a.js': comComentarios(5) });
   const r = repo.rodar(...REGRA);
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);

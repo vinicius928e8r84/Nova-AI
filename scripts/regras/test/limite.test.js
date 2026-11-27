@@ -135,14 +135,13 @@ test('arquivo grande renomeado herda o teto do nome antigo', () => {
   assert.equal(depois.codigo, 0, depois.saida);
 });
 
-test('ignora dist, lock e dado; reservas aceita cópia mas o resto não', () => {
+test('ignora dist, lock e dado; o resto não', () => {
   const grande = linhas(1500);
   const repo = criar({ 'app/grande.js': grande }, { 'app/grande.js': 1500 });
   repo.escrever({
     'app/dist/assets/bundle.js': grande,
     'app/package-lock.json': grande,
     'app/dados.json': grande,
-    'MAC/x/reservas/20261115/grande.js': grande,
   });
   const aceita = executar(repo);
   assert.equal(aceita.codigo, 0, aceita.saida);
@@ -151,6 +150,15 @@ test('ignora dist, lock e dado; reservas aceita cópia mas o resto não', () => 
   repo.limpar();
   assert.equal(recusa.codigo, 1);
   assert.match(recusa.saida, /app\/outra-copia\.js: 1500 linhas/);
+});
+
+test('reservas/ não é mais isenta do limite de linhas, no MAC nem nas pastas novas', () => {
+  const repo = criar();
+  repo.escrever({ 'MAC/x/reservas/20261115/grande.js': linhas(1500), 'iphone/x/reservas/1/grande.js': linhas(1500) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  for (const nome of ['MAC/x/reservas/20261115/grande.js', 'iphone/x/reservas/1/grande.js']) assert.ok(r.saida.includes(nome), r.saida);
 });
 
 test('a marca de gerado não isenta arquivo novo nem arquivo da linha de base', () => {

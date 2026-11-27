@@ -4,12 +4,12 @@ const { bytesDaBase } = require('./git');
 const { ehCodigoDeComentario, ehCodigoDoLimite } = require('./escopo');
 const { casaAlgum, extensaoDe } = require('./globs');
 
-const RESERVAS = ['MAC/**/reservas/', '{iphone,interface,distribuicao}/**/reservas/'];
+const RESERVAS = ['**/reservas/'];
 
 const id = 'sem-binario-nem-lixo';
 const titulo = 'Nenhum instalador, binário, arquivo grande ou cópia de backup novo';
 const conserto = 'Instaladores e binários (.dmg, .exe, .zip, .deb, .tgz…) ficam fora do git: .gitignore e AGENTS.md seção 4. Gere-os no CI ou publique como release. '
-  + 'Cópias de backup (*.bak-*, *.orig, *.antes-*) não entram: o git já guarda o arquivo anterior. O que precisa ser guardado antes de trocar o do app vai em MAC/<área>/reservas/. Cópia idêntica de arquivo que já existe também conta.';
+  + 'Cópias de backup (*.bak-*, *.orig, *.antes-*) não entram: o git já guarda o arquivo anterior. O que precisa ser guardado antes de trocar o do app vai fora do repositório, em ~/Nova-AI-reservas/AAAAMMDD-HHMMSS-<branch>/ (AGENTS.md seção 5). Cópia idêntica de arquivo que já existe também conta.';
 
 const eSuspeito = buffer => {
   for (const byte of buffer.subarray(0, 512)) if (byte === 0 || (byte < 9) || (byte > 13 && byte < 32)) return true;
@@ -51,15 +51,18 @@ function verificar(ctx) {
     }
     if (item.status === 'M') {
       const modificado = ctx.ler(caminho);
-      const problema = modificado && !casaAlgum(RESERVAS, caminho) ? verificarModificado(ctx, item, modificado, maximo) : null;
+      const problema = modificado ? verificarModificado(ctx, item, modificado, maximo) : null;
       if (problema) achados.push({ arquivo: caminho, detalhe: problema });
       continue;
     }
     if (item.status !== 'A' && item.status !== 'R') continue;
     const arquivo = ctx.ler(caminho);
     if (!arquivo) continue;
-    const emReservas = casaAlgum(RESERVAS, caminho);
-    if (!emReservas && casaAlgum(binarios.lixo, caminho)) {
+    if (casaAlgum(RESERVAS, caminho)) {
+      achados.push({ arquivo: caminho, detalhe: 'cópia de backup em reservas/: a cópia do arquivo anterior do app instalado fica fora do repositório, em ~/Nova-AI-reservas/AAAAMMDD-HHMMSS-<branch>/' });
+      continue;
+    }
+    if (casaAlgum(binarios.lixo, caminho)) {
       achados.push({ arquivo: caminho, detalhe: 'cópia de backup, sobra de editor, log ou pasta de dependências' });
       continue;
     }

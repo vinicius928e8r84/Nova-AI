@@ -8,8 +8,6 @@
     {"glob": "app/dist/assets/", "motivo": "bundle minificado da interface e bibliotecas de terceiros (face-api, MediaPipe); app/dist/cam-live*.js é código escrito à mão e é cobrado"},
     {"glob": "MAC/**/dist/", "motivo": "bundle gerado da interface e seus patches"},
     {"glob": "interface/dist/", "motivo": "bundle gerado da interface e seus patches"},
-    {"glob": "MAC/**/reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
-    {"glob": "{iphone,interface,distribuicao}/**/reservas/", "motivo": "cópias do arquivo anterior guardadas antes de trocar o do app (AGENTS.md seção 5)"},
     {"glob": "backup-antes-traducao/", "motivo": "cópia de segurança anterior à tradução"},
     {"glob": "MAC/**/backup-*/", "motivo": "cópia de segurança de uma tradução"},
     {"glob": "{iphone,interface,distribuicao}/**/backup-*/", "motivo": "cópia de segurança de uma tradução"},
