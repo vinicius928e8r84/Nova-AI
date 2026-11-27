@@ -86,7 +86,7 @@ static NSArray<NSString *> *Match(NSString *pattern, NSString *s) {
     }
 
     int port = [portStr intValue];
-    if (port <= 0 || port > 65534) {
+    if (port <= 0 || port > 65535) {
         if (error) *error = @"porta fora da faixa 1-65535";
         return nil;
     }
