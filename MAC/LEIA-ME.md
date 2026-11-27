@@ -360,7 +360,7 @@ O que a Câmera do iPhone consome deixou de ser `http://127.0.0.1:18999/frame.jp
 
 - O servidor do Mac (CAM LIVE e CAM HIJACK) só responde em `/s/<token de 32 hex>/frame.jpg` e `/s/<token>/audio`; sem o token a resposta é 404 neutro. O token é novo a cada sessão.
 - O túnel SSH tenta primeiro um **socket Unix** em `/var/tmp/.nb-<8hex>.sock` (modo 666 para o mediaserverd). Nenhuma porta TCP fica escutando no iPhone. Se o sshd do aparelho recusar streamlocal, cai para uma **porta TCP aleatória** (20000–39999) com o mesmo token; o `-v` do ssh foi removido.
-- O bridge 0.1-39 valida o caminho com token, aceita `socket` no control, recusa a rota antiga e **removeu o IP fixo `10.0.0.245:8900`** que vinha do projeto original.
+- O bridge 0.1-39 valida o caminho com token, aceita `socket` no control, recusa a rota antiga e **removeu o IP fixo da rede de casa** que vinha do projeto original.
 - O sequestro (item 3) passou a pedir o endereço ao CAM LIVE (`mediaEndpoint()`): CAM LIVE, CAM HIJACK e sequestro compartilham o mesmo token/transporte em vez de repetir 18999.
 
 Compatibilidade: pontes 0.1-38 e anteriores são recusadas ("atualize por USB") porque não conhecem o token. Atualize pelo **Conectar** em PHONE CONTROL — o `camera.deb` 0.1-39 já está incluído no app.
