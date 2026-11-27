@@ -238,6 +238,10 @@ test('save-gemini-token: grava apiKey e geminiKey, mantém os outros campos e ig
   assert.strictEqual(await main.invocar('save-gemini-token', 'terceira'), true);
   assert.deepStrictEqual(lerGravado(main, 'secret_key.json'), { apiKey: 'terceira', geminiKey: 'terceira', updatedAt: AGORA });
 
+  gravar(path.join(main.pasta('userData'), 'secret_key.json'), 'null');
+  assert.strictEqual(await main.invocar('save-gemini-token', 'quarta'), false);
+  assert.strictEqual(textoGravado(main, 'secret_key.json'), 'null');
+
   const bloqueado = carregarMain();
   fs.mkdirSync(path.join(bloqueado.pasta('userData'), 'secret_key.json'), { recursive: true });
   assert.strictEqual(await bloqueado.invocar('save-gemini-token', 'k'), false);
