@@ -130,11 +130,11 @@ test('perfil salvo com fuso e idioma fixos continua mandando mais que o regional
   assert.match(inject, /var _tLocale = "pt-PT";/);
 });
 
-async function esperarAte(condicao) {
+async function esperarAte(condicao, motivo = 'o CDP falso não foi ligado a tempo') {
   for (let tentativa = 0; tentativa < 100 && !condicao(); tentativa++) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
-  assert.ok(condicao(), 'o CDP falso não foi ligado a tempo');
+  assert.ok(condicao(), motivo);
 }
 
 async function abrirComUrl(url) {
@@ -182,4 +182,37 @@ test('se o disfarce não for registrado na aba, a URL pedida não é aberta (a a
   };
   await anexarAlvo(cliente, 'aba-1', { type: 'page', url: 'about:blank' });
   assert.ok(!cliente.enviados.some((e) => e.metodo === 'Page.navigate'));
+});
+
+const execSyncReal = carregarOriginal.call(Module, 'child_process').execSync;
+const eWindows = plataformaOriginal.value === 'win32';
+
+function abrirChromeOrfao(marca) {
+  const pasta = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nova-orfao-')), marca);
+  fs.mkdirSync(pasta);
+  const executavel = path.join(pasta, 'chrome.exe');
+  fs.copyFileSync(process.execPath, executavel);
+  const orfao = carregarOriginal.call(Module, 'child_process').spawn(executavel, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });
+  raizes.push(path.dirname(pasta));
+  return orfao;
+}
+
+const estaVivo = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+
+test('no Windows a limpeza acha o Chrome órfão do spoof e o encerra', { skip: !eWindows }, async () => {
+  const marca = `nova_webcam_hijack_teste_${process.pid}`;
+  const orfao = abrirChromeOrfao(marca);
+  const outro = abrirChromeOrfao(`outra_pasta_${process.pid}`);
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    assert.ok(estaVivo(orfao.pid) && estaVivo(outro.pid));
+    usarPlataforma('win32');
+    const { servico } = criarServico();
+    palco.aoExecSync = (comando) => execSyncReal(comando.replace('nova_webcam_hijack', marca), { stdio: 'ignore', timeout: 20000 });
+    await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default' }));
+    await esperarAte(() => !estaVivo(orfao.pid), 'o Chrome órfão continuou vivo');
+    assert.ok(estaVivo(outro.pid), 'um Chrome fora do spoof não pode ser encerrado');
+  } finally {
+    for (const processo of [orfao, outro]) if (estaVivo(processo.pid)) processo.kill();
+  }
 });

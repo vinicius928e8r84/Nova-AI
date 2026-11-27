@@ -178,12 +178,9 @@ class GlobalSpoofService {
             if (process.platform === 'darwin') {
                 const r = spawnSync('pkill', ['-f', '--', require('./paridade-utils').MAC_CAM_SPOOF_KILL_PATTERN], { timeout: 5000 });
                 if (r.error || r.status > 1) console.error('[GlobalSpoof] Failed to run Chrome cleanup:', r.error ? r.error.message : `pkill status ${r.status}`);
-            } else try {
-                execSync('wmic process where "name=\'chrome.exe\' and CommandLine like \'%nova_webcam_hijack%\'" call terminate', { stdio: 'ignore', timeout: 3000 });
-                console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via WMIC.');
-            } catch (wmicErr) {
-                const cleanupCmd = `Get-CimInstance Win32_Process -Filter "Name = 'chrome.exe'" | Where-Object { $_.CommandLine -like "*nova_webcam_hijack*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`;
-                execSync(`powershell -NoProfile -Command "${cleanupCmd}"`, { stdio: 'ignore', timeout: 5000 });
+            } else {
+                const cleanupCmd = `Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'chrome.exe' -and $_.CommandLine -like '*nova_webcam_hijack*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+                execSync(`powershell -NoProfile -Command "${cleanupCmd}"`, { stdio: 'ignore', timeout: 15000 });
                 console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via PowerShell.');
             }
         } catch (cleanupErr) {
