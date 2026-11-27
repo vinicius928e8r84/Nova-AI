@@ -9,7 +9,9 @@ const portao = require('../../ci/portao-dos-testes');
 
 const RAIZ = path.join(__dirname, '..', '..', '..');
 const SCRIPT = path.join(RAIZ, 'scripts', 'ci', 'portao-dos-testes.js');
-const WORKFLOW = fs.readFileSync(path.join(RAIZ, '.github', 'workflows', 'regras.yml'), 'utf8');
+const PASTA_DOS_WORKFLOWS = path.join(RAIZ, '.github', 'workflows');
+const lerWorkflow = nome => fs.readFileSync(path.join(PASTA_DOS_WORKFLOWS, nome), 'utf8');
+const WORKFLOW = fs.readdirSync(PASTA_DOS_WORKFLOWS).map(lerWorkflow).join('\n');
 
 const LISTA = {
   grupos: [
@@ -128,6 +130,62 @@ test('o workflow lê os grupos da lista e não repete nome de teste', () => {
   assert.doesNotMatch(WORKFLOW, /\.cjs/);
   const jobs = new Set(lista.grupos.map(grupo => grupo.job));
   for (const job of jobs) assert.match(WORKFLOW, new RegExp(`node scripts/ci/portao-dos-testes\\.js --job ${job}\\b`), `o workflow precisa rodar o job ${job} da lista`);
+});
+
+const TESTES_DO_MAC = [
+  'iphone/proxy/tool/test/parse_test.m',
+  'iphone/proxy/tool/test/upstream_test.m',
+  'iphone/proxy/tool/test/rodar.sh',
+  'iphone/idioma/test/rodar.sh',
+  'iphone/idioma/test/teste-novalanguage.sh',
+  'iphone/idioma/test/teste-helper.sh',
+];
+const gruposDoMac = () => lista.grupos.filter(grupo => grupo.job === 'mac');
+const arquivosDosGruposDoMac = () => new Set(gruposDoMac().flatMap(grupo => portao.arquivosDoGrupo(grupo, versionados)));
+
+test('os testes do Mac do proxy e do idioma estão num grupo do job mac', () => {
+  const noMac = arquivosDosGruposDoMac();
+  assert.deepEqual(TESTES_DO_MAC.filter(arquivo => !noMac.has(arquivo)), []);
+});
+
+test('nenhum teste em Objective-C ou shell do iPhone fica de fora do job mac', () => {
+  const noMac = arquivosDosGruposDoMac();
+  const doIphone = portao.arquivosDeTeste(versionados).filter(arquivo => arquivo.startsWith('iphone/') && /\.(m|sh)$/.test(arquivo));
+  assert.ok(doIphone.length >= TESTES_DO_MAC.length);
+  assert.deepEqual(doIphone.filter(arquivo => !noMac.has(arquivo)), []);
+});
+
+test('o job mac executa os dois rodar.sh com bash e só eles', () => {
+  assert.deepEqual(portao.arquivosDoJob(lista, 'mac', versionados), [['mac', ['iphone/idioma/test/rodar.sh', 'iphone/proxy/tool/test/rodar.sh'], 'bash']]);
+});
+
+test('grupo com executar só pode executar arquivo que ele mesmo cobre', () => {
+  const grupo = { nome: 'mac', job: 'mac', com: 'bash', arquivos: ['t/a/rodar.sh', 't/a/x_test.m'], executar: ['t/a/rodar.sh', 't/b/rodar.sh'] };
+  const arquivos = ['t/a/rodar.sh', 't/a/x_test.m', 't/b/rodar.sh'];
+  assert.match(problemasDe({ grupos: [grupo], fora: [] }, arquivos).join('\n'), /mac.*executa t\/b\/rodar\.sh.*não cobre/);
+  assert.deepEqual(problemasDe({ grupos: [{ ...grupo, executar: ['t/a/rodar.sh'] }], fora: [] }, arquivos.slice(0, 2)), []);
+});
+
+test('grupo com executar sem com é problema', () => {
+  const grupo = { nome: 'mac', job: 'mac', arquivos: ['t/a/rodar.sh'], executar: ['t/a/rodar.sh'] };
+  assert.match(problemasDe({ grupos: [grupo], fora: [] }, ['t/a/rodar.sh']).join('\n'), /mac.*sem com/);
+});
+
+test('rodar o job entrega o programa do grupo a quem executa', () => {
+  const chamadas = [];
+  const rodar = (arquivos, com) => chamadas.push([arquivos, com]) && 0;
+  portao.rodarGrupos([['a', ['x.cjs']], ['mac', ['y.sh'], 'bash']], rodar, () => {});
+  assert.deepEqual(chamadas, [[['x.cjs'], undefined], [['y.sh'], 'bash']]);
+});
+
+test('o workflow do Mac roda o job mac num macos-latest só quando o iPhone ou ele mesmo mudam', () => {
+  const texto = lerWorkflow('mac-iphone.yml');
+  assert.match(texto, /runs-on: macos-latest/);
+  assert.match(texto, /node scripts\/ci\/portao-dos-testes\.js --job mac\b/);
+  const paths = texto.match(/^ {4}paths:\r?\n((?: {6}- .+\r?\n)+)/m);
+  assert.ok(paths, 'o gatilho pull_request precisa de paths');
+  const caminhos = paths[1].split(/\r?\n/).filter(Boolean).map(linha => linha.replace(/^ +- /, '').replace(/^'|'$/g, ''));
+  assert.deepEqual(caminhos.sort(), ['.github/workflows/mac-iphone.yml', 'iphone/**']);
 });
 
 test('o teste do portão roda no job das regras', () => {
