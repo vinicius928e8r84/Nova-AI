@@ -156,6 +156,12 @@ function usuarioFalso() {
 
 const DEZ = Array.from({ length: 10 }, (_, i) => i + 1);
 
+async function gravarDezConversas(main, chats, invocar = (canal, ...argumentos) => main.invocar(canal, ...argumentos)) {
+  let ultimo;
+  for (let gravacao = 0; gravacao < DEZ.length; gravacao++) ultimo = await invocar('save-chats', chats);
+  return ultimo;
+}
+
 test('save-chats grava chats.json e a cada décima gravação da sessão pede a análise do perfil com a chave do secret_key.json', async () => {
   const usuario = usuarioFalso();
   const main = carregarMain({ modulos: { './services/user-profile-manager': usuario.modulo } });
@@ -167,7 +173,7 @@ test('save-chats grava chats.json e a cada décima gravação da sessão pede a 
   }
   assert.deepStrictEqual(usuario.chamadas.analisar, [['a', chats]]);
   assert.strictEqual(textoGravado(main, 'chats.json'), JSON.stringify(chats, null, 2));
-  for (const n of DEZ) await main.invocar('save-chats', chats);
+  await gravarDezConversas(main, chats);
   assert.strictEqual(usuario.chamadas.analisar.length, 2);
 });
 
@@ -183,9 +189,7 @@ test('save-chats na décima gravação: usa geminiKey sem apiKey, o ambiente sem
     const usuario = usuarioFalso();
     const main = carregarMain({ modulos: { './services/user-profile-manager': usuario.modulo } });
     if (conteudo !== AUSENTE) gravar(caminhoDe(main, 'secret_key.json'), conteudo);
-    await comChaveDoGemini(ambiente, async () => {
-      for (const n of DEZ) assert.strictEqual(await main.invocar('save-chats', []), true);
-    });
+    assert.strictEqual(await comChaveDoGemini(ambiente, () => gravarDezConversas(main, [])), true);
     assert.deepStrictEqual(usuario.chamadas.analisar.map(([chave]) => chave), esperado, `${conteudo.toString()} / ${ambiente}`);
   }
 });
@@ -206,8 +210,7 @@ test('save-chats: a falha da análise do perfil só vai para o console e a grava
   const main = carregarMain({ modulos: { './services/user-profile-manager': usuario.modulo } });
   gravar(caminhoDe(main, 'secret_key.json'), '{"apiKey":"a"}');
   const { resultado, chamadas } = await anotandoConsole(['error'], async () => {
-    let ultimo;
-    for (const n of DEZ) ultimo = await chamarDireto(main, 'save-chats', []);
+    const ultimo = await gravarDezConversas(main, [], (canal, ...argumentos) => chamarDireto(main, canal, ...argumentos));
     await new Promise((resolve) => setImmediate(resolve));
     return ultimo;
   });
