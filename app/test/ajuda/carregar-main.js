@@ -12,6 +12,7 @@ const carregarOriginal = Module._load;
 Module._load = function (pedido, pai, ...resto) {
   const atual = carregamentoAtual;
   if (atual && pai?.filename === atual.caminho) {
+    if (atual.ausentes.includes(pedido)) throw Object.assign(new Error(`Cannot find module '${pedido}'`), { code: 'MODULE_NOT_FOUND' });
     if (Object.prototype.hasOwnProperty.call(atual.modulos, pedido)) return atual.modulos[pedido];
     if (!Module.isBuiltin(pedido)) return atual.dubleDoModulo(pedido);
   }
@@ -133,8 +134,9 @@ function processosProibidos() {
 }
 
 function silenciado(funcao) {
-  const antes = { log: console.log, warn: console.warn, error: console.error };
+  const antes = { log: console.log, info: console.info, warn: console.warn, error: console.error };
   console.log = () => {};
+  console.info = () => {};
   console.warn = () => {};
   console.error = () => {};
   const restaurar = () => Object.assign(console, antes);
@@ -165,9 +167,10 @@ function guardarEstadoDoProcesso() {
   };
 }
 
-function carregarMain({ electron: sobreporElectron = {}, modulos = {} } = {}) {
+function carregarMain({ electron: sobreporElectron = {}, modulos = {}, ausentes = [], preparar = () => {} } = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-main-'));
   raizesCriadas.push(raiz);
+  preparar(raiz);
   const registro = [];
   const arranque = { interromper: true, erros: [] };
   const falso = criarElectron(raiz, registro, arranque, sobreporElectron);
@@ -175,6 +178,7 @@ function carregarMain({ electron: sobreporElectron = {}, modulos = {} } = {}) {
   const restaurarProcesso = guardarEstadoDoProcesso();
   carregamentoAtual = {
     caminho: CAMINHO_DO_MAIN,
+    ausentes,
     modulos: {
       electron: falso.electron,
       child_process: processosProibidos(),
