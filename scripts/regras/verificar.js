@@ -21,6 +21,7 @@ const REGRAS = [
   require('./regra-saude'),
   require('./regra-autoria'),
   require('./regra-tamanho'),
+  require('./regra-codescene'),
 ];
 
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
