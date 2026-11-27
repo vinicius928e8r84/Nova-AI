@@ -4,79 +4,17 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
-const { spawn } = require('child_process');
-const cloudflared = require('cloudflared');
-const toolPaths = require('./tool-paths');
 const { AcessoDoAdmin } = require('./admin-acesso');
-
-const CORS_PREFLIGHT = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-};
-const CABECALHOS_JSON = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-const METODOS_DAS_ROTAS_FIREBASE = new Map([
-    ['/api/save-firebase-config', new Set(['POST', 'OPTIONS'])],
-    ['/api/get-firebase-config', new Set(['GET', 'OPTIONS'])]
-]);
-const URL_DO_TRYCLOUDFLARE = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/i;
-const ESPERA_PELA_URL_PUBLICA_MS = 15000;
+const { abrirTunelCloudflared, abrirTunelReserva } = require('./remote-access-tunel');
+const { SALA_AUTENTICADOS, RESULTADO_VALIDO, RESULTADO_INVALIDO, RESULTADO_BLOQUEADO, receberCelular } = require('./remote-access-celular');
+const { ehRotaDeConfigFirebase, responderPreflight, responderJson, responderJsonOuErro, servirPwa } = require('./remote-access-http');
 
 const tunelPublicoLigado = () => process.env.NOVA_REMOTE_TUNNEL === '1';
-const emDesenvolvimento = () => process.env.NODE_ENV === 'development';
-
-function ehRotaDeConfigFirebase(req) {
-    return METODOS_DAS_ROTAS_FIREBASE.get(req.url)?.has(req.method) === true;
-}
-
-function responderPreflight(res) {
-    res.writeHead(204, CORS_PREFLIGHT);
-    res.end();
-}
-
-function responderJson(res, status, corpo) {
-    res.writeHead(status, CABECALHOS_JSON);
-    res.end(JSON.stringify(corpo));
-}
-
-function responderJsonOuErro(res, produzirCorpo) {
-    try {
-        responderJson(res, 200, produzirCorpo());
-    } catch (e) {
-        responderJson(res, 500, { error: e.message });
-    }
-}
-
-function caminhoDoCloudflared() {
-    if (emDesenvolvimento()) return cloudflared.bin;
-    return toolPaths.tool('cloudflared') || path.join(process.resourcesPath, toolPaths.exe('cloudflared'));
-}
-
-function liberarExecucao(binario) {
-    console.info('[RemoteAccess] ✅ Binary found at:', binario);
-    try {
-        fs.chmodSync(binario, 0o755);
-    } catch (err) {
-        console.info('[RemoteAccess] Could not set permissions (Windows - not needed):', err.message);
-    }
-}
-
-function argumentosDoTunel(porta) {
-    return ['tunnel', '--url', `http://localhost:${porta}`, '--no-autoupdate'];
-}
 
 const { LimiteDeTentativas, clienteDaConexao } = require('./limite-tentativas');
 
-const SALA_AUTENTICADOS = 'autenticados';
 const BYTES_DO_TOKEN = 16;
 const TAMANHO_MINIMO_DO_TOKEN = BYTES_DO_TOKEN * 2;
-const RESULTADO_VALIDO = 'valido';
-const RESULTADO_INVALIDO = 'invalido';
-const RESULTADO_BLOQUEADO = 'bloqueado';
-const RECUSAS_DO_SOCKET = {
-    [RESULTADO_INVALIDO]: { success: false, error: 'Invalid token' },
-    [RESULTADO_BLOQUEADO]: { success: false, bloqueado: true, error: 'Muitas tentativas. Aguarde e tente de novo.' }
-};
 
 class RemoteAccessService {
     constructor(app) {
@@ -387,97 +325,7 @@ hone par ye file automatically update ho jayegi.
     }
 
     setupSocketHandlers() {
-        this.io.on('connection', (socket) => this.receberCelular(socket));
-    }
-
-    receberCelular(socket) {
-        console.info(`[RemoteAccess] New connection attempt: ${socket.id}`);
-        socket.on('authenticate', (carga) => this.autenticarSocket(socket, carga));
-        socket.on('chat-message', (data) => this.encaminharMensagem(socket, data));
-        socket.on('switch-model', (data) => this.encaminharTrocaDeModelo(socket, data));
-        socket.on('disconnect', () => this.desligarCelular(socket));
-        socket.on('get-groq-key', () => this.sendGroqKeyToClient(socket));
-    }
-
-    autenticarSocket(socket, carga) {
-        const cliente = this.clienteDaConexao(socket.handshake.address, socket.handshake.headers);
-        const resultado = this.conferirCliente(cliente, () => this.validateToken(carga?.token));
-        if (resultado === RESULTADO_VALIDO) return this.aceitarSocket(socket, carga.token);
-        socket.emit('authenticated', RECUSAS_DO_SOCKET[resultado]);
-        socket.disconnect();
-    }
-
-    aceitarSocket(socket, token) {
-        const tokenData = this.tokens.get(token);
-        this.connectedClients.set(socket.id, {
-            token,
-            deviceName: tokenData.deviceName,
-            connectedAt: Date.now()
-        });
-
-        this.confirmarAutenticacao(socket);
-        console.info(`[RemoteAccess] Client authenticated: ${tokenData.deviceName}`);
-
-        this.notifyDesktop('client-connected', {
-            deviceName: tokenData.deviceName,
-            socketId: socket.id
-        });
-
-        this.sendGroqKeyToClient(socket);
-    }
-
-    async encaminharMensagem(socket, data) {
-        const cliente = this.connectedClients.get(socket.id);
-        if (!cliente) {
-            socket.emit('error', { message: 'Não autenticado' });
-            return;
-        }
-        console.info(`[RemoteAccess] Message from ${cliente.deviceName}:`, data.message);
-        this.notifyDesktop('mobile-message', {
-            message: data.message,
-            attachments: data.attachments,
-            socketId: socket.id,
-            deviceName: cliente.deviceName
-        });
-    }
-
-    encaminharTrocaDeModelo(socket, data) {
-        const cliente = this.connectedClients.get(socket.id);
-        if (!cliente) return;
-        console.info(`[RemoteAccess] Model switch request from ${cliente.deviceName}:`, data.model);
-        this.notifyDesktop('model-select', { model: data.model, socketId: socket.id });
-    }
-
-    desligarCelular(socket) {
-        const cliente = this.connectedClients.get(socket.id);
-        if (!cliente) return;
-        console.info(`[RemoteAccess] Client disconnected: ${cliente.deviceName}`);
-        this.connectedClients.delete(socket.id);
-        this.notifyDesktop('client-disconnected', { deviceName: cliente.deviceName, socketId: socket.id });
-    }
-
-    sendGroqKeyToClient(socket) {
-        if (!this.connectedClients.has(socket.id)) return;
-        const groqKeyPath = path.join(this.app.getPath('userData'), 'groq_key.json');
-        try {
-            if (fs.existsSync(groqKeyPath)) {
-                const data = JSON.parse(fs.readFileSync(groqKeyPath, 'utf8'));
-                if (data.apiKey) {
-                    socket.emit('groq-key', { apiKey: data.apiKey });
-                    return;
-                }
-            }
-            if (process.env.GROQ_API_KEY) {
-                socket.emit('groq-key', { apiKey: process.env.GROQ_API_KEY });
-            }
-        } catch (e) {
-            console.error('[RemoteAccess] Error reading Groq key:', e);
-        }
-    }
-
-    confirmarAutenticacao(socket) {
-        socket.join(SALA_AUTENTICADOS);
-        socket.emit('authenticated', { success: true });
+        this.io.on('connection', (socket) => receberCelular(this, socket));
     }
 
     sendToMobile(socketId, event, data) {
@@ -503,158 +351,16 @@ hone par ye file automatically update ho jayegi.
     }
 
     servePWA(req, res) {
-        const pwaDir = path.join(__dirname, '../pwa');
-        let filePath = path.join(pwaDir, req.url === '/' ? 'index.html' : req.url);
-
-        if (!filePath.startsWith(pwaDir)) {
-            res.writeHead(403);
-            res.end('Forbidden');
-            return;
-        }
-
-        if (!fs.existsSync(filePath)) {
-            filePath = path.join(pwaDir, 'index.html');
-        }
-
-        const ext = path.extname(filePath);
-        const mimeTypes = {
-            '.html': 'text/html',
-            '.js': 'application/javascript',
-            '.css': 'text/css',
-            '.json': 'application/json',
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.svg': 'image/svg+xml',
-            '.ico': 'image/x-icon'
-        };
-
-        const contentType = mimeTypes[ext] || 'text/plain';
-
-        fs.readFile(filePath, (err, content) => {
-            if (err) {
-                res.writeHead(500);
-                res.end('Server Error');
-            } else {
-                res.writeHead(200, { 'Content-Type': contentType });
-                res.end(content);
-            }
-        });
+        servirPwa(req, res);
     }
 
-    async startCloudflaredTunnel() {
-        if (this.cloudflaredProcess) this.cloudflaredProcess.kill();
-
-        try {
-            console.info('[RemoteAccess] Starting Cloudflare Tunnel...');
-            const binario = caminhoDoCloudflared();
-            console.info('[RemoteAccess] Using binary path:', binario);
-            if (fs.existsSync(binario)) liberarExecucao(binario);
-            else if (!(await this.recuperarBinarioAusente(binario))) return;
-            this.dispararCloudflared(binario);
-        } catch (error) {
-            console.error('[RemoteAccess] Failed to start Cloudflare Tunnel:', error);
-            this.startFallbackTunnel();
-        }
+    startCloudflaredTunnel() {
+        return abrirTunelCloudflared(this);
     }
 
-    async recuperarBinarioAusente(binario) {
-        console.warn('[RemoteAccess] Cloudflared binary not found at:', binario);
-        if (!emDesenvolvimento()) {
-            this.desistirSemBinario(binario);
-            return false;
-        }
-        await cloudflared.install(binario).catch(err => console.error('[RemoteAccess] Manual install failed:', err));
-        return true;
+    startFallbackTunnel() {
+        return abrirTunelReserva(this);
     }
-
-    desistirSemBinario(binario) {
-        console.error('[RemoteAccess] Binary missing in production build!');
-        console.info('[RemoteAccess] Checked path:', binario);
-        console.info('[RemoteAccess] Resources path:', process.resourcesPath);
-        this.startFallbackTunnel();
-    }
-
-    dispararCloudflared(binario) {
-        this.cloudflaredProcess = spawn(binario, argumentosDoTunel(this.port), {
-            windowsHide: true,
-            stdio: ['ignore', 'pipe', 'pipe']
-        });
-        console.info('[RemoteAccess] Cloudflared process spawned');
-        this.acompanharCloudflared(this.cloudflaredProcess);
-        setTimeout(() => this.recuarSemUrlPublica(), ESPERA_PELA_URL_PUBLICA_MS);
-    }
-
-    acompanharCloudflared(processo) {
-        const lerSaida = (data) => this.lerSaidaDoCloudflared(data);
-        processo.stdout.on('data', lerSaida);
-        processo.stderr.on('data', lerSaida);
-        processo.on('error', (err) => {
-            console.error('[RemoteAccess] Cloudflared spawn error:', err);
-            this.startFallbackTunnel();
-        });
-        processo.on('close', (code) => this.aoFecharCloudflared(code));
-    }
-
-    lerSaidaDoCloudflared(data) {
-        const achada = data.toString().match(URL_DO_TRYCLOUDFLARE);
-        if (!achada || this.publicUrl) return;
-        this.publicUrl = achada[0].trim();
-        console.info(`[RemoteAccess] ✅ Cloudflared URL Ready: ${this.publicUrl}`);
-        this.writeLinkToFile();
-        this.notifyDesktop('tunnel-ready', {
-            url: this.publicUrl,
-            provider: 'cloudflare'
-        });
-    }
-
-    aoFecharCloudflared(code) {
-        console.info(`[RemoteAccess] Cloudflared exited with code ${code}`);
-        if (code !== 0 && !this.publicUrl) this.startFallbackTunnel();
-        this.publicUrl = null;
-    }
-
-    recuarSemUrlPublica() {
-        if (this.publicUrl || !this.isRunning) return;
-        console.info('[RemoteAccess] Cloudflare timeout, trying fallback...');
-        this.startFallbackTunnel();
-    }
-
-    async startFallbackTunnel() {
-        if (this.publicUrl) return;
-        if (!this.isRunning) return;
-
-        try {
-            console.log('[RemoteAccess] Starting Localtunnel fallback...');
-            let localtunnel;
-            try {
-                localtunnel = require('localtunnel');
-            } catch (err) {
-                console.error('[RemoteAccess] localtunnel module not installed. Fallback unavailable.');
-                return;
-            }
-
-            const tunnel = await localtunnel({ port: this.port });
-
-            this.publicUrl = tunnel.url;
-            console.log(`[RemoteAccess] ✅ Localtunnel Ready: ${this.publicUrl}`);
-
-            this.writeLinkToFile();
-
-            this.notifyDesktop('tunnel-ready', {
-                url: this.publicUrl,
-                provider: 'localtunnel'
-            });
-
-            tunnel.on('close', () => {
-                console.log('[RemoteAccess] Localtunnel closed');
-                this.publicUrl = null;
-            });
-
-        } catch (error) {
-            console.error('[RemoteAccess] Fallback tunnel failed:', error);
-        }
-    }
-
 
     getLocalIpAddress() {
         const os = require('os');
