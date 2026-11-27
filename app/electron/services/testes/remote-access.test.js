@@ -47,7 +47,7 @@ function novaCena() {
         dirEletron: pastaTemporaria('remote-eletron-'),
         interfaces: {
             lo: [{ family: 'IPv4', internal: true, address: '127.0.0.1' }],
-            en0: [{ family: 'IPv6', internal: false, address: 'fe80::1' }, { family: 'IPv4', internal: false, address: '192.168.0.7' }]
+            en0: [{ family: 'IPv6', internal: false, address: 'fe80::1' }, { family: 'IPv4', internal: false, address: '192.0.2.7' }]
         }
     });
 }
@@ -199,9 +199,9 @@ test('start sobe http e socket.io em 127.0.0.1 e devolve os endereços, túnel d
         success: true,
         port: PORTA,
         localUrl: 'http://localhost:3456',
-        localNetworkUrl: 'http://192.168.0.7:3456',
+        localNetworkUrl: 'http://192.0.2.7:3456',
         publicUrl: null,
-        localIp: '192.168.0.7'
+        localIp: '192.0.2.7'
     });
     assert.deepStrictEqual(Object.keys(resultado), ['success', 'port', 'localUrl', 'localNetworkUrl', 'publicUrl', 'localIp']);
     const [servidor] = cena.servidores;
@@ -213,7 +213,7 @@ test('start sobe http e socket.io em 127.0.0.1 e devolve os endereços, túnel d
     assert.deepStrictEqual(io.opcoes.cors.methods, ['GET', 'POST']);
     const origemAceita = (origem) => new Promise((resolve) => io.opcoes.cors.origin(origem, (_, ok) => resolve(ok)));
     assert.strictEqual(await origemAceita('http://localhost:3456'), true);
-    assert.strictEqual(await origemAceita('http://192.168.0.7:3456'), true);
+    assert.strictEqual(await origemAceita('http://192.0.2.7:3456'), true);
     assert.strictEqual(await origemAceita('https://site-qualquer.example'), false);
     const requisicaoAceita = (origem) => new Promise((resolve) => io.opcoes.allowRequest({ headers: { origin: origem } }, (_, ok) => resolve(ok)));
     assert.strictEqual(await requisicaoAceita(undefined), true);

@@ -7,7 +7,7 @@ const navegador = require('./browser-manager.palco');
 const estoque = require('./inventory-manager.palco');
 const { listaEmOrdem } = require('./caminhos-do-palco');
 
-const TEMPORARIA = 'C:\\Users\\nova\\AppData\\Local\\Temp';
+const TEMPORARIA = 'C:\\Users\\usuario\\AppData\\Local\\Temp';
 const APP_NO_WINDOWS = 'C:\\Nova\\app';
 const comBarraInvertidaDupla = texto => JSON.stringify(texto).slice(1, -1);
 

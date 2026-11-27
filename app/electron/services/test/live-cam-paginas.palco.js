@@ -151,7 +151,7 @@ function criarDocumento(registro) {
 function criarContexto(registro) {
   return vm.createContext({
     document: criarDocumento(registro),
-    location: { protocol: registro.cenario.protocolo ?? 'https:', host: '192.168.0.10:8899' },
+    location: { protocol: registro.cenario.protocolo ?? 'https:', host: '192.0.2.10:8899' },
     navigator: criarMidia(registro),
     WebSocket: criarWebSocket(registro),
     Date: { now: () => registro.agora },

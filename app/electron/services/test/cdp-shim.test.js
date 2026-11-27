@@ -160,7 +160,7 @@ test('descoberta com navegador: versão com o nosso websocket, lista repassada, 
 
 test('upgrade recusado: Host, Origin, URL, caminho e navegador que não sobe', async () => {
   const casos = [
-    [upgrade(porta, '/devtools/browser/stonic').replace(`Host: 127.0.0.1:${porta}`, 'Host: 10.0.0.2'), '403 Forbidden', 'non-loopback Host'],
+    [upgrade(porta, '/devtools/browser/stonic').replace(`Host: 127.0.0.1:${porta}`, 'Host: 192.0.2.2'), '403 Forbidden', 'non-loopback Host'],
     [upgrade(porta, '/devtools/browser/stonic', 'Origin: https://site.example.com\r\n'), '403 Forbidden', 'Origin header present (https://site.example.com)'],
     [upgrade(porta, '//'), '400 Bad Request', 'unparseable request URL'],
     [upgrade(porta, '/json/version'), '404 Not Found', 'path /json/version'],
