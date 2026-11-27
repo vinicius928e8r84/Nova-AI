@@ -7,13 +7,10 @@ const path = require('path');
 
 const VERIFICAR = path.join(__dirname, '..', 'verificar.js');
 const EMAIL_DO_REPOSITORIO = require('../configuracao.json').autoria.emailsDeAutor[0];
-const LINHA_DE_BASE = 'scripts/regras/linha-de-base.json';
 
 const linhas = quantas => Array.from({ length: quantas }, (_, i) => `const v${i} = ${i};`).join('\n') + '\n';
 
-const comoLinhaDeBase = (arquivos, saude) => `${JSON.stringify(saude === null ? { arquivos, comentarios: {} } : { arquivos, 'saude-do-codigo': saude, comentarios: {} })}\n`;
-
-function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
+function criar(arquivosDaBase = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'regras-teste-'));
   const git = (...args) => execFileSync('git', ['-c', `user.email=${EMAIL_DO_REPOSITORIO}`, '-c', 'user.name=t', ...args], { cwd: raiz, encoding: 'utf8', stdio: 'pipe' }).trim();
   const escrever = arquivos => {
@@ -32,7 +29,7 @@ function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
     git('commit', '-q', '--allow-empty', '-m', mensagem);
   };
   git('init', '-q', '-b', 'main');
-  escrever({ ...arquivosDaBase, [LINHA_DE_BASE]: comoLinhaDeBase(listaDaBase, saudeDaBase) });
+  escrever(arquivosDaBase);
   guardar('base');
   git('checkout', '-q', '-b', 'ramo');
   const rodar = (...args) => {
@@ -41,10 +38,9 @@ function criar(arquivosDaBase = {}, listaDaBase = {}, saudeDaBase = {}) {
     });
     return { codigo: resultado.status, saida: `${resultado.stdout}${resultado.stderr}` };
   };
-  const lista = (obj, saude = saudeDaBase) => escrever({ [LINHA_DE_BASE]: comoLinhaDeBase(obj, saude) });
-  return { raiz, git, escrever, guardar, rodar, lista, limpar: () => fs.rmSync(raiz, { recursive: true, force: true }) };
+  return { raiz, git, escrever, guardar, rodar, limpar: () => fs.rmSync(raiz, { recursive: true, force: true }) };
 }
 
 const temEslint = Boolean(process.env.ESLINT_BIN);
 
-module.exports = { criar, linhas, temEslint, EMAIL_DO_REPOSITORIO, LINHA_DE_BASE };
+module.exports = { criar, linhas, temEslint, EMAIL_DO_REPOSITORIO };
