@@ -33,6 +33,8 @@ Os mesmos conferidores do CI rodam antes do commit e do push. Instale uma vez em
 git config core.hooksPath .githooks
 ```
 
+O `npm ci --prefix scripts/regras/analisador` (o mesmo que instala o analisador da `saude-do-codigo`) já roda esse comando por você: o script `prepare` do analisador liga o `core.hooksPath` em `.githooks`, não troca uma pasta de ganchos que já esteja configurada para outro caminho e não faz nada com `--ignore-scripts`, que é como o CI instala. O comando manual continua valendo.
+
 - `.githooks/pre-commit` roda `verificar.js` contra `origin/main` com todas as regras menos `autoria` (o commit ainda não existe). Um commit barrado não é criado.
 - `.githooks/pre-push` roda `verificar.js` completo, com `autoria`, contra `<remoto>/main` (ou `origin/main`) quando o que sobe é o `HEAD` de um ramo; não julga a `main`.
 - Sem `node` ou sem `origin/main` o gancho avisa e deixa passar; `git fetch origin main` traz a base. `--no-verify` pula o gancho, e o CI barra do mesmo jeito. `.gitattributes` mantém os ganchos com fim de linha LF, que o `sh` do Windows exige.
