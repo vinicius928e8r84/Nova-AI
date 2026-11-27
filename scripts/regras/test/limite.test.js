@@ -2,8 +2,6 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('fs');
-const path = require('path');
 const { criar, linhas } = require('./auxiliar');
 
 const executar = (repo, ...args) => repo.rodar('--regra', 'limite-de-linhas', ...args);
@@ -25,119 +23,113 @@ test('falha: arquivo novo com 1001 linhas', () => {
   assert.match(r.saida, /app\/novo\.js: 1001 linhas, 1 acima do limite de 1000/);
 });
 
-test('passa: arquivo grande da linha de base que a mudança não aumenta', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+test('passa: arquivo que já passava do limite na branch-alvo e que a mudança não aumenta', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
   repo.escrever({ 'app/grande.js': linhas(1200).replace('v5 = 5', 'v5 = 50') });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);
 });
 
-test('falha: arquivo grande da linha de base que cresce', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+test('falha: arquivo que já passava do limite e cresce, com o teto igual ao tamanho na branch-alvo', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
   repo.escrever({ 'app/grande.js': linhas(1201) });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 1);
-  assert.match(r.saida, /1201 linhas; o teto é 1200/);
+  assert.match(r.saida, /app\/grande\.js: 1201 linhas; o teto é 1200, o tamanho dele na branch-alvo: arquivo grande não pode crescer \(1 linhas a mais\)/);
 });
 
-test('falha: subir a linha de base à mão para o arquivo poder crescer', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
-  repo.escrever({ 'app/grande.js': linhas(1300) });
-  repo.lista({ 'app/grande.js': 1300 });
-  const r = executar(repo);
-  repo.limpar();
-  assert.equal(r.codigo, 1);
-  assert.match(r.saida, /a linha de base subiu de 1200 para 1300/);
-});
-
-test('falha: listar na linha de base um arquivo novo acima do limite', () => {
-  const repo = criar();
-  repo.escrever({ 'app/novo.js': linhas(1100) });
-  repo.lista({ 'app/novo.js': 1100 });
-  const r = executar(repo);
-  repo.limpar();
-  assert.equal(r.codigo, 1);
-  assert.match(r.saida, /entrou na linha de base, que só encolhe/);
-});
-
-test('encolher passa sem editar a linha de base e avisa que ela pode descer', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+test('encolher passa sem editar nenhuma lista, e o teto seguinte é o tamanho novo', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
   repo.escrever({ 'app/grande.js': linhas(1100) });
-  const antes = executar(repo);
-  assert.equal(antes.codigo, 0, antes.saida);
-  assert.match(antes.saida, /a linha de base pode descer: app\/grande\.js 1200 → 1100/);
-  assert.equal(repo.rodar('--atualizar-linha-de-base').codigo, 0);
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(repo.raiz, 'scripts/regras/linha-de-base.json'), 'utf8')).arquivos, { 'app/grande.js': 1100 });
-  const depois = executar(repo);
-  repo.limpar();
-  assert.equal(depois.codigo, 0, depois.saida);
-});
-
-test('falha: linha de base do ramo abaixo do tamanho do arquivo', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+  const encolheu = executar(repo);
+  repo.guardar('encolhe');
+  repo.git('branch', '-f', 'main', 'HEAD');
   repo.escrever({ 'app/grande.js': linhas(1150) });
-  repo.lista({ 'app/grande.js': 1100 });
+  const voltou = executar(repo);
+  repo.limpar();
+  assert.equal(encolheu.codigo, 0, encolheu.saida);
+  assert.doesNotMatch(encolheu.saida, /linha de base/);
+  assert.equal(voltou.codigo, 1, voltou.saida);
+  assert.match(voltou.saida, /1150 linhas; o teto é 1100/);
+});
+
+test('arquivo que cai para 1000 linhas passa, e crescer de novo acima do limite falha', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
+  repo.escrever({ 'app/grande.js': linhas(1000) });
+  const cabe = executar(repo);
+  repo.guardar('cabe');
+  repo.git('branch', '-f', 'main', 'HEAD');
+  repo.escrever({ 'app/grande.js': linhas(1001) });
+  const cresce = executar(repo);
+  repo.limpar();
+  assert.equal(cabe.codigo, 0, cabe.saida);
+  assert.equal(cresce.codigo, 1, cresce.saida);
+  assert.match(cresce.saida, /app\/grande\.js: 1001 linhas, 1 acima do limite de 1000/);
+});
+
+test('falha: arquivo que cabia no limite na branch-alvo e passa dele', () => {
+  const repo = criar({ 'app/medio.js': linhas(900) });
+  repo.escrever({ 'app/medio.js': linhas(1100) });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 1);
-  assert.match(r.saida, /tem 1150 linhas e a linha de base do ramo diz 1100/);
+  assert.match(r.saida, /app\/medio\.js: 1100 linhas, 100 acima do limite de 1000/);
 });
 
-test('falha: crescer sobre a folga que a linha de base ainda guarda na main', () => {
-  const repo = criar({ 'app/grande.js': linhas(1130) }, { 'app/grande.js': 1200 });
-  repo.escrever({ 'app/grande.js': linhas(1170) });
-  const r = executar(repo);
-  repo.limpar();
-  assert.equal(r.codigo, 1);
-  assert.match(r.saida, /1170 linhas; o teto é 1130/);
-});
-
-test('passa: encolher na mesma PR que renomeia o arquivo grande', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+test('git mv leva o teto: o arquivo grande renomeado passa igual e encolhido, e falha se cresce', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
   repo.git('mv', 'app/grande.js', 'app/outro.js');
+  const igual = executar(repo);
   repo.escrever({ 'app/outro.js': linhas(1150) });
-  repo.lista({ 'app/outro.js': 1150 });
+  const encolhido = executar(repo);
+  repo.escrever({ 'app/outro.js': linhas(1201) });
+  const cresce = executar(repo);
+  repo.limpar();
+  assert.equal(igual.codigo, 0, igual.saida);
+  assert.equal(encolhido.codigo, 0, encolhido.saida);
+  assert.equal(cresce.codigo, 1, cresce.saida);
+  assert.match(cresce.saida, /app\/outro\.js: 1201 linhas; o teto é 1200/);
+});
+
+test('falha: cópia de um arquivo grande não leva o teto, nem a do que já estava na pasta isenta', () => {
+  const grande = linhas(1200);
+  const repo = criar({ 'app/grande.js': grande, 'MAC/x/reservas/20261101/velho.js': linhas(1300) });
+  repo.escrever({ 'app/copia.js': grande });
+  const copia = executar(repo);
+  repo.git('mv', 'MAC/x/reservas/20261101/velho.js', 'app/velho.js');
+  const daIsencao = executar(repo);
+  repo.limpar();
+  assert.equal(copia.codigo, 1, copia.saida);
+  assert.match(copia.saida, /app\/copia\.js: 1200 linhas, 200 acima do limite de 1000/);
+  assert.equal(daIsencao.codigo, 1, daIsencao.saida);
+  assert.match(daIsencao.saida, /app\/velho\.js: 1300 linhas, 300 acima do limite de 1000/);
+});
+
+test('arquivo que a mudança apaga não é cobrado', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
+  repo.escrever({ 'app/grande.js': null });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);
 });
 
-test('arquivo que cai para 1000 linhas sai da lista', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
-  repo.escrever({ 'app/grande.js': linhas(1000) });
-  assert.equal(executar(repo).codigo, 1);
-  assert.equal(repo.rodar('--atualizar-linha-de-base').codigo, 0);
-  const depois = executar(repo);
+test('não há lista a editar: a linha de base e as bandeiras dela não existem mais', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
+  const completo = repo.rodar();
+  const atualizar = repo.rodar('--atualizar-linha-de-base');
+  const criou = repo.rodar('--criar-linha-de-base');
   repo.limpar();
-  assert.equal(depois.codigo, 0, depois.saida);
-});
-
-test('--atualizar-linha-de-base recusa subir', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
-  repo.escrever({ 'app/grande.js': linhas(1250) });
-  const r = repo.rodar('--atualizar-linha-de-base');
-  repo.limpar();
-  assert.equal(r.codigo, 1);
-  assert.match(r.saida, /nada foi atualizado/);
-});
-
-test('arquivo grande renomeado herda o teto do nome antigo', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
-  repo.git('mv', 'app/grande.js', 'app/outro.js');
-  const r = executar(repo);
-  assert.equal(r.codigo, 1);
-  assert.match(r.saida, /app\/grande\.js: o arquivo não existe mais neste caminho/);
-  assert.equal(repo.rodar('--atualizar-linha-de-base').codigo, 0);
-  const depois = executar(repo);
-  repo.limpar();
-  assert.equal(depois.codigo, 0, depois.saida);
+  assert.equal(completo.codigo, 0, completo.saida);
+  assert.equal(atualizar.codigo, 2, atualizar.saida);
+  assert.match(atualizar.saida, /bandeira desconhecida: --atualizar-linha-de-base/);
+  assert.equal(criou.codigo, 2, criou.saida);
 });
 
 test('ignora dist, lock e dado; reservas aceita cópia mas o resto não', () => {
   const grande = linhas(1500);
-  const repo = criar({ 'app/grande.js': grande }, { 'app/grande.js': 1500 });
+  const repo = criar({ 'app/grande.js': grande });
   repo.escrever({
     'app/dist/assets/bundle.js': grande,
     'app/package-lock.json': grande,
@@ -153,8 +145,8 @@ test('ignora dist, lock e dado; reservas aceita cópia mas o resto não', () => 
   assert.match(recusa.saida, /app\/outra-copia\.js: 1500 linhas/);
 });
 
-test('a marca de gerado não isenta arquivo novo nem arquivo da linha de base', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 });
+test('a marca de gerado não isenta arquivo novo nem arquivo grande', () => {
+  const repo = criar({ 'app/grande.js': linhas(1200) });
   repo.escrever({ 'app/grande.js': `// DO NOT EDIT\n${linhas(1300)}`, 'app/novo.js': `'@generated';\n${linhas(3000)}` });
   const r = executar(repo);
   repo.limpar();
@@ -173,7 +165,7 @@ test('pastas com nome de dist, vendor ou reservas fora do lugar previsto não es
 });
 
 test('arquivo que não foi tocado não é cobrado', () => {
-  const repo = criar({ 'app/grande.js': linhas(1200) }, {});
+  const repo = criar({ 'app/grande.js': linhas(1200) });
   repo.escrever({ 'app/outro.js': 'const a = 1;\n' });
   const r = executar(repo);
   repo.limpar();

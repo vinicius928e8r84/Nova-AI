@@ -3,9 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { execFileSync, spawnSync } = require('child_process');
-const fs = require('fs');
 const path = require('path');
-const { criar, linhas, LINHA_DE_BASE } = require('./auxiliar');
+const { criar } = require('./auxiliar');
 const regra = require('../regra-saude');
 const { medirJs } = require('../analisador/medir-js');
 const { FerramentaAusente, rodarOPython } = require('../analisador/medir');
@@ -203,11 +202,9 @@ const UM_PONTO = ramos(NOVE_DESVIOS.slice(0, 8));
 const PY_COM_CINCO = py('def gravar(a, b, c, d, e):', '    return a');
 const PY_COM_SEIS = py('def gravar(a, b, c, d, e, f):', '    return a');
 const BASE = { 'app/a.js': DOIS_PONTOS, 'app/b.py': PY_COM_CINCO };
-const FOLGA = { 'app/a.js': 2, 'app/b.py': 1 };
 
-const repositorio = () => criar(BASE, {}, FOLGA);
+const repositorio = () => criar(BASE);
 const executar = (repo, ...args) => repo.rodar('--regra', 'saude-do-codigo', ...args);
-const saude = repo => JSON.parse(fs.readFileSync(path.join(repo.raiz, LINHA_DE_BASE), 'utf8'))['saude-do-codigo'];
 
 function rodarERecolher(preparar, ...args) {
   const repo = repositorio();
@@ -222,133 +219,123 @@ function semRepo(preparar, ...args) {
   return r;
 }
 
-test('passa: arquivo da linha de base tocado sem piorar', () => {
+test('passa: arquivo que já tinha pontos na branch-alvo, tocado sem piorar', () => {
   const r = semRepo(repo => repo.escrever({ 'app/a.js': `${DOIS_PONTOS}const z = 1;\n` }));
   assert.equal(r.codigo, 0, r.saida);
 });
 
-test('falha: um ponto a mais que a linha de base, com a função, o antes e o conserto', () => {
+test('falha: um ponto a mais que a branch-alvo, com a função, o antes e o conserto', () => {
   const r = semRepo(repo => repo.escrever({ 'app/a.js': TRES_PONTOS }));
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/a\.js: 3 ponto\(s\) acima dos limites; a linha de base permite 2\. o que piorou em relação à base:/);
+  assert.match(r.saida, /app\/a\.js: 3 ponto\(s\) acima dos limites; o teto é 2, a medida dele na branch-alvo\. o que piorou em relação à base:/);
   assert.match(r.saida, /app\/a\.js:1: decidir \(linha 1\): 3 ponto\(s\); eram 2 na base — complexidade 11 \(limite 8\)/);
   assert.match(r.saida, /Conserto: Refatore de verdade/);
 });
 
-test('passa: quem só melhora passa, e a regra avisa que a linha de base pode descer', () => {
-  const r = semRepo(repo => repo.escrever({ 'app/a.js': UM_PONTO }));
-  assert.equal(r.codigo, 0, r.saida);
-  assert.match(r.saida, /aviso: saude-do-codigo: a linha de base pode descer: app\/a\.js 2 → 1/);
+test('passa sem editar lista nenhuma: quem melhora passa, e o teto seguinte é a medida nova', () => {
+  const repo = repositorio();
+  repo.escrever({ 'app/a.js': UM_PONTO });
+  const melhora = executar(repo);
+  repo.guardar('melhora');
+  repo.git('branch', '-f', 'main', 'HEAD');
+  repo.escrever({ 'app/a.js': DOIS_PONTOS });
+  const volta = executar(repo);
+  repo.limpar();
+  assert.equal(melhora.codigo, 0, melhora.saida);
+  assert.doesNotMatch(melhora.saida, /linha de base/);
+  assert.equal(volta.codigo, 1, volta.saida);
+  assert.match(volta.saida, /app\/a\.js: 2 ponto\(s\) acima dos limites; o teto é 1/);
 });
 
 test('falha: o Python que piora', () => {
   const r = semRepo(repo => repo.escrever({ 'app/b.py': PY_COM_SEIS }));
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/b\.py: 2 ponto\(s\) acima dos limites; a linha de base permite 1/);
+  assert.match(r.saida, /app\/b\.py: 2 ponto\(s\) acima dos limites; o teto é 1/);
 });
 
 test('falha: arquivo novo nasce dentro dos limites', () => {
   const r = semRepo(repo => repo.escrever({ 'app/nova.js': js('function nova(a, b, c, d, e) {', '  return a;', '}') }));
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/nova\.js: 1 ponto\(s\) acima dos limites; a linha de base permite 0 \(arquivo novo nasce dentro dos limites/);
+  assert.match(r.saida, /app\/nova\.js: 1 ponto\(s\) acima dos limites; o teto é 0, a medida dele na branch-alvo \(arquivo novo nasce dentro dos limites/);
 });
 
-test('falha: cópia de um arquivo ruim também é arquivo novo', () => {
+test('falha: cópia de um arquivo ruim também é arquivo novo e não leva o teto', () => {
   const r = semRepo(repo => repo.escrever({ 'app/copia.js': DOIS_PONTOS }));
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/copia\.js: 2 ponto\(s\)[^\n]*permite 0/);
+  assert.match(r.saida, /app\/copia\.js: 2 ponto\(s\)[^\n]*o teto é 0/);
 });
 
 test('falha: a folga que sobrou num arquivo não vai para um arquivo novo, mesmo com o total igual', () => {
-  const r = semRepo(repo => {
-    repo.escrever({ 'app/a.js': UM_PONTO, 'app/nova.js': js('function nova(a, b, c, d, e) {', '  return a;', '}') });
-    repo.lista({}, { 'app/a.js': 1, 'app/b.py': 1, 'app/nova.js': 1 });
-  });
+  const r = semRepo(repo => repo.escrever({ 'app/a.js': UM_PONTO, 'app/nova.js': js('function nova(a, b, c, d, e) {', '  return a;', '}') }));
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /saude-do-codigo app\/nova\.js entrou na linha de base, que só desce/);
+  assert.match(r.saida, /app\/nova\.js: 1 ponto\(s\)[^\n]*o teto é 0/);
 });
 
-test('falha: nem de um arquivo para outro que já está na linha de base', () => {
-  const r = semRepo(repo => {
-    repo.escrever({ 'app/a.js': UM_PONTO, 'app/b.py': PY_COM_SEIS });
-    repo.lista({}, { 'app/a.js': 1, 'app/b.py': 2 });
-  });
+test('falha: nem de um arquivo para outro que já tinha pontos na branch-alvo', () => {
+  const r = semRepo(repo => repo.escrever({ 'app/a.js': UM_PONTO, 'app/b.py': PY_COM_SEIS }));
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /saude-do-codigo app\/b\.py: a linha de base subiu de 1 para 2/);
+  assert.match(r.saida, /app\/b\.py: 2 ponto\(s\)[^\n]*o teto é 1/);
 });
 
-test('falha: subir a linha de base à mão', () => {
-  const r = semRepo(repo => {
-    repo.escrever({ 'app/a.js': TRES_PONTOS });
-    repo.lista({}, { 'app/a.js': 3, 'app/b.py': 1 });
-  });
-  assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/a\.js: a linha de base subiu de 2 para 3/);
-});
-
-test('falha: baixar a linha de base abaixo do que o arquivo tem', () => {
-  const r = semRepo(repo => {
-    repo.escrever({ 'app/a.js': `${DOIS_PONTOS}const z = 1;\n` });
-    repo.lista({}, { 'app/a.js': 1, 'app/b.py': 1 });
-  });
-  assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/a\.js: 2 ponto\(s\) acima dos limites; a linha de base permite 1/);
-});
-
-test('git mv leva a folga: a entrada vai para o nome novo com --atualizar-linha-de-base', () => {
-  const { repo, ...antes } = rodarERecolher(r => r.git('mv', 'app/a.js', 'app/movida.js'));
-  assert.equal(antes.codigo, 1, antes.saida);
-  assert.match(antes.saida, /o arquivo veio de app\/a\.js: leve a entrada para o nome novo/);
-  const atualizar = repo.rodar('--atualizar-linha-de-base', '--regra', 'saude-do-codigo');
-  assert.equal(atualizar.codigo, 0, atualizar.saida);
-  assert.deepEqual(saude(repo), { 'app/b.py': 1, 'app/movida.js': 2 });
-  const depois = executar(repo);
+test('falha: arquivo que cabia nos limites na branch-alvo e passa a ter pontos', () => {
+  const repo = criar({ 'app/limpo.js': js('function limpo(a) {', '  return a;', '}') });
+  repo.escrever({ 'app/limpo.js': js('function limpo(a, b, c, d, e) {', '  return a;', '}') });
+  const r = executar(repo);
   repo.limpar();
-  assert.equal(depois.codigo, 0, depois.saida);
+  assert.equal(r.codigo, 1, r.saida);
+  assert.match(r.saida, /app\/limpo\.js: 1 ponto\(s\)[^\n]*o teto é 0/);
+});
+
+test('git mv leva o teto: o arquivo movido passa igual e encolhido, e falha se piora', () => {
+  const repo = repositorio();
+  repo.git('mv', 'app/a.js', 'app/movida.js');
+  const igual = executar(repo);
+  repo.escrever({ 'app/movida.js': UM_PONTO });
+  const melhora = executar(repo);
+  repo.escrever({ 'app/movida.js': TRES_PONTOS });
+  const piora = executar(repo);
+  repo.limpar();
+  assert.equal(igual.codigo, 0, igual.saida);
+  assert.equal(melhora.codigo, 0, melhora.saida);
+  assert.equal(piora.codigo, 1, piora.saida);
+  assert.match(piora.saida, /app\/movida\.js: 3 ponto\(s\) acima dos limites; o teto é 2/);
 });
 
 test('arquivo que a mudança não toca nunca é medido', () => {
-  const repo = criar({ ...BASE, 'app/velho.js': TRES_PONTOS }, {}, FOLGA);
+  const repo = criar({ ...BASE, 'app/velho.js': TRES_PONTOS });
   repo.escrever({ 'app/a.js': `${DOIS_PONTOS}const z = 1;\n` });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);
 });
 
-test('apagar um arquivo da linha de base passa e avisa que a entrada pode sair', () => {
+test('apagar um arquivo ruim passa', () => {
   const r = semRepo(repo => repo.escrever({ 'app/a.js': null }));
   assert.equal(r.codigo, 0, r.saida);
-  assert.match(r.saida, /app\/a\.js não existe mais neste caminho; a entrada dele pode sair/);
 });
 
-test('falha: arquivo novo no caminho de uma entrada velha não herda a folga', () => {
-  const repo = criar({ 'app/b.py': PY_COM_CINCO }, {}, { 'app/a.js': 2, 'app/b.py': 1 });
+test('falha: arquivo novo no caminho de um arquivo apagado não herda o teto', () => {
+  const repo = criar({ 'app/b.py': PY_COM_CINCO, 'app/a.js': DOIS_PONTOS });
+  repo.git('rm', '-q', 'app/a.js');
+  repo.guardar('apaga');
+  repo.git('branch', '-f', 'main', 'HEAD');
   repo.escrever({ 'app/a.js': DOIS_PONTOS });
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /app\/a\.js: arquivo novo não herda folga/);
-  assert.match(r.saida, /app\/a\.js: 2 ponto\(s\)[^\n]*permite 0/);
+  assert.match(r.saida, /app\/a\.js: 2 ponto\(s\)[^\n]*o teto é 0/);
 });
 
-test('o que configuracao.json isenta não é medido', () => {
-  const r = semRepo(repo => repo.escrever({ 'app/dist/assets/novo.js': TRES_PONTOS }));
-  assert.equal(r.codigo, 0, r.saida);
-});
-
-test('falha: o ramo sem a chave saude-do-codigo na linha de base', () => {
-  const r = semRepo(repo => repo.escrever({ [LINHA_DE_BASE]: '{"arquivos": {}}\n' }));
-  assert.equal(r.codigo, 1, r.saida);
-  assert.match(r.saida, /falta a chave "saude-do-codigo"/);
-});
-
-test('a primeira linha de base: a base sem a chave não tem com o que comparar', () => {
-  const repo = criar(BASE, {}, null);
-  repo.escrever({ [LINHA_DE_BASE]: `${JSON.stringify({ arquivos: {}, 'saude-do-codigo': FOLGA })}\n`, 'app/a.js': `${DOIS_PONTOS}const z = 1;\n` });
-  const r = executar(repo);
+test('o que configuracao.json isenta não é medido, nem leva teto ao sair da isenção', () => {
+  const repo = criar({ 'MAC/x/reservas/a.js': TRES_PONTOS });
+  repo.escrever({ 'app/dist/assets/novo.js': TRES_PONTOS });
+  const isento = executar(repo);
+  repo.git('mv', 'MAC/x/reservas/a.js', 'app/saiu.js');
+  const saiu = executar(repo);
   repo.limpar();
-  assert.equal(r.codigo, 0, r.saida);
-  assert.match(r.saida, /main ainda não tem a linha de base de saude-do-codigo/);
+  assert.equal(isento.codigo, 0, isento.saida);
+  assert.equal(saiu.codigo, 1, saiu.saida);
+  assert.match(saiu.saida, /app\/saiu\.js: 3 ponto\(s\)[^\n]*o teto é 0/);
 });
 
 const SEM_ACORN = "const M = require('module'); const resolver = M._resolveFilename; M._resolveFilename = function (nome, ...resto) { if (nome === 'acorn') throw new Error('Cannot find module'); return resolver.call(this, nome, ...resto); };\n";
@@ -397,52 +384,4 @@ test('o Python lê o stdin em UTF-8 mesmo quando o sistema usa outra página de 
 
 test('Python que sai com erro sem traceback (alias da Store, stub do xcode-select) vira ferramenta ausente', () => {
   assert.throws(() => rodarOPython({ 'a.py': 'x = 1\n' }, { PYTHON: process.execPath }), FerramentaAusente);
-});
-
-test('--criar-linha-de-base --regra saude-do-codigo cria só a chave que falta e não toca a do limite de linhas', () => {
-  const repo = repositorio();
-  repo.escrever({ [LINHA_DE_BASE]: '{"arquivos": {"app/grande.js": 1200}}\n', 'app/grande.js': linhas(1200) });
-  const criou = repo.rodar('--criar-linha-de-base', '--regra', 'saude-do-codigo');
-  const dados = JSON.parse(fs.readFileSync(path.join(repo.raiz, LINHA_DE_BASE), 'utf8'));
-  const outraVez = repo.rodar('--criar-linha-de-base', '--regra', 'saude-do-codigo');
-  const semLinhaDeBase = repo.rodar('--criar-linha-de-base', '--regra', 'sem-segredo');
-  repo.limpar();
-  assert.equal(criou.codigo, 0, criou.saida);
-  assert.deepEqual(dados, { arquivos: { 'app/grande.js': 1200 }, 'saude-do-codigo': FOLGA });
-  assert.equal(outraVez.codigo, 2, outraVez.saida);
-  assert.match(outraVez.saida, /já tem a linha de base de saude-do-codigo; ela só encolhe/);
-  assert.equal(semLinhaDeBase.codigo, 2, semLinhaDeBase.saida);
-  assert.match(semLinhaDeBase.saida, /sem-segredo não tem linha de base/);
-});
-
-test('--atualizar-linha-de-base baixa a entrada que melhorou, tira a que zerou e recusa subir', () => {
-  const repo = repositorio();
-  repo.escrever({ 'app/a.js': UM_PONTO, 'app/b.py': js('def gravar(a):', '    return a') });
-  assert.equal(repo.rodar('--atualizar-linha-de-base', '--regra', 'saude-do-codigo').codigo, 0);
-  assert.deepEqual(saude(repo), { 'app/a.js': 1 });
-  repo.escrever({ 'app/a.js': TRES_PONTOS });
-  const subir = repo.rodar('--atualizar-linha-de-base', '--regra', 'saude-do-codigo');
-  repo.limpar();
-  assert.equal(subir.codigo, 1, subir.saida);
-  assert.match(subir.saida, /app\/a\.js: 3 ponto\(s\), mais que os 1 da linha de base de saude-do-codigo[^]*nada foi atualizado/);
-});
-
-test('--atualizar-linha-de-base da saúde só mexe no que a mudança toca: a folga dos outros arquivos fica', () => {
-  const repo = criar({ ...BASE, 'app/c.js': DOIS_PONTOS }, {}, { ...FOLGA, 'app/c.js': 3 });
-  repo.escrever({ 'app/a.js': UM_PONTO });
-  const r = repo.rodar('--atualizar-linha-de-base', '--regra', 'saude-do-codigo');
-  const depois = saude(repo);
-  repo.limpar();
-  assert.equal(r.codigo, 0, r.saida);
-  assert.deepEqual(depois, { 'app/a.js': 1, 'app/b.py': 1, 'app/c.js': 3 });
-});
-
-test('--atualizar-linha-de-base do limite de linhas mantém a chave saude-do-codigo', () => {
-  const repo = criar({ ...BASE, 'app/grande.js': linhas(1200) }, { 'app/grande.js': 1200 }, FOLGA);
-  repo.escrever({ 'app/grande.js': linhas(1100) });
-  const r = repo.rodar('--atualizar-linha-de-base', '--regra', 'limite-de-linhas');
-  const dados = JSON.parse(fs.readFileSync(path.join(repo.raiz, LINHA_DE_BASE), 'utf8'));
-  repo.limpar();
-  assert.equal(r.codigo, 0, r.saida);
-  assert.deepEqual(dados, { arquivos: { 'app/grande.js': 1100 }, 'saude-do-codigo': FOLGA, comentarios: {} });
 });
