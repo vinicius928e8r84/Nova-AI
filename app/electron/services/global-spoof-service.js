@@ -8,7 +8,6 @@ const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
 const { prepararPagina, abrirUrlPedida, gerarAmbiente, encerrarChrome } = require('./global-spoof-abertura');
-const { montarTextoDaPagina, gravarExtensao } = require('./global-spoof-pagina');
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
@@ -555,18 +554,612 @@ class GlobalSpoofService {
             } catch (err) {}
         }
 
-        const deepHijackScript = montarTextoDaPagina({
-            perfil: activeProfile,
-            device,
-            isMobile,
-            tela: { winW, winH, camW, camH },
-            identidade: { tTimezone, tOffset, tLat, tLng, tIP, tISP, tOrg, tASN, tCountry, tCC, tRegion, tCity, tGMT, tLocale, tLocales },
-        });
+        const crypto = require('crypto');
+        const randDeviceId = crypto.randomBytes(32).toString('hex');
+        const randGroupId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+        const _dStr = JSON.stringify(device);
+        const _wStr = winW;
+        const _hStr = winH;
+        const _cWStr = camW;
+        const _cHStr = camH;
+        const _mStr = isMobile;
 
-        const extDir = path.join(this.tempDir, 'anti_detect_ext');
-        gravarExtensao(extDir, deepHijackScript);
-        chromeArgs.push(`--load-extension=${extDir}`);
-        chromeArgs.push(`--disable-extensions-except=${extDir}`);
+        const _canvasNoise = activeProfile ? activeProfile.canvasNoise !== false : true;
+        const _webglNoise = activeProfile ? activeProfile.webglNoise !== false : true;
+        const _audioNoise = activeProfile ? activeProfile.audioNoise !== false : true;
+        const _webglImageNoise = activeProfile ? activeProfile.webglImageNoise !== false : true;
+        const _clientRectsNoise = activeProfile ? activeProfile.clientRectsNoise !== false : true;
+        const _speechVoicesNoise = activeProfile ? activeProfile.speechVoicesNoise !== false : true;
+        
+        const _platformStr = (activeProfile ? activeProfile.platformStr : null) || (isMobile ? (device.id && device.id.includes('iphone') ? 'iPhone' : 'Linux armv8l') : 'Win32');
+        const _cpuCores = (activeProfile && activeProfile.cpuCores && activeProfile.cpuCores !== 'Auto') ? parseInt(activeProfile.cpuCores) : 8;
+        const _ramSize = (activeProfile && activeProfile.ramSize && activeProfile.ramSize !== 'Auto') ? parseInt(activeProfile.ramSize) : 8;
+        
+        const _gpuVendor = (activeProfile ? activeProfile.webglVendor : null) || (isMobile ? (device.id && device.id.includes('iphone') ? 'Apple Inc.' : 'Google Inc. (Qualcomm)') : 'Google Inc. (NVIDIA)');
+        const _gpuRenderer = (activeProfile ? activeProfile.webglRenderer : null) || (isMobile ? (device.id && device.id.includes('iphone') ? 'Apple GPU' : 'Adreno (TM) 750') : 'NVIDIA GeForce RTX 3060');
+
+        const _doNotTrack = activeProfile ? activeProfile.doNotTrack : 'default';
+        const _portScanProtection = (activeProfile && activeProfile.portScanProtection) || 'enable';
+
+        const deepHijackScript = `
+console.log("[Nova] CDP Stealth Injector Initializing (MAIN World)...");
+try {
+  for (let prop in window) {
+    if (typeof prop === 'string' && prop.match(/cdc_[a-zA-Z0-9]+_/)) {
+      try { delete window[prop]; } catch(e) {}
+    }
+  }
+} catch(e) {}
+
+try {
+  const ogGetOwnPropertyNames = Object.getOwnPropertyNames;
+  Object.getOwnPropertyNames = function(obj) {
+    const names = ogGetOwnPropertyNames(obj);
+    return names.filter(n => typeof n !== 'string' || !n.match(/cdc_[a-zA-Z0-9]+_/));
+  };
+} catch(e) {}
+
+try {
+  Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+    get: () => false,
+    configurable: true,
+    enumerable: true
+  });
+} catch(e) {}
+
+try { delete window.vivaldi; } catch(e) {}
+try { delete window.Brave; } catch(e) {}
+try { if (navigator.brave) delete navigator.brave; } catch(e) {}
+
+try {
+  const observer = new MutationObserver((mutations) => {
+    for (let m of mutations) {
+      for (let node of m.addedNodes) {
+        if (node.id && typeof node.id === 'string' && node.id.includes('vivaldi')) {
+          try { node.remove(); } catch(e) {}
+        }
+      }
+    }
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+} catch(e) {}
+var _canvasNoise = ${_canvasNoise};
+var _webglNoise = ${_webglNoise};
+var _audioNoise = ${_audioNoise};
+var _webglImageNoise = ${_webglImageNoise};
+var _clientRectsNoise = ${_clientRectsNoise};
+var _speechVoicesNoise = ${_speechVoicesNoise};
+var _platformStr = "${_platformStr.replace(/"/g,'\\"')}";
+var _cpuCores = ${_cpuCores};
+var _ramSize = ${_ramSize};
+var _gpuVendor = "${_gpuVendor.replace(/"/g,'\\"')}";
+var _gpuRenderer = "${_gpuRenderer.replace(/"/g,'\\"')}";
+var _doNotTrack = "${_doNotTrack}";
+var _portScanProtection = "${_portScanProtection}";
+var _canvasNoiseSeed = ${activeProfile.canvasNoiseSeed || 42};
+var _webglNoiseSeed = ${activeProfile.webglNoiseSeed || 88};
+var _audioNoiseSeed = ${activeProfile.audioNoiseSeed || 0.0000001};
+var _virtualCamId = "${activeProfile.virtualCamId || 'mock_cam_id'}";
+var _virtualCamLabel = "${(activeProfile.virtualCamLabel || 'HD Camera').replace(/"/g,'\\"')}";
+var _virtualMicId = "${activeProfile.virtualMicId || 'mock_mic_id'}";
+var _virtualMicLabel = "${(activeProfile.virtualMicLabel || 'Microphone').replace(/"/g,'\\"')}";
+var _virtualSpeakerId = "${activeProfile.virtualSpeakerId || 'mock_speaker_id'}";
+var _virtualSpeakerLabel = "${(activeProfile.virtualSpeakerLabel || 'Speakers').replace(/"/g,'\\"')}";
+
+var _tTimezone = "${tTimezone.replace(/"/g,'\\"')}";
+var _tOffset = ${tOffset};
+var _tLat = ${tLat};
+var _tLng = ${tLng};
+var _tIP = "${tIP}";
+var _tISP = "${tISP.replace(/"/g,'\\"')}";
+var _tOrg = "${tOrg.replace(/"/g,'\\"')}";
+var _tASN = "${tASN}";
+var _tCountry = "${tCountry.replace(/"/g,'\\"')}";
+var _tCC = "${tCC}";
+var _tRegion = "${tRegion.replace(/"/g,'\\"')}";
+var _tCity = "${tCity.replace(/"/g,'\\"')}";
+var _tGMT = "${tGMT.replace(/"/g,'\\"')}";
+var _tLocale = "${tLocale}";
+var _tLocales = ${JSON.stringify(tLocales)};
+var _d = ${_dStr};
+var _w = ${_wStr};
+var _h = ${_hStr};
+var _cW = ${_cWStr};
+var _cH = ${_cHStr};
+var _m = ${_mStr};
+var _devId = "${randDeviceId}";
+var _grpId = "${randGroupId}";
+var _isIOS = (_d.id && _d.id.indexOf("iphone") !== -1) || (navigator.userAgent && (navigator.userAgent.indexOf("iPhone") !== -1 || navigator.userAgent.indexOf("iPad") !== -1));
+var _lbl = _virtualCamLabel;
+
+function applyStealth(win) {
+  if (!win || win.__nova_stealth_applied) return;
+  win.__nova_stealth_applied = true;
+
+  // Stealth: Mask Function.prototype.toString
+  try {
+    if (!win.__nova_toString_hooked) {
+      win.__nova_toString_hooked = true;
+      var originalToString = win.Function.prototype.toString;
+      win.Function.prototype.toString = function toString() {
+        if (this === win.Function.prototype.toString) return "function toString() { [native code] }";
+        var res = originalToString.call(this);
+        if (res.indexOf('[native code]') === -1 && this.name) {
+          var stealthNames = ['enumerateDevices', 'getUserMedia', 'getParameter', 'getCurrentPosition', 'readPixels', 'getChannelData', 'getBoundingClientRect', 'getVoices', 'getSettings', 'getCapabilities', 'watchPosition', 'getImageData', 'toDataURL', 'createOscillator', 'fetch', 'open', 'getTimezoneOffset', 'resolvedOptions'];
+          if (stealthNames.includes(this.name) || this.name.startsWith('get') || this.name.startsWith('set')) return "function " + this.name + "() { [native code] }";
+        }
+        return res;
+      };
+      Object.defineProperty(win.Function.prototype.toString, 'name', { value: 'toString' });
+    }
+  } catch(e) {}
+
+  // Proxy window.frames
+  try {
+    var framesProxy = new Proxy(win, {
+      get: function(target, prop, receiver) {
+        if (typeof prop === 'string' && /^\d+$/.test(prop)) {
+          var res = target[prop];
+          if (res) { try { applyStealth(res); } catch(e){} }
+          return res;
+        }
+        var res = target[prop];
+        if (typeof res === 'function') { return res.bind(target); }
+        return res;
+      }
+    });
+    Object.defineProperty(win, 'frames', { get: function() { return framesProxy; }, configurable: true });
+  } catch(e) {}
+  
+  // Timezone & Date Overrides
+  try {
+    var targetTimezone = _tTimezone;
+    var targetOffset = _tOffset;
+    var targetLocale = _tLocale;
+    var targetLocales = _tLocales;
+
+    var orgDTF = win.Intl.DateTimeFormat;
+    var orgResolvedOptions = orgDTF.prototype.resolvedOptions;
+    orgDTF.prototype.resolvedOptions = function() {
+      var res = orgResolvedOptions.apply(this, arguments);
+      res.timeZone = targetTimezone;
+      res.locale = targetLocale;
+      return res;
+    };
+
+    win.Intl.DateTimeFormat = function(locales, options) {
+      var resolvedLocales = locales || targetLocales;
+      var resolvedOptions = Object.assign({}, options);
+      if (!resolvedOptions.timeZone) resolvedOptions.timeZone = targetTimezone;
+      return new orgDTF(resolvedLocales, resolvedOptions);
+    };
+    win.Intl.DateTimeFormat.prototype = orgDTF.prototype;
+    win.Intl.DateTimeFormat.supportedLocalesOf = orgDTF.supportedLocalesOf;
+
+    var orgDate = win.Date;
+    var orgGetTimezoneOffset = orgDate.prototype.getTimezoneOffset;
+    orgDate.prototype.getTimezoneOffset = function() { return targetOffset; };
+
+    var getShiftedDate = function(dateInst) {
+      var systemOffset = orgGetTimezoneOffset.call(dateInst);
+      var diffMin = systemOffset - targetOffset;
+      return new orgDate(dateInst.getTime() + diffMin * 60000);
+    };
+
+    var localGetMethods = ['getDate', 'getDay', 'getFullYear', 'getHours', 'getMilliseconds', 'getMinutes', 'getMonth', 'getSeconds'];
+    localGetMethods.forEach(function(m) {
+      var utcMethod = m.replace('get', 'getUTC');
+      orgDate.prototype[m] = function() { return getShiftedDate(this)[utcMethod](); };
+    });
+
+    var localSetMethods = ['setDate', 'setFullYear', 'setHours', 'setMilliseconds', 'setMinutes', 'setMonth', 'setSeconds'];
+    localSetMethods.forEach(function(m) {
+      var utcMethod = m.replace('set', 'setUTC');
+      orgDate.prototype[m] = function() {
+        var shifted = getShiftedDate(this);
+        var res = shifted[utcMethod].apply(shifted, arguments);
+        var systemOffset = orgGetTimezoneOffset.call(this);
+        var diffMin = systemOffset - targetOffset;
+        this.setTime(shifted.getTime() - diffMin * 60000);
+        return res;
+      };
+    });
+
+    orgDate.prototype.toString = function() {
+      var opt = { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: targetTimezone };
+      var dtf = new orgDTF(targetLocale, opt);
+      var parts = dtf.formatToParts(this);
+      var p = {};
+      parts.forEach(function(x) { p[x.type] = x.value; });
+      return p.weekday + " " + p.month + " " + p.day + " " + p.year + " " + p.hour + ":" + p.minute + ":" + p.second + " " + _tGMT;
+    };
+
+    orgDate.prototype.toTimeString = function() {
+      var dtf = new orgDTF(targetLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: targetTimezone });
+      return dtf.format(this) + " " + _tGMT;
+    };
+
+    orgDate.prototype.toDateString = function() {
+      return new orgDTF(targetLocale, { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit', timeZone: targetTimezone }).format(this);
+    };
+  } catch(e) {}
+
+  // Geolocation API Override
+  try {
+    if (win.navigator.geolocation) {
+      win.navigator.geolocation.getCurrentPosition = function(success) {
+        if (typeof success === 'function') {
+          setTimeout(function() {
+            success({ coords: { latitude: _tLat, longitude: _tLng, accuracy: 15, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });
+          }, 10);
+        }
+      };
+      win.navigator.geolocation.watchPosition = function(success) {
+        if (typeof success === 'function') {
+          var trigger = function() {
+            success({ coords: { latitude: _tLat, longitude: _tLng, accuracy: 15, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });
+          };
+          trigger();
+          return setInterval(trigger, 5000);
+        }
+        return 0;
+      };
+    }
+  } catch(e) {}
+
+  // Navigator Properties
+  try {
+    var navProto = win.Navigator && win.Navigator.prototype ? win.Navigator.prototype : win.navigator;
+    Object.defineProperty(navProto, "platform", { get: function() { return _platformStr; }, configurable: true });
+    Object.defineProperty(navProto, "hardwareConcurrency", { get: function() { return _cpuCores; }, configurable: true });
+    Object.defineProperty(navProto, "deviceMemory", { get: function() { return _ramSize; }, configurable: true });
+    Object.defineProperty(navProto, "webdriver", { get: function() { return undefined; }, configurable: true });
+    Object.defineProperty(navProto, "language", { get: function() { return _tLocale; }, configurable: true });
+    Object.defineProperty(navProto, "languages", { get: function() { return _tLocales; }, configurable: true });
+    if (_m) { Object.defineProperty(navProto, "maxTouchPoints", { get: function() { return 10; }, configurable: true }); }
+  } catch(e) {}
+
+  // WebGL GPU Spoof
+  try {
+    var gpuVendor = _gpuVendor;
+    var gpuRenderer = _gpuRenderer;
+    
+    var spoofGL = function(proto) {
+      if (!proto || !proto.getParameter) return;
+      var _ogGetParam = proto.getParameter;
+      Object.defineProperty(proto, 'getParameter', {
+        value: function(p) {
+          if (p === 37446 || p === 7937) return gpuRenderer;
+          if (p === 37445 || p === 7936) return gpuVendor;
+          return _ogGetParam.call(this, p);
+        },
+        writable: true, configurable: true
+      });
+    };
+    if (win.WebGLRenderingContext) spoofGL(win.WebGLRenderingContext.prototype);
+    if (win.WebGL2RenderingContext) spoofGL(win.WebGL2RenderingContext.prototype);
+  } catch(e) {}
+
+  // MediaStreamTrack Prototype Labels
+  try {
+    if (win.MediaStreamTrack) {
+      var _ogSettings = win.MediaStreamTrack.prototype.getSettings;
+      win.MediaStreamTrack.prototype.getSettings = function() {
+        var s = _ogSettings.call(this) || {};
+        if (this.kind === "video") {
+          s.deviceId = _devId; s.groupId = _grpId; s.facingMode = "user"; s.width = _cW; s.height = _cH; s.frameRate = 30;
+        }
+        return s;
+      };
+      
+      var _ogCaps = win.MediaStreamTrack.prototype.getCapabilities;
+      if (_ogCaps) {
+        win.MediaStreamTrack.prototype.getCapabilities = function() {
+          var c = _ogCaps.call(this) || {};
+          if (this.kind === "video") {
+            c.facingMode = ["user"]; c.deviceId = _devId; c.groupId = _grpId;
+            c.width = { max: _cW, min: 320 }; c.height = { max: _cH, min: 240 }; c.frameRate = { max: 30, min: 15 };
+          }
+          return c;
+        };
+      }
+
+      Object.defineProperty(win.MediaStreamTrack.prototype, "label", {
+        get: function() { return this.kind === "video" ? _lbl : "Microphone (High Definition Audio Device)"; },
+        configurable: true
+      });
+      Object.defineProperty(win.MediaStreamTrack.prototype, "id", {
+        get: function() { return this.kind === "video" ? _devId : "mock_audio_track_id"; },
+        configurable: true
+      });
+    }
+  } catch(e) {}
+
+  // EnumerateDevices Hook (Maps Native IDs to Spoofed IDs)
+  try {
+    if (win.MediaDevices && win.MediaDevices.prototype.enumerateDevices) {
+      var orgEnum = win.MediaDevices.prototype.enumerateDevices;
+      win.MediaDevices.prototype.enumerateDevices = function enumerateDevices() {
+        return orgEnum.call(this).then(function(devices) {
+          return devices.map(function(d) {
+            if (d.kind === "videoinput") {
+              if (d.deviceId && d.deviceId !== _virtualCamId) {
+                win.__nova_native_cam_id = d.deviceId;
+              }
+              try {
+                Object.defineProperty(d, "label", { get: function() { return _virtualCamLabel; }, enumerable: true, configurable: true });
+                Object.defineProperty(d, "deviceId", { get: function() { return _virtualCamId; }, enumerable: true, configurable: true });
+                Object.defineProperty(d, "groupId", { get: function() { return _virtualCamId; }, enumerable: true, configurable: true });
+              } catch(e) {}
+            } else if (d.kind === "audioinput") {
+              try {
+                Object.defineProperty(d, "label", { get: function() { return _virtualMicLabel; }, enumerable: true, configurable: true });
+                Object.defineProperty(d, "deviceId", { get: function() { return _virtualMicId; }, enumerable: true, configurable: true });
+                Object.defineProperty(d, "groupId", { get: function() { return _virtualMicId; }, enumerable: true, configurable: true });
+              } catch(e) {}
+            } else if (d.kind === "audiooutput") {
+              try {
+                Object.defineProperty(d, "label", { get: function() { return _virtualSpeakerLabel; }, enumerable: true, configurable: true });
+                Object.defineProperty(d, "deviceId", { get: function() { return _virtualSpeakerId; }, enumerable: true, configurable: true });
+                Object.defineProperty(d, "groupId", { get: function() { return _virtualSpeakerId; }, enumerable: true, configurable: true });
+              } catch(e) {}
+            }
+            return d;
+          });
+        });
+      };
+    }
+  } catch(e) {}
+
+  // getUserMedia Interceptor (Remaps constraints back to native IDs)
+  try {
+    var overrideGUM = function(constraints, _ogGUM) {
+      if (!constraints) constraints = { video: true };
+      console.log("[Nova] getUserMedia intercepted:", JSON.stringify(constraints));
+      
+      if (constraints.video) {
+        var nativeId = win.__nova_native_cam_id;
+        if (typeof constraints.video === 'object') {
+          if (constraints.video.deviceId) {
+            var requestedId = constraints.video.deviceId.exact || constraints.video.deviceId.ideal || constraints.video.deviceId;
+            if (requestedId === _virtualCamId && nativeId) {
+              if (constraints.video.deviceId.exact) constraints.video.deviceId.exact = nativeId;
+              else if (constraints.video.deviceId.ideal) constraints.video.deviceId.ideal = nativeId;
+              else constraints.video.deviceId = nativeId;
+            } else {
+              delete constraints.video.deviceId;
+            }
+          }
+        } else {
+          // If true, keep it true so it defaults to the single native fake camera
+          if (nativeId) {
+            constraints.video = { deviceId: { exact: nativeId } };
+          }
+        }
+      }
+      return _ogGUM(constraints);
+    };
+
+    if (win.MediaDevices && win.MediaDevices.prototype.getUserMedia) {
+      var _ogM = win.MediaDevices.prototype.getUserMedia;
+      win.MediaDevices.prototype.getUserMedia = function getUserMedia(c) { return overrideGUM(c, _ogM.bind(this)); };
+    }
+    if (win.navigator.mediaDevices && win.navigator.mediaDevices.getUserMedia) {
+      var _ogM2 = win.navigator.mediaDevices.getUserMedia;
+      win.navigator.mediaDevices.getUserMedia = function getUserMedia(c) { return overrideGUM(c, _ogM2.bind(win.navigator.mediaDevices)); };
+    }
+  } catch(err) {}
+
+  // Canvas Noise Injection
+  try {
+    if (_canvasNoise) {
+      var spoofCanvas = function(proto) {
+        var ogToDataURL = proto.toDataURL;
+        proto.toDataURL = function() {
+          var ctx = this.getContext('2d');
+          if (ctx) {
+            var ogFillText = ctx.fillText;
+            ctx.fillText = function() {
+              ctx.fillStyle = 'rgba(0,0,0,0.01)';
+              ogFillText.apply(this, arguments);
+            };
+          }
+          return ogToDataURL.apply(this, arguments);
+        };
+        
+        var ogGetImageData = proto.getContext ? HTMLCanvasElement.prototype.getContext : null;
+        if (win.CanvasRenderingContext2D) {
+          var ogGetImg = win.CanvasRenderingContext2D.prototype.getImageData;
+          win.CanvasRenderingContext2D.prototype.getImageData = function(x, y, w, h) {
+            var res = ogGetImg.apply(this, arguments);
+            if (res && res.data) {
+              var seed = _canvasNoiseSeed || 42;
+              for (var i = 0; i < res.data.length; i += 4) {
+                res.data[i] = (res.data[i] + ((i + seed) % 3)) % 256;
+              }
+            }
+            return res;
+          };
+        }
+      };
+      spoofCanvas(win.HTMLCanvasElement.prototype);
+    }
+  } catch(e) {}
+
+  // WebGL Image Noise
+  try {
+    if (_webglImageNoise && win.WebGLRenderingContext) {
+      var ogReadPixels = win.WebGLRenderingContext.prototype.readPixels;
+      win.WebGLRenderingContext.prototype.readPixels = function(x, y, w, h, format, type, pixels) {
+        ogReadPixels.apply(this, arguments);
+        if (pixels && pixels.length > 0) {
+          var seed = _webglNoiseSeed || 88;
+          for (var i = 0; i < Math.min(pixels.length, 100); i++) {
+            pixels[i] = (pixels[i] + ((i + seed) % 3)) % 256;
+          }
+        }
+      };
+    }
+    if (_webglImageNoise && win.WebGL2RenderingContext) {
+      var ogReadPixels2 = win.WebGL2RenderingContext.prototype.readPixels;
+      win.WebGL2RenderingContext.prototype.readPixels = function(x, y, w, h, format, type, pixels) {
+        ogReadPixels2.apply(this, arguments);
+        if (pixels && pixels.length > 0) {
+          var seed = _webglNoiseSeed || 88;
+          for (var i = 0; i < Math.min(pixels.length, 100); i++) {
+            pixels[i] = (pixels[i] + ((i + seed) % 3)) % 256;
+          }
+        }
+      };
+    }
+  } catch(e) {}
+
+  // ClientRects Noise Injection
+  try {
+    if (_clientRectsNoise) {
+      var spoofRects = function(proto, name) {
+        if (!proto || !proto[name]) return;
+        var og = proto[name];
+        proto[name] = function() {
+          var res = og.apply(this, arguments);
+          if (res && typeof res.width === 'number') {
+            var factor = 0.0001 * (Math.random() - 0.5);
+            Object.defineProperty(res, 'width', { get: function() { return res.width + factor; }, configurable: true });
+            Object.defineProperty(res, 'height', { get: function() { return res.height + factor; }, configurable: true });
+          }
+          return res;
+        };
+      };
+      spoofRects(win.Element.prototype, 'getBoundingClientRect');
+    }
+  } catch(e) {}
+
+  // Audio Context Noise
+  try {
+    if (_audioNoise) {
+      if (win.BaseAudioContext && win.BaseAudioContext.prototype.createOscillator) {
+        var ogCreateOscillator = win.BaseAudioContext.prototype.createOscillator;
+        win.BaseAudioContext.prototype.createOscillator = function() {
+          var osc = ogCreateOscillator.apply(this, arguments);
+          var ogFrequency = osc.frequency.value;
+          var offset = (_audioNoiseSeed || 0.0000001) * 1000;
+          Object.defineProperty(osc.frequency, 'value', {
+            get: function() { return ogFrequency + offset; },
+            set: function(val) { ogFrequency = val; },
+            configurable: true
+          });
+          return osc;
+        };
+      }
+      if (win.AudioBuffer) {
+        var ogGetChannelData = win.AudioBuffer.prototype.getChannelData;
+        var seed = _audioNoiseSeed || 0.0000001;
+        win.AudioBuffer.prototype.getChannelData = function(channel) {
+          var data = ogGetChannelData.apply(this, arguments);
+          if (data && data.length > 0) {
+            for (var i = 0; i < Math.min(data.length, 50); i++) {
+              data[i] += seed * ((i % 3) - 1);
+            }
+          }
+          return data;
+        };
+      }
+    }
+  } catch(e) {}
+
+  // SpeechVoices Noise
+  try {
+    if (_speechVoicesNoise && win.speechSynthesis) {
+      var ogGetVoices = win.SpeechSynthesis.prototype.getVoices;
+      win.SpeechSynthesis.prototype.getVoices = function() {
+        var list = ogGetVoices.apply(this, arguments) || [];
+        return list.slice(0, list.length > 2 ? list.length - 1 : list.length);
+      };
+    }
+  } catch(e) {}
+
+  // Do Not Track Override
+  try {
+    if (_doNotTrack === 'enable') {
+      Object.defineProperty(win.navigator, 'doNotTrack', { get: function() { return "1"; }, configurable: true });
+      Object.defineProperty(win.window, 'doNotTrack', { get: function() { return "1"; }, configurable: true });
+    } else if (_doNotTrack === 'disable') {
+      Object.defineProperty(win.navigator, 'doNotTrack', { get: function() { return "0"; }, configurable: true });
+      Object.defineProperty(win.window, 'doNotTrack', { get: function() { return "0"; }, configurable: true });
+    }
+  } catch(e) {}
+
+  // Localhost Port Scan Blocker
+  try {
+    if (_portScanProtection === 'enable' && win.fetch) {
+      var ogFetch = win.fetch;
+      win.fetch = function(url, options) {
+        var urlStr = String(url || '');
+        if (urlStr.includes('127.0.0.1') || urlStr.includes('localhost')) {
+          return Promise.reject(new TypeError('Failed to fetch (Port Scan Protection Active)'));
+        }
+        return ogFetch.apply(this, arguments);
+      };
+      
+      if (win.XMLHttpRequest) {
+        var ogOpen = win.XMLHttpRequest.prototype.open;
+        win.XMLHttpRequest.prototype.open = function(method, url) {
+          var urlStr = String(url || '');
+          if (urlStr.includes('127.0.0.1') || urlStr.includes('localhost')) {
+            throw new Error('Connection refused (Port Scan Protection Active)');
+          }
+          return ogOpen.apply(this, arguments);
+        };
+      }
+    }
+  } catch(e) {}
+}
+
+applyStealth(window);
+
+// Handle dynamic iframes
+(function() {
+  try {
+    var orgContentWindow = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, "contentWindow").get;
+    Object.defineProperty(HTMLIFrameElement.prototype, "contentWindow", {
+      get: function() {
+        var win = orgContentWindow.call(this);
+        if (win) { try { applyStealth(win); } catch(e) {} }
+        return win;
+      },
+      configurable: true
+    });
+  } catch(e) {}
+})();
+`;
+
+        const injectNavBarStr = "";
+
+        {
+            const extDir = path.join(this.tempDir, 'anti_detect_ext');
+            if (!fs.existsSync(extDir)) fs.mkdirSync(extDir, { recursive: true });
+            
+            const manifest = {
+                manifest_version: 3,
+                name: "Nova Stealth Injector",
+                version: "4.0",
+                content_scripts: [{
+                    matches: ["<all_urls>"],
+                    js: ["inject.js"],
+                    run_at: "document_start",
+                    world: "MAIN",
+                    all_frames: true,
+                    match_about_blank: true,
+                    match_origin_as_fallback: true
+                }]
+            };
+            fs.writeFileSync(path.join(extDir, 'manifest.json'), JSON.stringify(manifest));
+            
+            const injectJs = deepHijackScript;
+            fs.writeFileSync(path.join(extDir, 'inject.js'), injectJs);
+            chromeArgs.push(`--load-extension=${extDir}`);
+            chromeArgs.push(`--disable-extensions-except=${extDir}`);
+        }
 
         const debugPort = 9222 + Math.floor(Math.random() * 1000);
         chromeArgs.push(`--remote-debugging-port=${debugPort}`);
