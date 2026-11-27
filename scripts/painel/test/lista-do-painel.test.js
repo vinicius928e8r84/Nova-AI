@@ -14,11 +14,9 @@ test('separa produto, ferramenta e teste pelo caminho', () => {
   assert.equal(grupoDe('scripts/regras/verificar.js'), 'ferramenta');
   assert.equal(grupoDe('app/scripts/postinstall.js'), 'ferramenta');
   assert.equal(grupoDe('MAC/controle-celular-plataformas/aplicar.py'), 'ferramenta');
-  assert.equal(grupoDe('prototype-sequestro-cam/servir.py'), 'ferramenta');
   assert.equal(grupoDe('scripts/regras/test/saude.test.js'), 'teste');
   assert.equal(grupoDe('app/electron/services/testes/remote-access.test.js'), 'teste');
   assert.equal(grupoDe('MAC/proxy-iphone/tool/teste/upstream_test.m'), 'teste');
-  assert.equal(grupoDe('prototype-proxy-tipo/teste-proxy-parse.js'), 'teste');
   assert.equal(grupoDe('app/test/ajuda/wake-word-palco.py'), 'teste');
 });
 

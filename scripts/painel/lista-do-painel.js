@@ -27,7 +27,6 @@ const PADROES_DE_TESTE = [
 
 const PADROES_DE_FERRAMENTA = [
   /^(scripts|app\/scripts|pesquisas)\//,
-  /^prototype-[^/]+\//,
   /^MAC\/.+\.py$/,
 ];
 
