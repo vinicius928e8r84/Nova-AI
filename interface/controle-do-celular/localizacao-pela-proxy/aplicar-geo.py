@@ -24,7 +24,8 @@ def principal(argumentos):
     texto, rotulos = executar_passos(PASSOS, original)
     conferir_sintaxe_final(texto)
     saida.write_text(texto, encoding='utf-8')
-    print(f'ok: {len(rotulos)} passos, {len(texto)} bytes (origem {len(original)})')
+    tamanho_da_origem_depois_de_gravar = len(origem.read_text(encoding='utf-8'))
+    print(f'ok: {len(rotulos)} passos, {len(texto)} bytes (origem {tamanho_da_origem_depois_de_gravar})')
     for rotulo in rotulos:
         print('  -', rotulo)
 
