@@ -7,7 +7,7 @@ const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
-const { prepararPagina, abrirUrlPedida, gerarAmbiente, encerrarChrome } = require('./global-spoof-abertura');
+const { prepararPagina, abrirUrlPedida, conectarAoChrome, gerarAmbiente, encerrarChrome } = require('./global-spoof-abertura');
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
@@ -1173,26 +1173,10 @@ applyStealth(window);
         this.chromeProcess.unref();
         this.chromePid = this.chromeProcess.pid;
 
-        const connectCDP = async (port, retries = 30, interval = 200) => {
-            const CDP = require('chrome-remote-interface');
-            for (let i = 0; i < retries; i++) {
-                try {
-                    const versionInfo = await CDP.Version({ port });
-                    if (versionInfo && versionInfo.webSocketDebuggerUrl) {
-                        return await CDP({ target: versionInfo.webSocketDebuggerUrl });
-                    }
-                    return await CDP({ port });
-                } catch (err) {
-                    if (i === retries - 1) throw err;
-                    await new Promise(resolve => setTimeout(resolve, interval));
-                }
-            }
-        };
-
         (async () => {
             try {
                 console.log(`[GlobalSpoof] Connecting to Chrome CDP on port ${debugPort}...`);
-                const client = await connectCDP(debugPort);
+                const client = await conectarAoChrome(debugPort);
                 this.cdpClient = client;
 
                 if (profileName && profileName.startsWith('profile_')) {
