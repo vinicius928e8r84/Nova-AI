@@ -59,7 +59,7 @@ Os arquivos aplicados vivem em `app/` (a pasta `aplicado/` foi apagada). O origi
 O script do renderer sempre parte do **bundle original**:
 
 ```sh
-cd "/Users/aquilesneri/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy"
+cd "$HOME/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy"
 git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/index-Dun7lr2S.js > /tmp/original.js
 python3 aplicar-geo.py /tmp/original.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
@@ -82,7 +82,7 @@ rm "/Applications/Nova AI Mac.app/Contents/Resources/app/electron/services/geo-p
 ## Testado em 04/11/2026
 
 - `node --check` nos três arquivos de backend e no bundle (como ESM).
-- Geo real pela proxy: `socks5://premium-residential.evomi.com:1002` → `73.41.122.60` (Manteca/US) e, em outra sessão, `108.46.225.216` (Nova York/US) — o pool rotaciona.
+- Geo real pela proxy: `socks5://premium-residential.evomi.com:1002` → `203.0.113.10` (Manteca/US) e, em outra sessão, `198.51.100.20` (Nova York/US) — o pool rotaciona.
 - Pelo aparelho: `novaproxy proxy check` → IP de saída, geo bateu com o `ipwho.is`.
 - GPS no iPhone: syslog do `locationd` mostrou `@ClxSimulated, Fix, 1 … acc 5.00` após aplicar; "Parar" limpa o estado na UI.
 - Fluxo no app (via CDP): abrir a aba aplica o GPS; clicar em **Salvar** reaplica (log `[Geo] iPhone GPS aplicado`).
@@ -116,7 +116,7 @@ Por isso existe o helper `nova-locale`, instalado uma vez:
 Instalação (uma vez, com o iPhone conectado e o Nova aberto):
 
 ```sh
-"/Users/aquilesneri/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy/helper/instalar-helper-idioma.command"
+"$HOME/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy/helper/instalar-helper-idioma.command"
 ```
 
 Depois disso, ao salvar a proxy o Nova:

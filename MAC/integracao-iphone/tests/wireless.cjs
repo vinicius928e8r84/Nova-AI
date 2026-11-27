@@ -8,7 +8,7 @@ Module._load = function(name, parent, main) {
  if (name === 'child_process') return {execFile(file,args,options,cb) {
   calls.push(args);
   if (fail) return cb(new Error('device not found'), '', 'device not found');
-  cb(null, args.includes('ip') ? 'inet 192.168.1.22/24' : 'connected to 192.168.1.22:5555', '');
+  cb(null, args.includes('ip') ? 'inet 192.0.2.22/24' : 'connected to 192.0.2.22:5555', '');
  }, exec(){throw new Error('Shell/ADB must not run for iPhone');}};
  return original.call(this, name, parent, main);
 };
@@ -22,7 +22,7 @@ s.resolveAdbPath = () => { calls.push('resolveAdb'); return process.execPath; };
  assert.match(ios.error, /Android/);
  const android = await s.autoPairUsbToWireless('android-test');
  assert.equal(android.success, true);
- assert.equal(android.deviceId, '192.168.1.22:5555');
+ assert.equal(android.deviceId, '192.0.2.22:5555');
  fail = true;
  const disconnected = await s.autoPairUsbToWireless('android-test');
  assert.equal(disconnected.success, false);
