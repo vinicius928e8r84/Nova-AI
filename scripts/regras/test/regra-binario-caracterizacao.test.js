@@ -14,6 +14,8 @@ const gzip = Buffer.concat([Buffer.from([0x1f, 0x8b]), Buffer.alloc(40)]);
 const elf = Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46]), Buffer.alloc(40)]);
 const dadosComNulos = Buffer.from([1, 2, 0, 3, 0, 0, 65, 66]);
 const utf16 = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('const a = 1;\n', 'utf16le')]);
+const mzCom = (...depois) => Buffer.concat([Buffer.from('MZ'), Buffer.from(depois), Buffer.from(' resto\n')]);
+const mzComControleNa = posicao => Buffer.concat([Buffer.from('MZ'), Buffer.alloc(posicao - 2, 'a'), Buffer.from([1]), Buffer.from('fim')]);
 const grande = (megas, letra = 'a') => Buffer.alloc(megas * MEGA, letra);
 const CONFIG_COM_LIMITE_DE_1_MB = { ...config, binarios: { ...config.binarios, tamanhoMaximoMB: 1 } };
 
@@ -25,6 +27,8 @@ const BASE = {
   'app/ja-era-grande.dat': grande(2),
   'app/virou-nulo.js': 'const a = 1;\n',
   'app/velho.bin': elf,
+  'app/chega-no-limite.dat': grande(0.5, 'c'),
+  'app/exato.dat': grande(1, 'e'),
   'app/apagado.zip': zip,
   'app/estavel.dat': dadosComNulos,
 };
@@ -38,6 +42,16 @@ const MUDANCAS = {
   'app/sem-extensao': Buffer.concat([zip, Buffer.from('um')]),
   'app/sem-extensao-elf': Buffer.concat([elf, Buffer.from('dois')]),
   'app/mz-sem-byte-de-controle': Buffer.from('MZ texto comum\n'),
+  'app/mz-com-8': mzCom(8),
+  'app/mz-com-tab': mzCom(9),
+  'app/mz-com-cr': mzCom(13),
+  'app/mz-com-14': mzCom(14),
+  'app/mz-com-31': mzCom(31),
+  'app/mz-com-espaco': mzCom(32),
+  'app/mz-controle-na-posicao-511': mzComControleNa(511),
+  'app/mz-controle-na-posicao-512': mzComControleNa(512),
+  'app/chega-no-limite.dat': grande(1, 'c'),
+  'app/exato.dat': grande(2, 'e'),
   'app/instalador.exe': 'qualquer coisa\n',
   'app/pacote.deb': Buffer.from('!<arch>\n'),
   'reservas/copia.js': 'const a = 1;\n',
@@ -92,7 +106,7 @@ test('binário: achados por arquivo, na ordem do diff, para cada tipo de mudanç
   const { achados, copias, itens } = rodarNoRepositorio();
   assert.deepEqual(copias, ['app/copia-de-dados.dat', 'app/copia-identica.zip', 'reservas/copia.js']);
   assert.deepEqual(itens.filter(item => /^[RMT]/.test(item) || item.includes('fantasma')), [
-    'R app/copia-identica.dat', 'M app/cresceu.dat', 'M app/estavel.dat', 'M app/ja-era-grande.dat', 'M app/ja-era-zip.dat', 'R app/novo-nome',
+    'M app/chega-no-limite.dat', 'R app/copia-identica.dat', 'M app/cresceu.dat', 'M app/estavel.dat', 'M app/exato.dat', 'M app/ja-era-grande.dat', 'M app/ja-era-zip.dat', 'R app/novo-nome',
     'M app/virou-gzip.dat', 'M app/virou-nulo.js', 'A app/fantasma.zip', 'M app/fantasma-m.js', 'T app/tipo.zip',
   ]);
   assert.deepEqual(resumo(achados), [
@@ -101,7 +115,12 @@ test('binário: achados por arquivo, na ordem do diff, para cada tipo de mudanç
     'app/copia-identica.zip | extensão .zip: instalador, pacote ou binário não entra no repositório',
     'app/cresceu.dat | 2.0 MB: passou do limite de 1 MB',
     'app/enorme.dat | 2.0 MB, acima do limite de 1 MB para arquivo novo',
+    'app/exato.dat | 2.0 MB: passou do limite de 1 MB',
     'app/instalador.exe | extensão .exe: instalador, pacote ou binário não entra no repositório',
+    'app/mz-com-14 | o conteúdo é executável Windows (MZ), mesmo com outro nome',
+    'app/mz-com-31 | o conteúdo é executável Windows (MZ), mesmo com outro nome',
+    'app/mz-com-8 | o conteúdo é executável Windows (MZ), mesmo com outro nome',
+    'app/mz-controle-na-posicao-511 | o conteúdo é executável Windows (MZ), mesmo com outro nome',
     'app/nota.log | cópia de backup, sobra de editor, log ou pasta de dependências',
     'app/novo-nome | o conteúdo é executável Linux (ELF), mesmo com outro nome',
     'app/pacote.deb | extensão .deb: instalador, pacote ou binário não entra no repositório',
