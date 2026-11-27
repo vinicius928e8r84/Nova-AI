@@ -1,6 +1,6 @@
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
-const { CamLiveService } = require('../../../app/electron/services/cam-live-service.js');
+const { CamLiveService } = require('../../app/electron/services/cam-live-service.js');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'camlive-'));
 const W = 640, H = 360, FPS = 30, SECS = 4, PORT = 19350;

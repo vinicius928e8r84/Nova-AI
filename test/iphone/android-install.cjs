@@ -13,7 +13,7 @@ const load=Module._load;
 Module._load=function(name,parent,main){if(name==='child_process')return mock;if(name==='ws'||name==='axios')return {};return load.call(this,name,parent,main);};
 process.resourcesPath=fs.mkdtempSync(path.join(os.tmpdir(),'nova-recursos-'));
 fs.writeFileSync(path.join(process.resourcesPath,'nova-cam-spoofer.apk'),'apk de teste');
-const Service=require(process.argv[2]||path.join(__dirname,'..','..','..','app','electron','services','physicalMobileService.js'));
+const Service=require(process.argv[2]||path.join(__dirname,'..','..','app','electron','services','physicalMobileService.js'));
 (async()=>{
  const service=Object.create(Service.prototype);service.resolveAdbPath=()=>process.execPath;
  const result=await service.installCamSpoofer('ANDROID-USB-TEST');

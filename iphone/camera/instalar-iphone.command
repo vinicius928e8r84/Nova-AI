@@ -4,7 +4,7 @@ here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 key="$HOME/.ssh/id_iphone"
 options=(-p 2222 -i "$key" -o ConnectTimeout=8 -o StrictHostKeyChecking=yes)
 scp_options=(-P 2222 -i "$key" -o ConnectTimeout=8 -o StrictHostKeyChecking=yes)
-package="$here/bridge/packages/com.aquiles.obsgraph-bridge_0.1-30_iphoneos-arm64.deb"
+package="$here/packages/com.aquiles.obsgraph-bridge_0.1-30_iphoneos-arm64.deb"
 phone=mobile@127.0.0.1
 printf '\nAtualização Nova AI → Câmera do iPhone por USB\n'
 printf 'Mantenha o iPhone conectado, desbloqueado e com jailbreak ativo.\n'

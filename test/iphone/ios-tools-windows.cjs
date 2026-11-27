@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs'),os=require('node:os'),{spawnSync}=require('node:child_process');
-const raiz=path.resolve(__dirname,'../../..');
-const receitaRelativa='MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh';
+const raiz=path.resolve(__dirname,'../..');
+const receitaRelativa='distribuicao/empacotar-ferramentas-windows.sh';
 function bashDoWsl(plataforma=process.platform){
  if(plataforma!=='win32')return false;
  const r=spawnSync('bash',['-c','uname -s'],{encoding:'utf8'});

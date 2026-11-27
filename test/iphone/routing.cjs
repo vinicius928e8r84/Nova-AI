@@ -6,7 +6,7 @@ Module._load = function(name, parent, main) {
  if (name === 'ws' || name === 'axios') return {};
  return original.call(this, name, parent, main);
 };
-const Service = require(process.argv[2] || path.join(__dirname, '..', '..', '..', 'app', 'electron', 'services', 'physicalMobileService.js'));
+const Service = require(process.argv[2] || path.join(__dirname, '..', '..', 'app', 'electron', 'services', 'physicalMobileService.js'));
 const s = Object.create(Service.prototype);
 let adbCalls = 0;
 s.resolveAdbPath = () => { adbCalls++; return '/missing-adb'; };

@@ -12,7 +12,7 @@ Module._load = function(name, parent, main) {
  }, exec(){throw new Error('Shell/ADB must not run for iPhone');}};
  return original.call(this, name, parent, main);
 };
-const Service = require(process.argv[2] || path.join(__dirname, '..', '..', '..', 'app', 'electron', 'services', 'physicalMobileService.js'));
+const Service = require(process.argv[2] || path.join(__dirname, '..', '..', 'app', 'electron', 'services', 'physicalMobileService.js'));
 const s = Object.create(Service.prototype);
 s.resolveAdbPath = () => { calls.push('resolveAdb'); return process.execPath; };
 (async()=>{

@@ -6,17 +6,17 @@ const assert = require('node:assert');
 const { casa, casaAlgum, extensaoDe } = require('../globs');
 
 const CAMINHOS = [
-  'a.js', 'app/x.js', 'app/dist/assets/i.js', 'app/dist/x.js', 'MAC/dist/a', 'MAC/p/q/dist/a', 'MAC/p/dist', 'b.map', 'x/b.map',
+  'a.js', 'app/x.js', 'app/dist/assets/i.js', 'app/dist/x.js', 'interface/dist/a', 'interface/p/q/dist/a', 'interface/p/dist', 'b.map', 'x/b.map',
   'a', 'a/b', 'a/c/b', 'a/x/y/b', 'ab', '1.txt', '12.txt', 'd/1.txt', 'f.mjs', 'f.ts', 'src/a1.py', 'src/d1.py', 'dir/x', 'q/dir/x',
-  'dir', 'x+y(1)|$^.js', 'a.b/z', 'c/z', 'axb/z', 'MAC/q/index-Dun7lr2S.patched.js', 'marked.min.js', 'vendor/marked.min.js', 'markedxmin.js',
+  'dir', 'x+y(1)|$^.js', 'a.b/z', 'c/z', 'axb/z', 'interface/q/index-Dun7lr2S.patched.js', 'marked.min.js', 'vendor/marked.min.js', 'markedxmin.js',
 ];
 
-const JS = ['a.js', 'app/x.js', 'app/dist/assets/i.js', 'app/dist/x.js', 'x+y(1)|$^.js', 'MAC/q/index-Dun7lr2S.patched.js', 'marked.min.js', 'vendor/marked.min.js', 'markedxmin.js'];
+const JS = ['a.js', 'app/x.js', 'app/dist/assets/i.js', 'app/dist/x.js', 'x+y(1)|$^.js', 'interface/q/index-Dun7lr2S.patched.js', 'marked.min.js', 'vendor/marked.min.js', 'markedxmin.js'];
 
 const CASAM = {
   '**/*.js': JS,
   'app/dist/assets/': ['app/dist/assets/i.js'],
-  'MAC/**/dist/': ['MAC/dist/a', 'MAC/p/q/dist/a'],
+  'interface/**/dist/': ['interface/dist/a', 'interface/p/q/dist/a'],
   '*.map': ['b.map', 'x/b.map'],
   '**': CAMINHOS,
   'a/**': ['a/b', 'a/c/b', 'a/x/y/b'],
@@ -28,7 +28,7 @@ const CASAM = {
   'marked.min.js': ['marked.min.js', 'vendor/marked.min.js'],
   'x+y(1)|$^.js': ['x+y(1)|$^.js'],
   '{a.b,c}/': ['a/c/b', 'a.b/z', 'c/z'],
-  'MAC/**/index-Dun7lr2S*.js': ['MAC/q/index-Dun7lr2S.patched.js'],
+  'interface/**/index-Dun7lr2S*.js': ['interface/q/index-Dun7lr2S.patched.js'],
 };
 
 for (const [glob, esperados] of Object.entries(CASAM)) {

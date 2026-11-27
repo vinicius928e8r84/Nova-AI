@@ -26,8 +26,7 @@ const PADROES_DE_TESTE = [
 ];
 
 const PADROES_DE_FERRAMENTA = [
-  /^(scripts|app\/scripts|pesquisas|docs\/pesquisas)\//,
-  /^MAC\/.+\.py$/,
+  /^(scripts|app\/scripts|docs\/pesquisas)\//,
   /^(iphone|interface|distribuicao)\/.+\.py$/,
 ];
 

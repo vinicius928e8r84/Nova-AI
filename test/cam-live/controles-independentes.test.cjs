@@ -14,7 +14,7 @@ const ready = {
   version: '0.1-39', hooksReady: true, photoPrepareHookReady: true,
   photoStillHookReady: true, photoPortRemapHookReady: true,
 };
-const frame = readFileSync(join(__dirname, '../integracao-camlive/test/fixtures/tiny.jpg'));
+const frame = readFileSync(join(__dirname, 'fixtures/tiny.jpg'));
 
 function setup({ semCelular = false } = {}) {
   const writes = [];

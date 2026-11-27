@@ -43,7 +43,7 @@ Antes, conectar o iPhone não mudava o cartão: ele continuava em **Conectar**. 
 
 O bundle do renderer já compilado foi ajustado só nesses dois pontos por
 `aplicar-botao-iphone.py` (idempotente; valida a sintaxe com `node --check` em cópia `.mjs`).
-Cópia aplicada em `dist/index-Dun7lr2S.patched.js`.
+Cópia aplicada em `interface/dist/index-Dun7lr2S.patched.js`.
 
 ## Arquivos
 
@@ -51,12 +51,12 @@ Cópia aplicada em `dist/index-Dun7lr2S.patched.js`.
 |---|---|
 | `app/electron/services/iphone-setup/inapp.js` | modal + console embutido; roda no preload (mundo isolado), fora do bundle React |
 | `app/electron/services/iphone-setup/setup.js` | valida a senha, instala a chave SSH e a ponte de câmera; `prompt()` manda o modal abrir |
-| `setup.test.cjs` | testes de limite do serviço (senha, aparelho único, janela ausente) |
+| `test/iphone/setup.test.cjs` | testes de limite do serviço (senha, aparelho único, janela ausente) |
 | `aplicar-botao-iphone.py` | patch do botão "Abrir controle" no bundle compilado |
-| `botao.test.cjs` | valida o trecho do botão no bundle patcheado |
-| `botao-servico.test.cjs` | valida `iosPrepared()` e o `streaming` no `getStatus()` |
-| `dist/index-Dun7lr2S.patched.js` | bundle já patcheado (com os patches anteriores) |
-| `test/modal/` | harness Electron que renderiza o modal e testa o IPC real do preload |
+| `test/botao.test.cjs` | valida o trecho do botão no bundle patcheado |
+| `test/iphone/botao-servico.test.cjs` | valida `iosPrepared()` e o `streaming` no `getStatus()` |
+| `interface/dist/index-Dun7lr2S.patched.js` | bundle já patcheado (com os patches anteriores) |
+| `test/iphone/modal/` | harness Electron que renderiza o modal e testa o IPC real do preload |
 | `docs/*.png` | capturas do harness |
 
 ## Alterações feitas no app instalado
@@ -130,14 +130,14 @@ O app instalado em `/Applications/Nova AI Mac.app` já está com essas alteraç�
 ## Testes executados
 
 - `node --check` em `main.js`, `preload.js`, `inapp.js` e `setup.js`.
-- `node setup.test.cjs` — modal pedido à janela certa, recusa de senha vazia/com quebra
+- `node test/iphone/setup.test.cjs` — modal pedido à janela certa, recusa de senha vazia/com quebra
   de linha/grande, bloqueio de múltiplos aparelhos, senha ausente das mensagens.
-- `node botao.test.cjs` — executou o trecho do cartão no bundle patcheado: iPhone
+- `node interface/controle-do-celular/iphone/test/botao.test.cjs` — executou o trecho do cartão no bundle patcheado: iPhone
   preparado chama `ios-console-open` e mostra "Abrir controle"; Android continua
   chamando `stop-stream` e mostrando "Parar transmissão".
-- `node botao-servico.test.cjs` — sem pin o iPhone não é "streaming"; com pin vira
+- `node test/iphone/botao-servico.test.cjs` — sem pin o iPhone não é "streaming"; com pin vira
   "Abrir controle" e o Android não muda; JSON quebrado não derruba o painel.
-- Harness `test/modal/` em Electron com o **preload real** do app:
+- Harness `test/iphone/modal/` em Electron com o **preload real** do app:
   - `integracao.js` abriu o modal via IPC, enviou a senha por
     `physical-mobile:iphone-prepare`, recebeu a resposta e confirmou que o campo ficou
     vazio (`senhaNoDom: ""`);
@@ -149,13 +149,13 @@ O app instalado em `/Applications/Nova AI Mac.app` já está com essas alteraç�
 Para repetir (fecha a janela sozinho):
 
 ```sh
-cd test/modal
+cd test/iphone/modal
 env -u ELECTRON_RUN_AS_NODE TEST_STATE=idle  "/Applications/Nova AI Mac.app/Contents/Resources/app/node_modules/.bin/electron" main.js
 env -u ELECTRON_RUN_AS_NODE "/Applications/Nova AI Mac.app/Contents/Resources/app/node_modules/.bin/electron" integracao.js
 ```
 
 `ELECTRON_RUN_AS_NODE` precisa estar vazio nesta máquina, senão o binário roda como
-Node e não encontra o módulo `electron`. As capturas vão para `test/modal/shots/`.
+Node e não encontra o módulo `electron`. As capturas vão para `test/iphone/modal/shots/`.
 
 ## Limites
 
@@ -178,5 +178,5 @@ Node e não encontra o módulo `electron`. As capturas vão para `test/modal/sho
 
 ## Relacionado
 
-- `../README.md` — integração iPhone (ponte de câmera, CAM HIJACK).
-- `../../LEIA-ME.md` — histórico do projeto Mac.
+- `iphone/README.md` — integração iPhone (ponte de câmera, CAM HIJACK).
+- `docs/historico.md` — histórico do projeto Mac.

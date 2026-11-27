@@ -22,6 +22,6 @@ test('main.js registra idioma-ipc e não referencia mais identidade-ipc', () => 
 });
 
 test('não sobra cópia do módulo apagado nem instalador que o recoloca', () => {
-    const pasta = path.join(__dirname, '..', '..', 'MAC', 'integracao-iphone', 'identidade-iphone');
+    const pasta = path.join(__dirname, '..', '..', 'iphone', 'identidade-iphone');
     assert.equal(fs.existsSync(pasta), false);
 });

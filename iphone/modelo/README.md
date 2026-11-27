@@ -54,7 +54,7 @@ A CLI `novamodel` roda **sem** o tweak (o `%ctor` a ignora), então `status` sem
 
 ```sh
 export THEOS=~/theos
-cd "$HOME/Desktop/Nova-AI/MAC/integracao-modelo"
+cd "$HOME/Desktop/Nova-AI/iphone/modelo"
 make clean && make package
 # saída: packages/com.aquiles.novamodel_0.1-*.deb
 ```

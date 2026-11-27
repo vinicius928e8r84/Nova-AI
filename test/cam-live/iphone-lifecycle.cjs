@@ -1,13 +1,13 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),{EventEmitter}=require('node:events'),{PassThrough}=require('node:stream');
-const {CamLiveIphone}=require('../../../app/electron/services/cam-live-iphone');
+const {CamLiveIphone}=require('../../app/electron/services/cam-live-iphone');
 const tinyJpeg=require('node:fs').readFileSync(require('node:path').join(__dirname,'fixtures/tiny.jpg'));
 const ready={version:'0.1-39',hooksReady:true,faulted:false,enabled:false,photoPrepareHookReady:true,photoStillHookReady:true,photoPortRemapHookReady:true};
 function adts(data){const n=data.length+7;return Buffer.concat([Buffer.from([255,241,80,64|(n>>11),(n>>3)&255,((n&7)<<5)|31,252]),data]);}
 function setup({state=ready,devices=[{id:'ios-a',ios:true,name:'iPhone teste'}],tunnelFail=false,unixFail=false,encoderFail=false}={}){
  const commands=[],events=[],children=[];const current={...state};
  const mobile={getIosDevices:async()=>devices,iosSsh:async cmd=>{commands.push(cmd);if(cmd.startsWith('chmod 666'))return{ok:!unixFail,stdout:unixFail?'':'ok'};if(cmd.startsWith('rm -f'))return{ok:true,stdout:''};if(cmd.startsWith('cat '))return{ok:true,stdout:JSON.stringify(current)};return{ok:true,stdout:''};}};
- const spawnProcess=(file,args)=>{const child=new EventEmitter();child.stdin=new PassThrough();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{child.killed=true;queueMicrotask(()=>child.emit('exit',0));};children.push(child);queueMicrotask(()=>{if(file===require('../../../app/electron/services/tool-paths').ssh()){child.stderr.write(tunnelFail?'remote forward failure for listen /var/tmp/.nb-00000000.sock':'remote forward success for: listen /var/tmp/.nb-1234abcd.sock');if(tunnelFail)child.emit('exit',255);}else if(encoderFail)child.emit('error',new Error('mock'));else child.emit('spawn');});return child;};
+ const spawnProcess=(file,args)=>{const child=new EventEmitter();child.stdin=new PassThrough();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{child.killed=true;queueMicrotask(()=>child.emit('exit',0));};children.push(child);queueMicrotask(()=>{if(file===require('../../app/electron/services/tool-paths').ssh()){child.stderr.write(tunnelFail?'remote forward failure for listen /var/tmp/.nb-00000000.sock':'remote forward success for: listen /var/tmp/.nb-1234abcd.sock');if(tunnelFail)child.emit('exit',255);}else if(encoderFail)child.emit('error',new Error('mock'));else child.emit('spawn');});return child;};
  const service=new CamLiveIphone({getMobileService:()=>mobile,send:(name,data)=>events.push({name,data}),ffmpegPath:'/bundled/ffmpeg',spawnProcess});
  return{service,commands,events,children,current};
 }

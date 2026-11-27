@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 AQUI="$(cd "$(dirname "$0")" && pwd)"
-HELPER="$AQUI/../../conexao-usb/nova-locale.sh"
+HELPER="$AQUI/../helper/nova-locale.sh"
 [ -f "$HELPER" ] || { echo "helper não encontrado: $HELPER"; exit 1; }
 
 T=$(mktemp -d)

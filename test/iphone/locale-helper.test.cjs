@@ -7,9 +7,8 @@ const vm = require('node:vm');
 const { spawn, spawnSync } = require('node:child_process');
 const { EventEmitter } = require('node:events');
 
-const SH = process.env.NOVA_LOCALE_SH || path.join(__dirname, 'nova-locale.sh');
-const TWIN = path.join(__dirname, '..', '..', 'controle-celular-plataformas', 'geo-proxy', 'helper', 'nova-locale.sh');
-const SETUP = process.env.NOVA_SETUP_JS || path.join(__dirname, '../../../app/electron/services/iphone-setup/setup.js');
+const SH = process.env.NOVA_LOCALE_SH || path.join(__dirname, '..', '..', 'iphone', 'idioma', 'helper', 'nova-locale.sh');
+const SETUP = process.env.NOVA_SETUP_JS || path.join(__dirname, '../../app/electron/services/iphone-setup/setup.js');
 const src = fs.readFileSync(SH, 'utf8');
 
 const NO_WINDOWS = process.platform === 'win32';
@@ -28,8 +27,6 @@ async function waitFor(fn, ms, what) {
 function testeEstatico() {
   if (NO_WINDOWS) console.log('PULADO no Windows: bash -n (não há bash no PATH; o helper só roda no iPhone)');
   else assert.equal(spawnSync('bash', ['-n', SH]).status, 0, 'bash -n falhou no nova-locale.sh');
-
-  if (fs.existsSync(TWIN)) assert.equal(fs.readFileSync(TWIN, 'utf8'), src, 'cópia em geo-proxy/helper difere do nova-locale.sh canônico');
 
   const primeira = src.split('\n').find((l) => l.trim() && !l.trim().startsWith('#'));
   assert.match(primeira, /^export PATH=\/var\/jb\/usr\/bin:/, 'o PATH do Procursus tem que ser a primeira instrução');

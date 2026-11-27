@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const {AdtsParser,UsbMedia}=require('../../../app/electron/services/cam-live-iphone');
+const {AdtsParser,UsbMedia}=require('../../app/electron/services/cam-live-iphone');
 const jpeg=require('node:fs').readFileSync(require('node:path').join(__dirname,'fixtures/tiny.jpg'));
 function adts(data,{rate=4,channels=1,profile=1}={}) { const n=data.length+7;return Buffer.concat([Buffer.from([255,241,(profile<<6)|(rate<<2)|(channels>>2),((channels&3)<<6)|(n>>11),(n>>3)&255,((n&7)<<5)|31,252]),data]); }
 function request(port,url,method='GET') { return new Promise((resolve,reject)=>{const req=http.request({host:'127.0.0.1',port,path:url,method},res=>{const parts=[];res.on('data',b=>parts.push(b));res.on('end',()=>resolve({code:res.statusCode,headers:res.headers,body:Buffer.concat(parts)}));});req.on('error',reject);req.end();}); }

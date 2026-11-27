@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 const { spawnSync } = require('node:child_process');
-const { AdtsParser, UsbMedia } = require('../../../app/electron/services/cam-live-iphone');
+const { AdtsParser, UsbMedia } = require('../../app/electron/services/cam-live-iphone');
 const FFMPEG = '/Applications/Nova AI Mac.app/Contents/Resources/bin/ffmpeg';
 function jpeg(width = 64, height = 32) {
   const result = spawnSync(FFMPEG, ['-v','error','-f','lavfi','-i',`color=c=red:size=${width}x${height}`,'-frames:v','1','-f','image2pipe','-c:v','mjpeg','pipe:1'], {maxBuffer:4*1024*1024});

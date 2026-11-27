@@ -5,7 +5,6 @@ set -e
 APP="/Applications/Nova AI Mac.app"
 IPROXY="$APP/Contents/Resources/ios-tools/bin/iproxy"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-[ -d "$DIR/tool/packages" ] || DIR="$HOME/Desktop/Nova-AI/MAC/proxy-iphone"
 DEB="$(ls -t "$DIR"/tool/packages/*.deb 2>/dev/null | head -1)"
 echo "Pacote: $DEB"
 SSH_OPTS=(-p 2222 -o BatchMode=yes -o ConnectTimeout=6 -o StrictHostKeyChecking=accept-new)

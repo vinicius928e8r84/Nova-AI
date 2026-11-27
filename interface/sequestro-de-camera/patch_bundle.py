@@ -5,7 +5,7 @@ import sys
 
 RESERVA = None
 APP = pathlib.Path('/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js')
-PROJ = pathlib.Path.home() / 'Desktop/Nova-AI/MAC/integracao-sequestro-cam'
+PROJ = pathlib.Path(__file__).resolve().parent
 
 origem = pathlib.Path(sys.argv[1])
 s = origem.read_text(encoding='utf-8')

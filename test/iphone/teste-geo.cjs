@@ -1,5 +1,5 @@
 'use strict';
-const geo = require('../../../app/electron/services/geo-proxy');
+const geo = require('../../app/electron/services/geo-proxy');
 
 (async () => {
   const proxy = process.argv[2] || process.env.NOVA_PROXY || '';

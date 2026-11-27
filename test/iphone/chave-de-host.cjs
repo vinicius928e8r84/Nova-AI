@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const raiz=path.resolve(__dirname,'../../..');
+const raiz=path.resolve(__dirname,'../..');
 const arquivos=[
  'app/electron/services/ios-camera.js',
  'app/electron/services/cam-live-iphone.js',

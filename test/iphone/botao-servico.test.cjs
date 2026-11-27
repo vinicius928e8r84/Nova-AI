@@ -5,7 +5,7 @@ const path = require('node:path');
 const Module = require('node:module');
 
 process.env.NOVA_SMOKE_TEST = '1';
-const APP = process.env.NOVA_APP || path.join(__dirname, '..', '..', '..', 'app');
+const APP = process.env.NOVA_APP || path.join(__dirname, '..', '..', 'app');
 const carregarOriginal = Module._load;
 Module._load = function (name, parent, main) {
   if (name === 'ws' || name === 'axios') return {};

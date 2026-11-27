@@ -1,6 +1,6 @@
 'use strict';
 
-const idioma = require('../../../../app/electron/services/idioma-ipc.js');
+const idioma = require('../../../app/electron/services/idioma-ipc.js');
 
 let fails = 0;
 function ok(nome, cond, extra) {

@@ -104,7 +104,7 @@ O Bluetooth seguiu a mesma lógica: `BluetoothManager.setPoweredEnabled:` não e
 
 ### Fase C — Encerramento
 
-- [ ] Atualizar `MAC/LEIA-ME.md`
+- [ ] Atualizar `docs/historico.md`
 - [ ] Fechar os pendentes da seção 4
 
 ---

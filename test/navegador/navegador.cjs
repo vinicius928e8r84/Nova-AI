@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const Module = require('module');
 
-const servicos = path.join(__dirname, '../../../app/electron/services');
+const servicos = path.join(__dirname, '../../app/electron/services');
 const macNativePath = path.join(servicos, 'mac-native.js');
 
 function criarExecutavel(raiz, ...partes) {

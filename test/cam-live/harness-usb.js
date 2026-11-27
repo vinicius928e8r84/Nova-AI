@@ -1,6 +1,6 @@
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
-require('../../../app/electron/services/cam-live-service.js');
+require('../../app/electron/services/cam-live-service.js');
 
 const PORT = parseInt(process.env.PORT || '8766', 10), RTMP_PORT = parseInt(process.env.RTMP_PORT || '19351', 10);
 const sse = new Set();
@@ -8,7 +8,7 @@ const handlers = new Map(), ons = new Map();
 const ipcMain = { handle: (c, f) => handlers.set(c, f), on: (c, f) => ons.set(c, f) };
 const win = { isDestroyed: () => false, webContents: { send: (ch, p) => { const m = `data: ${JSON.stringify({ ch, p })}\n\n`; sse.forEach((r) => r.write(m)); } } };
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'camlive-h-'));
-const { UsbMedia } = require('../../../app/electron/services/cam-live-iphone.js');
+const { UsbMedia } = require('../../app/electron/services/cam-live-iphone.js');
 const media = new UsbMedia(); const counts = { starts: 0, stops: 0, frames: 0, badFrames: 0, pcm: 0, pcmBytes: 0, sampleRates: {}, lastStart: null, lastError: '' };
 globalThis.__counts = counts;
 ipcMain.handle('camlive:studio-load', () => null); ipcMain.handle('camlive:studio-save', () => ({ ok: true }));
@@ -38,9 +38,9 @@ const es=new EventSource('/events'); es.onmessage=e=>{const {ch,p}=JSON.parse(e.
 http.createServer((req, res) => {
   const u = req.url.split('?')[0];
   if (u === '/') { res.setHeader('content-type', 'text/html'); return res.end(PAGE); }
-  if (u === '/cam-live-audio.js') { res.setHeader('content-type', 'application/javascript'); try { return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist/cam-live-audio.js'))); } catch (e) { return res.end('/* cam-live-audio.js ainda não existe */'); } }
+  if (u === '/cam-live-audio.js') { res.setHeader('content-type', 'application/javascript'); try { return res.end(fs.readFileSync(path.join(__dirname, '../../app/dist/cam-live-audio.js'))); } catch (e) { return res.end('/* cam-live-audio.js ainda não existe */'); } }
   if (u.startsWith('/fixtures/')) { const f = path.join(__dirname, 'fixtures', path.basename(u)); if (fs.existsSync(f)) { res.setHeader('content-type', f.endsWith('.png') ? 'image/png' : f.endsWith('.mp4') ? 'video/mp4' : 'audio/wav'); return res.end(fs.readFileSync(f)); } res.statusCode = 404; return res.end(); }
-  if (/^\/cam-live(-dados|-modelo|-geometria)?\.js$/.test(u)) { res.setHeader('content-type', 'application/javascript'); return res.end(fs.readFileSync(path.join(__dirname, '../../../app/dist', u))); }
+  if (/^\/cam-live(-dados|-modelo|-geometria)?\.js$/.test(u)) { res.setHeader('content-type', 'application/javascript'); return res.end(fs.readFileSync(path.join(__dirname, '../../app/dist', u))); }
   if (u === '/counts') { res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify(globalThis.__counts)); }
   if (u === '/events') { res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' }); res.write(': ok\n\n'); sse.add(res); req.on('close', () => sse.delete(res)); return; }
   if (u === '/listen') { if (listener) { try { listener.kill('SIGKILL'); } catch (_) {} } startListener(); return res.end('listening'); }

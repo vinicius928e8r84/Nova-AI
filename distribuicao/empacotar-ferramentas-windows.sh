@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 destino="${1:-$raiz/app/resources/ios-tools}"
 prefixo="${MINGW_PREFIX:-/ucrt64}"
 pacotes="${MINGW_PACKAGE_PREFIX:-mingw-w64-ucrt-x86_64}"

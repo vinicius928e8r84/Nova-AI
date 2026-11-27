@@ -18,7 +18,7 @@ cp.spawn = (file, args, options) => {
   return filho;
 };
 
-const tp = require('../../../app/electron/services/tool-paths');
+const tp = require('../../app/electron/services/tool-paths');
 const win = { platform: 'win32', env: { SystemRoot: 'C:\\Windows' }, exists: () => false };
 const winComSsh = { ...win, exists: () => true };
 
@@ -48,9 +48,9 @@ test('ios-devices lista o aparelho com windowsHide em todas as consultas', async
     chamadas.push({ via: 'execFile', file, options });
     process.nextTick(callback, null, args[0] === '-l' ? 'a'.repeat(25) + '\n' : 'x\n', '');
   };
-  const caminho = require.resolve('../../../app/electron/services/ios-tools');
+  const caminho = require.resolve('../../app/electron/services/ios-tools');
   require.cache[caminho] = { id: caminho, filename: caminho, loaded: true, exports: { tool: (nome) => '/ios/' + nome } };
-  const { listar } = require('../../../app/electron/services/ios-devices');
+  const { listar } = require('../../app/electron/services/ios-devices');
   const lista = await listar();
   assert.equal(lista.length, 1);
   assert.equal(chamadas.length, 3);
@@ -78,7 +78,7 @@ test('Windows sem OpenSSH: o Conectar mostra a mensagem do OpenSSH', async () =>
     const Module = require('node:module');
     const resolver = Module._resolveFilename;
     Module._resolveFilename = function (pedido, ...r) { return /node_modules\/ssh2$/.test(pedido) ? __filename : resolver.call(this, pedido, ...r); };
-    const setup = require('../../../app/electron/services/iphone-setup/setup.js');
+    const setup = require('../../app/electron/services/iphone-setup/setup.js');
     const udid = 'a'.repeat(25);
     await assert.rejects(setup.prepare('ios-' + udid, 'senha', {}), /Recursos opcionais/);
   } finally { semOpenSsh.desliga(); }
@@ -88,7 +88,7 @@ test('Windows sem OpenSSH: o Conectar mostra a mensagem do OpenSSH', async () =>
 test('Windows sem OpenSSH: o CAM LIVE mostra a mensagem do OpenSSH', async () => {
   semOpenSsh.liga();
   try {
-    const Classe = require('../../../app/electron/services/cam-live-iphone.js');
+    const Classe = require('../../app/electron/services/cam-live-iphone.js');
     const Alvo = Classe.CamLiveIphone || Classe.IphoneCamLive || Object.values(Classe).find((v) => typeof v === 'function' && v.prototype && v.prototype._readState);
     const instancia = Object.create(Alvo.prototype);
     instancia.mobile = { iosSsh: async () => ({ ok: false, error: 'x' }) };

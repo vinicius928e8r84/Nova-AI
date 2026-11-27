@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const bundle = process.argv[2] || path.join(__dirname, '..', '..', '..', 'app', 'dist', 'assets', 'index-Dun7lr2S.js');
+const bundle = process.argv[2] || path.join(__dirname, '..', '..', '..', '..', 'app', 'dist', 'assets', 'index-Dun7lr2S.js');
 const source = fs.readFileSync(bundle, 'utf8');
 
 assert.ok(source.includes('physical-mobile:ios-console-open'), 'bundle sem o canal do controle do iPhone');

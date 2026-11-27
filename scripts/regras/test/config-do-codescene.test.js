@@ -86,7 +86,7 @@ test('passa: nomes parecidos não são a configuração', () => {
 });
 
 test('não existe isenção: a regra roda em arquivo de pasta isenta das outras', () => {
-  const r = tentar({}, { 'MAC/x/reservas/code-health-rules.json': REGRAS_DO_CODESCENE });
+  const r = tentar({}, { 'iphone/x/reservas/code-health-rules.json': REGRAS_DO_CODESCENE });
   assert.equal(r.codigo, 1);
 });
 

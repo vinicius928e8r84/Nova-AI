@@ -112,9 +112,9 @@ test('falha: cópia de um arquivo grande é arquivo novo e tem de caber no limit
 });
 
 test('falha: arquivo que sai de um lugar isento para o código é arquivo novo', () => {
-  const repo = criar({ 'MAC/area/dist/antigo.js': comBytes(LIMITE * 2) });
+  const repo = criar({ 'interface/dist/antigo.js': comBytes(LIMITE * 2) });
   fs.mkdirSync(path.join(repo.raiz, 'app'));
-  repo.git('mv', 'MAC/area/dist/antigo.js', 'app/antigo.js');
+  repo.git('mv', 'interface/dist/antigo.js', 'app/antigo.js');
   const r = executar(repo);
   repo.limpar();
   assert.equal(r.codigo, 1);
@@ -215,7 +215,7 @@ for (const pasta of PASTAS_DE_TESTE) {
   test(`testes: a pasta ${pasta}/ em qualquer profundidade fica fora do teto`, () => {
     const r = tentar({}, {
       [`${pasta}/raiz.json`]: comBytes(LIMITE * 2),
-      [`MAC/area/${pasta}/fundo/dados.js`]: comBytes(LIMITE * 2),
+      [`iphone/area/${pasta}/fundo/dados.js`]: comBytes(LIMITE * 2),
     });
     assert.equal(r.codigo, 0, r.saida);
   });

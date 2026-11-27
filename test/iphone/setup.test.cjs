@@ -14,7 +14,7 @@ const sandbox = {
   setTimeout,
   clearTimeout,
   require(name) {
-    if (name === '../tool-paths') return require('../../../app/electron/services/tool-paths');
+    if (name === '../tool-paths') return require('../../app/electron/services/tool-paths');
     if (name === '../ios-tools') return { tool: (tool) => '/bundled/' + tool };
     if (name === './node_modules/ssh2') return { Client: class { constructor() { sshAttempts++; throw Error('SSH não deveria ser alcançado'); } } };
     if (name === 'child_process') return {
@@ -24,7 +24,7 @@ const sandbox = {
     return require(name);
   },
 };
-vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../../app/electron/services/iphone-setup/setup.js'), 'utf8'), sandbox);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/electron/services/iphone-setup/setup.js'), 'utf8'), sandbox);
 const setup = sandbox.module.exports;
 
 const win = { isDestroyed: () => false, webContents: { send: (channel, data) => sent.push({ channel, data }) } };

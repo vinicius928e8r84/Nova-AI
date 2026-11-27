@@ -60,7 +60,7 @@ test('cópia idêntica de arquivo que já existe não escapa da regra de backup'
 
 test('arquivo novo em reservas/ é barrado como cópia de backup e a mensagem cita a pasta fora do repositório', () => {
   const base = { 'app/a.js': '// velho\nconst a = 1;\n' };
-  const novos = ['MAC/x/reservas/20261116/a.js.antes-patch', 'MAC/x/reservas/a.js', 'reservas/b.js', 'iphone/y/reservas/1/c.js', 'app/reservas/d.txt'];
+  const novos = ['iphone/x/reservas/20261116/a.js.antes-patch', 'iphone/x/reservas/a.js', 'reservas/b.js', 'iphone/y/reservas/1/c.js', 'app/reservas/d.txt'];
   const r = tentar('sem-binario-nem-lixo', Object.fromEntries(novos.map(caminho => [caminho, '// velho\nconst a = 1;\n'])), base);
   assert.equal(r.codigo, 1, r.saida);
   for (const caminho of novos) assert.ok(r.saida.includes(caminho), r.saida);
@@ -83,27 +83,27 @@ test('arquivo novo grande não trava: o tempo não cresce com linhas × tamanho'
 
 test('comentário novo em C, Objective-C, Swift, Logos, YAML, plist e script com shebang', () => {
   const arquivos = {
-    'MAC/a.c': 'int a = 1; // por que\n',
-    'MAC/b.m': '/* por que */\nint b;\n',
-    'MAC/c.swift': 'let c = 1 // por que\n',
-    'MAC/d.x': '// por que\n%hook A\n%end\n',
+    'iphone/a.c': 'int a = 1; // por que\n',
+    'iphone/b.m': '/* por que */\nint b;\n',
+    'iphone/c.swift': 'let c = 1 // por que\n',
+    'iphone/d.x': '// por que\n%hook A\n%end\n',
     '.github/e.yml': 'a: 1 # por que\n',
-    'MAC/f.plist': '<plist><!-- por que --></plist>\n',
-    'MAC/g': '#!/bin/sh\n# por que\necho oi\n',
-    'MAC/h': '#!/usr/bin/env python3\nx = 1 # por que\n',
-    'MAC/i': '#!/usr/bin/env node\nconst x = 1; // por que\n',
+    'iphone/f.plist': '<plist><!-- por que --></plist>\n',
+    'iphone/g': '#!/bin/sh\n# por que\necho oi\n',
+    'iphone/h': '#!/usr/bin/env python3\nx = 1 # por que\n',
+    'iphone/i': '#!/usr/bin/env node\nconst x = 1; // por que\n',
   };
   const r = tentar('sem-comentario-novo', arquivos);
   assert.equal(r.codigo, 1, r.saida);
-  for (const nome of ['MAC/a.c:1', 'MAC/b.m:1', 'MAC/c.swift:1', 'MAC/d.x:1', '.github/e.yml:1', 'MAC/f.plist:1', 'MAC/g:2', 'MAC/h:2', 'MAC/i:2']) assert.ok(r.saida.includes(nome), `${nome}\n${r.saida}`);
+  for (const nome of ['iphone/a.c:1', 'iphone/b.m:1', 'iphone/c.swift:1', 'iphone/d.x:1', '.github/e.yml:1', 'iphone/f.plist:1', 'iphone/g:2', 'iphone/h:2', 'iphone/i:2']) assert.ok(r.saida.includes(nome), `${nome}\n${r.saida}`);
 });
 
 test('sem comentário: texto com // e # dentro de string, e arquivo sem shebang, passam', () => {
   const r = tentar('sem-comentario-novo', {
-    'MAC/a.c': 'const char *u = "http://x//y";\n',
-    'MAC/c.swift': 'let c = "// não é comentário"\n',
+    'iphone/a.c': 'const char *u = "http://x//y";\n',
+    'iphone/c.swift': 'let c = "// não é comentário"\n',
     '.github/e.yml': 'a: "b # c"\nb: x#y\n',
-    'MAC/dados': 'isto // não é código\n',
+    'iphone/dados': 'isto // não é código\n',
   });
   assert.equal(r.codigo, 0, r.saida);
 });
@@ -127,7 +127,7 @@ test('pastas vendor, dist e fixtures fora do lugar previsto não escapam da regr
 test('os lugares previstos continuam isentos: bundle da interface e backup', () => {
   const r = tentar('sem-comentario-novo', {
     'app/dist/assets/a.js': '// por que\n',
-    'MAC/x/index-Dun7lr2S.patched.js': '// por que\n',
+    'interface/dist/index-Dun7lr2S.patched.js': '// por que\n',
     'backup-antes-traducao/a.js': '// por que\n',
   });
   assert.equal(r.codigo, 0, r.saida);
@@ -147,7 +147,7 @@ test('depuração falha: console["log"], console.log sem chamada e console.log n
 
 test('eslint: bundle da interface não é cobrado, globais do navegador existem e eslint-disable não vale', { skip: !temEslint }, () => {
   const bom = tentar('eslint-nas-linhas-novas', {
-    'MAC/x/index-Dun7lr2S.patched.js': 'const u = import.meta.url;\nexport { u };\n',
+    'interface/dist/index-Dun7lr2S.patched.js': 'const u = import.meta.url;\nexport { u };\n',
     'app/b.js': 'const l = innerWidth + innerHeight + new VideoEncoder({}).length + new Path2D().length;\nmodule.exports = { l };\n',
   });
   assert.equal(bom.codigo, 0, bom.saida);

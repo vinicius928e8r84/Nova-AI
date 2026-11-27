@@ -12,7 +12,7 @@ O console do iPhone passou a abrir num `<webview>` dentro do app, com "Abrir em 
 
 Depois de conectar, o cartão do aparelho deixa de mostrar **Conectar**: vira **Abrir controle** (ciano), que abre o console direto, sem senha. O estado vem do `iphone-hosts.json` gravado por um Conectar bem-sucedido (`iosPrepared`) e o painel é avisado na hora por `physical-mobile:status-updated`. Android continua com "Parar transmissão". No topo do controle, **Refazer conexão** reabre o quadro de senha.
 
-Detalhes, código do `main.js`/`preload.js`, capturas e como desfazer: `conexao-usb/README.md`. Fontes: `app/electron/services/iphone-setup/inapp.js` e `app/electron/services/iphone-setup/setup.js`. Testes: `conexao-usb/setup.test.cjs` e harness Electron em `conexao-usb/test/modal/` (modal aberto pelo preload real, senha enviada e limpa do campo, `<webview>` do console). **Aplicado no app instalado; reinicie o Nova. O DMG não foi regenerado.**
+Detalhes, código do `main.js`/`preload.js`, capturas e como desfazer: `interface/controle-do-celular/iphone/README.md`. Fontes: `app/electron/services/iphone-setup/inapp.js` e `app/electron/services/iphone-setup/setup.js`. Testes: `test/iphone/setup.test.cjs` e harness Electron em `test/iphone/modal/` (modal aberto pelo preload real, senha enviada e limpa do campo, `<webview>` do console). **Aplicado no app instalado; reinicie o Nova. O DMG não foi regenerado.**
 
 ## Estado em 02/11/2026
 

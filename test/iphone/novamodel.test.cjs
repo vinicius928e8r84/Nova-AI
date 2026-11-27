@@ -39,7 +39,7 @@ async function main() {
   ok(iosModelo.parseStatus('') === null, 'parseStatus vazio → null');
   ok(iosModelo.parseStatus('não é json') === null, 'parseStatus inválido → null');
 
-  const models = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', 'integracao-iphone', 'iosModels.json'), 'utf8')).models;
+  const models = JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', '..', 'iphone', 'modelo', 'iosModels.json'), 'utf8')).models;
   ok(iosModelo.findModel(models, 'iPhone14,5') !== null, 'findModel encontra iPhone 13');
   ok(iosModelo.findModel(models, 'Nope9,9') === null, 'findModel rejeita desconhecido');
 

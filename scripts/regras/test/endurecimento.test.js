@@ -145,7 +145,7 @@ test('copiar ou mover arquivo de pasta isenta para o código cobra comentário',
   assert.equal(copia.codigo, 1, copia.saida);
   const mover = tentar('sem-comentario-novo', { 'backup-antes-traducao/pwa/app.js': null, 'app/electron/novo/app2.js': antigo }, base, repo => repo.git('rm', '-q', '--cached', 'backup-antes-traducao/pwa/app.js'));
   assert.equal(mover.codigo, 1, mover.saida);
-  const reserva = tentar('sem-comentario-novo', { 'MAC/x/reservas/app.js': antigo }, base);
+  const reserva = tentar('sem-comentario-novo', { 'iphone/x/reservas/app.js': antigo }, base);
   assert.equal(reserva.codigo, 1, reserva.saida);
 });
 
@@ -243,13 +243,13 @@ test('segredo: exemplos de URL de proxy do repositório não são segredo, senha
 
 test('script ou código com BOM de UTF-16 não escapa: código entra em UTF-8', () => {
   const sh = utf16('#!/bin/sh\n# comentario novo escondido\necho oi\n', true);
-  const novo = tentar('sem-binario-nem-lixo', { 'MAC/scripts-n/instalar.sh': sh });
+  const novo = tentar('sem-binario-nem-lixo', { 'iphone/scripts-n/instalar.sh': sh });
   assert.equal(novo.codigo, 1, novo.saida);
   const cmd = tentar('sem-binario-nem-lixo', { 'app/nova-locale.cmd': utf16('rem comentario novo\n', true) });
   assert.equal(cmd.codigo, 1, cmd.saida);
-  const modificado = tentar('sem-binario-nem-lixo', { 'MAC/scripts-n/instalar.sh': sh }, { 'MAC/scripts-n/instalar.sh': '#!/bin/sh\necho oi\n' });
+  const modificado = tentar('sem-binario-nem-lixo', { 'iphone/scripts-n/instalar.sh': sh }, { 'iphone/scripts-n/instalar.sh': '#!/bin/sh\necho oi\n' });
   assert.equal(modificado.codigo, 1, modificado.saida);
-  const texto = tentar('sem-binario-nem-lixo', { 'docs/notas.txt': utf16('notas\n', true), 'MAC/scripts-n/limpo.sh': '#!/bin/sh\necho oi\n' });
+  const texto = tentar('sem-binario-nem-lixo', { 'docs/notas.txt': utf16('notas\n', true), 'iphone/scripts-n/limpo.sh': '#!/bin/sh\necho oi\n' });
   assert.equal(texto.codigo, 0, texto.saida);
 });
 

@@ -59,7 +59,7 @@ Os arquivos aplicados vivem em `app/` (a pasta `aplicado/` foi apagada). O origi
 O script do renderer sempre parte do **bundle original**:
 
 ```sh
-cd "$HOME/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy"
+cd "$HOME/Desktop/Nova-AI/interface/controle-do-celular/localizacao-pela-proxy"
 git show 1b45c3f:MAC/controle-celular-plataformas/geo-proxy/reservas/20261104-203814/index-Dun7lr2S.js > /tmp/original.js
 python3 aplicar-geo.py /tmp/original.js /tmp/novo.js
 cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/assets/index-Dun7lr2S.js"
@@ -108,15 +108,15 @@ Por isso existe o helper `nova-locale`, instalado uma vez:
 
 | Arquivo | Papel |
 |---|---|
-| `helper/nova-locale.sh` | daemon root: lê `/var/tmp/nova-locale.cmd` (chaves `action`, `tz`, `plist`), valida, troca o fuso, aplica o plist de idioma, mata o `cfprefsd`, respinga e escreve `/var/tmp/nova-locale-status.json` |
-| `helper/com.aquiles.novalocale.plist` | LaunchDaemon (`com.aquiles.novalocale`, `KeepAlive`) |
-| `helper/instalar-root.sh` | roda como root: copia os dois e faz `launchctl bootstrap` |
-| `helper/instalar-helper-idioma.command` | instalador para o usuário (pede a senha do iPhone uma vez) |
+| `iphone/idioma/helper/nova-locale.sh` | daemon root: lê `/var/tmp/nova-locale.cmd` (chaves `action`, `tz`, `plist`), valida, troca o fuso, aplica o plist de idioma, mata o `cfprefsd`, respinga e escreve `/var/tmp/nova-locale-status.json` |
+| `iphone/idioma/helper/com.aquiles.novalocale.plist` | LaunchDaemon (`com.aquiles.novalocale`, `KeepAlive`) |
+| `iphone/idioma/helper/instalar-root.sh` | roda como root: copia os dois e faz `launchctl bootstrap` |
+| `iphone/idioma/helper/instalar-helper-idioma.command` | instalador para o usuário (pede a senha do iPhone uma vez) |
 
 Instalação (uma vez, com o iPhone conectado e o Nova aberto):
 
 ```sh
-"$HOME/Desktop/Nova-AI/MAC/controle-celular-plataformas/geo-proxy/helper/instalar-helper-idioma.command"
+"$HOME/Desktop/Nova-AI/iphone/idioma/helper/instalar-helper-idioma.command"
 ```
 
 Depois disso, ao salvar a proxy o Nova:

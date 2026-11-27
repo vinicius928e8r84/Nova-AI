@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const tp = require('../../../app/electron/services/tool-paths');
-const macNative = require('../../../app/electron/services/mac-native');
+const tp = require('../../app/electron/services/tool-paths');
+const macNative = require('../../app/electron/services/mac-native');
 
 const win = { platform: 'win32', env: { SystemRoot: 'C:\\Windows', Path: 'C:\\a;D:\\b' }, homedir: 'C:\\Users\\usuario', resourcesPath: 'C:\\app\\resources', dirname: 'C:\\app\\electron\\services', cwd: 'C:\\app' };
 const mac = { platform: 'darwin' };
@@ -53,7 +53,7 @@ test('ffmpeg no Mac devolve o mesmo que mac-native.tool', () => {
 });
 
 test('sshOptions no Mac não muda e no Windows usa NUL e /', () => {
-  const ssh = require('../../../app/electron/services/iphone-ssh');
+  const ssh = require('../../app/electron/services/iphone-ssh');
   const p = { key: '/Users/usuario/Library/Application Support/k', knownHosts: '/Users/usuario/Library/Application Support/kh' };
   assert.deepEqual(ssh.sshOptions(p), ['-i', p.key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile="' + p.knownHosts + '"', '-o', 'GlobalKnownHostsFile=/dev/null']);
   const orig = Object.getOwnPropertyDescriptor(process, 'platform');
@@ -95,7 +95,7 @@ test('ícone, yt-dlp e ffmpeg seguem o sistema nos dois lados', () => {
 });
 
 test('spoof e pré-escuta não montam caminho de ffmpeg nem reabrem arquivo apagado', () => {
-  const lerFonte = (f) => fs.readFileSync(path.join(__dirname, '../../../app/electron', f), 'utf8');
+  const lerFonte = (f) => fs.readFileSync(path.join(__dirname, '../../app/electron', f), 'utf8');
   const spoof = lerFonte('services/global-spoof-service.js');
   assert.match(spoof, /^const toolPaths = require\('\.\/tool-paths'\);$/m);
   assert.match(spoof, /this\.ffmpegPath\s*=\s*toolPaths\.ffmpeg\(\) \|\| 'ffmpeg';/);

@@ -74,7 +74,7 @@ test('classificador: caminhos sensíveis do Nova-AI contam como ALTA', () => {
     'app/electron/main.js', 'app/electron/preload.js', 'app/electron/services/idioma-ipc.js', 'app/electron/services/remote-access.js',
     'app/electron/services/global-spoof-service.js', 'app/electron/services/iphone-ssh.js', 'app/electron/services/ios-bridge.js',
     'app/electron/services/physicalMobileService.js', 'app/electron/services/child-worker-agent.js', 'app/package.json',
-    'app/package-lock.json', 'MAC/integracao-iphone/conexao-usb/setup.js', 'MAC/proxy-iphone/instalar-proxy-iphone.command',
+    'app/package-lock.json', 'interface/controle-do-celular/iphone/proxy-parse.js', 'iphone/proxy/instalar-proxy-iphone.command',
     '.github/workflows/regras.yml', 'scripts/regras/verificar.js', 'scripts/ci/codescene-na-refatoracao.js',
   ];
   for (const caminho of sensiveis) assert.equal(classificar([{ caminho, adicionadas: [] }]).alta, true, caminho);

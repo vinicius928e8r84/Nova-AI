@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),Module=require('node:module');
-const services=path.resolve(__dirname,'../../../app/electron/services');
+const services=path.resolve(__dirname,'../../app/electron/services');
 const originalLoad=Module._load;
 Module._load=function(request,...rest){if(request==='ws')return{WebSocketServer:class{},WebSocket:class{}};if(request==='axios')return{};return originalLoad.call(this,request,...rest);};
 test.after(()=>{Module._load=originalLoad;});
