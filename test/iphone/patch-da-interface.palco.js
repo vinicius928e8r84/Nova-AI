@@ -28,9 +28,9 @@ function prepararCena(patch, cena, raiz) {
   return caminhos;
 }
 
-function diarioDaExecucao(patch, resposta, caminhos, raiz) {
+function diarioDaExecucao(arquivosGravados, resposta, caminhos, raiz) {
   const saidas = {};
-  for (const [rotulo, caminho] of Object.entries(patch.saidas(caminhos))) saidas[rotulo] = impressaoDoArquivo(caminho);
+  for (const [rotulo, caminho] of Object.entries(arquivosGravados(caminhos))) saidas[rotulo] = impressaoDoArquivo(caminho);
   return {
     codigo: resposta.codigo,
     stdout: trocarErroDoNode(normalizar(resposta.stdout, [raiz])),
@@ -45,7 +45,7 @@ function rodarCena(python, patch, cena) {
     const caminhos = prepararCena(patch, cena, raiz);
     const argumentos = cena.argumentos ? cena.argumentos(caminhos) : patch.argumentos(caminhos);
     const resposta = rodarPython(python, { cwd: raiz, script: path.join(caminhos.scripts, patch.script), argumentos, env: cena.env });
-    return diarioDaExecucao(patch, resposta, caminhos, raiz);
+    return diarioDaExecucao(cena.saidas || patch.saidas, resposta, caminhos, raiz);
   } finally {
     fs.rmSync(raiz, { recursive: true, force: true });
   }

@@ -100,6 +100,11 @@ const PRIMEIRO_CARTAO = 'b.jsxs("div",{className:"bg-white/[0.02] border border-
 const FIM_DO_COMO_FUNCIONA = ']})]});return Fl?b.jsx';
 
 const SEM_ORIGEM = caminhos => [path.join(caminhos.scripts, 'nao-existe.txt'), caminhos.saida];
+const NO_MESMO_ARQUIVO = {
+  nome: 'com a origem e a saída no mesmo arquivo',
+  argumentos: caminhos => [caminhos.entrada, caminhos.entrada],
+  saidas: caminhos => ({ entrada: caminhos.entrada }),
+};
 
 const SEQUESTRO = {
   nome: 'patch_bundle',
@@ -134,6 +139,7 @@ const CONTROLE = {
     { nome: 'sem os dois caminhos', argumentos: () => [] },
     { nome: 'com um caminho só', argumentos: caminhos => [caminhos.entrada] },
     { nome: 'com a origem inexistente', argumentos: SEM_ORIGEM },
+    NO_MESMO_ARQUIVO,
     { nome: 'com a sintaxe quebrada no fim', entrada: acrescentar(')') },
     { nome: 'com a sintaxe quebrada no fim, conferindo a cada passo', entrada: acrescentar(')'), env: { CHECK_EACH: '1' } },
     {
@@ -156,6 +162,7 @@ const LOCALIZACAO = {
     { nome: 'sem os dois caminhos', argumentos: () => [] },
     { nome: 'com um caminho só', argumentos: caminhos => [caminhos.entrada] },
     { nome: 'com a origem inexistente', argumentos: SEM_ORIGEM },
+    NO_MESMO_ARQUIVO,
     { nome: 'com a sintaxe quebrada no fim', entrada: acrescentar(')') },
     ...quebras(LOCALIZACAO_QUEBRAS),
   ],

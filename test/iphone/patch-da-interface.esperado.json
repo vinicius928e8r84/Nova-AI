@@ -243,6 +243,17 @@
     "saida": null
    }
   },
+  "com a origem e a saída no mesmo arquivo": {
+   "codigo": 0,
+   "stdout": "ok: entrada.txt → entrada.txt  (55886 → 67698 bytes, +11812)\n  · estados pPlat/pUserPicked\n  · abas filtradas (11 usos de e.length)\n  · lista filtrada + ícones\n  · efeitos de plataforma/seleção\n  · seletor iPhone | Android\n  · Reparar ADB só no Android\n  · faixa Modo iPhone\n  · título dos dispositivos\n  · estado vazio por plataforma\n  · texto vazio (título)\n  · texto vazio (dica)\n  · cartões de dispositivo filtrados\n  · modos de conexão esmaecidos no iOS\n  · busca na rede desabilitada no iOS\n  · form direto oculto no iOS\n  · form pareamento oculto no iOS\n  · guia Android oculto no iOS\n  · aviso Exclusivo Android na conexão\n  · guia do iPhone\n  · selo Android nos comandos root\n  · dica dos atalhos no iPhone\n  · reiniciar desabilitado no iOS\n  · desligar desabilitado no iOS\n  · Marca escondida no iPhone\n  · select de modelo do iPhone (7 a 18)\n  · campo de proxy do iPhone\n  · ação do botão no iPhone\n  · rótulo do botão no iPhone\n  · painel aplicado: iPhone\n  · painel aplicado: fecha lista Android\n  · cor do campo Modelo\n  · soft reboot escondido no iPhone\n  · verificação Android escondida no iPhone\n  · Restaurar vira Remover no iPhone\n  · chips de segurança escondidos no iPhone\n  · Play Integrity escondido no iPhone\n  · IMEI duplo escondido no iPhone\n  · certificação Play Store escondida no iPhone\n",
+   "erro": "",
+   "saidas": {
+    "entrada": {
+     "bytes": 67888,
+     "sha256": "c20b7ca03a561f0446a882ab4839e56401b4e685f32575f71e3978a5f3ec7f4a"
+    }
+   }
+  },
   "com a sintaxe quebrada no fim": {
    "codigo": 1,
    "stdout": "<mensagem do node com SyntaxError>\n",
@@ -630,6 +641,17 @@
    "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/scripts/nao-existe.txt'",
    "saidas": {
     "saida": null
+   }
+  },
+  "com a origem e a saída no mesmo arquivo": {
+   "codigo": 0,
+   "stdout": "ok: 6 passos, 68832 bytes (origem 68832)\n  - helper pGeoApply\n  - useEffect geo ao abrir\n  - geo ao salvar proxy\n  - geo ao salvar identidade\n  - parar restaura idioma/fuso\n  - remove botão Fixar GPS\n",
+   "erro": "",
+   "saidas": {
+    "entrada": {
+     "bytes": 69032,
+     "sha256": "1c17da574f63dd498ab14b55a3b41e556c7e533f70141a131e41447acebb92ba"
+    }
    }
   },
   "com a sintaxe quebrada no fim": {
