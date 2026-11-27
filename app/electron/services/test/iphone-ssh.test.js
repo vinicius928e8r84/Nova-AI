@@ -95,7 +95,7 @@ test('paths e sshOptions sem alvo usam a pasta do app', () => {
   assert.deepStrictEqual(r[1], ['-i', '/ud/iphone-ssh/id_iphone', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=/ud/iphone-ssh/known_hosts', '-o', `GlobalKnownHostsFile=${nulo}`]);
 });
 
-test('migrateLegacy: move chave e .pub, herda só as linhas do túnel USB', () => {
+test('migrateLegacy: move chave e .pub, herda só as linhas do túnel USB (modo do arquivo só no Mac e Linux: o NTFS não guarda 755, 644 e 600)', () => {
   const p = palco({ 'home/.ssh/id_iphone': 'privada', 'home/.ssh/id_iphone.pub': 'publica', 'home/.ssh/known_hosts': KNOWN_HOSTS_ANTIGO });
   const r = comAmbiente(p, (ssh) => ssh.migrateLegacy());
   assert.deepStrictEqual(r, { dir: path.join(p.userData, 'iphone-ssh'), key: path.join(p.userData, 'iphone-ssh', 'id_iphone'), publicKey: path.join(p.userData, 'iphone-ssh', 'id_iphone.pub'), knownHosts: path.join(p.userData, 'iphone-ssh', 'known_hosts') });
@@ -108,7 +108,7 @@ test('migrateLegacy: move chave e .pub, herda só as linhas do túnel USB', () =
   p.limpar();
 });
 
-test('migrateLegacy: chave do app e known_hosts do app já existentes ficam como estão', () => {
+test('migrateLegacy: chave do app e known_hosts do app já existentes ficam como estão (modo do arquivo só no Mac e Linux: o NTFS não guarda 755, 644 e 600)', () => {
   const p = palco({ 'home/.ssh/id_iphone': 'antiga', 'home/.ssh/known_hosts': KNOWN_HOSTS_ANTIGO, 'ud/iphone-ssh/id_iphone': 'nova', 'ud/iphone-ssh/known_hosts': 'pin' });
   comAmbiente(p, (ssh) => ssh.migrateLegacy());
   const t = arvore(p.raiz);
@@ -117,7 +117,7 @@ test('migrateLegacy: chave do app e known_hosts do app já existentes ficam como
   p.limpar();
 });
 
-test('migrateLegacy: chave sem .pub, known_hosts antigo sem túnel e sem nada antigo', () => {
+test('migrateLegacy: chave sem .pub, known_hosts antigo sem túnel e sem nada antigo (modo do arquivo só no Mac e Linux: o NTFS não guarda 755, 644 e 600)', () => {
   const p = palco({ 'home/.ssh/id_iphone': 'so-privada', 'home/.ssh/known_hosts': 'github.com ssh-rsa B\n' });
   comAmbiente(p, (ssh) => ssh.migrateLegacy());
   assert.deepStrictEqual(Object.keys(arvore(path.join(p.userData))).sort(), ['iphone-ssh/', 'iphone-ssh/id_iphone']);
