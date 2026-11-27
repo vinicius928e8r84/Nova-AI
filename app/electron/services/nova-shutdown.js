@@ -5,6 +5,28 @@ const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
 
+const LINHA_DO_PS = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+\s+\S+\s+\d+\s+\S+\s+\d+)\s+(.+)$/;
+
+const ehZumbi = status => status.startsWith('Z');
+const ehOPsDoNova = (parent, command) => Number(parent) === process.pid && command === '/bin/ps';
+
+function entradaDaLinhaDoPs(line) {
+  const match = line.match(LINHA_DO_PS);
+  if (!match) return null;
+  const [, pid, parent, uid, status, started, command] = match;
+  if (ehZumbi(status) || ehOPsDoNova(parent, command)) return null;
+  return [Number(pid), { parent: Number(parent), uid: Number(uid), identity: started + ' ' + command, command }];
+}
+
+function lerTabelaDoPs(output) {
+  const entries = new Map();
+  for (const line of output.split('\n')) {
+    const entrada = entradaDaLinhaDoPs(line);
+    if (entrada) entries.set(entrada[0], entrada[1]);
+  }
+  return entries;
+}
+
 function processTable() {
   const output = execFileSync('/bin/ps', ['-axww', '-o', 'pid=,ppid=,uid=,stat=,lstart=,comm='], {
     encoding: 'utf8',
@@ -12,15 +34,56 @@ function processTable() {
     timeout: 1000,
     maxBuffer: 4 * 1024 * 1024,
   });
-  const entries = new Map();
-  for (const line of output.split('\n')) {
-    const match = line.match(/^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(\S+\s+\S+\s+\d+\s+\S+\s+\d+)\s+(.+)$/);
-    if (!match) continue;
-    const [, pid, parent, uid, status, started, command] = match;
-    if (status.startsWith('Z') || (Number(parent) === process.pid && command === '/bin/ps')) continue;
-    entries.set(Number(pid), { parent: Number(parent), uid: Number(uid), identity: started + ' ' + command, command });
+  return lerTabelaDoPs(output);
+}
+
+const ehOrfaoDoUsuario = entry => entry.parent === 1 && entry.uid === process.getuid();
+const ehDoProprioNova = (pid, entry, caminhoDosHelpers) => pid === process.pid || entry.command.startsWith(caminhoDosHelpers);
+const ehOrfaoCandidato = (pid, entry, caminhoDosHelpers) => ehOrfaoDoUsuario(entry) && !ehDoProprioNova(pid, entry, caminhoDosHelpers);
+
+function separarOrfaos(entries, inspecionados, caminhoDosHelpers) {
+  const atuais = new Map();
+  const candidatos = [];
+  for (const [pid, entry] of entries) {
+    if (!ehOrfaoCandidato(pid, entry, caminhoDosHelpers)) continue;
+    atuais.set(pid, entry.identity);
+    if (inspecionados.get(pid) !== entry.identity) candidatos.push(pid);
   }
-  return entries;
+  return { atuais, candidatos };
+}
+
+function lerAmbienteDosOrfaos(candidatos) {
+  return execFileSync('/bin/ps', ['eww', '-p', candidatos.join(','), '-o', 'pid=,command='], {
+    encoding: 'utf8',
+    timeout: 1000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+}
+
+const pidDaLinhaDoAmbiente = line => Number(line.trimStart().split(/\s+/, 1)[0]);
+
+function pidsComMarcaDoDono(output, ownerMarker) {
+  return output.split('\n').filter(line => ownerMarker.test(line)).map(pidDaLinhaDoAmbiente);
+}
+
+function descartarDonosQueMudaram(owned, entries) {
+  for (const [pid, identity] of owned) {
+    if (entries.get(pid)?.identity !== identity) owned.delete(pid);
+  }
+}
+
+function adotarDescendentes(owned, entries, caminhoDosHelpers) {
+  const children = filhosPorPai(entries);
+  const pending = [process.pid, ...owned.keys()];
+  const visited = new Set(pending);
+  for (const parent of pending) {
+    for (const pid of (children.get(parent) ?? []).filter(filho => !visited.has(filho))) {
+      visited.add(pid);
+      pending.push(pid);
+      const entry = entries.get(pid);
+      if (!entry.command.startsWith(caminhoDosHelpers)) owned.set(pid, entry.identity);
+    }
+  }
 }
 
 function createProcessCleanup(electronHelpersPath) {
@@ -31,57 +94,21 @@ function createProcessCleanup(electronHelpersPath) {
   let inspectedOrphans = new Map();
 
   function collectOrphans(entries) {
-    const candidates = [];
-    const current = new Map();
-    for (const [pid, entry] of entries) {
-      if (entry.parent !== 1 || entry.uid !== process.getuid() || pid === process.pid ||
-          entry.command.startsWith(electronHelpersPath)) continue;
-      current.set(pid, entry.identity);
-      if (inspectedOrphans.get(pid) !== entry.identity) candidates.push(pid);
+    const { atuais, candidatos } = separarOrfaos(entries, inspectedOrphans, electronHelpersPath);
+    if (candidatos.length) {
+      for (const pid of pidsComMarcaDoDono(lerAmbienteDosOrfaos(candidatos), ownerMarker)) {
+        if (atuais.has(pid)) owned.set(pid, atuais.get(pid));
+      }
     }
-    if (!candidates.length) {
-      inspectedOrphans = current;
-      return;
-    }
-    const output = execFileSync('/bin/ps', ['eww', '-p', candidates.join(','), '-o', 'pid=,command='], {
-      encoding: 'utf8',
-      timeout: 1000,
-      maxBuffer: 8 * 1024 * 1024,
-    });
-    for (const line of output.split('\n')) {
-      if (!ownerMarker.test(line)) continue;
-      const pid = Number(line.trimStart().split(/\s+/, 1)[0]);
-      if (current.has(pid)) owned.set(pid, current.get(pid));
-    }
-    inspectedOrphans = current;
+    inspectedOrphans = atuais;
   }
 
   function collect() {
     const entries = processTable();
-    const children = new Map();
-    for (const [pid, entry] of entries) {
-      if (!children.has(entry.parent)) children.set(entry.parent, []);
-      children.get(entry.parent).push(pid);
-    }
-
-    for (const [pid, identity] of owned) {
-      if (entries.get(pid)?.identity !== identity) owned.delete(pid);
-    }
-
+    descartarDonosQueMudaram(owned, entries);
     try { collectOrphans(entries); }
     catch (error) { console.error('[Shutdown] Orphan scan failed:', error.code ?? error.status); }
-
-    const pending = [process.pid, ...owned.keys()];
-    const visited = new Set(pending);
-    for (const parent of pending) {
-      for (const pid of children.get(parent) ?? []) {
-        if (visited.has(pid)) continue;
-        visited.add(pid);
-        pending.push(pid);
-        const entry = entries.get(pid);
-        if (!entry.command.startsWith(electronHelpersPath)) owned.set(pid, entry.identity);
-      }
-    }
+    adotarDescendentes(owned, entries, electronHelpersPath);
   }
 
   function signalOwned(signal, signaled = new Map()) {
@@ -97,22 +124,28 @@ function createProcessCleanup(electronHelpersPath) {
     }
   }
 
+  async function pedirQueSaiam() {
+    const signaled = new Map();
+    const deadline = Date.now() + 800;
+    while (true) {
+      signalOwned('SIGTERM', signaled);
+      if (owned.size === 0 || Date.now() >= deadline) break;
+      await delay(75);
+    }
+  }
+
+  async function forcarSaida() {
+    signalOwned('SIGKILL');
+    await delay(75);
+    collect();
+    if (owned.size) console.error('[Shutdown] Processes still present:', [...owned.keys()]);
+  }
+
   return {
     collect,
     async terminate() {
-      const signaled = new Map();
-      const deadline = Date.now() + 800;
-      while (true) {
-        signalOwned('SIGTERM', signaled);
-        if (owned.size === 0 || Date.now() >= deadline) break;
-        await delay(75);
-      }
-      if (owned.size) {
-        signalOwned('SIGKILL');
-        await delay(75);
-        collect();
-        if (owned.size) console.error('[Shutdown] Processes still present:', [...owned.keys()]);
-      }
+      await pedirQueSaiam();
+      if (owned.size) await forcarSaida();
     },
   };
 }
@@ -225,12 +258,6 @@ function createWindowsProcessCleanup({
     return PAPEL_ALHEIO;
   }
 
-  function esquecerPidsReaproveitados(entries) {
-    for (const [pid, identity] of owned) {
-      if (entries.get(pid)?.identity !== identity) owned.delete(pid);
-    }
-  }
-
   function percorrerArvoreDoNova(entries) {
     const children = filhosPorPai(entries);
     const pending = [ownPid, ...owned.keys()];
@@ -257,7 +284,7 @@ function createWindowsProcessCleanup({
   function collect() {
     const entries = readTable();
     lastEntries = entries;
-    esquecerPidsReaproveitados(entries);
+    descartarDonosQueMudaram(owned, entries);
     percorrerArvoreDoNova(entries);
   }
 
