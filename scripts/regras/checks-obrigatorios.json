@@ -1,5 +1,5 @@
 {
-  "descricao": "Nomes dos jobs que a proteção da branch exige (Settings, Branches). Um teste confere esta lista com os workflows. Em opcionais ficam os jobs que rodam em toda PR mas a proteção ainda não exige.",
+  "descricao": "Nomes dos jobs que a proteção da branch exige (Settings, Branches). Um teste confere esta lista com os workflows. Em opcionais ficam os jobs que a proteção não exige: os que ainda não foram promovidos e os que só rodam em PR que toca certos caminhos, porque um check exigido que não roda deixa o merge esperando para sempre.",
   "checks": ["Regras de revisão", "Registro da PR", "Auditoria de dependências", "Testes do app"],
-  "opcionais": []
+  "opcionais": ["Testes do Mac do iPhone"]
 }

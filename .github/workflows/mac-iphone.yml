@@ -1,0 +1,27 @@
+name: Mac do iPhone
+
+on:
+  pull_request:
+    paths:
+      - 'iphone/**'
+      - '.github/workflows/mac-iphone.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-iphone-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  mac:
+    name: Testes do Mac do iPhone
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: 24
+      - name: Grupos de teste do Mac do portão
+        run: node scripts/ci/portao-dos-testes.js --job mac

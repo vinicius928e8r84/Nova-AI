@@ -29,6 +29,13 @@
       ]
     },
     {
+      "nome": "mac-do-iphone",
+      "job": "mac",
+      "com": "bash",
+      "executar": ["iphone/proxy/tool/test/rodar.sh", "iphone/idioma/test/rodar.sh"],
+      "arquivos": ["iphone/proxy/tool/test/*", "iphone/idioma/test/*.sh"]
+    },
+    {
       "nome": "ferramentas",
       "job": "testes",
       "arquivos": ["scripts/painel/test/*.test.js", ".claude/skills/**/*.test.js"]
@@ -64,15 +71,6 @@
       "arquivos": ["test/navegador/navegador.cjs"],
       "motivo": "falha no Windows (medido no ticket 180); passa no Linux, e quem decide se ele entra num grupo é o dono",
       "issue": 264
-    },
-    {
-      "arquivos": ["iphone/proxy/tool/test/*"],
-      "motivo": "teste em Objective-C: compila com clang e Foundation, só roda no Mac; o job macOS da CI é a issue 205",
-      "issue": 205
-    },
-    {
-      "arquivos": ["iphone/idioma/test/*.sh"],
-      "motivo": "shell, e o portão só roda node --test; teste-novalanguage.sh ainda compila com clang (só Mac) e rodar.sh chama os dois"
     },
     {
       "arquivos": ["test/cam-live/rtmp-e2e.js", "test/cam-live/rtmp-audio-e2e.js"],
