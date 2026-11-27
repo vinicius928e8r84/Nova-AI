@@ -902,11 +902,11 @@ class PhysicalMobileService {
     }
 
     generateIMEI(prefix) {
-        const tac = prefix || '35' + Math.floor(Math.random() * 99999999).toString().padStart(8, '0');
-        let digits = tac.split('').map(Number);
+        let tac = prefix || '35';
+        while (tac.length < 14) tac += Math.floor(Math.random() * 10);
         let sum = 0;
         for (let i = 0; i < 14; i++) {
-            let d = digits[i];
+            let d = Number(tac[i]);
             if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
             sum += d;
         }
