@@ -7,6 +7,7 @@ const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
+const { prepararPagina, abrirUrlPedida, gerarAmbiente, encerrarChrome } = require('./global-spoof-abertura');
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
@@ -119,6 +120,10 @@ function ensureProfileStealthSpecs(p) {
   }
 }
 
+function valorFixo(valor, atual) {
+  return valor && valor !== 'optimal' ? valor : atual;
+}
+
 class GlobalSpoofService {
     constructor(mainWindow, app, browserFarmService) {
         this.mainWindow = mainWindow;
@@ -173,12 +178,9 @@ class GlobalSpoofService {
             if (process.platform === 'darwin') {
                 const r = spawnSync('pkill', ['-f', '--', require('./paridade-utils').MAC_CAM_SPOOF_KILL_PATTERN], { timeout: 5000 });
                 if (r.error || r.status > 1) console.error('[GlobalSpoof] Failed to run Chrome cleanup:', r.error ? r.error.message : `pkill status ${r.status}`);
-            } else try {
-                execSync('wmic process where "name=\'chrome.exe\' and CommandLine like \'%nova_webcam_hijack%\'" call terminate', { stdio: 'ignore', timeout: 3000 });
-                console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via WMIC.');
-            } catch (wmicErr) {
-                const cleanupCmd = `Get-CimInstance Win32_Process -Filter "Name = 'chrome.exe'" | Where-Object { $_.CommandLine -like "*nova_webcam_hijack*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }`;
-                execSync(`powershell -NoProfile -Command "${cleanupCmd}"`, { stdio: 'ignore', timeout: 5000 });
+            } else {
+                const cleanupCmd = `Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'chrome.exe' -and $_.CommandLine -like '*nova_webcam_hijack*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+                execSync(`powershell -NoProfile -Command "${cleanupCmd}"`, { stdio: 'ignore', timeout: 15000 });
                 console.log('[GlobalSpoof] Cleaned up orphaned Nova Chrome instances via PowerShell.');
             }
         } catch (cleanupErr) {
@@ -355,10 +357,10 @@ class GlobalSpoofService {
         this.currentRegional = settings.regional || {};
 
         const regional    = settings.regional || {};
-        let tTimezone   = regional.timezone    || 'Asia/Dubai';
+        let tTimezone   = valorFixo(regional.timezone, 'Asia/Dubai');
         let tLat        = (regional.lat        !== undefined) ? regional.lat : 25.2048;
         let tLng        = (regional.lng        !== undefined) ? regional.lng : 55.2708;
-        let tLocale     = regional.language    || 'en-AE';
+        let tLocale     = valorFixo(regional.language, 'en-AE');
 
         if (activeProfile) {
             if (activeProfile.timezone === 'optimal' || activeProfile.locale === 'optimal' || activeProfile.locationMode === 'optimal') {
@@ -381,9 +383,7 @@ class GlobalSpoofService {
                 }
             }
 
-            if (activeProfile.timezone !== 'optimal') {
-                tTimezone = activeProfile.timezone;
-            }
+            tTimezone = valorFixo(activeProfile.timezone, tTimezone);
             if (activeProfile.locationMode === 'custom') {
                 if (activeProfile.latitude !== undefined && activeProfile.latitude !== null) {
                     tLat = activeProfile.latitude;
@@ -392,9 +392,7 @@ class GlobalSpoofService {
                     tLng = activeProfile.longitude;
                 }
             }
-            if (activeProfile.locale !== 'optimal') {
-                tLocale = activeProfile.locale;
-            }
+            tLocale = valorFixo(activeProfile.locale, tLocale);
         }
 
         let tOffset     = -Math.round(((regional.utcOffset  !== undefined) ? regional.utcOffset : 4) * 60);
@@ -529,7 +527,7 @@ class GlobalSpoofService {
             }
         }
 
-        chromeArgs.push(targetUrl || 'about:blank');
+        chromeArgs.push('about:blank');
 
         let audioFile = settings.audioPath;
         if (!audioFile) {
@@ -539,16 +537,14 @@ class GlobalSpoofService {
                     '-f', 'lavfi', '-i', 'anoisesrc=a=0.01:c=white:r=48000', 
                     '-t', '15', '-ac', '1', '-ar', '48000', audioFile
                 ];
-                spawn(this.ffmpegPath, audioArgs, { windowsHide: true }).on('close', () => {
-                    console.log('[GlobalSpoof] Ambient audio file generated.');
-                });
+                await gerarAmbiente(spawn, this.ffmpegPath, audioArgs);
             }
         }
 
         if (audioFile && fs.existsSync(audioFile)) {
             chromeArgs.push(`--use-file-for-fake-audio-capture=${audioFile}`);
             try {
-                const psCommand = `$wmp = New-Object -ComObject wmplayer.ocx; $wmp.URL = '${settings.audioPath.replace(/'/g, "''")}'; $wmp.settings.setMode('loop', $true); $wmp.controls.play(); while($wmp.playState -ne 1){ Start-Sleep -Seconds 1 }`;
+                const psCommand = `$wmp = New-Object -ComObject wmplayer.ocx; $wmp.URL = '${audioFile.replace(/'/g, "''")}'; $wmp.settings.setMode('loop', $true); $wmp.controls.play(); while($wmp.playState -ne 1){ Start-Sleep -Seconds 1 }`;
                 this.ffplayProcess = process.platform === 'darwin' ? spawn('/usr/bin/afplay', [audioFile]) : spawn('powershell', ['-WindowStyle', 'Hidden', '-Command', psCommand], {
                     windowsHide: true,
                     detached: false,
@@ -583,7 +579,7 @@ class GlobalSpoofService {
         const _gpuRenderer = (activeProfile ? activeProfile.webglRenderer : null) || (isMobile ? (device.id && device.id.includes('iphone') ? 'Apple GPU' : 'Adreno (TM) 750') : 'NVIDIA GeForce RTX 3060');
 
         const _doNotTrack = activeProfile ? activeProfile.doNotTrack : 'default';
-        const _portScanProtection = activeProfile ? activeProfile.portScanProtection : 'enable';
+        const _portScanProtection = (activeProfile && activeProfile.portScanProtection) || 'enable';
 
         const deepHijackScript = `
 console.log("[Nova] CDP Stealth Injector Initializing (MAIN World)...");
@@ -674,7 +670,7 @@ var _m = ${_mStr};
 var _devId = "${randDeviceId}";
 var _grpId = "${randGroupId}";
 var _isIOS = (_d.id && _d.id.indexOf("iphone") !== -1) || (navigator.userAgent && (navigator.userAgent.indexOf("iPhone") !== -1 || navigator.userAgent.indexOf("iPad") !== -1));
-var _lbl = _isIOS ? "iPhone Front Camera" : "FaceTime HD Camera";
+var _lbl = _virtualCamLabel;
 
 function applyStealth(win) {
   if (!win || win.__nova_stealth_applied) return;
@@ -1376,11 +1372,7 @@ applyStealth(window);
                             await client.send('Emulation.setTimezoneOverride', { timezoneId: tTimezone }, sessionId);
                             await client.send('Emulation.setGeolocationOverride', { latitude: tLat, longitude: tLng, accuracy: 15 }, sessionId);
 
-                            try {
-                                await client.send('Page.enable', {}, sessionId);
-                                await client.send('Page.setBypassCSP', { enabled: true }, sessionId);
-                                await client.send('Page.addScriptToEvaluateOnNewDocument', { source: deepHijackScript }, sessionId);
-                            } catch (pageErr) {}
+                            const disfarcada = await prepararPagina(client, sessionId, deepHijackScript);
 
                             if (targetInfo.type === 'page' && isMobile) {
                                 try {
@@ -1398,6 +1390,7 @@ applyStealth(window);
                             if (waitingForDebugger) {
                                 await client.send('Runtime.runIfWaitingForDebugger', {}, sessionId);
                             }
+                            if (disfarcada) await abrirUrlPedida(client, sessionId, targetInfo, targetUrl);
                         } catch (err) {
                             if (waitingForDebugger) {
                                 try { await client.send('Runtime.runIfWaitingForDebugger', {}, sessionId); } catch (_) {}
@@ -1451,9 +1444,7 @@ applyStealth(window);
 
         if (this.chromePid) {
             try {
-                spawn('taskkill', ['/F', '/T', '/PID', String(this.chromePid)], {
-                    windowsHide: true, detached: true, stdio: 'ignore',
-                }).unref();
+                encerrarChrome(spawn, this.chromePid);
             } catch (_) {}
             this.chromePid     = null;
             this.chromeProcess = null;
