@@ -673,3 +673,64 @@ test('loadSettings le os ajustes e mantem o padrao do que falta', () => {
   assert.strictEqual(quebrado.busyModeEnabled, false);
   assert.deepStrictEqual(cena.diario.filter(([tipo]) => tipo === 'console.error').map((e) => e[1]), ['[Telegram] Failed to load settings:']);
 });
+
+test('updateMainWindow troca a janela que recebe os eventos e janela destruida ou ausente nao recebe', () => {
+  const { gerente } = montar();
+  const outra = { isDestroyed: () => false, webContents: { send: (canal, carga) => anota('outra', canal, carga) } };
+  gerente.updateMainWindow(outra);
+  gerente.setStatus('connecting');
+  gerente.updateMainWindow({ isDestroyed: () => true, webContents: { send: () => anota('destruida') } });
+  gerente.setStatus('wait_code');
+  gerente.updateMainWindow(null);
+  gerente.setStatus('disconnected', { reason: 'x' });
+  assert.deepStrictEqual(semGetPath(), [['outra', 'telegram-event', { event: 'status', data: { status: 'connecting' } }]]);
+  assert.deepStrictEqual(gerente.getState(), {
+    status: 'disconnected', reason: 'x', isReady: false, isInitializing: false,
+    busyModeEnabled: false, busyStatusText: 'busy hain ya shayad kahin bahar gaye hain', qrCode: '',
+  });
+});
+
+test('saveSettings que nao consegue gravar so registra o erro', () => {
+  const { gerente, arquivoDeAjustes } = montar();
+  fs.mkdirSync(arquivoDeAjustes);
+  limparDiario();
+  gerente.saveSettings();
+  assert.deepStrictEqual(semGetPath().map(([tipo, texto]) => [tipo, texto]), [['console.error', '[Telegram] Failed to save settings:']]);
+});
+
+test('a conferencia periodica sem cliente pronto para de conferir', async (t) => {
+  const { gerente } = await conectado();
+  gerente.isReady = false;
+  t.mock.timers.tick(15000);
+  await new Promise(setImmediate);
+  assert.deepStrictEqual(cena.diario, []);
+  assert.strictEqual(gerente.connectionCheckInterval, null);
+  t.mock.timers.tick(60000);
+  assert.deepStrictEqual(cena.diario, []);
+});
+
+test('apagar a sessao salva que nao da para apagar so registra o erro, na invalidacao e no logout', async () => {
+  const invalidada = await conectado();
+  fs.rmSync(invalidada.sessao);
+  fs.mkdirSync(invalidada.sessao);
+  limparDiario();
+  await invalidada.gerente.handleSessionInvalidated('session-expired');
+  assert.deepStrictEqual(semGetPath().map(([tipo, texto]) => [tipo, texto]), [
+    ['janela', 'telegram-event'],
+    ['cliente:disconnect', undefined],
+    ['console.error', '[Telegram-Monitor] Failed deleting session file:'],
+  ]);
+  const saida = await conectado();
+  fs.rmSync(saida.sessao);
+  fs.mkdirSync(saida.sessao);
+  cena.falhaDisconnect = 'x';
+  saida.gerente.isReady = false;
+  limparDiario();
+  assert.deepStrictEqual(await saida.gerente.logout(), { success: true });
+  assert.deepStrictEqual(semGetPath().map(([tipo, texto]) => [tipo, texto]), [
+    ['cliente:disconnect', undefined],
+    ['console.warn', '[Telegram] Logout error:'],
+    ['janela', 'telegram-event'],
+    ['console.error', '[Telegram] Failed deleting session file:'],
+  ]);
+});
