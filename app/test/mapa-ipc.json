@@ -8,8 +8,7 @@
     "app/electron/services/cam-live-service.js": 11,
     "app/electron/services/idioma-ipc.js": 6,
     "app/electron/services/inventory-manager.js": 33,
-    "app/electron/services/physicalMobileService.js": 1,
-    "total": 344
+    "total": 343
   },
   "registrados": {
     "app/electron/main.js": [
@@ -370,9 +369,6 @@
       "handle inventory:send-whatsapp-receipt",
       "handle inventory:update-pin",
       "handle inventory:update-product"
-    ],
-    "app/electron/services/physicalMobileService.js": [
-      "handle physical-mobile:trigger-lsposed-broadcast"
     ]
   },
   "dinamicos": [],
