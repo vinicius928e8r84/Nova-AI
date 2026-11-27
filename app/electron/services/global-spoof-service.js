@@ -581,7 +581,7 @@ class GlobalSpoofService {
         const _gpuRenderer = (activeProfile ? activeProfile.webglRenderer : null) || (isMobile ? (device.id && device.id.includes('iphone') ? 'Apple GPU' : 'Adreno (TM) 750') : 'NVIDIA GeForce RTX 3060');
 
         const _doNotTrack = activeProfile ? activeProfile.doNotTrack : 'default';
-        const _portScanProtection = activeProfile ? activeProfile.portScanProtection : 'enable';
+        const _portScanProtection = (activeProfile && activeProfile.portScanProtection) || 'enable';
 
         const deepHijackScript = `
 console.log("[Nova] CDP Stealth Injector Initializing (MAIN World)...");

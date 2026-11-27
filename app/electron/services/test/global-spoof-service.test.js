@@ -227,6 +227,7 @@ function rodarDisfarceNaPagina(fonte, agenteDoUsuario) {
     MediaDevices,
     navigator: { userAgent: agenteDoUsuario },
     document: { addEventListener() {}, documentElement: {} },
+    fetch: () => Promise.resolve('chegou'),
     console,
     setTimeout,
   });
@@ -252,3 +253,24 @@ for (const [nome, dispositivo, agenteDoUsuario] of [
     assert.strictEqual(rotuloDaTrilha(pagina), lista[0].label);
   });
 }
+
+async function abrirPaginaComPerfil(perfil, dispositivo = { id: 'desktop' }) {
+  usarPlataforma('win32');
+  const { servico, userData, tempDir } = criarServico();
+  const escolha = perfil ? { profile: 'profile_01' } : { profile: 'Default' };
+  if (perfil) gravarPerfil(userData, { id: 'profile_01', name: 'Fixo', ...perfil });
+  await servico.startHijack(Buffer.alloc(0), { device: dispositivo, url: 'about:blank', ...escolha });
+  return rodarDisfarceNaPagina(lerInject(tempDir), 'Mozilla/5.0 (Windows NT 10.0)');
+}
+
+test('perfil Default e perfil sem o campo: a proteção contra varredura de portas fica ligada', async () => {
+  for (const perfil of [null, { timezone: 'Europe/Lisbon', locale: 'pt-PT' }]) {
+    const pagina = await abrirPaginaComPerfil(perfil);
+    await assert.rejects(pagina.fetch('http://localhost:9222/json'), /Port Scan Protection/);
+  }
+});
+
+test('perfil que desliga a proteção de propósito continua deixando o fetch para localhost passar', async () => {
+  const pagina = await abrirPaginaComPerfil({ timezone: 'Europe/Lisbon', locale: 'pt-PT', portScanProtection: 'disable' });
+  assert.strictEqual(await pagina.fetch('http://localhost:9222/json'), 'chegou');
+});
