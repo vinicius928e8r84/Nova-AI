@@ -902,11 +902,11 @@ class PhysicalMobileService {
     }
 
     generateIMEI(prefix) {
-        const tac = prefix || '35' + Math.floor(Math.random() * 99999999).toString().padStart(8, '0');
-        let digits = tac.split('').map(Number);
+        let tac = prefix || '35';
+        while (tac.length < 14) tac += Math.floor(Math.random() * 10);
         let sum = 0;
         for (let i = 0; i < 14; i++) {
-            let d = digits[i];
+            let d = Number(tac[i]);
             if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; }
             sum += d;
         }
@@ -2199,15 +2199,17 @@ done
             };
 
             const packageName = APP_PACKAGES[appName] || appName;
-            const scriptPath  = path.join(__dirname, '../../resources/frida/nova_camera_inject.js');
-            const fridaServer = path.join(__dirname, '../../resources/frida/frida-server');
-            const launcherPy  = path.join(__dirname, '../../resources/frida/nova_frida_launcher.py');
+            const fridaDir    = this.app && this.app.isPackaged ? path.join(process.resourcesPath, 'frida') : path.join(__dirname, '../../resources/frida');
+            const scriptPath  = path.join(fridaDir, 'nova_camera_inject.js');
+            const fridaServer = path.join(fridaDir, 'frida-server');
 
             if (!fs.existsSync(scriptPath)) {
                 return { success: false, error: 'Frida script not found. Resources missing.' };
             }
 
             const adb = this.adbPath;
+            const faltaDoCelular = await this.faltaDoCelularAndroid(adb, deviceId);
+            if (faltaDoCelular) return { success: false, error: faltaDoCelular };
 
             if (fs.existsSync(fridaServer)) {
                 console.log('[Frida] Pushing frida-server to phone...');
@@ -2234,24 +2236,9 @@ done
                     { timeout: 10000 }, () => resolve());
             });
 
-            const { spawn: spawnProc } = require('child_process');
             console.log(`[Frida] Injecting into ${packageName}...`);
-
-            let fridaCmd, fridaArgs;
-
-            fridaCmd = 'frida';
-            fridaArgs = [
-                '-U', '-f', packageName,
-                '-l', scriptPath,
-                '--runtime=v8'
-            ];
-
-            console.log(`[Frida] Command: frida ${fridaArgs.join(' ')}`);
-
-            const fridaProc = spawnProc(fridaCmd, fridaArgs, {
-                detached: false,
-                stdio: ['ignore', 'pipe', 'pipe'],
-            });
+            const { processo: fridaProc, erro: erroDoFrida } = await this.iniciarFrida(['-U', '-f', packageName, '-l', scriptPath, '--runtime=v8']);
+            if (erroDoFrida) return { success: false, error: erroDoFrida };
 
             fridaProc.stdout.on('data', (d) => {
                 const msg = d.toString().trim();
@@ -2259,22 +2246,6 @@ done
                 if (this.mainWindow && !this.mainWindow.isDestroyed()) {
                     this.mainWindow.webContents.send('physical-mobile:frida-log', msg);
                 }
-            });
-            
-            ipcMain.handle('physical-mobile:trigger-lsposed-broadcast', async (event, params) => {
-                if (!params.id) return { success: false, error: 'No device ID provided' };
-                const port = params.port || 8899;
-                return new Promise((resolve) => {
-                    const broadcastCmd = `"${this.adbPath}" -s ${params.id} shell am broadcast -a com.nova.action.START_LIVE_STREAM --es stream_url "http://127.0.0.1:${port}/stream"`;
-                    exec(broadcastCmd, { timeout: 10000 }, (err) => {
-                        if (err) {
-                            const suCmd = `"${this.adbPath}" -s ${params.id} shell su -c "am broadcast -a com.nova.action.START_LIVE_STREAM --es stream_url 'http://127.0.0.1:${port}/stream'"`;
-                            exec(suCmd, { timeout: 10000 }, () => resolve({ success: true, message: 'Hook de Hardware LSPosed Ativado!' }));
-                        } else {
-                            resolve({ success: true, message: 'Hook de Hardware LSPosed Ativado!' });
-                        }
-                    });
-                });
             });
 
             fridaProc.stderr.on('data', (d) => console.warn('[Frida stderr]', d.toString().trim()));
@@ -2292,6 +2263,27 @@ done
             console.error('[Frida] fridaInject error:', err);
             return { success: false, error: err.message };
         }
+    }
+
+    faltaDoCelularAndroid(adb, deviceId) {
+        if (!fs.existsSync(adb)) return Promise.resolve('ADB não encontrado.');
+        return new Promise((resolve) => {
+            execFile(adb, ['-s', String(deviceId), 'get-state'], { timeout: 10000 }, (err, stdout) => {
+                const conectado = !err && String(stdout).trim() === 'device';
+                resolve(conectado ? null : `Celular ${deviceId} não está conectado pelo ADB.`);
+            });
+        });
+    }
+
+    iniciarFrida(argumentos) {
+        const processo = spawn('frida', argumentos, { detached: false, stdio: ['ignore', 'pipe', 'pipe'] });
+        return new Promise((resolve) => {
+            processo.once('spawn', () => resolve({ processo }));
+            processo.on('error', (err) => {
+                console.error('[Frida] spawn:', err.message);
+                resolve({ erro: err.code === 'ENOENT' ? 'Frida não encontrado neste computador.' : err.message });
+            });
+        });
     }
 }
 

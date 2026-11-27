@@ -44,8 +44,12 @@ const processosFalsos = {
     responderCom(texto, callback);
   },
   spawn(arquivo, argumentos) {
-    registrador.comandos.push([normalizar(arquivo), ...argumentos].join(' '));
-    return new EventEmitter();
+    const texto = [normalizar(arquivo), ...argumentos].join(' ');
+    registrador.comandos.push(texto);
+    const filho = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
+    const { codigoAoIniciar } = registrador.responder(texto) || {};
+    process.nextTick(() => filho.emit(codigoAoIniciar ? 'error' : 'spawn', codigoAoIniciar && Object.assign(new Error(`spawn ${arquivo} ${codigoAoIniciar}`), { code: codigoAoIniciar })));
+    return filho;
   },
 };
 
@@ -369,12 +373,30 @@ test('banco do spoofer: marcas e modelos de spooferDatabase.json', () => {
   assert.deepStrictEqual(brands.Samsung[0], { model: 'SM-S928B', name: 'Galaxy S24 Ultra' });
 });
 
-test('geradores do spoofer: IMEI só fecha com prefixo de 14 dígitos; com TAC de 8 sai NaN', () => {
+function luhnValido(numero) {
+  const soma = [...numero].reverse().reduce((total, digito, posicao) => {
+    let valor = Number(digito);
+    if (posicao % 2 === 1) {
+      valor *= 2;
+      if (valor > 9) valor -= 9;
+    }
+    return total + valor;
+  }, 0);
+  return soma % 10 === 0;
+}
+
+test('geradores do spoofer: IMEI sai com 15 dígitos e Luhn certo, com prefixo de 14, TAC de 8 ou sem prefixo', () => {
   const servico = novoServico();
   assert.strictEqual(servico.generateIMEI('35265210123456'), '352652101234567');
   assert.strictEqual(servico.generateIMEI('49015420323751'), '490154203237518');
-  assert.strictEqual(servico.generateIMEI('35265210'), '35265210NaN');
-  assert.match(servico.generateIMEI(), /^35\d{8}NaN$/);
+  for (let vez = 0; vez < 50; vez++) {
+    const comTac = servico.generateIMEI('35265210');
+    assert.match(comTac, /^35265210\d{7}$/);
+    assert.ok(luhnValido(comTac), comTac);
+    const semPrefixo = servico.generateIMEI();
+    assert.match(semPrefixo, /^35\d{13}$/);
+    assert.ok(luhnValido(semPrefixo), semPrefixo);
+  }
   assert.match(servico.generateMAC(), /^02(:[0-9a-f]{2}){5}$/);
   assert.match(servico.generateSerial('R5CT'), /^R5CT[0-9A-Z]{1,8}$/);
   assert.match(servico.generateSerial(), /^RND1/);
@@ -429,7 +451,8 @@ test('applySpoofProfile: o que a sequência garante, lido direto', async () => {
   let checagens = 0;
   const { resultado, comandos } = await aplicarComSorteFixa(servico, respostaDoAparelho(() => ++checagens >= 2), 'R5', 'SAMSUNG', 'SM-S928B');
   assert.strictEqual(resultado.success, true);
-  assert.strictEqual(resultado.applied.imei.slice(-3), 'NaN');
+  assert.match(resultado.applied.imei, /^\d{15}$/);
+  assert.ok(luhnValido(resultado.applied.imei));
   assert.ok(['35265210', '35386910', '35617210', '35913410', '35265211'].includes(resultado.applied.imei.slice(0, 8)));
   assert.deepStrictEqual([resultado.applied.android_version, resultado.applied.security_patch], ['13', '2021-05-05']);
   assert.strictEqual(resultado.applied.model, 'Galaxy S24 Ultra');
@@ -451,7 +474,7 @@ test('applySpoofProfile: o que a sequência garante, lido direto', async () => {
   ]);
   assert.strictEqual(comandos.filter(c => c.includes('getprop init.svc.zygote')).length, 2);
   assert.ok(comandos.indexOf('ADB -s R5 shell su -c "setprop ctl.restart zygote 2>/dev/null; true"') < comandos.findIndex(c => c.includes('init.svc.zygote')));
-  assert.match(comandos[comandos.length - 1], /^ADB -s R5 shell su -c "log -t NOVA_SPOOF -p i "NOVA SPOOF ✓ \| Galaxy S24 Ultra \| IMEI: 35\d{6}NaN" 2>\/dev\/null; true"$/);
+  assert.match(comandos[comandos.length - 1], /^ADB -s R5 shell su -c "log -t NOVA_SPOOF -p i "NOVA SPOOF ✓ \| Galaxy S24 Ultra \| IMEI: 35\d{13}" 2>\/dev\/null; true"$/);
   const arquivos = lerArquivosDoModulo(servico);
   assert.match(arquivos['system.prop'], /^ro\.product\.model=SM-S928B\n/);
   assert.strictEqual(arquivos['system.prop'].trimEnd().split('\n').length, 51 + 22);
@@ -470,6 +493,8 @@ test('applySpoofProfile: zigoto que não volta consulta 20 vezes e ainda devolve
   assert.strictEqual(comandos.filter(c => c.includes('getprop init.svc.zygote')).length, 20);
   assert.deepStrictEqual([resultado.applied.android_version, resultado.applied.security_patch], ['13', '2021-05-05']);
   assert.ok(['35396210', '35396211', '35396212', '35396213', '35396214'].includes(resultado.applied.imei.slice(0, 8)));
+  assert.match(resultado.applied.imei, /^\d{15}$/);
+  assert.ok(luhnValido(resultado.applied.imei));
 });
 
 test('applySpoofProfile: IMEI escolhido e aparelho sem resposta caem nos padrões do Android 11', async () => {
@@ -480,4 +505,91 @@ test('applySpoofProfile: IMEI escolhido e aparelho sem resposta caem nos padrõe
   assert.deepStrictEqual([resultado.applied.android_version, resultado.applied.security_patch], ['11', '2021-05-05']);
   assert.ok(comandos.includes('ADB -s R5 shell resetprop "ro.build.id" "RQ2A.210505.003" 2>/dev/null; true'));
   assert.strictEqual(comandos.filter(c => c.includes('getprop init.svc.zygote')).length, 40);
+});
+
+async function comRecursosDoPacote(arquivosDoFrida, fn) {
+  const recursos = fs.mkdtempSync(path.join(os.tmpdir(), 'celular-fisico-recursos-'));
+  pastasCriadas.push(recursos);
+  fs.mkdirSync(path.join(recursos, 'frida'));
+  for (const nome of arquivosDoFrida) fs.writeFileSync(path.join(recursos, 'frida', nome), '');
+  const resourcesPathOriginal = process.resourcesPath;
+  process.resourcesPath = recursos;
+  Module._load = function (pedido, ...resto) {
+    if (pedido === 'child_process') return processosFalsos;
+    return carregadorOriginal.call(this, pedido, ...resto);
+  };
+  try {
+    return await fn(recursos);
+  } finally {
+    Module._load = carregadorOriginal;
+    process.resourcesPath = resourcesPathOriginal;
+  }
+}
+
+const celularConectado = comando => (comando.endsWith('get-state') ? { stdout: 'device\n' } : {});
+
+test('fridaInject: no app empacotado lê o script de process.resourcesPath e inicia o frida sem erro', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar(celularConectado);
+  await comRecursosDoPacote(['nova_camera_inject.js'], async recursos => {
+    const resultado = await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok'));
+    assert.deepStrictEqual(resultado, {
+      success: true,
+      message: '⚡ Frida injected into tiktok (com.zhiliaoapp.musically). Camera replaced!',
+      package: 'com.zhiliaoapp.musically',
+    });
+    const script = path.join(recursos, 'frida', 'nova_camera_inject.js');
+    assert.deepStrictEqual(registrador.comandos.slice(-2), [
+      'ADB -s R5 forward tcp:27042 tcp:27042',
+      `frida -U -f com.zhiliaoapp.musically -l ${script} --runtime=v8`,
+    ]);
+  });
+});
+
+test('fridaInject: com o frida-server no pacote empurra para o aparelho; sem o script devolve o erro dos recursos', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar(celularConectado);
+  await comRecursosDoPacote(['nova_camera_inject.js', 'frida-server'], async recursos => {
+    const resultado = await comTempoInstantaneo(() => servico.fridaInject('R5', 'com.exemplo.app'));
+    assert.strictEqual(resultado.success, true);
+    assert.strictEqual(resultado.package, 'com.exemplo.app');
+    assert.deepStrictEqual(registrador.comandos.slice(0, 2), [
+      'ADB -s R5 get-state',
+      `ADB -s R5 push "${path.join(recursos, 'frida', 'frida-server')}" /data/local/tmp/frida-server`,
+    ]);
+  });
+  registrador.limpar();
+  await comRecursosDoPacote([], async () => {
+    assert.deepStrictEqual(await servico.fridaInject('R5', 'tiktok'), { success: false, error: 'Frida script not found. Resources missing.' });
+    assert.deepStrictEqual(registrador.comandos, []);
+  });
+});
+
+test('fridaInject: sem o celular no ADB para na falta do celular e não inicia o frida', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar(comando => (comando.endsWith('get-state') ? { erro: 'device not found', stderr: "error: device 'R5' not found" } : {}));
+  await comRecursosDoPacote(['nova_camera_inject.js'], async () => {
+    assert.deepStrictEqual(await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok')), { success: false, error: 'Celular R5 não está conectado pelo ADB.' });
+    assert.deepStrictEqual(registrador.comandos, ['ADB -s R5 get-state']);
+  });
+  const semAdb = novoServico({ comAdb: false });
+  semAdb.app.isPackaged = true;
+  registrador.limpar();
+  await comRecursosDoPacote(['nova_camera_inject.js'], async () => {
+    assert.deepStrictEqual(await semAdb.fridaInject('R5', 'tiktok'), { success: false, error: 'ADB não encontrado.' });
+    assert.deepStrictEqual(registrador.comandos, []);
+  });
+});
+
+test('fridaInject: sem o frida no computador devolve o erro em vez de sucesso', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar(comando => (comando.startsWith('frida ') ? { codigoAoIniciar: 'ENOENT' } : celularConectado(comando)));
+  await comRecursosDoPacote(['nova_camera_inject.js'], async () => {
+    assert.deepStrictEqual(await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok')), { success: false, error: 'Frida não encontrado neste computador.' });
+    assert.strictEqual(servico._fridaProcess, undefined);
+  });
 });
