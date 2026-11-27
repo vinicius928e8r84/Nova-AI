@@ -552,7 +552,7 @@
           btnRow.innerHTML = '';
           btnRow.style.cssText = ESTILO_DOS_BOTOES_DO_PROGRESSO;
           
-          const defaultPath = 'C:/Users/loq/Downloads/Nova Downloads';
+          const defaultPath = '~/Downloads/Nova Downloads';
           
           const openFolderBtn = document.createElement('button');
           openFolderBtn.className = 'ng-action-btn primary';

@@ -289,15 +289,15 @@ const CENAS_DE_ALERTA = [
 const CENAS_DA_NUVEM = [
   {
     nome: 'nuvem: chaves, estado, login, cadastro e saída',
-    cenario: { nuvem: { getSession: { data: { session: { user: { email: 'dono@loja.com' } } }, error: null } } },
+    cenario: { nuvem: { getSession: { data: { session: { user: { email: 'dono@example.com' } } }, error: null } } },
     rodar: async (palco, gerente) => {
       iniciar(palco, gerente);
       await chamarTodos(palco, [
         ['inventory:get-cloud-status'],
-        ['inventory:activate-cloud', { email: 'dono@loja.com', password: 'x' }],
+        ['inventory:activate-cloud', { email: 'dono@example.com', password: 'x' }],
         ['inventory:save-cloud-keys', { url: 'https://loja.supabase.co', key: 'chave-anon' }],
         ['inventory:get-cloud-status'],
-        ['inventory:activate-cloud', { email: 'dono@loja.com', password: 'segredo' }],
+        ['inventory:activate-cloud', { email: 'dono@example.com', password: 'segredo' }],
       ]);
       palco.armazenamento.setItem('sb-token', 'abc');
       palco.anotar('armazenamento.getItem', palco.armazenamento.getItem('sb-token'), palco.armazenamento.getItem('ausente'));
@@ -307,13 +307,13 @@ const CENAS_DA_NUVEM = [
       palco.cenario.nuvem.signInWithPassword = { data: null, error: { message: 'Invalid login credentials' } };
       palco.cenario.nuvem.getSession = { data: { session: null }, error: { message: 'expirada' } };
       await chamarTodos(palco, [
-        ['inventory:activate-cloud', { email: 'novo@loja.com', password: 'segredo' }],
+        ['inventory:activate-cloud', { email: 'novo@example.com', password: 'segredo' }],
         ['inventory:get-cloud-status'],
       ]);
       palco.cenario.nuvem.signUp = { data: null, error: { message: 'Signups not allowed' } };
       palco.cenario.nuvem.getSession = new Error('fetch failed');
       await chamarTodos(palco, [
-        ['inventory:activate-cloud', { email: 'novo@loja.com', password: 'segredo' }],
+        ['inventory:activate-cloud', { email: 'novo@example.com', password: 'segredo' }],
         ['inventory:get-cloud-status'],
         ['inventory:disconnect-cloud'],
         ['inventory:get-cloud-status'],

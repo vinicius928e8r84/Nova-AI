@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const { createWindowsProcessCleanup, parseWindowsProcessTable } = require('../nova-shutdown');
 
 const NOVA = 100;
-const EXE = 'C:\\Users\\a\\AppData\\Local\\Programs\\Nova AI\\Nova AI.exe';
+const EXE = 'C:\\Users\\usuario\\AppData\\Local\\Programs\\Nova AI\\Nova AI.exe';
 
 function linha(pid, parent, command, started = pid) {
   return { ProcessId: pid, ParentProcessId: parent, CommandLine: command, Started: started };
@@ -136,10 +136,10 @@ test('poupa o que o Nova abre para o usuario: navegador, instalador da atualizac
   const estado = { vivos: [
     linha(NOVA, 4, `"${EXE}"`),
     linha(102, NOVA, '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --single-argument https://exemplo.com'),
-    linha(103, NOVA, '"C:\\Users\\a\\AppData\\Local\\Temp\\Nova AI Setup 1.1.17.exe" --updated --force-run'),
+    linha(103, NOVA, '"C:\\Users\\usuario\\AppData\\Local\\Temp\\Nova AI Setup 1.1.17.exe" --updated --force-run'),
     linha(104, NOVA, '"C:\\Program Files\\VideoLAN\\VLC\\vlc.exe" "C:\\v.mp4"'),
     linha(105, 102, '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --type=renderer'),
-    linha(106, NOVA, 'C:\\Users\\a\\AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'),
+    linha(106, NOVA, 'C:\\Users\\usuario\\AppData\\Local\\Programs\\Antigravity\\Antigravity.exe'),
   ] };
   const { limpeza, mortos } = criar(estado);
   await limpeza.terminate();

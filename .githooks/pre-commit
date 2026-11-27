@@ -15,6 +15,7 @@ node "$regras" --raiz "$raiz" --base "$base" \
   --regra teto-de-comentarios \
   --regra limite-de-linhas \
   --regra sem-segredo \
+  --regra sem-dado-pessoal \
   --regra sem-binario-nem-lixo \
   --regra sem-depuracao-esquecida \
   --regra sintaxe-valida \

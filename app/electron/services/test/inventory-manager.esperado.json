@@ -8672,7 +8672,7 @@
   [
    "stdout",
    "[Inventory] activate-cloud handler triggered for:",
-   "dono@loja.com"
+   "dono@example.com"
   ],
   [
    "stdout",
@@ -8732,13 +8732,13 @@
     "success": true,
     "configured": true,
     "authenticated": true,
-    "email": "dono@loja.com"
+    "email": "dono@example.com"
    }
   ],
   [
    "stdout",
    "[Inventory] activate-cloud handler triggered for:",
-   "dono@loja.com"
+   "dono@example.com"
   ],
   [
    "stdout",
@@ -8747,21 +8747,21 @@
   [
    "supabase.auth.signInWithPassword",
    {
-    "email": "dono@loja.com",
+    "email": "dono@example.com",
     "password": "segredo"
    }
   ],
   [
    "stdout",
    "[Inventory] signInWithPassword successful, email:",
-   "dono@loja.com"
+   "dono@example.com"
   ],
   [
    "retorno",
    "inventory:activate-cloud",
    {
     "success": true,
-    "email": "dono@loja.com"
+    "email": "dono@example.com"
    }
   ],
   [
@@ -8776,7 +8776,7 @@
   [
    "stdout",
    "[Inventory] activate-cloud handler triggered for:",
-   "novo@loja.com"
+   "novo@example.com"
   ],
   [
    "stdout",
@@ -8785,7 +8785,7 @@
   [
    "supabase.auth.signInWithPassword",
    {
-    "email": "novo@loja.com",
+    "email": "novo@example.com",
     "password": "segredo"
    }
   ],
@@ -8801,21 +8801,21 @@
   [
    "supabase.auth.signUp",
    {
-    "email": "novo@loja.com",
+    "email": "novo@example.com",
     "password": "segredo"
    }
   ],
   [
    "stdout",
    "[Inventory] signUp fallback successful, email:",
-   "novo@loja.com"
+   "novo@example.com"
   ],
   [
    "retorno",
    "inventory:activate-cloud",
    {
     "success": true,
-    "email": "novo@loja.com",
+    "email": "novo@example.com",
     "message": "Nova conta na nuvem registrada!"
    }
   ],
@@ -8836,7 +8836,7 @@
   [
    "stdout",
    "[Inventory] activate-cloud handler triggered for:",
-   "novo@loja.com"
+   "novo@example.com"
   ],
   [
    "stdout",
@@ -8845,7 +8845,7 @@
   [
    "supabase.auth.signInWithPassword",
    {
-    "email": "novo@loja.com",
+    "email": "novo@example.com",
     "password": "segredo"
    }
   ],
@@ -8861,7 +8861,7 @@
   [
    "supabase.auth.signUp",
    {
-    "email": "novo@loja.com",
+    "email": "novo@example.com",
     "password": "segredo"
    }
   ],
