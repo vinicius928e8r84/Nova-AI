@@ -54,13 +54,13 @@
         ]
       },
       "inject": {
-        "bytes": 22638,
-        "sha256": "42eb4dbc5f92ae34be623ca0f765c812ca45849bd637167825fd7f5fee3b415c"
+        "bytes": 22815,
+        "sha256": "5eb7247f76db1b561b29e85859f19d01da3046f07fcf80908c243b061737c693"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22638,
-      "sha256": "42eb4dbc5f92ae34be623ca0f765c812ca45849bd637167825fd7f5fee3b415c"
+      "bytes": 22815,
+      "sha256": "5eb7247f76db1b561b29e85859f19d01da3046f07fcf80908c243b061737c693"
     },
     "perfisGravados": null,
     "estadoFinal": {
@@ -129,13 +129,13 @@
         ]
       },
       "inject": {
-        "bytes": 22649,
-        "sha256": "749015b0940b4d1e7cdbe56d911b36011457c30c2a78e53ffa0e21ac179a2f54"
+        "bytes": 22826,
+        "sha256": "4d39e0a56a3203be645b329c109db8a07d1e739ec1db990d73cf23951c74e108"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22649,
-      "sha256": "749015b0940b4d1e7cdbe56d911b36011457c30c2a78e53ffa0e21ac179a2f54"
+      "bytes": 22826,
+      "sha256": "4d39e0a56a3203be645b329c109db8a07d1e739ec1db990d73cf23951c74e108"
     },
     "perfisGravados": null,
     "estadoFinal": {
@@ -204,13 +204,13 @@
         ]
       },
       "inject": {
-        "bytes": 22649,
-        "sha256": "749015b0940b4d1e7cdbe56d911b36011457c30c2a78e53ffa0e21ac179a2f54"
+        "bytes": 22826,
+        "sha256": "4d39e0a56a3203be645b329c109db8a07d1e739ec1db990d73cf23951c74e108"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22649,
-      "sha256": "749015b0940b4d1e7cdbe56d911b36011457c30c2a78e53ffa0e21ac179a2f54"
+      "bytes": 22826,
+      "sha256": "4d39e0a56a3203be645b329c109db8a07d1e739ec1db990d73cf23951c74e108"
     },
     "perfisGravados": null,
     "estadoFinal": {
@@ -283,13 +283,13 @@
         ]
       },
       "inject": {
-        "bytes": 22646,
-        "sha256": "2b7c7f4621e34512b4b4d89ce9019f1042539fbccf58d554cced77b757ff3762"
+        "bytes": 22823,
+        "sha256": "16e45592b1db6aedc00521ed1759c3b84610c598edd685a9c3ccca678d0d1b3a"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22646,
-      "sha256": "2b7c7f4621e34512b4b4d89ce9019f1042539fbccf58d554cced77b757ff3762"
+      "bytes": 22823,
+      "sha256": "16e45592b1db6aedc00521ed1759c3b84610c598edd685a9c3ccca678d0d1b3a"
     },
     "perfisGravados": null,
     "estadoFinal": {
@@ -362,13 +362,13 @@
         ]
       },
       "inject": {
-        "bytes": 22671,
-        "sha256": "3516375d5ec446513afd5e47b0c53670009c1a4247caa831c0cbb4c9dfa5e0ff"
+        "bytes": 22848,
+        "sha256": "31f57182021e38597c9a0937f15c5aee1f6c58e49e5fa6074529ab3653f9880e"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22671,
-      "sha256": "3516375d5ec446513afd5e47b0c53670009c1a4247caa831c0cbb4c9dfa5e0ff"
+      "bytes": 22848,
+      "sha256": "31f57182021e38597c9a0937f15c5aee1f6c58e49e5fa6074529ab3653f9880e"
     },
     "perfisGravados": null,
     "estadoFinal": {
@@ -437,13 +437,13 @@
         ]
       },
       "inject": {
-        "bytes": 22391,
-        "sha256": "b51e76ee19ba56e60abb6dec82f67ba4da0314d95a5b6a182f0c15bf00955e4e"
+        "bytes": 22568,
+        "sha256": "039c1b1d673acddc4ec60009d753da6326a74ddef6d621b64dbe85dc84538d34"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22391,
-      "sha256": "b51e76ee19ba56e60abb6dec82f67ba4da0314d95a5b6a182f0c15bf00955e4e"
+      "bytes": 22568,
+      "sha256": "039c1b1d673acddc4ec60009d753da6326a74ddef6d621b64dbe85dc84538d34"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"platform\": \"windows\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"locationMode\": \"custom\",\n    \"latitude\": 0,\n    \"longitude\": -9.14,\n    \"platformStr\": \"Win32\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"16\",\n    \"webglVendor\": \"Google Inc. (AMD)\",\n    \"webglRenderer\": \"AMD Radeon RX 6600\",\n    \"doNotTrack\": \"1\",\n    \"portScanProtection\": \"disable\",\n    \"canvasNoise\": false,\n    \"webglNoise\": false,\n    \"audioNoise\": false,\n    \"webglImageNoise\": false,\n    \"clientRectsNoise\": false,\n    \"speechVoicesNoise\": false,\n    \"canvasNoiseSeed\": 7,\n    \"webglNoiseSeed\": 9,\n    \"audioNoiseSeed\": 0.5,\n    \"virtualCamId\": \"cam_id_x\",\n    \"virtualMicId\": \"mic_id_x\",\n    \"virtualSpeakerId\": \"spk_id_x\",\n    \"virtualCamLabel\": \"Cam \\\"Um\\\"\",\n    \"virtualMicLabel\": \"Mic \\\"Dois\\\"\",\n    \"virtualSpeakerLabel\": \"Spk \\\"Tres\\\"\",\n    \"deviceName\": \"LAPTOP-NL2V802\",\n    \"macAddress\": \"00-1B-21-4E-A1-FE\",\n    \"screenResolution\": \"1920x1080\",\n    \"windowMode\": \"maximized\"\n  }\n]",
     "estadoFinal": {
@@ -512,13 +512,13 @@
         ]
       },
       "inject": {
-        "bytes": 22388,
-        "sha256": "1270c8680b93be748813dffbf3097c463b8f3362dbcf315991e97457b2002229"
+        "bytes": 22565,
+        "sha256": "9767c029d94432c07b4fa1798526c00ef4371d2541bc50f5a40785089300857b"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22388,
-      "sha256": "1270c8680b93be748813dffbf3097c463b8f3362dbcf315991e97457b2002229"
+      "bytes": 22565,
+      "sha256": "9767c029d94432c07b4fa1798526c00ef4371d2541bc50f5a40785089300857b"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"platform\": \"windows\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"locationMode\": \"custom\",\n    \"latitude\": 0,\n    \"longitude\": -9.14,\n    \"platformStr\": \"Win32\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"webglVendor\": \"Google Inc. (AMD)\",\n    \"webglRenderer\": \"AMD Radeon RX 6600\",\n    \"doNotTrack\": \"1\",\n    \"portScanProtection\": \"disable\",\n    \"canvasNoise\": false,\n    \"webglNoise\": false,\n    \"audioNoise\": false,\n    \"webglImageNoise\": false,\n    \"clientRectsNoise\": false,\n    \"speechVoicesNoise\": false,\n    \"canvasNoiseSeed\": 7,\n    \"webglNoiseSeed\": 9,\n    \"audioNoiseSeed\": 0.5,\n    \"virtualCamId\": \"cam_id_x\",\n    \"virtualMicId\": \"mic_id_x\",\n    \"virtualSpeakerId\": \"spk_id_x\",\n    \"virtualCamLabel\": \"Cam \\\"Um\\\"\",\n    \"virtualMicLabel\": \"Mic \\\"Dois\\\"\",\n    \"virtualSpeakerLabel\": \"Spk \\\"Tres\\\"\",\n    \"proxy\": \"user:pass@203.0.113.1:8080\",\n    \"screenResolution\": \"1366x768\",\n    \"browser\": \"chrome\",\n    \"deviceName\": \"LAPTOP-MRP5DK7\",\n    \"macAddress\": \"00-1B-21-FE-AD-AC\"\n  }\n]",
     "estadoFinal": {
@@ -591,13 +591,13 @@
         ]
       },
       "inject": {
-        "bytes": 22643,
-        "sha256": "d2081567db4aae09693000cc6a0ad73f72d68acaed5378fc000643ad07197f7a"
+        "bytes": 22820,
+        "sha256": "bf9e9898599e9c9404708acd3f2f5546711428d9be6b70155acbe0e6ee3d9b96"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22643,
-      "sha256": "d2081567db4aae09693000cc6a0ad73f72d68acaed5378fc000643ad07197f7a"
+      "bytes": 22820,
+      "sha256": "bf9e9898599e9c9404708acd3f2f5546711428d9be6b70155acbe0e6ee3d9b96"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"platform\": \"android\",\n    \"timezone\": \"Asia/Tokyo\",\n    \"locale\": \"ja-JP\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"deviceName\": \"LAPTOP-ZUNTSP2\",\n    \"macAddress\": \"00-1B-21-AD-AC-2C\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 177,\n    \"webglNoiseSeed\": 142,\n    \"audioNoiseSeed\": 0.00008275,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Internal Microphone\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Built-in Output\"\n  }\n]",
     "estadoFinal": {
@@ -670,13 +670,13 @@
         ]
       },
       "inject": {
-        "bytes": 22437,
-        "sha256": "0307f9daff9a9a964385db22ca99e47e5cda54f58aefa56dda2c48d832bb6216"
+        "bytes": 22614,
+        "sha256": "2cc23977e078dafa4a808d74909ff8f3d62fb78007dc918556cb5546d9081ac5"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22437,
-      "sha256": "0307f9daff9a9a964385db22ca99e47e5cda54f58aefa56dda2c48d832bb6216"
+      "bytes": 22614,
+      "sha256": "2cc23977e078dafa4a808d74909ff8f3d62fb78007dc918556cb5546d9081ac5"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"platform\": \"ios\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"locationMode\": \"custom\",\n    \"latitude\": 0,\n    \"longitude\": -9.14,\n    \"platformStr\": \"iPhone\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"16\",\n    \"webglVendor\": \"Apple Inc.\",\n    \"webglRenderer\": \"Apple GPU\",\n    \"doNotTrack\": \"1\",\n    \"portScanProtection\": \"disable\",\n    \"canvasNoise\": false,\n    \"webglNoise\": false,\n    \"audioNoise\": false,\n    \"webglImageNoise\": false,\n    \"clientRectsNoise\": false,\n    \"speechVoicesNoise\": false,\n    \"canvasNoiseSeed\": 7,\n    \"webglNoiseSeed\": 9,\n    \"audioNoiseSeed\": 0.5,\n    \"virtualCamId\": \"cam_id_x\",\n    \"virtualMicId\": \"mic_id_x\",\n    \"virtualSpeakerId\": \"spk_id_x\",\n    \"virtualCamLabel\": \"Cam \\\"Um\\\"\",\n    \"virtualMicLabel\": \"Mic \\\"Dois\\\"\",\n    \"virtualSpeakerLabel\": \"Spk \\\"Tres\\\"\",\n    \"deviceName\": \"LAPTOP-NL2V802\",\n    \"macAddress\": \"00-1B-21-4E-A1-FE\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\"\n  }\n]",
     "estadoFinal": {
@@ -744,13 +744,13 @@
         ]
       },
       "inject": {
-        "bytes": 22577,
-        "sha256": "ede2dbeee106cfb3e10b92c8e04cf815f51f640e8e1e046214d8650747584325"
+        "bytes": 22754,
+        "sha256": "0880c3c4aac276128c0589bde4fb3c24ce58a6f8484e91536da104f1b5909ef3"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22577,
-      "sha256": "ede2dbeee106cfb3e10b92c8e04cf815f51f640e8e1e046214d8650747584325"
+      "bytes": 22754,
+      "sha256": "0880c3c4aac276128c0589bde4fb3c24ce58a6f8484e91536da104f1b5909ef3"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"platform\": \"mac\",\n    \"timezone\": \"America/New_York\",\n    \"locale\": \"en-US\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"platformStr\": \"MacIntel\",\n    \"webglVendor\": \"Apple Inc.\",\n    \"webglRenderer\": \"Apple M1\",\n    \"deviceName\": \"LAPTOP-MRP5DK7\",\n    \"macAddress\": \"00-1B-21-FE-AD-AC\",\n    \"screenResolution\": \"1440x900\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 35,\n    \"webglNoiseSeed\": 177,\n    \"audioNoiseSeed\": 0.00007073,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FHD Web Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Microphone (USB Audio Device)\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Internal Speakers\"\n  }\n]",
     "estadoFinal": {
@@ -818,13 +818,13 @@
         ]
       },
       "inject": {
-        "bytes": 22592,
-        "sha256": "6ff207569e073271c9917b96ca5f97e41df7baa74d9048d3669f29afa8494a46"
+        "bytes": 22769,
+        "sha256": "38f1d7b890334a038e7b6783f2894f891bac281357fa1dfb8e217a6a364db273"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22592,
-      "sha256": "6ff207569e073271c9917b96ca5f97e41df7baa74d9048d3669f29afa8494a46"
+      "bytes": 22769,
+      "sha256": "38f1d7b890334a038e7b6783f2894f891bac281357fa1dfb8e217a6a364db273"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"portScanProtection\": \"\",\n    \"canvasNoiseSeed\": 0,\n    \"webglNoiseSeed\": 0,\n    \"audioNoiseSeed\": 0,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FHD Web Camera\",\n    \"virtualMicLabel\": \"Microphone (USB Audio Device)\",\n    \"virtualSpeakerLabel\": \"Built-in Output\",\n    \"deviceName\": \"LAPTOP-ZUNTSP2\",\n    \"macAddress\": \"00-1B-21-AD-AC-2C\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\"\n  }\n]",
     "estadoFinal": {
@@ -897,13 +897,13 @@
         ]
       },
       "inject": {
-        "bytes": 22641,
-        "sha256": "3b3d05027038cf44fa98eb3f9ac2425fa569ffc28bbc8f1160f21064e0c71325"
+        "bytes": 22818,
+        "sha256": "49763fe8cdd7ddfd29c7666ce3200d2a89d4bf6988fcef6ba1843cabaf241e84"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22641,
-      "sha256": "3b3d05027038cf44fa98eb3f9ac2425fa569ffc28bbc8f1160f21064e0c71325"
+      "bytes": 22818,
+      "sha256": "49763fe8cdd7ddfd29c7666ce3200d2a89d4bf6988fcef6ba1843cabaf241e84"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"portScanProtection\": \"\",\n    \"canvasNoiseSeed\": 0,\n    \"webglNoiseSeed\": 0,\n    \"audioNoiseSeed\": 0,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FHD Web Camera\",\n    \"virtualMicLabel\": \"Microphone (USB Audio Device)\",\n    \"virtualSpeakerLabel\": \"Built-in Output\",\n    \"platform\": \"android\",\n    \"deviceName\": \"LAPTOP-ZUNTSP2\",\n    \"macAddress\": \"00-1B-21-AD-AC-2C\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\"\n  }\n]",
     "estadoFinal": {
@@ -976,13 +976,13 @@
         ]
       },
       "inject": {
-        "bytes": 22650,
-        "sha256": "6ef1e37f0af3fea31505d67df037d29a186044e105d81b928dd761b0427ed14b"
+        "bytes": 22827,
+        "sha256": "b2afdaf93f16653a20b3a32e4d83caa2355ce0f685362cbd7b861f81a201f9b7"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22650,
-      "sha256": "6ef1e37f0af3fea31505d67df037d29a186044e105d81b928dd761b0427ed14b"
+      "bytes": 22827,
+      "sha256": "b2afdaf93f16653a20b3a32e4d83caa2355ce0f685362cbd7b861f81a201f9b7"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"timezone\": \"Europe/Lisbon\",\n    \"locale\": \"pt-PT\",\n    \"platformStr\": \"iPhone\",\n    \"webglVendor\": \"Apple Inc.\",\n    \"webglRenderer\": \"Apple GPU\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"portScanProtection\": \"\",\n    \"canvasNoiseSeed\": 0,\n    \"webglNoiseSeed\": 0,\n    \"audioNoiseSeed\": 0,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"HD Camera\",\n    \"virtualMicLabel\": \"Built-in Microphone\",\n    \"virtualSpeakerLabel\": \"Headphones (Realtek High Definition Audio)\",\n    \"platform\": \"ios\",\n    \"deviceName\": \"LAPTOP-MRP5DK7\",\n    \"macAddress\": \"00-1B-21-FE-AD-AC\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\"\n  }\n]",
     "estadoFinal": {
@@ -1050,13 +1050,13 @@
         ]
       },
       "inject": {
-        "bytes": 22617,
-        "sha256": "31e3f24b0d2f0ab1afbfe8f220fd998e8bf03beb07fdbead35ab857004007497"
+        "bytes": 22794,
+        "sha256": "62674ca4375ec97755631cc1e08357be4b15b4e3654788d402f1a58391ebd331"
       }
     },
     "scriptDoCdp": {
-      "bytes": 22617,
-      "sha256": "31e3f24b0d2f0ab1afbfe8f220fd998e8bf03beb07fdbead35ab857004007497"
+      "bytes": 22794,
+      "sha256": "62674ca4375ec97755631cc1e08357be4b15b4e3654788d402f1a58391ebd331"
     },
     "perfisGravados": "[\n  {\n    \"id\": \"profile_01\",\n    \"name\": \"Fixo\",\n    \"timezone\": \"Australia/Sydney\",\n    \"locale\": \"en-AU\",\n    \"cpuCores\": \"12\",\n    \"ramSize\": \"8\",\n    \"platformStr\": \"Linux aarch64\",\n    \"webglVendor\": \"Google Inc. (ARM)\",\n    \"webglRenderer\": \"Mali-G720 MC12\",\n    \"deviceName\": \"LAPTOP-ZUNTSP2\",\n    \"macAddress\": \"00-1B-21-AD-AC-2C\",\n    \"screenResolution\": \"412x915\",\n    \"windowMode\": \"custom\",\n    \"canvasNoiseSeed\": 177,\n    \"webglNoiseSeed\": 142,\n    \"audioNoiseSeed\": 0.00008275,\n    \"virtualCamId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualCamLabel\": \"FaceTime HD Camera\",\n    \"virtualMicId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualMicLabel\": \"Internal Microphone\",\n    \"virtualSpeakerId\": \"0707070707070707070707070707070707070707070707070707070707070707\",\n    \"virtualSpeakerLabel\": \"Built-in Output\"\n  }\n]",
     "estadoFinal": {
