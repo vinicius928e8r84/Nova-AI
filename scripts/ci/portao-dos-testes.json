@@ -32,7 +32,7 @@
       "nome": "mac-do-iphone",
       "job": "mac",
       "com": "bash",
-      "executar": ["iphone/proxy/tool/test/rodar.sh", "iphone/idioma/test/rodar.sh"],
+      "executar": ["iphone/**/test/rodar.sh"],
       "arquivos": ["iphone/proxy/tool/test/*", "iphone/idioma/test/*.sh"]
     },
     {

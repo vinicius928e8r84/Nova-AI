@@ -74,17 +74,17 @@ function problemasDeLugar(lista, arquivos) {
   return problemas;
 }
 
-function problemasDeExecucao(grupos) {
+function problemasDeExecucao(grupos, arquivos) {
   const problemas = [];
   for (const grupo of grupos.filter(item => item.executar)) {
     if (!grupo.com) problemas.push(`o grupo ${grupo.nome} executa arquivos sem com: diga o programa que os executa`);
-    for (const glob of grupo.executar.filter(executado => !casaAlgum(globsDe(grupo), executado))) problemas.push(`o grupo ${grupo.nome} executa ${glob}, que ele não cobre em arquivos`);
+    for (const arquivo of arquivos.filter(item => casaAlgum(grupo.executar, item) && !casaAlgum(globsDe(grupo), item))) problemas.push(`o grupo ${grupo.nome} executa ${arquivo}, que ele não cobre em arquivos`);
   }
   return problemas;
 }
 
 function conferir(lista, arquivos) {
-  return [...problemasDeGrupo(lista.grupos), ...problemasDeExecucao(lista.grupos), ...problemasDeFora(lista.fora), ...problemasDeGlob(lista, arquivos), ...problemasDeLugar(lista, arquivos)];
+  return [...problemasDeGrupo(lista.grupos), ...problemasDeExecucao(lista.grupos, arquivos), ...problemasDeFora(lista.fora), ...problemasDeGlob(lista, arquivos), ...problemasDeLugar(lista, arquivos)];
 }
 
 const arquivosDoGrupo = (grupo, arquivos) => arquivos.filter(arquivo => casaAlgum(globsDe(grupo), arquivo)).sort();

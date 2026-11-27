@@ -166,6 +166,13 @@ test('grupo com executar só pode executar arquivo que ele mesmo cobre', () => {
   assert.deepEqual(problemasDe({ grupos: [{ ...grupo, executar: ['t/a/rodar.sh'] }], fora: [] }, arquivos.slice(0, 2)), []);
 });
 
+test('rodar.sh novo de outra pasta do iPhone é executado pelo job mac, mas só depois de coberto pelo grupo', () => {
+  const novo = 'iphone/modelo/test/rodar.sh';
+  const [, executados] = portao.arquivosDoJob(lista, 'mac', [...versionados, novo])[0];
+  assert.ok(executados.includes(novo));
+  assert.match(portao.conferir(lista, [...versionados, novo]).join('\n'), /iphone\/modelo\/test\/rodar\.sh/);
+});
+
 test('grupo com executar sem com é problema', () => {
   const grupo = { nome: 'mac', job: 'mac', arquivos: ['t/a/rodar.sh'], executar: ['t/a/rodar.sh'] };
   assert.match(problemasDe({ grupos: [grupo], fora: [] }, ['t/a/rodar.sh']).join('\n'), /mac.*sem com/);
