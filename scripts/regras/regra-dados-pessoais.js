@@ -13,10 +13,12 @@ const conserto = 'Troque o dado por um exemplo: e-mail @example.com (ou o norepl
   + 'Uma exceção é um glob com motivo na chave dadosPessoais de scripts/regras/configuracao.json, só por PR de regras com atenção ALTA. '
   + 'Só a linha nova reprova: o que já estava na base não é julgado.';
 
+const temLinhaNovaDeTexto = (arquivo, novas) => Boolean(arquivo && !arquivo.binario && novas && novas.size);
+
 function achadosDoArquivo(ctx, caminho, nomes) {
   const arquivo = ctx.ler(caminho);
   const novas = ctx.mudancas.acrescentadas.get(caminho);
-  if (!arquivo || arquivo.binario || !novas || !novas.size) return [];
+  if (!temLinhaNovaDeTexto(arquivo, novas)) return [];
   const linhas = arquivo.texto.split('\n');
   return [...novas].sort((a, b) => a - b).flatMap(numero => tiposDaLinha(linhas[numero - 1] || '', nomes)
     .map(tipo => ({ arquivo: caminho, linha: numero, detalhe: `${tipo} (o valor não é mostrado)` })));
