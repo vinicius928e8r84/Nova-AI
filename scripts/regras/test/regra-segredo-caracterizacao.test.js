@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const { criar } = require('./auxiliar');
-const { contextoDoRepositorio } = require('./contexto-de-repositorio');
+const { contextoDoRepositorio } = require('./contexto-de-repositorio.palco');
 const regra = require('../regra-segredo');
 
 const juntar = (...partes) => partes.join('');

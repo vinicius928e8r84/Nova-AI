@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const config = require('../configuracao.json');
 const { criar } = require('./auxiliar');
-const { contextoDoRepositorio } = require('./contexto-de-repositorio');
+const { contextoDoRepositorio } = require('./contexto-de-repositorio.palco');
 const regra = require('../regra-binario');
 
 const MEGA = 1024 * 1024;
