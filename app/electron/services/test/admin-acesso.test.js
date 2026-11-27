@@ -190,7 +190,9 @@ test('sessão vence depois de 12 horas e as mais antigas saem quando passa do li
 });
 
 test('admin.html não tem código escrito: a conferência vai ao servidor', () => {
-  const html = fs.readFileSync(path.join(__dirname, '..', '..', 'pwa', 'admin.html'), 'utf8');
+  const pasta = path.join(__dirname, '..', '..', 'pwa');
+  const arquivos = ['admin.html', ...fs.readdirSync(pasta).filter(nome => /^admin-.*\.js$/.test(nome))];
+  const html = arquivos.map(nome => fs.readFileSync(path.join(pasta, nome), 'utf8')).join('\n');
   assert.doesNotMatch(html, /ADMIN_SECRET/);
   assert.doesNotMatch(html, /input\s*===/);
   assert.match(html, /\/api\/admin-login/);
