@@ -2208,6 +2208,8 @@ done
             }
 
             const adb = this.adbPath;
+            const faltaDoCelular = await this.faltaDoCelularAndroid(adb, deviceId);
+            if (faltaDoCelular) return { success: false, error: faltaDoCelular };
 
             if (fs.existsSync(fridaServer)) {
                 console.log('[Frida] Pushing frida-server to phone...');
@@ -2234,24 +2236,9 @@ done
                     { timeout: 10000 }, () => resolve());
             });
 
-            const { spawn: spawnProc } = require('child_process');
             console.log(`[Frida] Injecting into ${packageName}...`);
-
-            let fridaCmd, fridaArgs;
-
-            fridaCmd = 'frida';
-            fridaArgs = [
-                '-U', '-f', packageName,
-                '-l', scriptPath,
-                '--runtime=v8'
-            ];
-
-            console.log(`[Frida] Command: frida ${fridaArgs.join(' ')}`);
-
-            const fridaProc = spawnProc(fridaCmd, fridaArgs, {
-                detached: false,
-                stdio: ['ignore', 'pipe', 'pipe'],
-            });
+            const { processo: fridaProc, erro: erroDoFrida } = await this.iniciarFrida(['-U', '-f', packageName, '-l', scriptPath, '--runtime=v8']);
+            if (erroDoFrida) return { success: false, error: erroDoFrida };
 
             fridaProc.stdout.on('data', (d) => {
                 const msg = d.toString().trim();
@@ -2276,6 +2263,27 @@ done
             console.error('[Frida] fridaInject error:', err);
             return { success: false, error: err.message };
         }
+    }
+
+    faltaDoCelularAndroid(adb, deviceId) {
+        if (!fs.existsSync(adb)) return Promise.resolve('ADB não encontrado.');
+        return new Promise((resolve) => {
+            execFile(adb, ['-s', String(deviceId), 'get-state'], { timeout: 10000 }, (err, stdout) => {
+                const conectado = !err && String(stdout).trim() === 'device';
+                resolve(conectado ? null : `Celular ${deviceId} não está conectado pelo ADB.`);
+            });
+        });
+    }
+
+    iniciarFrida(argumentos) {
+        const processo = spawn('frida', argumentos, { detached: false, stdio: ['ignore', 'pipe', 'pipe'] });
+        return new Promise((resolve) => {
+            processo.once('spawn', () => resolve({ processo }));
+            processo.on('error', (err) => {
+                console.error('[Frida] spawn:', err.message);
+                resolve({ erro: err.code === 'ENOENT' ? 'Frida não encontrado neste computador.' : err.message });
+            });
+        });
     }
 }
 

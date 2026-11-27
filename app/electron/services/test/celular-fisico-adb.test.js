@@ -44,8 +44,12 @@ const processosFalsos = {
     responderCom(texto, callback);
   },
   spawn(arquivo, argumentos) {
-    registrador.comandos.push([normalizar(arquivo), ...argumentos].join(' '));
-    return Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
+    const texto = [normalizar(arquivo), ...argumentos].join(' ');
+    registrador.comandos.push(texto);
+    const filho = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
+    const { codigoAoIniciar } = registrador.responder(texto) || {};
+    process.nextTick(() => filho.emit(codigoAoIniciar ? 'error' : 'spawn', codigoAoIniciar && Object.assign(new Error(`spawn ${arquivo} ${codigoAoIniciar}`), { code: codigoAoIniciar })));
+    return filho;
   },
 };
 
@@ -522,10 +526,12 @@ async function comRecursosDoPacote(arquivosDoFrida, fn) {
   }
 }
 
+const celularConectado = comando => (comando.endsWith('get-state') ? { stdout: 'device\n' } : {});
+
 test('fridaInject: no app empacotado lê o script de process.resourcesPath e inicia o frida sem erro', async () => {
   const servico = novoServico();
   servico.app.isPackaged = true;
-  registrador.limpar();
+  registrador.limpar(celularConectado);
   await comRecursosDoPacote(['nova_camera_inject.js'], async recursos => {
     const resultado = await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok'));
     assert.deepStrictEqual(resultado, {
@@ -544,16 +550,46 @@ test('fridaInject: no app empacotado lê o script de process.resourcesPath e ini
 test('fridaInject: com o frida-server no pacote empurra para o aparelho; sem o script devolve o erro dos recursos', async () => {
   const servico = novoServico();
   servico.app.isPackaged = true;
-  registrador.limpar();
+  registrador.limpar(celularConectado);
   await comRecursosDoPacote(['nova_camera_inject.js', 'frida-server'], async recursos => {
     const resultado = await comTempoInstantaneo(() => servico.fridaInject('R5', 'com.exemplo.app'));
     assert.strictEqual(resultado.success, true);
     assert.strictEqual(resultado.package, 'com.exemplo.app');
-    assert.strictEqual(registrador.comandos[0], `ADB -s R5 push "${path.join(recursos, 'frida', 'frida-server')}" /data/local/tmp/frida-server`);
+    assert.deepStrictEqual(registrador.comandos.slice(0, 2), [
+      'ADB -s R5 get-state',
+      `ADB -s R5 push "${path.join(recursos, 'frida', 'frida-server')}" /data/local/tmp/frida-server`,
+    ]);
   });
   registrador.limpar();
   await comRecursosDoPacote([], async () => {
     assert.deepStrictEqual(await servico.fridaInject('R5', 'tiktok'), { success: false, error: 'Frida script not found. Resources missing.' });
     assert.deepStrictEqual(registrador.comandos, []);
+  });
+});
+
+test('fridaInject: sem o celular no ADB para na falta do celular e não inicia o frida', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar(comando => (comando.endsWith('get-state') ? { erro: 'device not found', stderr: "error: device 'R5' not found" } : {}));
+  await comRecursosDoPacote(['nova_camera_inject.js'], async () => {
+    assert.deepStrictEqual(await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok')), { success: false, error: 'Celular R5 não está conectado pelo ADB.' });
+    assert.deepStrictEqual(registrador.comandos, ['ADB -s R5 get-state']);
+  });
+  const semAdb = novoServico({ comAdb: false });
+  semAdb.app.isPackaged = true;
+  registrador.limpar();
+  await comRecursosDoPacote(['nova_camera_inject.js'], async () => {
+    assert.deepStrictEqual(await semAdb.fridaInject('R5', 'tiktok'), { success: false, error: 'ADB não encontrado.' });
+    assert.deepStrictEqual(registrador.comandos, []);
+  });
+});
+
+test('fridaInject: sem o frida no computador devolve o erro em vez de sucesso', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar(comando => (comando.startsWith('frida ') ? { codigoAoIniciar: 'ENOENT' } : celularConectado(comando)));
+  await comRecursosDoPacote(['nova_camera_inject.js'], async () => {
+    assert.deepStrictEqual(await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok')), { success: false, error: 'Frida não encontrado neste computador.' });
+    assert.strictEqual(servico._fridaProcess, undefined);
   });
 });
