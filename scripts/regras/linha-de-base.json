@@ -4,8 +4,7 @@
     "app/electron/services/browserFarmService.js": 2119,
     "app/electron/services/global-spoof-service.js": 1742,
     "app/electron/services/physicalMobileService.js": 2302,
-    "MAC/integracao-iphone/bridge/Tweak.x": 1500,
-    "prototype-cam-live/index.html": 1631
+    "MAC/integracao-iphone/bridge/Tweak.x": 1500
   },
   "saude-do-codigo": {
     "app/dist/cam-live-audio.js": 39,
@@ -52,7 +51,6 @@
     "MAC/integracao-sequestro-cam/patch_bundle.py": 8,
     "MAC/integracao-sequestro-cam/patch_transmissao.py": 1,
     "MAC/traducao-interface/preparar.py": 1,
-    "prototype-sequestro-cam/servir.py": 2,
     "scripts/regras/auditoria.js": 12,
     "scripts/regras/docstrings.py": 2,
     "scripts/regras/registrar-na-pr.js": 36,
@@ -171,15 +169,6 @@
     "MAC/proxy-iphone/tool/teste/upstream_test.m": 10,
     "MAC/proxy-iphone/tool/Upstream.h": 4,
     "MAC/proxy-iphone/tool/Upstream.m": 6,
-    "MAC/traducao-interface/preparar.py": 2,
-    "pesquisas/proxy-geo/geo-proxy.cjs": 10,
-    "prototype-cam-live/gerar-site.py": 1,
-    "prototype-cam-live/index.antigo-simulado.html": 35,
-    "prototype-cam-live/index.html": 86,
-    "prototype-cam-live/index.template.html": 3,
-    "prototype-idioma/index.html": 1,
-    "prototype-proxy-tipo/teste-proxy-parse.js": 11,
-    "prototype-sequestro-cam/index.html": 9,
-    "prototype-sequestro-cam/servir.py": 20
+    "MAC/traducao-interface/preparar.py": 2
   }
 }

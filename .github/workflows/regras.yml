@@ -119,6 +119,7 @@ jobs:
           MAC/integracao-camlive/test/iphone-lifecycle.cjs
           MAC/integracao-camlive/test/iphone-protocol.cjs
           MAC/integracao-iphone/conexao-usb/locale-helper.test.cjs
+          MAC/integracao-iphone/conexao-usb/proxy-parse.test.js
           MAC/integracao-iphone/conexao-usb/setup.test.cjs
           MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs
           MAC/integracao-iphone/tests/ferramenta-ausente.cjs

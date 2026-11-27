@@ -16,7 +16,7 @@ integrações de iPhone por USB, CAM LIVE, CAM HIJACK e tradução da interface.
 | `MAC/` | Específico do Mac e do iPhone: integrações, tweaks `.deb` (fontes), scripts, histórico em `LEIA-ME.md` |
 | [`docs/windows.md`](docs/windows.md) | Passo a passo do Windows e comparação com o app Windows instalado |
 | `WINDOWS/` | Só local (ignorada pelo git): onde fica o instalador `.exe` do Windows |
-| `GUIA/`, `pesquisas/`, `prototype-*`, `backup-antes-traducao/` | Guia do usuário, estudos e protótipos |
+| `GUIA/`, `pesquisas/`, `backup-antes-traducao/` | Guia do usuário e estudos |
 
 O app instalado vive em `/Applications/Nova AI Mac.app`; o código que roda nele é
 copiado a partir das pastas de integração. Os instaladores (`.dmg`, `.exe`), os

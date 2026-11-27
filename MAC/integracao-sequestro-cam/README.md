@@ -1,6 +1,6 @@
 # Sequestro de Câmera — só o item 3 com on/off real do jailbreak
 
-Aprovado pelo usuário em 03/11/2026 (site de teste: `prototype-sequestro-cam/`).
+Aprovado pelo usuário em 03/11/2026 (o site de teste saiu do repositório no commit `af7b0ec`).
 
 ## O que mudou no app instalado
 
@@ -120,8 +120,8 @@ OBS. Trocado para o modo geral nos dois caminhos:
 - transmissão no ar: escrita direta do controle com `appIDs ["*"]`.
 - Desligar inalterado (`observe`). Testado no aparelho: controle com
   `appIDs ["*"]`, ativo, transmissão preservada; estado final ligado.
-- O site de teste (`prototype-sequestro-cam/servir.py`) também usa
-  `enable-all` agora.
+- O site de teste (`prototype-sequestro-cam/servir.py`, apagado no commit `af7b0ec`) também usava
+  `enable-all`.
 - No Safari o vídeo do OBS depende do relé 8900 ligado (OBS + relay.py),
   como na Câmera nativa.
 
@@ -179,17 +179,3 @@ cp /tmp/ios-camera.js \
 ```
 
 e reiniciar o app.
-
-## Site de teste (referência aprovada)
-
-`/Users/aquilesneri/Documents/Projetos/Nova-AI/prototype-sequestro-cam/` —
-`python3 servir.py` → http://127.0.0.1:8788 (mesmo on/off real via phone.sh).
-
-> O repo saiu de `~/Desktop/Nova-AI` para `~/Documents/Projetos/Nova-AI`. Um
-> `servir.py` iniciado antes da mudança fica com o caminho antigo: toda
-> requisição volta vazia (“site fora do ar”). Se acontecer, mate o processo e
-> suba de novo a partir da pasta atual. `BRIDGE` agora é detectado (env
-> `NOVA_BRIDGE` > `../jailbreak/obs-camera-source/bridge` > caminho antigo), a
-> chave e o `known_hosts` vêm da pasta do app (`nova_dsktp/iphone-ssh/`) e o ssh
-> usa `StrictHostKeyChecking=accept-new` — o reset do jailbreak troca a chave de
-> host e o `known_hosts` de `~/.ssh` recusava a nova.
