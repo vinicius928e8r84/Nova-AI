@@ -9491,6 +9491,1275 @@
    ]
   ]
  ],
+ "estado: navegador vivo ou morto pelo que o contexto responde": [
+  [
+   "net.listen",
+   9222,
+   "127.0.0.1"
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "canal",
+   "browser-navigate"
+  ],
+  [
+   "canal",
+   "browser-go-back"
+  ],
+  [
+   "canal",
+   "browser-go-forward"
+  ],
+  [
+   "canal",
+   "browser-reload"
+  ],
+  [
+   "canal",
+   "browser-snapshot"
+  ],
+  [
+   "canal",
+   "browser-get-html"
+  ],
+  [
+   "canal",
+   "browser-query-selector"
+  ],
+  [
+   "canal",
+   "browser-extract"
+  ],
+  [
+   "canal",
+   "browser-screenshot"
+  ],
+  [
+   "canal",
+   "browser-click"
+  ],
+  [
+   "canal",
+   "browser-type"
+  ],
+  [
+   "canal",
+   "browser-fill-form"
+  ],
+  [
+   "canal",
+   "browser-hover"
+  ],
+  [
+   "canal",
+   "browser-select"
+  ],
+  [
+   "canal",
+   "browser-press-key"
+  ],
+  [
+   "canal",
+   "browser-scroll"
+  ],
+  [
+   "canal",
+   "browser-scroll-into-view"
+  ],
+  [
+   "canal",
+   "browser-highlight"
+  ],
+  [
+   "canal",
+   "browser-wait"
+  ],
+  [
+   "canal",
+   "browser-execute-script"
+  ],
+  [
+   "canal",
+   "browser-upload-file"
+  ],
+  [
+   "canal",
+   "browser-wait-download"
+  ],
+  [
+   "canal",
+   "browser-download-by-click"
+  ],
+  [
+   "canal",
+   "browser-handle-dialog"
+  ],
+  [
+   "canal",
+   "browser-save-pdf"
+  ],
+  [
+   "canal",
+   "browser-get-cookies"
+  ],
+  [
+   "canal",
+   "browser-set-cookie"
+  ],
+  [
+   "canal",
+   "browser-clear-cookies"
+  ],
+  [
+   "canal",
+   "browser-get-storage"
+  ],
+  [
+   "canal",
+   "browser-set-storage"
+  ],
+  [
+   "canal",
+   "browser-clear-storage"
+  ],
+  [
+   "canal",
+   "browser-resize-viewport"
+  ],
+  [
+   "canal",
+   "browser-emulate-device"
+  ],
+  [
+   "canal",
+   "browser-emulate-color-scheme"
+  ],
+  [
+   "canal",
+   "browser-set-offline"
+  ],
+  [
+   "canal",
+   "browser-set-extra-headers"
+  ],
+  [
+   "canal",
+   "browser-set-http-credentials"
+  ],
+  [
+   "canal",
+   "browser-set-geolocation"
+  ],
+  [
+   "canal",
+   "browser-get-console"
+  ],
+  [
+   "canal",
+   "browser-get-errors"
+  ],
+  [
+   "canal",
+   "browser-get-tabs"
+  ],
+  [
+   "canal",
+   "browser-switch-tab"
+  ],
+  [
+   "canal",
+   "browser-new-tab"
+  ],
+  [
+   "canal",
+   "browser-close-tab"
+  ],
+  [
+   "canal",
+   "browser-drag-drop"
+  ],
+  [
+   "canal",
+   "browser-close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)"
+  ],
+  [
+   "stdout",
+   "[BrowserService] CDP port 9222 reserved."
+  ],
+  [
+   "stdout",
+   "[BrowserService] Creating persistent browser profile..."
+  ],
+  [
+   "findBundledChromiumExecutable",
+   [
+    "<raiz>/resources/browsers",
+    "<app>/browsers"
+   ]
+  ],
+  [
+   "stdout",
+   "[BrowserService] Using SYSTEM installed browser (fallback)."
+  ],
+  [
+   "net.close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] Launching Chromium with CDP port 9222..."
+  ],
+  [
+   "chromium.launchPersistentContext",
+   "<raiz>/userData/browser-data",
+   {
+    "executablePath": "<undefined>",
+    "headless": false,
+    "viewport": null,
+    "userAgent": "UA de teste",
+    "acceptDownloads": true,
+    "timeout": 120000,
+    "args": [
+     "--disable-blink-features=AutomationControlled",
+     "--no-first-run",
+     "--no-default-browser-check",
+     "--enable-logging",
+     "--remote-debugging-port=9222"
+    ]
+   }
+  ],
+  [
+   "contexto1.on",
+   "close"
+  ],
+  [
+   "http.get",
+   {
+    "host": "127.0.0.1",
+    "port": 9222,
+    "path": "/json/version",
+    "timeout": 3000
+   }
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "contexto1.browser"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.on",
+   "console"
+  ],
+  [
+   "p1.on",
+   "pageerror"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ Browser launched successfully."
+  ],
+  [
+   "retorno",
+   "launch",
+   "<undefined>"
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.isClosed"
+  ],
+  [
+   "p1.locator",
+   ":root"
+  ],
+  [
+   "p1>locator(:root).ariaSnapshot"
+  ],
+  [
+   "p1.title"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "retorno",
+   "snapshot",
+   {
+    "success": true,
+    "toolName": "browser_snapshot",
+    "result": "SNAPSHOT — \"Título de about:blank\" (about:blank)\n- banner:\n  - heading \"Bem-vindo\" [ref=e1] [level=1]\n  - link \"Entrar\" [ref=e2]\n  - button \"Dentro\" [ref=e3]\n  - paragraph: rodapé\n- main:\n  - textbox \"Busca\" [ref=e4]\n  - button \"Ok\" [ref=e5]\n  - button \"Ok\" [ref=e6] [nth=1]\n    - listitem: um\n- paragraph: texto solto\n\n5 interactive elements. Use [ref=eN] to interact (e.g. browser_click with ref \"e3\").",
+    "data": {
+     "title": "Título de about:blank",
+     "url": "about:blank",
+     "elementCount": 6,
+     "interactiveCount": 5
+    },
+    "debugInfo": {
+     "executionTimeMs": 0
+    }
+   }
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "vivo",
+   true
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "navegador sem isConnected",
+   true
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "sem navegador",
+   true
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "pages que não é lista",
+   false
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "pages que lança",
+   false
+  ],
+  [
+   "não inicializado",
+   false
+  ],
+  [
+   "error",
+   "[BrowserService] ❌ CDP on port 9222 is NOT our Chromium (got: no response). Browser sharing may fail — restart the app."
+  ],
+  [
+   "arquivos",
+   [
+    {
+     "caminho": "downloads/"
+    },
+    {
+     "caminho": "userData/"
+    },
+    {
+     "caminho": "userData/browser-data/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/Preferences",
+     "conteudo": "{\n  \"download\": {\n    \"default_directory\": \"<raiz>/downloads\",\n    \"directory_upgrade\": true,\n    \"prompt_for_download\": false\n  },\n  \"savefile\": {\n    \"default_directory\": \"<raiz>/downloads\"\n  },\n  \"profile\": {\n    \"default_content_setting_values\": {\n      \"automatic_downloads\": 1\n    }\n  }\n}"
+    },
+    {
+     "caminho": "userData/logs/"
+    },
+    {
+     "caminho": "userData/logs/browser-launch.log",
+     "conteudo": "[2026-11-21T12:00:00.000Z] launch: exe=playwright-default port=9222 firstRun=true\n[2026-11-21T12:00:00.000Z] launch OK in 0ms\n"
+    }
+   ]
+  ]
+ ],
+ "estado: o que o fechamento forçado limpa": [
+  [
+   "net.listen",
+   9222,
+   "127.0.0.1"
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "canal",
+   "browser-navigate"
+  ],
+  [
+   "canal",
+   "browser-go-back"
+  ],
+  [
+   "canal",
+   "browser-go-forward"
+  ],
+  [
+   "canal",
+   "browser-reload"
+  ],
+  [
+   "canal",
+   "browser-snapshot"
+  ],
+  [
+   "canal",
+   "browser-get-html"
+  ],
+  [
+   "canal",
+   "browser-query-selector"
+  ],
+  [
+   "canal",
+   "browser-extract"
+  ],
+  [
+   "canal",
+   "browser-screenshot"
+  ],
+  [
+   "canal",
+   "browser-click"
+  ],
+  [
+   "canal",
+   "browser-type"
+  ],
+  [
+   "canal",
+   "browser-fill-form"
+  ],
+  [
+   "canal",
+   "browser-hover"
+  ],
+  [
+   "canal",
+   "browser-select"
+  ],
+  [
+   "canal",
+   "browser-press-key"
+  ],
+  [
+   "canal",
+   "browser-scroll"
+  ],
+  [
+   "canal",
+   "browser-scroll-into-view"
+  ],
+  [
+   "canal",
+   "browser-highlight"
+  ],
+  [
+   "canal",
+   "browser-wait"
+  ],
+  [
+   "canal",
+   "browser-execute-script"
+  ],
+  [
+   "canal",
+   "browser-upload-file"
+  ],
+  [
+   "canal",
+   "browser-wait-download"
+  ],
+  [
+   "canal",
+   "browser-download-by-click"
+  ],
+  [
+   "canal",
+   "browser-handle-dialog"
+  ],
+  [
+   "canal",
+   "browser-save-pdf"
+  ],
+  [
+   "canal",
+   "browser-get-cookies"
+  ],
+  [
+   "canal",
+   "browser-set-cookie"
+  ],
+  [
+   "canal",
+   "browser-clear-cookies"
+  ],
+  [
+   "canal",
+   "browser-get-storage"
+  ],
+  [
+   "canal",
+   "browser-set-storage"
+  ],
+  [
+   "canal",
+   "browser-clear-storage"
+  ],
+  [
+   "canal",
+   "browser-resize-viewport"
+  ],
+  [
+   "canal",
+   "browser-emulate-device"
+  ],
+  [
+   "canal",
+   "browser-emulate-color-scheme"
+  ],
+  [
+   "canal",
+   "browser-set-offline"
+  ],
+  [
+   "canal",
+   "browser-set-extra-headers"
+  ],
+  [
+   "canal",
+   "browser-set-http-credentials"
+  ],
+  [
+   "canal",
+   "browser-set-geolocation"
+  ],
+  [
+   "canal",
+   "browser-get-console"
+  ],
+  [
+   "canal",
+   "browser-get-errors"
+  ],
+  [
+   "canal",
+   "browser-get-tabs"
+  ],
+  [
+   "canal",
+   "browser-switch-tab"
+  ],
+  [
+   "canal",
+   "browser-new-tab"
+  ],
+  [
+   "canal",
+   "browser-close-tab"
+  ],
+  [
+   "canal",
+   "browser-drag-drop"
+  ],
+  [
+   "canal",
+   "browser-close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)"
+  ],
+  [
+   "stdout",
+   "[BrowserService] CDP port 9222 reserved."
+  ],
+  [
+   "stdout",
+   "[BrowserService] Creating persistent browser profile..."
+  ],
+  [
+   "findBundledChromiumExecutable",
+   [
+    "<raiz>/resources/browsers",
+    "<app>/browsers"
+   ]
+  ],
+  [
+   "stdout",
+   "[BrowserService] Using SYSTEM installed browser (fallback)."
+  ],
+  [
+   "net.close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] Launching Chromium with CDP port 9222..."
+  ],
+  [
+   "chromium.launchPersistentContext",
+   "<raiz>/userData/browser-data",
+   {
+    "executablePath": "<undefined>",
+    "headless": false,
+    "viewport": null,
+    "userAgent": "UA de teste",
+    "acceptDownloads": true,
+    "timeout": 120000,
+    "args": [
+     "--disable-blink-features=AutomationControlled",
+     "--no-first-run",
+     "--no-default-browser-check",
+     "--enable-logging",
+     "--remote-debugging-port=9222"
+    ]
+   }
+  ],
+  [
+   "contexto1.on",
+   "close"
+  ],
+  [
+   "http.get",
+   {
+    "host": "127.0.0.1",
+    "port": 9222,
+    "path": "/json/version",
+    "timeout": 3000
+   }
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "contexto1.browser"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.on",
+   "console"
+  ],
+  [
+   "p1.on",
+   "pageerror"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ Browser launched successfully."
+  ],
+  [
+   "retorno",
+   "launch",
+   "<undefined>"
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.isClosed"
+  ],
+  [
+   "p1.locator",
+   ":root"
+  ],
+  [
+   "p1>locator(:root).ariaSnapshot"
+  ],
+  [
+   "p1.title"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "retorno",
+   "snapshot",
+   {
+    "success": true,
+    "toolName": "browser_snapshot",
+    "result": "SNAPSHOT — \"Título de about:blank\" (about:blank)\n- banner:\n  - heading \"Bem-vindo\" [ref=e1] [level=1]\n  - link \"Entrar\" [ref=e2]\n  - button \"Dentro\" [ref=e3]\n  - paragraph: rodapé\n- main:\n  - textbox \"Busca\" [ref=e4]\n  - button \"Ok\" [ref=e5]\n  - button \"Ok\" [ref=e6] [nth=1]\n    - listitem: um\n- paragraph: texto solto\n\n5 interactive elements. Use [ref=eN] to interact (e.g. browser_click with ref \"e3\").",
+    "data": {
+     "title": "Título de about:blank",
+     "url": "about:blank",
+     "elementCount": 6,
+     "interactiveCount": 5
+    },
+    "debugInfo": {
+     "executionTimeMs": 0
+    }
+   }
+  ],
+  [
+   "setTimeout",
+   1000
+  ],
+  [
+   "stdout",
+   "[BrowserService] Force-closing browser (cleaning up dead/stale state)..."
+  ],
+  [
+   "clearTimeout"
+  ],
+  [
+   "contexto1.close"
+  ],
+  [
+   "retorno",
+   "forceClose",
+   "<undefined>"
+  ],
+  [
+   "depois",
+   {
+    "inicializado": false,
+    "aba": null,
+    "contexto": null,
+    "navegador": null,
+    "mensagens": [],
+    "erros": [],
+    "seletor": null,
+    "prazo": null
+   }
+  ],
+  [
+   "stdout",
+   "[BrowserService] Force-closing browser (cleaning up dead/stale state)..."
+  ],
+  [
+   "retorno",
+   "forceClose sem nada",
+   "<undefined>"
+  ],
+  [
+   "error",
+   "[BrowserService] ❌ CDP on port 9222 is NOT our Chromium (got: no response). Browser sharing may fail — restart the app."
+  ],
+  [
+   "arquivos",
+   [
+    {
+     "caminho": "downloads/"
+    },
+    {
+     "caminho": "userData/"
+    },
+    {
+     "caminho": "userData/browser-data/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/Preferences",
+     "conteudo": "{\n  \"download\": {\n    \"default_directory\": \"<raiz>/downloads\",\n    \"directory_upgrade\": true,\n    \"prompt_for_download\": false\n  },\n  \"savefile\": {\n    \"default_directory\": \"<raiz>/downloads\"\n  },\n  \"profile\": {\n    \"default_content_setting_values\": {\n      \"automatic_downloads\": 1\n    }\n  }\n}"
+    },
+    {
+     "caminho": "userData/logs/"
+    },
+    {
+     "caminho": "userData/logs/browser-launch.log",
+     "conteudo": "[2026-11-21T12:00:00.000Z] launch: exe=playwright-default port=9222 firstRun=true\n[2026-11-21T12:00:00.000Z] launch OK in 0ms\n[2026-11-21T12:00:00.000Z] browser closed (uptime 0s)\n"
+    }
+   ]
+  ]
+ ],
+ "estado: o que conta como navegador morto": [
+  [
+   "net.listen",
+   9222,
+   "127.0.0.1"
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "canal",
+   "browser-navigate"
+  ],
+  [
+   "canal",
+   "browser-go-back"
+  ],
+  [
+   "canal",
+   "browser-go-forward"
+  ],
+  [
+   "canal",
+   "browser-reload"
+  ],
+  [
+   "canal",
+   "browser-snapshot"
+  ],
+  [
+   "canal",
+   "browser-get-html"
+  ],
+  [
+   "canal",
+   "browser-query-selector"
+  ],
+  [
+   "canal",
+   "browser-extract"
+  ],
+  [
+   "canal",
+   "browser-screenshot"
+  ],
+  [
+   "canal",
+   "browser-click"
+  ],
+  [
+   "canal",
+   "browser-type"
+  ],
+  [
+   "canal",
+   "browser-fill-form"
+  ],
+  [
+   "canal",
+   "browser-hover"
+  ],
+  [
+   "canal",
+   "browser-select"
+  ],
+  [
+   "canal",
+   "browser-press-key"
+  ],
+  [
+   "canal",
+   "browser-scroll"
+  ],
+  [
+   "canal",
+   "browser-scroll-into-view"
+  ],
+  [
+   "canal",
+   "browser-highlight"
+  ],
+  [
+   "canal",
+   "browser-wait"
+  ],
+  [
+   "canal",
+   "browser-execute-script"
+  ],
+  [
+   "canal",
+   "browser-upload-file"
+  ],
+  [
+   "canal",
+   "browser-wait-download"
+  ],
+  [
+   "canal",
+   "browser-download-by-click"
+  ],
+  [
+   "canal",
+   "browser-handle-dialog"
+  ],
+  [
+   "canal",
+   "browser-save-pdf"
+  ],
+  [
+   "canal",
+   "browser-get-cookies"
+  ],
+  [
+   "canal",
+   "browser-set-cookie"
+  ],
+  [
+   "canal",
+   "browser-clear-cookies"
+  ],
+  [
+   "canal",
+   "browser-get-storage"
+  ],
+  [
+   "canal",
+   "browser-set-storage"
+  ],
+  [
+   "canal",
+   "browser-clear-storage"
+  ],
+  [
+   "canal",
+   "browser-resize-viewport"
+  ],
+  [
+   "canal",
+   "browser-emulate-device"
+  ],
+  [
+   "canal",
+   "browser-emulate-color-scheme"
+  ],
+  [
+   "canal",
+   "browser-set-offline"
+  ],
+  [
+   "canal",
+   "browser-set-extra-headers"
+  ],
+  [
+   "canal",
+   "browser-set-http-credentials"
+  ],
+  [
+   "canal",
+   "browser-set-geolocation"
+  ],
+  [
+   "canal",
+   "browser-get-console"
+  ],
+  [
+   "canal",
+   "browser-get-errors"
+  ],
+  [
+   "canal",
+   "browser-get-tabs"
+  ],
+  [
+   "canal",
+   "browser-switch-tab"
+  ],
+  [
+   "canal",
+   "browser-new-tab"
+  ],
+  [
+   "canal",
+   "browser-close-tab"
+  ],
+  [
+   "canal",
+   "browser-drag-drop"
+  ],
+  [
+   "canal",
+   "browser-close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)"
+  ],
+  [
+   "stdout",
+   "[BrowserService] CDP port 9222 reserved."
+  ],
+  [
+   "stdout",
+   "[BrowserService] Creating persistent browser profile..."
+  ],
+  [
+   "findBundledChromiumExecutable",
+   [
+    "<raiz>/resources/browsers",
+    "<app>/browsers"
+   ]
+  ],
+  [
+   "stdout",
+   "[BrowserService] Using SYSTEM installed browser (fallback)."
+  ],
+  [
+   "net.close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] Launching Chromium with CDP port 9222..."
+  ],
+  [
+   "chromium.launchPersistentContext",
+   "<raiz>/userData/browser-data",
+   {
+    "executablePath": "<undefined>",
+    "headless": false,
+    "viewport": null,
+    "userAgent": "UA de teste",
+    "acceptDownloads": true,
+    "timeout": 120000,
+    "args": [
+     "--disable-blink-features=AutomationControlled",
+     "--no-first-run",
+     "--no-default-browser-check",
+     "--enable-logging",
+     "--remote-debugging-port=9222"
+    ]
+   }
+  ],
+  [
+   "contexto1.on",
+   "close"
+  ],
+  [
+   "http.get",
+   {
+    "host": "127.0.0.1",
+    "port": 9222,
+    "path": "/json/version",
+    "timeout": 3000
+   }
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "contexto1.browser"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.on",
+   "console"
+  ],
+  [
+   "p1.on",
+   "pageerror"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ Browser launched successfully."
+  ],
+  [
+   "retorno",
+   "launch",
+   "<undefined>"
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.isClosed"
+  ],
+  [
+   "p1.locator",
+   ":root"
+  ],
+  [
+   "p1>locator(:root).ariaSnapshot"
+  ],
+  [
+   "p1.title"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "retorno",
+   "snapshot",
+   {
+    "success": true,
+    "toolName": "browser_snapshot",
+    "result": "SNAPSHOT — \"Título de about:blank\" (about:blank)\n- banner:\n  - heading \"Bem-vindo\" [ref=e1] [level=1]\n  - link \"Entrar\" [ref=e2]\n  - button \"Dentro\" [ref=e3]\n  - paragraph: rodapé\n- main:\n  - textbox \"Busca\" [ref=e4]\n  - button \"Ok\" [ref=e5]\n  - button \"Ok\" [ref=e6] [nth=1]\n    - listitem: um\n- paragraph: texto solto\n\n5 interactive elements. Use [ref=eN] to interact (e.g. browser_click with ref \"e3\").",
+    "data": {
+     "title": "Título de about:blank",
+     "url": "about:blank",
+     "elementCount": 6,
+     "interactiveCount": 5
+    },
+    "debugInfo": {
+     "executionTimeMs": 0
+    }
+   }
+  ],
+  [
+   "vivo, erro 0",
+   true
+  ],
+  [
+   "vivo, erro 1",
+   true
+  ],
+  [
+   "vivo, erro 2",
+   true
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "vivo, erro 3",
+   false
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "vivo, erro 4",
+   false
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "vivo, erro 5",
+   false
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "vivo, erro 6",
+   false
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "vivo, erro 7",
+   false
+  ],
+  [
+   "morto, erro 0",
+   true
+  ],
+  [
+   "morto, erro 1",
+   true
+  ],
+  [
+   "morto, erro 2",
+   true
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "morto, erro 3",
+   true
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "morto, erro 4",
+   true
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "morto, erro 5",
+   true
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "morto, erro 6",
+   true
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "morto, erro 7",
+   true
+  ],
+  [
+   "error",
+   "[BrowserService] ❌ CDP on port 9222 is NOT our Chromium (got: no response). Browser sharing may fail — restart the app."
+  ],
+  [
+   "arquivos",
+   [
+    {
+     "caminho": "downloads/"
+    },
+    {
+     "caminho": "userData/"
+    },
+    {
+     "caminho": "userData/browser-data/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/Preferences",
+     "conteudo": "{\n  \"download\": {\n    \"default_directory\": \"<raiz>/downloads\",\n    \"directory_upgrade\": true,\n    \"prompt_for_download\": false\n  },\n  \"savefile\": {\n    \"default_directory\": \"<raiz>/downloads\"\n  },\n  \"profile\": {\n    \"default_content_setting_values\": {\n      \"automatic_downloads\": 1\n    }\n  }\n}"
+    },
+    {
+     "caminho": "userData/logs/"
+    },
+    {
+     "caminho": "userData/logs/browser-launch.log",
+     "conteudo": "[2026-11-21T12:00:00.000Z] launch: exe=playwright-default port=9222 firstRun=true\n[2026-11-21T12:00:00.000Z] launch OK in 0ms\n"
+    }
+   ]
+  ]
+ ],
  "ferramentas: todas com a página respondendo": [
   [
    "net.listen",

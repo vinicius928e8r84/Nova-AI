@@ -225,6 +225,56 @@ const CENAS_DE_RECUPERACAO = [
   },
 ];
 
+const CENAS_DO_ESTADO = [
+  {
+    nome: 'estado: navegador vivo ou morto pelo que o contexto responde',
+    rodar: async (palco, exportado) => {
+      await iniciar(palco, exportado);
+      const servicoReal = exportado.browserService;
+      palco.anotar('vivo', servicoReal.isRunning());
+      servicoReal.browser = {};
+      palco.anotar('navegador sem isConnected', servicoReal.isRunning());
+      servicoReal.browser = null;
+      palco.anotar('sem navegador', servicoReal.isRunning());
+      palco.roteiro['context.pages'] = () => 'não é uma lista';
+      palco.anotar('pages que não é lista', servicoReal.isRunning());
+      palco.roteiro['context.pages'] = falha('Connection closed');
+      palco.anotar('pages que lança', servicoReal.isRunning());
+      palco.roteiro['context.pages'] = undefined;
+      servicoReal.isInitialized = false;
+      palco.anotar('não inicializado', servicoReal.isRunning());
+    },
+  },
+  {
+    nome: 'estado: o que o fechamento forçado limpa',
+    rodar: async (palco, exportado) => {
+      await iniciar(palco, exportado);
+      const servicoReal = exportado.browserService;
+      servicoReal.consoleMessages.push({ level: 'log', text: 'antiga' });
+      servicoReal.pageErrors.push({ message: 'antigo' });
+      servicoReal._pendingFileChooser = { rotulo: 'seletor' };
+      servicoReal._pendingFileChooserTimeout = setTimeout(() => {}, 1000);
+      await servico(palco, exportado, 'forceClose', s => s._forceClose());
+      palco.anotar('depois', {
+        inicializado: servicoReal.isInitialized, aba: servicoReal.activePage, contexto: servicoReal.context, navegador: servicoReal.browser,
+        mensagens: servicoReal.consoleMessages, erros: servicoReal.pageErrors, seletor: servicoReal._pendingFileChooser, prazo: servicoReal._pendingFileChooserTimeout,
+      });
+      await servico(palco, exportado, 'forceClose sem nada', s => s._forceClose());
+    },
+  },
+  {
+    nome: 'estado: o que conta como navegador morto',
+    rodar: async (palco, exportado) => {
+      await iniciar(palco, exportado);
+      const servicoReal = exportado.browserService;
+      const erros = [new Error('Target closed'), 'Target closed', { message: 'Session closed' }, {}, null, undefined, new Error('qualquer coisa'), 'qualquer coisa'];
+      erros.forEach((erro, indice) => palco.anotar('vivo, erro ' + indice, servicoReal._navegadorMorreu(erro)));
+      palco.contexto.conectado = false;
+      erros.forEach((erro, indice) => palco.anotar('morto, erro ' + indice, servicoReal._navegadorMorreu(erro)));
+    },
+  },
+];
+
 const ferramentasCom = (nome, cenario, ajustar, pedidos = FERRAMENTAS) => ({
   nome: 'ferramentas: ' + nome,
   cenario,
@@ -506,6 +556,6 @@ const CENAS_DE_CONTEXTO = [
 ];
 
 module.exports = [
-  ...CENAS_DA_PORTA, ...CENAS_DE_LANCAMENTO, ...CENAS_DE_RECUPERACAO, ...CENAS_DE_FERRAMENTAS,
+  ...CENAS_DA_PORTA, ...CENAS_DE_LANCAMENTO, ...CENAS_DE_RECUPERACAO, ...CENAS_DO_ESTADO, ...CENAS_DE_FERRAMENTAS,
   ...CENAS_DE_LEITURA, ...CENAS_DE_ACAO, ...CENAS_DE_ARQUIVOS, ...CENAS_DE_CONTEXTO,
 ];

@@ -22,6 +22,17 @@ const REDES_VARIADAS = {
 
 const REDE_DE_CASA = { 'Wi-Fi': [ipv4('192.168.0.10')] };
 
+const PALAVRAS_DE_ADAPTADOR = [
+  'vethernet', 'virtual', 'vmnet', 'vmware', 'vbox', 'virtualbox', 'hyper-v', 'wsl', 'radmin', 'hamachi', 'tap', 'tun', 'docker',
+  'loopback', 'teredo', 'npcap', 'tailscale', 'zerotier', 'wireguard', 'nordlynx', 'openvpn', 'anyconnect', 'forticlient', 'cisco', 'p2p',
+  'bridge', 'pseudo', 'wi-fi', 'wifi', 'wireless', 'wlan', 'ethernet', 'eth', 'en0', 'en1', 'lan', 'local area connection',
+];
+
+const UMA_REDE_POR_PALAVRA = {
+  ...Object.fromEntries(PALAVRAS_DE_ADAPTADOR.map((palavra, indice) => ['x-' + palavra.toUpperCase() + '-x', [ipv4('192.168.' + (100 + indice) + '.1')]])),
+  'Interna que nao e loopback': [ipv4('10.99.0.1', true), ipv4('192.168.250.1')],
+};
+
 const devolveu = async (palco, rotulo, valor) => palco.anotar('retorno', rotulo, await valor);
 
 const ligar = async (palco, servico, porta) => devolveu(palco, 'startServer', servico.startServer(porta));
@@ -42,6 +53,14 @@ const CENAS_DE_REDE = [
       const servico = palco.servico();
       await devolveu(palco, 'getAllIps', servico.getAllIps());
       await devolveu(palco, 'getLocalIp', servico.getLocalIp());
+    },
+  },
+  {
+    nome: 'redes: o nome do adaptador decide se é virtual ou físico, palavra por palavra',
+    cenario: { interfaces: UMA_REDE_POR_PALAVRA },
+    rodar: async palco => {
+      const servico = palco.servico();
+      await devolveu(palco, 'getAllIps', servico.getAllIps());
     },
   },
   {

@@ -129,7 +129,9 @@ class Palco {
     };
     try {
       const resolvido = require.resolve(caminhoDoModulo);
-      delete require.cache[resolvido];
+      for (const chave of Object.keys(require.cache)) {
+        if (path.dirname(chave) === path.dirname(resolvido) && path.basename(chave).startsWith('ytdlp-')) delete require.cache[chave];
+      }
       return require(resolvido);
     } finally {
       Module._load = carregadorOriginal;
