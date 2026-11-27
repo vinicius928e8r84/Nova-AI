@@ -357,10 +357,10 @@ class GlobalSpoofService {
         this.currentRegional = settings.regional || {};
 
         const regional    = settings.regional || {};
-        let tTimezone   = regional.timezone    || 'Asia/Dubai';
+        let tTimezone   = valorFixo(regional.timezone, 'Asia/Dubai');
         let tLat        = (regional.lat        !== undefined) ? regional.lat : 25.2048;
         let tLng        = (regional.lng        !== undefined) ? regional.lng : 55.2708;
-        let tLocale     = regional.language    || 'en-AE';
+        let tLocale     = valorFixo(regional.language, 'en-AE');
 
         if (activeProfile) {
             if (activeProfile.timezone === 'optimal' || activeProfile.locale === 'optimal' || activeProfile.locationMode === 'optimal') {

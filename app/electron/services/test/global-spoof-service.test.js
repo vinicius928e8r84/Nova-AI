@@ -124,6 +124,17 @@ test('perfil Default com o regional da interface: abre sem erro e o fuso e o idi
   assert.match(inject, /var _tLocale = "pt-BR";/);
 });
 
+test('perfil Default com o regional optimal que a interface manda: o fuso e o idioma ficam no padrão do disfarce', async () => {
+  usarPlataforma('win32');
+  const { servico, tempDir } = criarServico();
+  const regional = { timezone: 'optimal', utcOffset: 4, language: 'optimal' };
+  const resultado = await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default', regional }));
+  assert.strictEqual(resultado.success, true);
+  const inject = lerInject(tempDir);
+  assert.match(inject, /var _tTimezone = "Asia\/Dubai";/);
+  assert.match(inject, /var _tLocale = "en-AE";/);
+});
+
 test('perfil salvo com fuso e idioma fixos continua mandando mais que o regional da interface', async () => {
   usarPlataforma('win32');
   const { servico, userData, tempDir } = criarServico();
