@@ -63,4 +63,4 @@ const valoresDe = (textos, campo) => textos.filter(texto => texto.includes(':'))
 
 const hexasDe = textos => textos.join('\n').toLowerCase().match(/[0-9a-f]+/g) || [];
 
-module.exports = { hexasDe, igual, linhasDoCorpo, linhasQueValem, semCaixaNemAcento, tituloDe, trechoDaSecao, valoresDe };
+module.exports = { fechaACerca, hexasDe, igual, linhasDoCorpo, linhasQueValem, semCaixaNemAcento, tituloDe, trechoDaSecao, valoresDe };
