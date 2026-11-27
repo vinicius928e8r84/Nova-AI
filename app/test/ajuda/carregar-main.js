@@ -115,7 +115,7 @@ function criarElectron(raiz, registro, arranque, sobrepor) {
     },
   };
   const app = comResto({
-    isPackaged: false,
+    isPackaged: arranque.empacotado,
     commandLine: { appendSwitch: () => {} },
     getPath: (nome) => {
       const pasta = path.join(raiz, nome);
@@ -179,12 +179,12 @@ function guardarEstadoDoProcesso() {
   };
 }
 
-function carregarMain({ electron: sobreporElectron = {}, modulos = {}, ausentes = [], preparar = () => {} } = {}) {
+function carregarMain({ electron: sobreporElectron = {}, modulos = {}, ausentes = [], preparar = () => {}, arranqueCompleto = false, empacotado = false } = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-main-'));
   raizesCriadas.push(raiz);
   preparar(raiz);
   const registro = [];
-  const arranque = { interromper: true, erros: [] };
+  const arranque = { interromper: !arranqueCompleto, empacotado, erros: [] };
   const falso = criarElectron(raiz, registro, arranque, sobreporElectron);
   const dubles = new Map();
   const restaurarProcesso = guardarEstadoDoProcesso();
@@ -219,6 +219,7 @@ function carregarMain({ electron: sobreporElectron = {}, modulos = {}, ausentes 
   };
   return {
     raiz,
+    app: falso.electron.app,
     registro,
     canais: falso.canais,
     janelas: falso.janelas,
