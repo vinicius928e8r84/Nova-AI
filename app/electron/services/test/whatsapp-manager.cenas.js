@@ -152,8 +152,8 @@ const CENAS_DE_MENSAGEM = [
     roteiro: async ({ manager, ambiente }) => {
       pronto(manager, ambiente);
       await manager.handleIncomingMessage(doDono('!ss'));
-      await manager.handleIncomingMessage(doDono('screen bhejo'));
       await esperar();
+      await manager.handleIncomingMessage(doDono('screen bhejo'));
       await esperar();
     },
   },
@@ -360,10 +360,12 @@ const CENAS_DE_CONEXAO = [
   },
   {
     nome: 'iniciar cujo cliente foi trocado no meio do caminho não mexe no estado',
-    iniciar: new Error('falha'),
-    roteiro: async ({ manager }) => {
+    iniciar: 'sob-comando',
+    roteiro: async ({ manager, ambiente }) => {
       const iniciando = manager.initialize();
+      await esperar();
       manager.client = null;
+      ambiente.falharInicio(new Error('falha'));
       await iniciando;
       return manager.getState();
     },
@@ -470,9 +472,10 @@ const EVENTOS_DO_CLIENTE = [
       manager.registerClientEvents(cliente);
       manager.bossName = 'Chefe';
       cliente.emit('message', deContato('chegou'));
-      cliente.emit('message_create', deContato('criada por outro'));
-      cliente.emit('message_create', doDono('criada por mim'));
       await esperar();
+      cliente.emit('message_create', deContato('criada por outro'));
+      await esperar();
+      cliente.emit('message_create', doDono('criada por mim'));
       await esperar();
     },
   },

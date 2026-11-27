@@ -1537,6 +1537,14 @@
       }
     ],
     [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Screenshot] ✅ Screenshot sent to self-chat"
+    ],
+    [
       "console.log",
       "[WA-Bridge] body=\"screen bhejo\" | fromMe=true | isSelf=true | targetId=5511@c.us"
     ],
@@ -1570,14 +1578,6 @@
       {
         "format": "png"
       }
-    ],
-    [
-      "setTimeout",
-      120000
-    ],
-    [
-      "console.log",
-      "[WA-Screenshot] ✅ Screenshot sent to self-chat"
     ],
     [
       "new MessageMedia",

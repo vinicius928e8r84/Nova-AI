@@ -9,6 +9,7 @@ const PASTA_DO_PROJETO = '/projeto';
 const AGORA = 1790000000000;
 const SORTEIO = 0.5;
 const NIVEIS_DO_CONSOLE = ['log', 'info', 'warn', 'error'];
+const NIVEL_NO_REGISTRO = { info: 'log' };
 
 let carregamentoAtual = null;
 const carregarOriginal = Module._load;
@@ -77,6 +78,7 @@ function clienteFalso(ambiente) {
       const resultado = ambiente.cena.iniciar;
       if (resultado instanceof Error) return Promise.reject(resultado);
       if (resultado === 'pendente') return new Promise(() => {});
+      if (resultado === 'sob-comando') return new Promise((_, rejeitar) => { ambiente.falharInicio = rejeitar; });
       return Promise.resolve();
     }
 
@@ -244,7 +246,7 @@ function trocarGlobais(ambiente) {
     trocar(Date, 'now', () => AGORA),
     trocar(process, 'cwd', () => PASTA_DO_PROJETO),
     trocar(process, 'platform', ambiente.cena.plataforma || 'win32'),
-    ...NIVEIS_DO_CONSOLE.map(nivel => trocar(console, nivel, (...partes) => ambiente.anotar(`console.${nivel}`, ...partes))),
+    ...NIVEIS_DO_CONSOLE.map(nivel => trocar(console, nivel, (...partes) => ambiente.anotar(`console.${NIVEL_NO_REGISTRO[nivel] || nivel}`, ...partes))),
     ...['PUPPETEER_EXECUTABLE_PATH', 'GROQ_API_KEY'].map(chave => trocarVariavelDeAmbiente(chave, ambiente.cena.ambiente?.[chave])),
   ];
 }
