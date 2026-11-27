@@ -24,6 +24,7 @@
         "iphone/idioma/test/teste-ipc.js",
         "iphone/modelo/test/teste-novamodel.cjs",
         "iphone/modelo/test/teste-novamodel-saida.test.cjs",
+        "iphone/retrato/test/*.test.js",
         "test/cam-live/controles-independentes.test.cjs",
         "test/iphone/teste-geo.cjs"
       ]
@@ -89,6 +90,10 @@
     {
       "arquivos": ["**/*.cenas.js", "**/*.palco.js", "app/electron/services/test/caminhos-do-palco.js", "app/test/ajuda/*"],
       "motivo": "auxiliar dos testes de cena e do palco: não roda sozinho, os .test.js dos grupos o carregam"
+    },
+    {
+      "arquivos": ["iphone/retrato/test/construtores.js"],
+      "motivo": "auxiliar dos testes do retrato do pacote: monta Mach-O, tar, ar e .deb de mentira, não roda sozinho"
     },
     {
       "arquivos": ["scripts/regras/test/auxiliar.js"],
