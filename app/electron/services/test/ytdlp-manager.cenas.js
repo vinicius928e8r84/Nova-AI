@@ -179,6 +179,30 @@ const cenas = {
     palco.processo().fechar(0);
   },
 
+  async 'manual: título do destino sem os espaços das pontas'(palco) {
+    const processo = await baixarManual(palco, 'https://yt/t', 'mp3');
+    processo.escrever('[download] Destination: /x/y/Com Folga.mp3   \n[download]   4.0% of 1MiB\n');
+    processo.fechar(0);
+  },
+
+  async 'pedido de playlist: o limite de 50 vídeos'(palco) {
+    for (const total of [49, 50, 51]) {
+      palco.resultados['lista de ' + total + ' full playlist'] = { playlists: [{ url: 'https://yt/pl' + total, title: 'Lista ' + total, videoCount: total }] };
+      await palco.manager.smartDownload('lista de ' + total, 'mp3', 'playlist', 'chat-limite');
+      palco.processo().fechar(0);
+      palco.rodarTimers();
+    }
+  },
+
+  async 'pedido de vídeo: porcentagens entre os passos não viram marco da playlist'(palco) {
+    palco.resultados['musica curta'] = VIDEO;
+    await palco.manager.smartDownload('musica curta', 'mp3', 'video', 'chat-6');
+    const processo = palco.processo();
+    for (const porcento of ['21.0', '26.0', '27.0']) processo.escrever(`[download]  ${porcento}% of 2MiB at 3MiB/s ETA 00:01`);
+    processo.fechar(0);
+    palco.rodarTimers();
+  },
+
   async 'pedido sem resultado'(palco) {
     palco.resultados['nada full playlist'] = { playlists: [] };
     palco.resultados.nada = { videos: [] };
