@@ -103,6 +103,12 @@ function gerarAmbiente(spawn, ffmpeg, args) {
   });
 }
 
+function recursosDesligadosDoChrome(plataforma) {
+  const recursos = ['CalculateNativeWinOcclusion'];
+  if (plataforma === 'darwin') recursos.push('AudioServiceSandbox');
+  return `--disable-features=${recursos.join(',')}`;
+}
+
 function encerrarChrome(spawn, pid) {
   if (process.platform === 'win32') {
     spawn('taskkill', ['/F', '/T', '/PID', String(pid)], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
@@ -111,4 +117,4 @@ function encerrarChrome(spawn, pid) {
   }
 }
 
-module.exports = { prepararPagina, abrirUrlPedida, segurarAbasSemOpenerAteODisfarce, conectarAoChrome, gerarAmbiente, encerrarChrome };
+module.exports = { prepararPagina, abrirUrlPedida, segurarAbasSemOpenerAteODisfarce, conectarAoChrome, gerarAmbiente, recursosDesligadosDoChrome, encerrarChrome };
