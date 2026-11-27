@@ -2,12 +2,9 @@ const { spawn } = require('child_process');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const ytSearch = require('yt-search');
 const toolPaths = require('./tool-paths');
-
-const LIMITE_DA_PLAYLIST = 50;
-const MARCOS_DA_PLAYLIST = [25, 50, 75];
-const PASSO_DO_LOG_DE_PROGRESSO = 10;
+const { LIMITE_DA_PLAYLIST, DownloadDoPedido, buscarNoYoutube } = require('./ytdlp-pedido');
+const { LEITURA_DO_PEDIDO, grupoOuVazio, jaFoiBaixado, terminouUmArquivo, progressoManual, fimDoDownloadManual } = require('./ytdlp-saida');
 
 const ARGUMENTOS_BASE = [
     '--newline',
@@ -26,20 +23,6 @@ const SELETORES_DE_VIDEO = new Map([
     ['720p', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best'],
     ['1080p', 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best']
 ]);
-
-const LEITURA_MANUAL = {
-    porcentagem: [/\[download\]\s+(\d+\.?\d*)%/i, /(\d+\.?\d*)%/],
-    velocidade: /at\s+([0-9.]+[a-zA-Z]+\/s)/i,
-    eta: /ETA\s+([0-9:]+)/i,
-    tamanho: /of\s+([0-9.]+[a-zA-Z]+)/i,
-    destino: [/Destination:\s*(.+)$/m, /\[download\]\s+(.+?)\s+has already been/i]
-};
-const LEITURA_DO_PEDIDO = {
-    porcentagem: /\[download\]\s+(\d+\.?\d*)%/,
-    velocidade: /at\s+([0-9.]+[a-zA-Z]+\/s)/,
-    eta: /ETA\s+([0-9:]+)/,
-    arquivoPulado: /\[download\] (.*?) has already been/
-};
 
 const RESPOSTAS_QUE_SUBSTITUEM = new Set(['haan', 'yes']);
 const RESPOSTAS_QUE_MANTEM = new Set(['nahi', 'no']);
@@ -61,132 +44,9 @@ function encerrarArvoreDoProcesso(processo) {
     matarSemFalhar(processo);
 }
 
-function primeiroGrupo(texto, expressoes) {
-    for (const expressao of expressoes) {
-        const achado = texto.match(expressao);
-        if (achado) return achado[1];
-    }
-    return undefined;
-}
-
-function grupoOuVazio(texto, expressao) {
-    const achado = texto.match(expressao);
-    return achado ? achado[1] : '';
-}
-
-function jaFoiBaixado(texto) {
-    return texto.toLowerCase().includes('already been downloaded');
-}
-
-function terminouUmArquivo(texto) {
-    return texto.includes('[download] 100%') || texto.includes('100% of');
-}
-
 function argumentosDoFormato(formato) {
     const seletor = SELETORES_DE_VIDEO.get(formato);
     return seletor ? ['-f', seletor, '--merge-output-format', 'mp4'] : ARGUMENTOS_DE_AUDIO;
-}
-
-function tituloDoDestino(texto) {
-    const destino = primeiroGrupo(texto, LEITURA_MANUAL.destino);
-    return destino ? path.basename(destino.trim()) : undefined;
-}
-
-function progressoManual(texto) {
-    const porcentagem = primeiroGrupo(texto, LEITURA_MANUAL.porcentagem);
-    const titulo = tituloDoDestino(texto);
-    if (porcentagem) {
-        return {
-            status: 'DOWNLOADING',
-            progress: parseFloat(porcentagem),
-            speed: grupoOuVazio(texto, LEITURA_MANUAL.velocidade),
-            eta: grupoOuVazio(texto, LEITURA_MANUAL.eta),
-            size: grupoOuVazio(texto, LEITURA_MANUAL.tamanho),
-            title: titulo
-        };
-    }
-    if (jaFoiBaixado(texto)) return { status: 'COMPLETE', progress: 100, title: titulo || 'File already downloaded' };
-    return null;
-}
-
-function ultimoErroDoStderr(stderr) {
-    const linhas = stderr.trim().split('\n').filter(linha => !linha.startsWith('WARNING:'));
-    return linhas[linhas.length - 1] || 'Download failed or was interrupted.';
-}
-
-function fimDoDownloadManual(codigo, stderr) {
-    if (codigo === 0) return { status: 'COMPLETE', progress: 100 };
-    return { status: 'ERROR', error: `Exit Code ${codigo}: ${ultimoErroDoStderr(stderr)}` };
-}
-
-function primeiroResultado(resposta, lista, erro) {
-    const itens = resposta && resposta[lista];
-    if (!itens || itens.length === 0) throw new Error(erro);
-    return itens[0];
-}
-
-async function buscarPlaylist(consulta) {
-    const playlist = primeiroResultado(await ytSearch(consulta + ' full playlist'), 'playlists', 'No playlist found.');
-    return { url: playlist.url, title: playlist.title, totalCount: playlist.videoCount || 1 };
-}
-
-async function buscarVideo(consulta) {
-    const video = primeiroResultado(await ytSearch(consulta), 'videos', 'No video found.');
-    return { url: video.url, title: video.title, totalCount: 1 };
-}
-
-function buscarNoYoutube(pedido) {
-    return pedido.type === 'playlist' ? buscarPlaylist(pedido.searchQuery) : buscarVideo(pedido.searchQuery);
-}
-
-class DownloadDoPedido {
-    constructor(pedido, alvo) {
-        this.pedido = pedido;
-        this.alvo = alvo;
-        this.arquivoAtual = 1;
-        this.ultimoAviso = 0;
-    }
-
-    get ehPlaylist() { return this.pedido.type === 'playlist'; }
-    get passaDoLimite() { return this.ehPlaylist && this.alvo.totalCount > LIMITE_DA_PLAYLIST; }
-    get totalBaixavel() { return Math.min(this.alvo.totalCount, LIMITE_DA_PLAYLIST); }
-    get contagem() { return `${this.arquivoAtual} / ${this.totalBaixavel}`; }
-    get tituloNaTela() { return this.alvo.title + (this.ehPlaylist ? ' [Playlist]' : ''); }
-
-    progressoNaTela(progresso, velocidade, eta) {
-        return {
-            status: 'DOWNLOADING',
-            title: this.tituloNaTela,
-            format: this.pedido.format,
-            progress: progresso,
-            speed: velocidade,
-            eta,
-            fileCount: this.contagem
-        };
-    }
-
-    conclusaoNaTela() {
-        return { status: 'COMPLETE', title: this.alvo.title, format: this.pedido.format, fileCount: `${this.totalBaixavel}`, saveLocation: 'Nova Downloads' };
-    }
-
-    avancouUmPasso(porcentagem) {
-        if (porcentagem < this.ultimoAviso + PASSO_DO_LOG_DE_PROGRESSO) return false;
-        this.ultimoAviso = Math.floor(porcentagem / PASSO_DO_LOG_DE_PROGRESSO) * PASSO_DO_LOG_DE_PROGRESSO;
-        return true;
-    }
-
-    marcoAlcancado(porcentagem) {
-        if (!this.ehPlaylist) return null;
-        const marco = MARCOS_DA_PLAYLIST.find(m => porcentagem >= m && this.ultimoAviso < m);
-        if (marco === undefined) return null;
-        this.ultimoAviso = marco;
-        return marco;
-    }
-
-    concluirArquivo() {
-        this.arquivoAtual++;
-        this.ultimoAviso = 0;
-    }
 }
 
 class YtDlpManager {
