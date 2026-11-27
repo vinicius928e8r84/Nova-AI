@@ -187,6 +187,22 @@ const cenas = {
     await enviar(palco, { prompt: '', history: [{ role: 'user', text: 'h' }] });
   },
 
+  'sendMessage com o apelido gemini-flash': async palco => {
+    await carregarLogado(palco);
+    palco.respostasDaPagina = [resposta([{ text: 'rapido' }])];
+    await enviar(palco, { prompt: 'depressa', model: 'gemini-flash' });
+  },
+
+  'sendMessage com resposta vazia, sem candidatos e com candidatos vazios': async palco => {
+    await carregarLogado(palco);
+    palco.respostasDaPagina = ['', '{}', JSON.stringify({ candidates: [] }), resposta([{ text: 'enfim' }])];
+    await enviar(palco, { prompt: 'sem nada' });
+    palco.respostasDaPagina = ['', '{}', JSON.stringify({ candidates: [] }), '', '{}', '{"candidates":[]}'];
+    await enviar(palco, { prompt: 'nunca vem' });
+    palco.respostasDaPagina = ['{}', '{}', '{}', '{}', '{}', ''];
+    await enviar(palco, { prompt: 'termina vazio' });
+  },
+
   'sendMessage cai de tentativa em tentativa ate acertar': async palco => {
     await carregarLogado(palco);
     palco.respostasDaPagina = [
