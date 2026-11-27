@@ -1,0 +1,114 @@
+# Histórico — 02 a 04/11/2026: conexão do iPhone, Foto ➔ Vídeo e pacote Mac
+
+## Chave SSH do iPhone agora é do app — 04/11/2026
+
+A chave usada para falar com o iPhone saiu de `~/.ssh/id_iphone` e passou para `~/Library/Application Support/nova_dsktp/iphone-ssh/` (modo 0600), junto com o `known_hosts` do aparelho. Todos os `ssh`/`scp` do app usam `-i` explícito, `IdentitiesOnly=yes` e `UserKnownHostsFile=` desse diretório, então não caem mais nas outras chaves do agente SSH do Mac.
+
+- `services/iphone-ssh.js` é o único lugar que conhece o caminho; `setup.js`, `physicalMobileService.js`, `ios-camera.js`, `cam-live-iphone.js` e `ios-bridge.js` passaram a usar `sshOptions()`.
+- Migração automática no boot (`migrateLegacy()`): se existir `~/.ssh/id_iphone` e ainda não houver a do app, ela é **movida** (não copiada) e a linha `[127.0.0.1]:2222` do `known_hosts` é herdada. É a mesma chave, o iPhone continua autorizando — não precisa refazer o Conectar.
+- Em teste (`NOVA_SMOKE_TEST=1`) a migração não roda; `NOVA_USER_DATA` isola os caminhos.
+- Não é isolamento criptográfico: qualquer processo do mesmo usuário do macOS ainda lê o arquivo (0600). O ganho é sair do `~/.ssh` (fora de dotfiles, backups e outras ferramentas) e ter par chave/known_hosts só do app.
+
+Verificação: migração simulada com `HOME` falso moveu a chave com 0600, herdou o known_hosts e gerou as opções certas; 15 testes do CAM LIVE + `setup.test.cjs` + `botao-servico.test.cjs` passando. **Reinicie o Nova** para a migração acontecer. No repo, `integracao-camlive/`, `integracao-sequestro-cam/` e `encerramento-nova/` têm um shim `iphone-ssh.js` porque neles os arquivos não ficam lado a lado como em `electron/services/`.
+
+## Cartão do iPhone: "Abrir controle" reaplicado — 04/11/2026
+
+O bundle em uso (`dist/assets/index-Dun7lr2S.js`) estava **sem** o patch do botão do iPhone: o cartão de um aparelho já preparado mostrava **PARAR TRANSMISSÃO** (vermelho) em vez de **Abrir controle**, o que dá a impressão de transmissão ativa mesmo com o aparelho parado — o `streaming` do iOS é o registro de pareamento (`iphone-hosts.json`), não uma transmissão real. Outro patch de bundle aplicado depois (controle de celular/geo-proxy) sobrescreveu o trecho.
+
+Reaplicado `conexao-usb/aplicar-botao-iphone.py` no app instalado: iPhone preparado agora mostra **Abrir controle** (ciano) e abre o console direto; Android continua com **Parar transmissão**. A lista de dispositivos já se atualiza sozinha a cada 5 s (o painel faz `setInterval` de `physical-mobile:get-status`), então desplugado deixa de aparecer. Cópia canônica do bundle em `conexao-usb/dist/index-Dun7lr2S.patched.js`.
+
+**Regra nova no `AGENTS.md`:** qualquer patch futuro no bundle precisa reaplicar este script (é idempotente) antes de copiar para o app, senão o botão volta a regredir. Recarregue com **Cmd+R** ou reinicie o Nova.
+
+## Transporte camuflado Mac → iPhone (bridge 0.1-39) — 04/11/2026
+
+O que a Câmera do iPhone consome deixou de ser `http://127.0.0.1:18999/frame.jpg`.
+
+- O servidor do Mac (CAM LIVE e CAM HIJACK) só responde em `/s/<token de 32 hex>/frame.jpg` e `/s/<token>/audio`; sem o token a resposta é 404 neutro. O token é novo a cada sessão.
+- O túnel SSH tenta primeiro um **socket Unix** em `/var/tmp/.nb-<8hex>.sock` (modo 666 para o mediaserverd). Nenhuma porta TCP fica escutando no iPhone. Se o sshd do aparelho recusar streamlocal, cai para uma **porta TCP aleatória** (20000–39999) com o mesmo token; o `-v` do ssh foi removido.
+- O bridge 0.1-39 valida o caminho com token, aceita `socket` no control, recusa a rota antiga e **removeu o IP fixo da rede de casa** que vinha do projeto original.
+- O sequestro (item 3) passou a pedir o endereço ao CAM LIVE (`mediaEndpoint()`): CAM LIVE, CAM HIJACK e sequestro compartilham o mesmo token/transporte em vez de repetir 18999.
+
+Compatibilidade: pontes 0.1-38 e anteriores são recusadas ("atualize por USB") porque não conhecem o token. Atualize pelo **Conectar** em PHONE CONTROL — o `camera.deb` 0.1-39 já está incluído no app.
+
+Arquivos: `integracao-iphone/bridge/Tweak.x` (0.1-39), `integracao-camlive/cam-live-iphone.js`, `integracao-iphone/ios-camera.js` (= `integracao-sequestro-cam/ios-camera.patched.js`), `conexao-usb/setup.js` (alvo 0.1-39) e `conexao-usb/camera.deb`. Testes: 15 passam (`node --test` em `integracao-camlive/test/`), incluindo token/404, socket Unix, fallback TCP e sequestro. **Não testado no aparelho**: se o sshd do iPhone aceita `-R` com socket Unix e se o mediaserverd (sandbox) consegue conectar; se recusar, o fallback TCP entra sozinho. Reinicie o Nova e refaça o Conectar para instalar a 0.1-39.
+
+## Conexão do iPhone dentro do app — 04/11/2026
+
+O **Conectar** dos iPhones em PHONE CONTROL deixou de abrir uma janela/página externa para a senha SSH. Agora o formulário, o progresso e o controle do iPhone são desenhados **dentro da janela do Nova**, como um modal do próprio app: fundo escurecido e embaçado, mesmo visual do Controle do Celular, X/Esc para fechar (bloqueado durante a preparação) e tempo decorrido.
+
+A senha continua só em memória: o campo é limpo antes do envio ao processo principal, a senha não entra em log nem em mensagem de erro. O modal roda no preload (`inapp.js`), fora do bundle React — não depende do `index-Dun7lr2S.js`. Depois do sucesso, "Abrir controle e tela do iPhone" carrega o iPhone Console num `<webview>` dentro do app, com "Abrir em janela" como alternativa.
+
+Depois de conectar, o cartão do iPhone não fica mais em **Conectar**: passa a **Abrir controle**, que abre o console dentro do app sem senha. O estado vem do registro `iphone-hosts.json` gravado por um Conectar bem-sucedido; Android segue com "Parar transmissão" e o botão **Refazer conexão** fica no topo do controle.
+
+Arquivos: `integracao-iphone/conexao-usb/` (`inapp.js`, `setup.js`, `aplicar-botao-iphone.py`, `botao.test.cjs`, `botao-servico.test.cjs`, `setup.test.cjs`, `test/modal/`, `dist/index-Dun7lr2S.patched.js`, `docs/`). Aplicado no app instalado, sem atualizar o DMG. Verificação: `node --check` nos quatro arquivos; testes do serviço (senha inválida, aparelho único, janela ausente); harness em Electron com o **preload real** abrindo o modal por IPC, enviando a senha e confirmando o campo vazio; estados idle/preparando/sucesso/erro e o webview do console renderizados sem exceção. **Conexão real no aparelho não refeita** (exige a senha do iPhone) e **reiniciar o Nova** para carregar.
+
+## Foto ➔ Vídeo (Kling) acessível e corrigido — 03/11/2026
+
+A função de animar foto em vídeo (Capítulo 3 do guia) existia no código, mas estava **sem botão de acesso** nesta versão: a seção "kling" da Suíte de Vídeo só abria por um evento interno (`nova-open-kling-video`) que nada disparava. Foram corrigidos 7 problemas no fluxo:
+
+1. **Botão novo** "Foto ➔ Vídeo" na barra da Suíte e Estúdio de Vídeo (AI UPLOAD), entre "Criador de IA" e "Recortador Seguro" — abre a seção de selecionar foto → movimento → proporção/duração → converter.
+2. **FFmpeg do Mac**: o serviço só procurava `ffmpeg.exe` (Windows); agora acha o `Resources/bin/ffmpeg` do macOS. Sem isso, o motor gratuito offline sempre falhava.
+3. **Pasta de saída errada**: o vídeo era salvo em `cwd/youtube_auto/exports` (caía no Downloads) enquanto a biblioteca "Arquivos Exportados" lê `app/youtube_auto/exports` — o vídeo nunca apareceria na lista. Agora salva na pasta certa.
+4. **Tamanho real do arquivo** na biblioteca (era fixo 5 MB).
+5. **WebP** enviado com mime correto para a Kling Cloud.
+6. **Tradução**: 12 textos em inglês esquecidos no fluxo ("Clear Picture", "Converting Picture into Video...", mensagens de status, "Library (n)" etc.).
+7. **Assinatura** ad-hoc refeita após o patch (`codesign --verify` OK).
+8. **Prévia do vídeo cinza (0:00)**: as URLs `file:///` eram montadas com padrão de Windows (`file:///` + caminho absoluto Unix = 4 barras), e o Chromium não achava o arquivo — o vídeo era gerado certo, mas o player ficava escuro. Corrigido para o player "✨ Vídeo Gerado Pronto" e para a prévia da foto escolhida via "Procurar Arquivos". O botão "Salvar Vídeo" e sua mensagem também foram traduzidos ("Save to Phone Storage" etc.).
+9. **Vídeo saía parado (foto imóvel)**: o motor local usava `zoompan` com estado acumulado (`zoom+0.0012`) e `-loop 1`, combinação que congelava o efeito com certas fotos de entrada (verificado num caso real: 10 s de imagem imóvel, PSNR 61 entre quadros distantes). Reescrito com expressões puras em função do número do quadro (`on`), sem `-loop`, na receita canônica do FFmpeg para Ken Burns — o movimento agora vai do primeiro ao último quadro em todos os 5 presets. Teste `test/teste-movimento.cjs`: 20 combinações (5 presets × jpg/png/webp em vários tamanhos), todas com movimento medido (PSNR 6–13 entre 1 s e 8 s).
+10. **"Salvar Vídeo" baixava HTML quebrado**: o botão usava download por âncora de URL `file://`, que o Chromium bloqueia — salvava uma página de erro de 15 KB com nome .mp4 (por isso "não pode ser aberto" no Mac). Novo IPC `kling:save-video` no `main.js` copia o arquivo real para o Downloads (sem sobrescrever: acrescenta -2, -3…), abre o Finder no arquivo e o botão usa esse IPC com fallback. As 3 cópias quebradas no Downloads do usuário foram substituídas pelos vídeos reais. Original do `main.js` antes deste patch em `reservas/instalado-antes-kling-2026-11-03-main.js`.
+11. **IA do Sistema (Veo) no Foto ➔ Vídeo**: o app tinha chave Gemini configurada (`secret_key.json`, lida por `app.getGeminiToken()` — a mesma do Nova Studio), mas nenhum caminho de geração de vídeo. Adicionado o motor "IA do Sistema" no `kling-video-service.js` (`_generateSystemAIVideo`) com **auto-descoberta**: consulta `ListModels` (gratuito) e usa os modelos Veo que a chave tiver. **Testado com a chave atual: a API listou 60 modelos e nenhum é Veo** — ou seja, a chave do Nova não tem acesso a vídeo (Veo via API exige faturamento Google). O caminho fica pronto para o dia em que o faturamento for ativado.
+12. **Motor fal.ai no Foto ➔ Vídeo (botão verde)**: como a chave do Nova não faz vídeo, o botão "Converter com IA fal.ai" usa a chave **fal-key do Chaveiro do Mac** (a mesma do projeto criar-videos, lida com `security find-generic-password`). Fila `queue.fal.run`, imagem em data URI, modelo mais barato primeiro (`fal-ai/bytedance/seedance/v1/lite/image-to-video`, fallbacks Wan 2.2 e Kling 2.1), 720p, duração 5/10 s, espera com progresso e download para `exports`. **Custa por vídeo na conta fal.ai** — confirmar antes de gerar. Reinicie o Nova para carregar.
+
+Arquivos: `integracao-kling/` (fontes patcheadas + `reservas/` com os originais de antes + `test/teste-motor-local.cjs`). Teste de ponta a ponta do motor local passou no app instalado: imagem de teste → MP4 720×1280 válido em `app/youtube_auto/exports`, com progresso e limpeza automáticos. **Reinicie o Nova para carregar.** Sem chave da API Kling, usa o Nova Motion Engine local (grátis, Ken Burns por FFmpeg); com chave, envia para `api.klingai.com` (kling-v1) — a autenticação Bearer da Kling pode exigir JWT próprio dela, não validado (não há conta para testar). O DMG não foi regenerado.
+
+## CAM LIVE direto para o iPhone por USB — 03/11/2026
+
+O CAM LIVE agora transmite **sem OBS, MediaMTX nem servidor RTMP**. O destino padrão é "iPhone por USB — automático" (formato celular 720×1280): o renderer envia JPEG (`camlive:frame`) e PCM das cenas (`camlive:pcm`); o processo principal (`cam-live-iphone.js`) serve `/frame.jpg` e `/audio` em loopback, abre o túnel SSH reverso para a porta 18999 do iPhone, codifica o áudio em AAC-LC 44,1 kHz com o FFmpeg incluído e só ativa a câmera depois de haver imagem **e** áudio. RTMP continua em Configurações → Avançado. Não há IP, porta ou chave para digitar.
+
+Pré-requisito: iPhone conectado por **Conectar** (PHONE CONTROL) — exatamente um iPhone, ponte 0.1-38 com hooks de foto prontos. O pacote 0.1-38 agora acompanha o Nova (`conexao-usb/camera.deb`) e é instalado/atualizado por Conectar no iPhone10,2 / iOS 16.7.16. Um `enabled:true` antigo na ponte com lease expirado já não bloqueia o início.
+
+Arquivos: `integracao-camlive/` (cam-live.js, cam-live-audio.js, cam-live-service.js, cam-live-iphone.js); aplicado no app instalado, com cópia do `main.js` anterior em `integracao-camlive/reservas/instalado-antes-usb-*`. Testes: `test/iphone-*.cjs` (14 testes passam) e `test/harness-usb.js` (iPhone simulado: ~16 fps de JPEG válidos e PCM em tempo real chegaram; parar interrompe os dois). FFmpeg incluído gerou ADTS aceito pelo parser.
+
+**Não testado:** transmissão real até a Câmera do iPhone (a imagem aparecer no app Câmera), aparelhos além do iPhone 8 Plus, e o DMG não foi regenerado — o instalador final ainda não contém esta mudança. Reinicie o Nova para carregar. Windows fica para depois.
+
+## Pacote Mac portátil de 03/11/2026
+
+**Arquivo para compartilhar:** `distribuicao/Nova-AI-Mac-AppleSilicon-2026-11-03-final.dmg`. Use a versão `-final`; a primeira imagem foi uma tentativa intermediária e foi preservada. A cópia final do app passou na verificação de assinatura local `codesign --verify --deep --strict`.
+
+Destino inicial: Mac Apple Silicon com macOS 26+. Windows fica para uma etapa posterior. O requisito macOS 26 vem dos binários efetivamente incluídos, não do Electron: auditoria de 227 arquivos Mach-O encontrou requisito máximo 26.0 e nenhuma dependência carregada de Homebrew, `/usr/local` ou `/Users`.
+
+Python/PortAudio e bibliotecas foram incluídos em `python-runtime-portable/`, Chromium em `browsers/`, e os serviços passaram a usar o Python interno. Validados importação de módulos de áudio/rede/compressão/SQLite, HTTPS com certificados incluídos e lançamento do navegador interno. O Python também executou na cópia em outra pasta. O pacote exclui o venv antigo e a tentativa incompleta de runtime; nenhuma dessas cópias originais foi apagada.
+
+O Nova abriu com perfil vazio e PATH mínimo (`SMOKE_EXIT 0`), com interface React carregada e API Electron disponível. Evidências em `distribuicao/teste-perfil-vazio-1793726904588/` e `distribuicao/verificacao-binarios.json`. Isso não substitui teste em outro Mac limpo. Não há validação de todas as funcionalidades, nem adaptação da ponte 0.1-38. Upload automático do YouTube continua sem pipeline. Serviços online continuam dependendo de internet e contas próprias.
+
+Scripts de reprodução e auditoria em `integracao-iphone/distribuicao/`. Os dados pessoais de Application Support, perfis de navegador e chaves SSH não são copiados para a distribuição. A assinatura é local, sem notarização Apple.
+
+## Portabilidade — revisão inicial de 03/11/2026 (histórico)
+
+As ferramentas USB iPhone (`iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller`) e nove bibliotecas agora estão em `Contents/Resources/ios-tools/`. Os serviços iPhone passaram a resolver apenas esses executáveis incluídos no app. Teste: todas as quatro ferramentas iniciam com `PATH=/usr/bin:/bin`; nenhum dos 13 arquivos Mach-O possui dependência absoluta de Homebrew. Licenças locais foram copiadas para `ios-tools/licenses/`. Script de reprodução: `integracao-iphone/distribuicao/empacotar-ferramentas.py`.
+
+**Na revisão inicial, a distribuição ainda não estava pronta.** O Python incluído era um venv com `home` e executável de origem no Homebrew; precisa de um runtime portátil para funções Python. O instalador DMG/ZIP existente continua antigo. Falta testar em outro Mac sem ferramentas de desenvolvimento. Esta alteração não atualiza o EXE Windows. O iPhone ainda precisa ter jailbreak ativo e OpenSSH, e CatVNC tem configuração própria. Contas e credenciais devem ser configuradas por cada usuário, sem copiar dados de `Application Support` ou chaves SSH pessoais.
+
+## Conexão iPhone por senha SSH — 03/11/2026
+
+O botão dos iPhones em DEVICES agora mostra **Conectar** e abre uma janela para a senha SSH do usuário `mobile`. O fluxo exige jailbreak ativo e OpenSSH já instalado no iPhone. A senha fica apenas em memória durante a operação. O app prepara uma chave SSH, verifica o acesso e oferece abrir o console. Exige somente um iPhone conectado; não faz jailbreak automaticamente.
+
+O pacote OBSGraphBridge 0.1-30 está incluído no app e pode ser instalado sem download externo no iPhone10,2 com iOS 16.7.16. Outras versões já instaladas são preservadas. Não há instalação automática do CatVNC nem suporte universal às funções Android: o fluxo informa essas limitações. CatVNC ainda exige instalação e configuração próprias.
+
+Fontes e testes: `integracao-iphone/conexao-usb/`. Aplicado no app instalado, sem atualizar o DMG. Verificação: sintaxe do main, bundle em modo módulo, serviço, carregamento do SSH e testes de limites IPC/múltiplos aparelhos. **Conexão e instalação reais no aparelho ainda não testadas neste fluxo.** Reinicie o Nova para carregar as alterações.
+
+
+## Tradução para pt-BR de 03/11/2026
+
+O app instalado (`/Applications/Nova AI Mac.app`) foi traduzido inteiro para português do Brasil — só texto de interface, sem tocar em nenhuma função. Traduzidos: bundle da interface (`dist/assets/index-Dun7lr2S.js`, ~1.900 substituições), `dist/index.html`, PWA (`electron/pwa/`: index, admin, app.js, manifest), menus/diálogos do `electron/main.js`, mensagens visíveis dos services e a extensão nova-grab. **Reinicie o app para ver a tradução.** Cópia de todos os arquivos originais está em `../backup-antes-traducao/`. Nomes de hardware (Apple M1, Galaxy, GPUs — são valores de spoofing), modelos de IA e termos técnicos (Stop Loss, SKU, ADB) foram mantidos de propósito.
+
+## Atualização local de 02/11/2026 — CAM HIJACK iPhone
+
+O app instalado recebeu encaminhamento iOS para CAM HIJACK, correção do caminho do APK Android e textos de preparação por plataforma. Fontes, testes, reservas e o instalador iOS estão em `integracao-iphone/`.
+
+**Pendente:** executar `integracao-iphone/instalar-iphone.command` no Terminal (sudo do iPhone) e validar a imagem na Câmera. O pacote nativo compilado é OBSGraphBridge 0.1-30 com suporte ao túnel USB em localhost:18999. O fluxo ativa a prévia nativa experimental; fotos/vídeos gravados e outros apps não estão validados nem habilitados nesta integração.
+
+**O DMG abaixo é anterior a esta atualização e já não é idêntico ao app instalado.**
+
+**Instalador anterior:** `Nova-AI-Mac-sem-ativacao.dmg` (1/11/2026, 789 MB) — é idêntico ao app **já instalado em `/Applications/Nova AI Mac.app`**, que é o que você usa no dia a dia. O `.zip` é o mesmo app em formato zip (backup).
+
