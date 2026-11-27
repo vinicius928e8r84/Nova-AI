@@ -7,7 +7,7 @@ const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
-const { prepararPagina, abrirUrlPedida, conectarAoChrome, gerarAmbiente, encerrarChrome } = require('./global-spoof-abertura');
+const { prepararPagina, abrirUrlPedida, conectarAoChrome, gerarAmbiente, recursosDesligadosDoChrome, encerrarChrome } = require('./global-spoof-abertura');
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
@@ -503,7 +503,7 @@ class GlobalSpoofService {
             `--use-mock-keychain`,
             `--disable-background-mode`,
             `--disable-background-networking`,
-            `--disable-features=CalculateNativeWinOcclusion`
+            recursosDesligadosDoChrome(process.platform)
         ];
 
         if (proxyServer) {
@@ -554,7 +554,6 @@ class GlobalSpoofService {
             } catch (err) {}
         }
 
-        const crypto = require('crypto');
         const randDeviceId = crypto.randomBytes(32).toString('hex');
         const randGroupId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
         const _dStr = JSON.stringify(device);

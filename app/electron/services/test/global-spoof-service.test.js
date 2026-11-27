@@ -339,6 +339,24 @@ for (const [sistema, tocador] of [['win32', 'powershell'], ['darwin', '/usr/bin/
   });
 }
 
+function recursosDesligados(argumentosDoChrome) {
+  const flag = argumentosDoChrome.find((a) => a.startsWith('--disable-features='));
+  return flag.slice('--disable-features='.length).split(',');
+}
+
+test('darwin: o áudio de arquivo só chega à página se o serviço de áudio do Chrome puder ler o arquivo (sandbox desligada)', async () => {
+  const wav = await abrirSemAudioPath('darwin');
+  const argumentosDoChrome = palco.spawns.find((s) => s.comando === 'chrome-falso').args;
+  assert.ok(argumentosDoChrome.includes(`--use-file-for-fake-audio-capture=${wav}`));
+  assert.deepStrictEqual(recursosDesligados(argumentosDoChrome), ['CalculateNativeWinOcclusion', 'AudioServiceSandbox']);
+});
+
+test('win32: o Chrome continua sem desligar a sandbox do serviço de áudio', async () => {
+  await abrirSemAudioPath('win32');
+  const argumentosDoChrome = palco.spawns.find((s) => s.comando === 'chrome-falso').args;
+  assert.deepStrictEqual(recursosDesligados(argumentosDoChrome), ['CalculateNativeWinOcclusion']);
+});
+
 test('darwin: o stopHijack encerra o grupo do Chrome sem chamar o taskkill', async () => {
   usarPlataforma('darwin');
   const { servico } = criarServico();
