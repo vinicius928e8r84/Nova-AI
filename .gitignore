@@ -23,10 +23,10 @@ node_modules/
 **/python-runtime-portable/
 
 # Cópias completas do app e perfis de teste (dados de navegador)
-MAC/distribuicao/pacote-*/
-MAC/distribuicao/*.dmg
-MAC/distribuicao/teste-perfil-*/
-MAC/encerramento-nova/teste/
+distribuicao/pacote-*/
+distribuicao/*.dmg
+distribuicao/teste-perfil-*/
+encerramento-nova/teste/
 WINDOWS/
 **/teste-perfil-*/
 **/reservas/
@@ -40,7 +40,7 @@ data/*
 !data/.gitkeep
 
 # rascunhos recriados por verificar-binarios.py (symlinks)
-MAC/integracao-iphone/distribuicao/inspecao-binarios/
+distribuicao/inspecao-binarios/
 
 *.log
 __pycache__/

@@ -49,11 +49,6 @@ test('atenção ALTA: as pastas novas que não são da ponte nem da atualizaçã
   for (const caminho of comuns) assert.equal(classificar([{ caminho, adicionadas: [] }]).alta, false, caminho);
 });
 
-test('atenção ALTA: nenhum caminho de MAC/ saiu', () => {
-  const antigos = ['MAC/integracao-iphone/x', 'MAC/proxy-iphone/x', 'MAC/controle-celular-plataformas/x', 'MAC/integracao-sequestro-cam/x', 'MAC/integracao-camlive/x', 'MAC/distribuicao/x', 'MAC/encerramento-nova/x'];
-  for (const caminho of antigos) assert.equal(classificar([{ caminho, adicionadas: [] }]).alta, true, caminho);
-});
-
 const isento = caminho => casaAlgum(configuracao.ignorarCodigo, caminho);
 
 test('isenção: o bundle reescrito, as fixtures do CAM LIVE e backup nas pastas novas', () => {
@@ -68,7 +63,7 @@ test('isenção: o resto das pastas novas continua cobrado', () => {
   const cobrados = [
     'interface/controle-do-celular/iphone/aplicar-botao-iphone.py', 'interface/traducao/dist/a.js', 'interface/index-Dun7lr2S.patched.js',
     'test/cam-live/harness.js', 'test/cam-live/sub/fixtures/a.js', 'test/iphone/fixtures/a.js', 'test/iphone/reservas/a.js', 'iphone/camera/Tweak.x',
-    'iphone/modelo/reservas/20261127/a.js', 'interface/controle-do-celular/reservas/1/a.js', 'distribuicao/reservas/1/a.sh', 'MAC/x/reservas/1/a.js',
+    'iphone/modelo/reservas/20261127/a.js', 'interface/controle-do-celular/reservas/1/a.js', 'distribuicao/reservas/1/a.sh',
     'docs/guia/reservas/a.js', 'docs/pesquisas/backup-1/a.js', 'app/test/reservas/a.js', 'app/electron/services/iphone/reservas/a.js',
   ];
   for (const caminho of cobrados) assert.equal(isento(caminho), false, caminho);
@@ -100,7 +95,7 @@ test('isenção no ESLint: o bundle, as fixtures e backup das pastas novas não 
     'interface/traducao/backup-pt/a.js': sujo,
   });
   assert.equal(ok.codigo, 0, ok.saida);
-  const ruim = tentar('eslint-nas-linhas-novas', { 'interface/controle-do-celular/a.js': sujo, 'test/cam-live/a.js': sujo, 'iphone/modelo/reservas/1/a.js': sujo, 'MAC/x/reservas/1/a.js': sujo });
+  const ruim = tentar('eslint-nas-linhas-novas', { 'interface/controle-do-celular/a.js': sujo, 'test/cam-live/a.js': sujo, 'iphone/modelo/reservas/1/a.js': sujo });
   assert.equal(ruim.codigo, 1, ruim.saida);
 });
 
@@ -111,9 +106,4 @@ test('licença de imprimir: iphone/, interface/ e distribuicao/ podem imprimir; 
   const ruim = tentar('sem-depuracao-esquecida', { 'docs/guia/a.js': imprime, 'app/electron/a.js': imprime });
   assert.equal(ruim.codigo, 1, ruim.saida);
   for (const caminho of ['docs/guia/a.js', 'app/electron/a.js']) assert.ok(ruim.saida.includes(caminho), ruim.saida);
-});
-
-test('licença de imprimir: MAC/ continua podendo', () => {
-  const r = tentar('sem-depuracao-esquecida', { 'MAC/integracao-iphone/a.js': 'console.log(1);\n' });
-  assert.equal(r.codigo, 0, r.saida);
 });

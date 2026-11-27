@@ -8,19 +8,15 @@ const arquivo = (path, nota, linhas, hotspot = false) => ({ path: `Nova-AI/${pat
 
 test('separa produto, ferramenta e teste pelo caminho', () => {
   assert.equal(grupoDe('app/electron/main.js'), 'produto');
-  assert.equal(grupoDe('MAC/proxy-iphone/tool/Upstream.m'), 'produto');
-  assert.equal(grupoDe('MAC/integracao-iphone/conexao-usb/proxy-parse.js'), 'produto');
   assert.equal(grupoDe('app/wake_word_bg.py'), 'produto');
   assert.equal(grupoDe('scripts/regras/verificar.js'), 'ferramenta');
   assert.equal(grupoDe('app/scripts/postinstall.js'), 'ferramenta');
-  assert.equal(grupoDe('MAC/controle-celular-plataformas/aplicar.py'), 'ferramenta');
   assert.equal(grupoDe('scripts/regras/test/saude.test.js'), 'teste');
-  assert.equal(grupoDe('app/electron/services/testes/remote-access.test.js'), 'teste');
-  assert.equal(grupoDe('MAC/proxy-iphone/tool/teste/upstream_test.m'), 'teste');
+  assert.equal(grupoDe('app/electron/services/test/remote-access.test.js'), 'teste');
   assert.equal(grupoDe('app/test/ajuda/wake-word-palco.py'), 'teste');
 });
 
-test('as pastas novas ficam no mesmo grupo das de MAC/', () => {
+test('iphone/, interface/, distribuicao/ e docs/ ficam no grupo de produto, ferramenta ou teste', () => {
   assert.equal(grupoDe('iphone/proxy/tool/Upstream.m'), 'produto');
   assert.equal(grupoDe('iphone/camera/Tweak.x'), 'produto');
   assert.equal(grupoDe('interface/controle-do-celular/iphone/proxy-parse.js'), 'produto');
@@ -31,7 +27,7 @@ test('as pastas novas ficam no mesmo grupo das de MAC/', () => {
   assert.equal(grupoDe('iphone/camera/prepare_tweak.py'), 'ferramenta');
   assert.equal(grupoDe('distribuicao/empacotar-python.py'), 'ferramenta');
   assert.equal(grupoDe('docs/pesquisas/nota-10-global-spoof/README.md'), 'ferramenta');
-  assert.equal(grupoDe('docs/pesquisas/geo-proxy.cjs'), 'ferramenta');
+  assert.equal(grupoDe('docs/pesquisas/nota-10/fila.md'), 'ferramenta');
   assert.equal(grupoDe('docs/guia/README.md'), 'produto');
   assert.equal(grupoDe('app/outra/x.py'), 'produto');
   assert.equal(grupoDe('iphone/proxy/tool/test/upstream_test.m'), 'teste');

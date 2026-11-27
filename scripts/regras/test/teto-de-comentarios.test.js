@@ -97,16 +97,16 @@ test('diretiva, shebang e licença não contam', () => {
 });
 
 test('arquivos isentos (dist) não entram na conta', () => {
-  const repo = criar({ 'MAC/x/dist/a.js': comComentarios(4) });
-  repo.escrever({ 'MAC/x/dist/a.js': comComentarios(5) });
+  const repo = criar({ 'interface/dist/a.js': comComentarios(4) });
+  repo.escrever({ 'interface/dist/a.js': comComentarios(5) });
   const r = repo.rodar(...REGRA);
   repo.limpar();
   assert.equal(r.codigo, 0, r.saida);
 });
 
 test('arquivo que sai de uma pasta isenta não leva o teto dos comentários que tinha lá', () => {
-  const repo = criar({ 'MAC/x/dist/a.js': comComentarios(4), 'app/b.js': 'const b = 1;\n' });
-  repo.git('mv', 'MAC/x/dist/a.js', 'app/a.js');
+  const repo = criar({ 'interface/dist/a.js': comComentarios(4), 'app/b.js': 'const b = 1;\n' });
+  repo.git('mv', 'interface/dist/a.js', 'app/a.js');
   const r = repo.rodar(...REGRA);
   repo.limpar();
   assert.equal(r.codigo, 1, r.saida);

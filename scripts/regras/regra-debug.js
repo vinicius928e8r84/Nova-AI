@@ -7,7 +7,7 @@ const { ehJs } = require('./escopo');
 const id = 'sem-depuracao-esquecida';
 const titulo = 'Nenhum console.log, debugger ou depuração esquecida nas linhas novas';
 const conserto = 'Tire a linha de depuração. O que o app precisa registrar usa console.info, console.warn ou console.error (ou o registro que o módulo já tem). '
-  + 'Scripts de linha de comando, testes e ferramentas de MAC/ podem imprimir (lista em scripts/regras/configuracao.json).';
+  + 'Scripts de linha de comando, testes e ferramentas de iphone/, interface/ e distribuicao/ podem imprimir (lista em scripts/regras/configuracao.json).';
 
 const PADROES_JS = [
   { regex: /\bconsole\s*\.\s*(?:log|debug|trace|dir)\b/, nome: 'console.log' },

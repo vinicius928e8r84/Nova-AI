@@ -14,15 +14,15 @@ const WORKFLOW = fs.readFileSync(path.join(RAIZ, '.github', 'workflows', 'regras
 const LISTA = {
   grupos: [
     { nome: 'app', job: 'testes', arquivos: ['app/test/**/*.test.js'] },
-    { nome: 'mac', job: 'testes', arquivos: ['MAC/a/test/rodando.cjs'] },
+    { nome: 'iphone', job: 'testes', arquivos: ['test/a/rodando.cjs'] },
   ],
   fora: [
-    { arquivos: ['MAC/a/test/pede-mac.cjs'], motivo: 'chama o clang do Mac', issue: 7 },
+    { arquivos: ['test/a/pede-mac.cjs'], motivo: 'chama o clang do Mac', issue: 7 },
     { arquivos: ['**/*.palco.js'], motivo: 'auxiliar dos testes de cena, não roda sozinho' },
   ],
 };
 
-const arquivosDe = (...extras) => ['app/test/a.test.js', 'MAC/a/test/rodando.cjs', 'MAC/a/test/pede-mac.cjs', 'app/test/b.palco.js', 'app/src/lib.js', ...extras];
+const arquivosDe = (...extras) => ['app/test/a.test.js', 'test/a/rodando.cjs', 'test/a/pede-mac.cjs', 'app/test/b.palco.js', 'app/src/lib.js', ...extras];
 const problemasDe = (lista, arquivos) => portao.conferir(lista, arquivos);
 
 test('arquivo de teste é o que tem nome de teste ou mora em pasta de teste', () => {
@@ -33,9 +33,9 @@ test('arquivo de teste é o que tem nome de teste ou mora em pasta de teste', ()
 
 test('teste novo fora de todo grupo e da lista de fora deixa o portão vermelho', () => {
   assert.deepEqual(problemasDe(LISTA, arquivosDe()), []);
-  const problemas = problemasDe(LISTA, arquivosDe('MAC/b/novo.test.cjs'));
+  const problemas = problemasDe(LISTA, arquivosDe('test/b/novo.test.cjs'));
   assert.equal(problemas.length, 1);
-  assert.match(problemas[0], /MAC\/b\/novo\.test\.cjs/);
+  assert.match(problemas[0], /test\/b\/novo\.test\.cjs/);
   assert.match(problemas[0], /nenhum grupo/);
 });
 
@@ -44,8 +44,8 @@ test('teste dentro de pasta já coberta por um glob não precisa de linha nova',
 });
 
 test('arquivo em grupo e em fora ao mesmo tempo é problema', () => {
-  const nosDois = { ...LISTA, fora: [...LISTA.fora, { arquivos: ['MAC/a/test/rodando.cjs'], motivo: 'roda e está fora ao mesmo tempo' }] };
-  assert.match(problemasDe(nosDois, arquivosDe()).join('\n'), /MAC\/a\/test\/rodando\.cjs.*mais de um lugar/);
+  const nosDois = { ...LISTA, fora: [...LISTA.fora, { arquivos: ['test/a/rodando.cjs'], motivo: 'roda e está fora ao mesmo tempo' }] };
+  assert.match(problemasDe(nosDois, arquivosDe()).join('\n'), /test\/a\/rodando\.cjs.*mais de um lugar/);
 });
 
 test('arquivo em dois grupos é problema', () => {
@@ -55,16 +55,16 @@ test('arquivo em dois grupos é problema', () => {
 
 test('entrada de fora sem motivo, ou com motivo vazio, é problema', () => {
   for (const motivo of [undefined, '', '   ']) {
-    const lista = { ...LISTA, fora: [{ arquivos: ['MAC/a/test/pede-mac.cjs'], motivo }, LISTA.fora[1]] };
+    const lista = { ...LISTA, fora: [{ arquivos: ['test/a/pede-mac.cjs'], motivo }, LISTA.fora[1]] };
     assert.match(problemasDe(lista, arquivosDe()).join('\n'), /sem motivo/);
   }
 });
 
 test('glob que não casa nenhum arquivo é problema, nos grupos e em fora', () => {
-  const grupo = { ...LISTA, grupos: [...LISTA.grupos, { nome: 'velho', job: 'testes', arquivos: ['MAC/some/**/*.test.js'] }] };
-  assert.match(problemasDe(grupo, arquivosDe()).join('\n'), /MAC\/some.*não casa nenhum arquivo/);
-  const fora = { ...LISTA, fora: [...LISTA.fora, { arquivos: ['MAC/some/x.cjs'], motivo: 'foi apagado' }] };
-  assert.match(problemasDe(fora, arquivosDe()).join('\n'), /MAC\/some\/x\.cjs.*não casa nenhum arquivo/);
+  const grupo = { ...LISTA, grupos: [...LISTA.grupos, { nome: 'velho', job: 'testes', arquivos: ['test/some/**/*.test.js'] }] };
+  assert.match(problemasDe(grupo, arquivosDe()).join('\n'), /test\/some.*não casa nenhum arquivo/);
+  const fora = { ...LISTA, fora: [...LISTA.fora, { arquivos: ['test/some/x.cjs'], motivo: 'foi apagado' }] };
+  assert.match(problemasDe(fora, arquivosDe()).join('\n'), /test\/some\/x\.cjs.*não casa nenhum arquivo/);
 });
 
 test('grupo sem nome, sem job ou repetido é problema', () => {
@@ -80,7 +80,7 @@ test('arquivosDoGrupo devolve os arquivos do grupo, ordenados', () => {
 });
 
 test('arquivosDoJob junta os grupos do job na ordem da lista', () => {
-  assert.deepEqual(portao.arquivosDoJob(LISTA, 'testes', arquivosDe()), [['app', ['app/test/a.test.js']], ['mac', ['MAC/a/test/rodando.cjs']]]);
+  assert.deepEqual(portao.arquivosDoJob(LISTA, 'testes', arquivosDe()), [['app', ['app/test/a.test.js']], ['iphone', ['test/a/rodando.cjs']]]);
   assert.deepEqual(portao.arquivosDoJob(LISTA, 'regras', arquivosDe()), []);
 });
 
@@ -93,15 +93,15 @@ test('a lista do repositório cobre todo arquivo de teste do repositório', () =
 
 test('os testes que passam e ninguém rodava estão num grupo', () => {
   const queNinguemRodava = [
-    'MAC/integracao-iphone/conexao-usb/botao.test.cjs',
-    'MAC/integracao-iphone/conexao-usb/botao-servico.test.cjs',
-    'MAC/integracao-iphone/conexao-usb/windows-hide.test.cjs',
-    'MAC/integracao-iphone/tests/android-install.cjs',
-    'MAC/integracao-iphone/tests/chave-de-host.cjs',
-    'MAC/integracao-iphone/tests/ios-tools-windows.cjs',
-    'MAC/integracao-iphone/tests/routing.cjs',
-    'MAC/integracao-iphone/tests/wireless.cjs',
-    'MAC/controle-celular-plataformas/geo-proxy/teste-geo.cjs',
+    'interface/controle-do-celular/iphone/test/botao.test.cjs',
+    'test/iphone/botao-servico.test.cjs',
+    'test/iphone/windows-hide.test.cjs',
+    'test/iphone/android-install.cjs',
+    'test/iphone/chave-de-host.cjs',
+    'test/iphone/ios-tools-windows.cjs',
+    'test/iphone/routing.cjs',
+    'test/iphone/wireless.cjs',
+    'test/iphone/teste-geo.cjs',
   ];
   const rodados = new Set(lista.grupos.flatMap(grupo => portao.arquivosDoGrupo(grupo, versionados)));
   assert.deepEqual(queNinguemRodava.filter(arquivo => !rodados.has(arquivo)), []);
@@ -109,11 +109,11 @@ test('os testes que passam e ninguém rodava estão num grupo', () => {
 
 test('os cinco que falham no Windows ficam em fora, cada um com motivo e issue', () => {
   const cinco = [
-    'MAC/integracao-camlive/test/iphone-media.cjs',
-    'MAC/integracao-iphone/tests/relay.cjs',
-    'MAC/integracao-kling/test/teste-motor-local.cjs',
-    'MAC/integracao-kling/test/teste-movimento.cjs',
-    'MAC/navegador-mac/tests/navegador.cjs',
+    'test/cam-live/iphone-media.cjs',
+    'test/iphone/relay.cjs',
+    'test/foto-em-video/teste-motor-local.cjs',
+    'test/foto-em-video/teste-movimento.cjs',
+    'test/navegador/navegador.cjs',
   ];
   for (const arquivo of cinco) {
     const entrada = lista.fora.find(item => item.arquivos.includes(arquivo));

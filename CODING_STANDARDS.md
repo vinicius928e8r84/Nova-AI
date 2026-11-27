@@ -82,13 +82,13 @@ Cada área tem um documento que diz o que ela faz hoje e por quê. O revisor lê
 | `app/` (o app, o processo principal, os serviços) | [`app/README.md`](app/README.md) |
 | o canal IPC ou o `preload` | `app/test/mapa-ipc.json` e o teste `app/test/mapa-ipc.test.js`, que guardam a lista de canais |
 | qualquer coisa que muda de comportamento no Windows | [`docs/windows.md`](docs/windows.md) e `docs/adr/0014-o-comportamento-do-windows-nao-muda-ao-acrescentar-o-macos.md` |
-| `MAC/` (qualquer área) | [`MAC/LEIA-ME.md`](MAC/LEIA-ME.md), que guarda o estado e a história, e o README da área |
-| `MAC/integracao-iphone/` | [`MAC/integracao-iphone/README.md`](MAC/integracao-iphone/README.md) e [`MAC/integracao-iphone/conexao-usb/README.md`](MAC/integracao-iphone/conexao-usb/README.md) |
-| `MAC/controle-celular-plataformas/` | [`MAC/controle-celular-plataformas/README.md`](MAC/controle-celular-plataformas/README.md) |
-| `MAC/proxy-iphone/` | [`MAC/proxy-iphone/README.md`](MAC/proxy-iphone/README.md) |
-| `MAC/integracao-sequestro-cam/` | [`MAC/integracao-sequestro-cam/README.md`](MAC/integracao-sequestro-cam/README.md) |
-| `MAC/integracao-modelo/` ou `MAC/integracao-modelo-app/` | o `README.md` da pasta que o diff toca |
-| o CAM LIVE (`app/electron/services/cam-live*`, `MAC/integracao-camlive/`) | os registros de `docs/adr/` que têm `cam-live` no nome |
+| `iphone/`, `interface/` ou `distribuicao/` (qualquer área) | [`docs/historico.md`](docs/historico.md), que guarda o estado e a história, e o README da área |
+| `iphone/` (a raiz, a câmera, o idioma) | [`iphone/README.md`](iphone/README.md) e [`interface/controle-do-celular/iphone/README.md`](interface/controle-do-celular/iphone/README.md) |
+| `interface/controle-do-celular/` | [`interface/controle-do-celular/README.md`](interface/controle-do-celular/README.md) |
+| `iphone/proxy/` | [`iphone/proxy/README.md`](iphone/proxy/README.md) |
+| `interface/sequestro-de-camera/` | [`interface/sequestro-de-camera/README.md`](interface/sequestro-de-camera/README.md) |
+| `iphone/modelo/` | o `README.md` da pasta que o diff toca |
+| o CAM LIVE (`app/electron/services/cam-live*`, `test/cam-live/`) | os registros de `docs/adr/` que têm `cam-live` no nome |
 | as regras, os ganchos, a CI ou a lista do painel | [`CONTRIBUTING.md`](CONTRIBUTING.md) e `docs/codescene-exclusoes.md` |
 | uma decisão que o código ou o comentário apagado guardava | `docs/adr/`, onde cada decisão tem um arquivo próprio |
 | arquivos do app instalado, ou o que precisa reaplicar no Mac | a seção 5 do [`AGENTS.md`](AGENTS.md) |

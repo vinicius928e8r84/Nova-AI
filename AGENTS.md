@@ -79,9 +79,9 @@ O código fonte fica neste repositório; o app instalado em
   o Nova para carregar.
 - **Bundle da interface:** qualquer patch em `dist/assets/index-Dun7lr2S.js`
   sobrescreve os anteriores. Depois de aplicar o seu, rode de novo
-  `python3 MAC/integracao-iphone/conexao-usb/aplicar-botao-iphone.py`
+  `python3 interface/controle-do-celular/iphone/aplicar-botao-iphone.py`
   (idempotente) e copie o resultado para
-  `MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js`. Sem isso o
+  `interface/dist/index-Dun7lr2S.patched.js`. Sem isso o
   cartão do iPhone volta a mostrar "Parar transmissão" em vez de "Abrir controle".
 - Recarregue a interface (Cmd+R) ou reinicie o Nova: o bundle é lido na abertura
   da janela.

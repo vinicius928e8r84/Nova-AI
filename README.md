@@ -3,20 +3,23 @@
 Port local do Nova AI (Electron, Windows de origem) para macOS Apple Silicon, com as
 integrações de iPhone por USB, CAM LIVE, CAM HIJACK e tradução da interface.
 
-- Estado do projeto e histórico das alterações até 20/11/2026: [`MAC/LEIA-ME.md`](MAC/LEIA-ME.md). As alterações seguintes ficam no corpo de cada PR.
-- Integração iPhone (ponte nativa, SSH, câmera): [`MAC/integracao-iphone/README.md`](MAC/integracao-iphone/README.md)
-- CAM LIVE (transmissão direta para o iPhone): [`MAC/integracao-camlive/`](MAC/integracao-camlive/)
-- Guia do usuário: `GUIA/`
+- Estado do projeto e histórico das alterações até 20/11/2026: [`docs/historico.md`](docs/historico.md). As alterações seguintes ficam no corpo de cada PR.
+- Integração iPhone (ponte nativa, SSH, câmera): [`iphone/README.md`](iphone/README.md)
+- CAM LIVE (transmissão direta para o iPhone): [`test/cam-live/`](test/cam-live/)
+- Guia do usuário: [`docs/guia/`](docs/guia/)
 
 ## Estrutura
 
 | Pasta | O que é |
 |---|---|
 | [`app/`](app/README.md) | Código do app (Electron), **comum a Mac e Windows**: `npm install`, `npm start`, `npm run dist:mac`, `npm run dist:win` |
-| `MAC/` | Específico do Mac e do iPhone: integrações, tweaks `.deb` (fontes), scripts, histórico em `LEIA-ME.md` |
+| `iphone/` | O que roda no iPhone e fala com ele: câmera, idioma, modelo e proxy (fontes dos tweaks `.deb`) |
+| `interface/` | Controle do celular, sequestro de câmera, tradução e o bundle da interface reescrito |
+| `distribuicao/` | Empacotamento e verificação dos binários do app |
+| `test/` | Testes das integrações do iPhone, do CAM LIVE, da foto em vídeo e do navegador |
 | [`docs/windows.md`](docs/windows.md) | Passo a passo do Windows e comparação com o app Windows instalado |
 | `WINDOWS/` | Só local (ignorada pelo git): onde fica o instalador `.exe` do Windows |
-| `GUIA/`, `pesquisas/`, `backup-antes-traducao/` | Guia do usuário e estudos |
+| `docs/guia/`, `docs/pesquisas/`, `backup-antes-traducao/` | Guia do usuário e estudos |
 
 O app instalado vive em `/Applications/Nova AI Mac.app`; o código que roda nele é
 copiado a partir das pastas de integração. Os instaladores (`.dmg`, `.exe`), os
