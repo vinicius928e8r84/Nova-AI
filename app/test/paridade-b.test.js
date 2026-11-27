@@ -19,7 +19,9 @@ test('edgeTtsBinary: Mac e Windows por python -m com o python resolvido', () => 
   assert.strictEqual(edgeTtsBinary('linux', () => ''), 'edge-tts');
 });
 
-test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o texto', () => {
+const soEmPosix = { skip: process.platform === 'win32' };
+
+test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o texto (só Mac e Linux: o Windows não tem pkill nem executa o binário .app)', soEmPosix, () => {
   const { spawn, spawnSync } = require('child_process');
   const { MAC_BROWSER_KILL_PATTERN } = require('../electron/services/paridade-utils');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-pk-'));
@@ -130,7 +132,7 @@ test('macAntigravityStats: memória do ps, CPU 0 como no Windows; só o estouro 
   await assert.rejects(macAntigravityStats({ run: async () => { throw new Error('sem processo'); } }));
 });
 
-test('pkill do CAM spoof no Mac: so mata o Chrome com o Y4M do nova_webcam_hijack', () => {
+test('pkill do CAM spoof no Mac: so mata o Chrome com o Y4M do nova_webcam_hijack (só Mac e Linux: o Windows não tem pkill nem executa o binário .app)', soEmPosix, () => {
   const { spawn, spawnSync } = require('child_process');
   const { MAC_CAM_SPOOF_KILL_PATTERN } = require('../electron/services/paridade-utils');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-cam-'));
