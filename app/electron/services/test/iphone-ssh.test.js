@@ -21,9 +21,10 @@ Module._load = function (pedido, ...resto) {
 test.after(() => { Module._load = carregadorOriginal; });
 
 function comAmbiente({ home, userData, smoke, electronFalso = new Error('fora do Electron') }, acao) {
-  const antes = { HOME: process.env.HOME, NOVA_USER_DATA: process.env.NOVA_USER_DATA, NOVA_SMOKE_TEST: process.env.NOVA_SMOKE_TEST };
+  const antes = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, NOVA_USER_DATA: process.env.NOVA_USER_DATA, NOVA_SMOKE_TEST: process.env.NOVA_SMOKE_TEST };
   const definir = (nome, valor) => { if (valor === undefined) delete process.env[nome]; else process.env[nome] = valor; };
   definir('HOME', home);
+  definir('USERPROFILE', home);
   definir('NOVA_USER_DATA', userData);
   definir('NOVA_SMOKE_TEST', smoke);
   electron = electronFalso;
@@ -36,15 +37,21 @@ function comAmbiente({ home, userData, smoke, electronFalso = new Error('fora do
   }
 }
 
+const permissao = (octal) => (process.platform === 'win32' ? 'sem-modo' : octal);
+const modoDe = (estado) => permissao((estado.mode & 0o777).toString(8));
+const nulo = process.platform === 'win32' ? 'NUL' : '/dev/null';
+const casaDoTeste = path.resolve('/h');
+const padrao = path.join(casaDoTeste, 'Library', 'Application Support', 'nova_dsktp');
+
 function arvore(raiz) {
   const itens = {};
   const visitar = (pasta) => {
     for (const nome of fs.readdirSync(pasta).sort()) {
       const completo = path.join(pasta, nome);
-      const relativo = path.relative(raiz, completo);
+      const relativo = path.relative(raiz, completo).split(path.sep).join('/');
       const estado = fs.statSync(completo);
-      if (estado.isDirectory()) { itens[`${relativo}/`] = (estado.mode & 0o777).toString(8); visitar(completo); continue; }
-      itens[relativo] = `${(estado.mode & 0o777).toString(8)} ${fs.readFileSync(completo, 'utf8')}`;
+      if (estado.isDirectory()) { itens[`${relativo}/`] = modoDe(estado); visitar(completo); continue; }
+      itens[relativo] = `${modoDe(estado)} ${fs.readFileSync(completo, 'utf8')}`;
     }
   };
   visitar(raiz);
@@ -69,53 +76,54 @@ test('appDataDir: NOVA_USER_DATA, depois o userData do Electron, depois o padrã
   const casos = [
     [{ userData: '/u/d', electronFalso: { app: { getPath: () => '/nunca' } } }, '/u/d'],
     [{ electronFalso: { app: { getPath: (nome) => `/electron/${nome}` } } }, '/electron/userData'],
-    [{ electronFalso: { app: { getPath: '/não é função' } } }, '/h/Library/Application Support/nova_dsktp'],
-    [{ electronFalso: { app: null } }, '/h/Library/Application Support/nova_dsktp'],
-    [{ electronFalso: null }, '/h/Library/Application Support/nova_dsktp'],
-    [{}, '/h/Library/Application Support/nova_dsktp'],
+    [{ electronFalso: { app: { getPath: '/não é função' } } }, padrao],
+    [{ electronFalso: { app: null } }, padrao],
+    [{ electronFalso: null }, padrao],
+    [{}, padrao],
     [{ electronFalso: { app: { getPath: () => '' } } }, ''],
-    [{ electronFalso: { app: { getPath: () => { throw new Error('cedo demais'); } } } }, '/h/Library/Application Support/nova_dsktp'],
+    [{ electronFalso: { app: { getPath: () => { throw new Error('cedo demais'); } } } }, padrao],
   ];
   for (const [ambiente, esperado] of casos) {
-    assert.strictEqual(comAmbiente({ home: '/h', ...ambiente }, (ssh) => ssh.appDataDir()), esperado, JSON.stringify(ambiente));
+    assert.strictEqual(comAmbiente({ home: casaDoTeste, ...ambiente }, (ssh) => ssh.appDataDir()), esperado, JSON.stringify(ambiente));
   }
 });
 
 test('paths e sshOptions sem alvo usam a pasta do app', () => {
-  const r = comAmbiente({ home: '/h', userData: '/sem espaco/../ud' }, (ssh) => [ssh.paths(), ssh.sshOptions()]);
-  assert.deepStrictEqual(r[0], { dir: '/ud/iphone-ssh', key: '/ud/iphone-ssh/id_iphone', publicKey: '/ud/iphone-ssh/id_iphone.pub', knownHosts: '/ud/iphone-ssh/known_hosts' });
-  assert.deepStrictEqual(r[1], ['-i', '/ud/iphone-ssh/id_iphone', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=/ud/iphone-ssh/known_hosts', '-o', 'GlobalKnownHostsFile=/dev/null']);
+  const r = comAmbiente({ home: casaDoTeste, userData: '/sem espaco/../ud' }, (ssh) => [ssh.paths(), ssh.sshOptions()]);
+  const dir = path.join('/ud', 'iphone-ssh');
+  assert.deepStrictEqual(r[0], { dir, key: path.join(dir, 'id_iphone'), publicKey: path.join(dir, 'id_iphone.pub'), knownHosts: path.join(dir, 'known_hosts') });
+  assert.deepStrictEqual(r[1], ['-i', '/ud/iphone-ssh/id_iphone', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=/ud/iphone-ssh/known_hosts', '-o', `GlobalKnownHostsFile=${nulo}`]);
 });
 
-test('migrateLegacy: move chave e .pub, herda só as linhas do túnel USB', () => {
+test('migrateLegacy: move chave e .pub, herda só as linhas do túnel USB (modo do arquivo só no Mac e Linux: o NTFS não guarda 755, 644 e 600)', () => {
   const p = palco({ 'home/.ssh/id_iphone': 'privada', 'home/.ssh/id_iphone.pub': 'publica', 'home/.ssh/known_hosts': KNOWN_HOSTS_ANTIGO });
   const r = comAmbiente(p, (ssh) => ssh.migrateLegacy());
   assert.deepStrictEqual(r, { dir: path.join(p.userData, 'iphone-ssh'), key: path.join(p.userData, 'iphone-ssh', 'id_iphone'), publicKey: path.join(p.userData, 'iphone-ssh', 'id_iphone.pub'), knownHosts: path.join(p.userData, 'iphone-ssh', 'known_hosts') });
   assert.deepStrictEqual(arvore(p.raiz), {
-    'home/': '755', 'home/.ssh/': '755', 'home/.ssh/known_hosts': `644 ${KNOWN_HOSTS_ANTIGO}`,
-    'ud/': '700', 'ud/iphone-ssh/': '700', 'ud/iphone-ssh/id_iphone': '600 privada', 'ud/iphone-ssh/id_iphone.pub': '644 publica',
-    'ud/iphone-ssh/known_hosts': '600 [127.0.0.1]:2222 ssh-ed25519 AAAA1\n[127.0.0.1]:2222 ecdsa CCCC\n',
+    'home/': permissao('755'), 'home/.ssh/': permissao('755'), 'home/.ssh/known_hosts': `${permissao('644')} ${KNOWN_HOSTS_ANTIGO}`,
+    'ud/': permissao('700'), 'ud/iphone-ssh/': permissao('700'), 'ud/iphone-ssh/id_iphone': `${permissao('600')} privada`, 'ud/iphone-ssh/id_iphone.pub': `${permissao('644')} publica`,
+    'ud/iphone-ssh/known_hosts': `${permissao('600')} [127.0.0.1]:2222 ssh-ed25519 AAAA1\n[127.0.0.1]:2222 ecdsa CCCC\n`,
   });
   assert.deepStrictEqual(diario, [`log [iPhone SSH] chave movida de ~/.ssh para ${r.key}`]);
   p.limpar();
 });
 
-test('migrateLegacy: chave do app e known_hosts do app já existentes ficam como estão', () => {
+test('migrateLegacy: chave do app e known_hosts do app já existentes ficam como estão (modo do arquivo só no Mac e Linux: o NTFS não guarda 755, 644 e 600)', () => {
   const p = palco({ 'home/.ssh/id_iphone': 'antiga', 'home/.ssh/known_hosts': KNOWN_HOSTS_ANTIGO, 'ud/iphone-ssh/id_iphone': 'nova', 'ud/iphone-ssh/known_hosts': 'pin' });
   comAmbiente(p, (ssh) => ssh.migrateLegacy());
   const t = arvore(p.raiz);
-  assert.deepStrictEqual([t['home/.ssh/id_iphone'], t['ud/iphone-ssh/id_iphone'], t['ud/iphone-ssh/known_hosts']], ['644 antiga', '644 nova', '644 pin']);
+  assert.deepStrictEqual([t['home/.ssh/id_iphone'], t['ud/iphone-ssh/id_iphone'], t['ud/iphone-ssh/known_hosts']], [`${permissao('644')} antiga`, `${permissao('644')} nova`, `${permissao('644')} pin`]);
   assert.deepStrictEqual(diario, []);
   p.limpar();
 });
 
-test('migrateLegacy: chave sem .pub, known_hosts antigo sem túnel e sem nada antigo', () => {
+test('migrateLegacy: chave sem .pub, known_hosts antigo sem túnel e sem nada antigo (modo do arquivo só no Mac e Linux: o NTFS não guarda 755, 644 e 600)', () => {
   const p = palco({ 'home/.ssh/id_iphone': 'so-privada', 'home/.ssh/known_hosts': 'github.com ssh-rsa B\n' });
   comAmbiente(p, (ssh) => ssh.migrateLegacy());
   assert.deepStrictEqual(Object.keys(arvore(path.join(p.userData))).sort(), ['iphone-ssh/', 'iphone-ssh/id_iphone']);
   const vazio = palco();
   comAmbiente(vazio, (ssh) => ssh.migrateLegacy());
-  assert.deepStrictEqual(arvore(vazio.raiz), { 'ud/': '700', 'ud/iphone-ssh/': '700' });
+  assert.deepStrictEqual(arvore(vazio.raiz), { 'ud/': permissao('700'), 'ud/iphone-ssh/': permissao('700') });
   assert.deepStrictEqual(diario, []);
   p.limpar();
   vazio.limpar();

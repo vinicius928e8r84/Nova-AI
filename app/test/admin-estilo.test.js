@@ -13,13 +13,14 @@ const LIGACAO = '<link rel="stylesheet" href="admin.css">';
 const BLOCO_DE_ESTILO = /<style>([\s\S]*?)<\/style>/g;
 const ESPERADO = { sha256: 'fd21b4eaf392876bdfdabe2d723ee6274141085ae427ce8ef422783790faf5b3', linhasDeEstilo: 730 };
 
+const comFimDeLinhaLf = texto => texto.replace(/\r\n/g, '\n');
 const semComentarios = css => css.replace(/\/\*[\s\S]*?\*\//g, '');
 const linhasDoEstilo = css => semComentarios(css).split('\n').map(linha => linha.trim()).filter(Boolean);
 
 function documentoEfetivo() {
-  const html = fs.readFileSync(ADMIN, 'utf8');
+  const html = comFimDeLinhaLf(fs.readFileSync(ADMIN, 'utf8'));
   if (!html.includes(LIGACAO)) return html;
-  return html.replace(LIGACAO, () => `<style>\n${fs.readFileSync(ESTILO, 'utf8')}</style>`);
+  return html.replace(LIGACAO, () => `<style>\n${comFimDeLinhaLf(fs.readFileSync(ESTILO, 'utf8'))}</style>`);
 }
 
 function normalizado(documento) {

@@ -378,7 +378,7 @@ const CENAS_DE_ARQUIVOS = [
       await chamarTodos(palco, [
         ['browser-upload-file', { selector: 'e4', filePath: path.join(pasta, 'exato.bin') }],
         ['browser-upload-file', { selector: 'e4', filePath: path.join(pasta, 'final thumbnail') }],
-        ['browser-upload-file', { selector: '#arquivo', filePaths: [path.join(pasta, 'video.mp4'), path.join(pasta, 'NOTA'), null, path.join(pasta, 'sumiu')] }],
+        ['browser-upload-file', { selector: '#arquivo', filePaths: [path.join(pasta, 'NOTA'), null, path.join(pasta, 'sumiu')] }],
         ['browser-upload-file', { selector: 'e99', filePath: path.join(pasta, 'exato.bin'), timeoutMs: 40 }],
         ['browser-upload-file', { filePath: path.join(palco.raiz, 'outra', 'ausente.png') }],
         ['browser-upload-file', { filePath: path.join(palco.raiz, 'nenhuma', 'ausente.png') }],
@@ -393,6 +393,17 @@ const CENAS_DE_ARQUIVOS = [
       ]);
       palco.roteiro['locator.setInputFiles'] = undefined;
       await chamarTodos(palco, [['browser-upload-file', { selector: 'e4', filePath: path.join(pasta, 'exato.bin') }]]);
+    },
+  },
+  {
+    nome: 'envio de arquivo: resolução esperta por maiúsculas (só em sistema que diferencia maiúsculas: no Windows e no Mac o arquivo é achado direto)',
+    soComMaiusculasDiferentes: true,
+    rodar: async (palco, exportado) => {
+      await iniciar(palco, exportado);
+      palco.criarArquivo('arquivos/Video.MP4', 'mp4');
+      await chamarTodos(palco, [
+        ['browser-upload-file', { selector: '#arquivo', filePaths: [path.join(palco.raiz, 'arquivos', 'video.mp4')] }],
+      ]);
     },
   },
   {
