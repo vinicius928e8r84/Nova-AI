@@ -188,7 +188,7 @@ test('auditoria: o npm que não responde JSON, que dá erro ou sem package.json 
   assert.match(semPacote.saida[0], /^error: ENOENT: no such file or directory, open '.*app\/package\.json'$/);
 });
 
-test('auditoria: bandeira desconhecida e base que não existe devolvem 2, e --help devolve 0 pelo CLI', () => {
+test('auditoria: bandeira desconhecida, base que não existe e valor que falta nas bandeiras', () => {
   const desconhecida = cenario({ 'a.js': 'x\n' }, {}, ['--x']);
   assert.deepEqual([desconhecida.codigo, desconhecida.saida], [2, ['error: bandeira desconhecida: --x']]);
   const inexistente = cenario({ 'a.js': 'x\n' }, {}, ['--base', 'nao-existe']);
@@ -197,4 +197,14 @@ test('auditoria: bandeira desconhecida e base que não existe devolvem 2, e --he
   const ajuda = cenario({ 'a.js': 'x\n' }, {}, ['--help']);
   assert.equal(ajuda.codigo, 0);
   assert.ok(ajuda.saida[0].startsWith('uso: node scripts/regras/auditoria.js [--base <ref>] [--raiz <pasta>]'));
+  const ajudaPrimeiro = cenario({ 'a.js': 'x\n' }, {}, ['--help', '--x']);
+  assert.equal(ajudaPrimeiro.codigo, 0);
+  const ajudaDepois = cenario({ 'a.js': 'x\n' }, {}, ['--x', '--help']);
+  assert.deepEqual([ajudaDepois.codigo, ajudaDepois.saida], [2, ['error: bandeira desconhecida: --x']]);
+  const baseSemValor = cenario({ 'a.js': 'x\n' }, {}, ['--base']);
+  assert.equal(baseSemValor.codigo, 2);
+  assert.match(baseSemValor.saida[0], /^error: a base origin\/main não é um commit deste repositório/);
+  const raizSemValor = cenario({ 'a.js': 'x\n' }, {}, ['--base', 'main', '--raiz']);
+  assert.equal(raizSemValor.codigo, 1);
+  assert.match(raizSemValor.saida[0], /^error: /);
 });
