@@ -110,7 +110,7 @@ Os avisos sempre incluem: global muda `Accept-Language` dos sites; respring derr
 1. **Idioma no aparelho** — `nova-locale language revert` devolve o valor que existia antes do primeiro `set` daquele domínio (backup em `/var/mobile/Library/Preferences/com.aquiles.novalocale.idioma.<domínio>.orig`, criado por cópia, nunca apagado).
    - Se o backup não existir (nada foi aplicado por este helper), o comando falha com mensagem clara em vez de chutar um valor.
    - Atenção: hoje o aparelho já está `pt-BR`; o "original" que o helper guardar na primeira vez será `pt-BR`. Para forçar inglês: `language set en-US --locale en_US`.
-2. **IPC no app** — o módulo vem de `app/electron/services/idioma-ipc.js`; para voltar, restaure o arquivo anterior guardado em `reservas/` (`AGENTS.md` seção 5).
+2. **IPC no app** — o módulo vem de `app/electron/services/idioma-ipc.js`; para voltar, restaure o arquivo anterior guardado em `~/Nova-AI-reservas/` (`AGENTS.md` seção 5).
 3. **Helper** — o `nova-locale.sh` v2 aplicado hoje tem backup `nova-locale.sh.bak-locale-v2-20261107-154333` no `iphone-setup` do app.
 
 ## Para levar ao aparelho (só com OK do usuário)

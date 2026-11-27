@@ -61,18 +61,20 @@ gh pr create --base main --head <branch> --fill
 - **Chaves e segredos**: nunca commitar `secret_key.json`, `*_key.json`,
   `remote_tokens.json`, `id_iphone`, sessões de WhatsApp/Telegram. As chaves do
   app vivem em `~/Library/Application Support/nova_dsktp/`, fora do repositório.
-- Snapshots de `reservas/` do **bundle minificado** (`index-Dun7lr2S*.js`) são
-  aceitos por tamanho (7,3 MB cada), mas evite criar cópias novas sem necessidade.
 
 ## 5. Aplicar no app instalado
 
 O código fonte fica neste repositório; o app instalado em
 `/Applications/Nova AI Mac.app` é atualizado à mão.
 
-- Sempre guarde o arquivo anterior na pasta `reservas/` da integração antes de
-  substituir o do app instalado.
-- No PR, liste **exatamente** quais arquivos do app foram trocados e como
-  reaplicar (script ou `cp`).
+- Antes de substituir um arquivo do app instalado, guarde o anterior **fora do
+  repositório**, em `~/Nova-AI-reservas/AAAAMMDD-HHMMSS-<branch>/` (no Windows,
+  `%USERPROFILE%\Nova-AI-reservas\...`), mantendo o caminho relativo a
+  `Contents/Resources/app` (no Windows, `resources\app`). Essa pasta não entra
+  no git nem se apaga.
+- No PR, liste **exatamente** quais arquivos do app foram trocados, como
+  reaplicar (script ou `cp`) e o nome da pasta em `~/Nova-AI-reservas/` onde
+  ficou o anterior.
 - Depois de mexer em `main.js`/`preload.js`, valide com `node --check` e reinicie
   o Nova para carregar.
 - **Bundle da interface:** qualquer patch em `dist/assets/index-Dun7lr2S.js`

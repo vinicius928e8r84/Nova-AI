@@ -146,7 +146,7 @@ test('copiar ou mover arquivo de pasta isenta para o código cobra comentário',
   const mover = tentar('sem-comentario-novo', { 'backup-antes-traducao/pwa/app.js': null, 'app/electron/novo/app2.js': antigo }, base, repo => repo.git('rm', '-q', '--cached', 'backup-antes-traducao/pwa/app.js'));
   assert.equal(mover.codigo, 1, mover.saida);
   const reserva = tentar('sem-comentario-novo', { 'MAC/x/reservas/app.js': antigo }, base);
-  assert.equal(reserva.codigo, 0, reserva.saida);
+  assert.equal(reserva.codigo, 1, reserva.saida);
 });
 
 test('renomeação de arquivo de código comum com comentário antigo continua isenta', () => {

@@ -177,10 +177,10 @@ test('Python: 601 linhas de código passam dois do limite 599; comentário e lin
 });
 
 test('mede JS e Python de código; fica de fora o que configuracao.json isenta', () => {
-  for (const caminho of ['app/electron/main.js', 'app/x.mjs', 'MAC/a/b.cjs', 'app/wake_word_bg.py', 'app/electron/dist/x.js', 'vendor/x.js']) {
+  for (const caminho of ['app/electron/main.js', 'app/x.mjs', 'MAC/a/b.cjs', 'app/wake_word_bg.py', 'app/electron/dist/x.js', 'vendor/x.js', 'MAC/x/reservas/a.js']) {
     assert.equal(regra.seAplica(CONFIG, caminho), true, caminho);
   }
-  for (const caminho of ['app/dist/assets/a.js', 'MAC/x/dist/a.js', 'MAC/x/reservas/a.js', 'backup-antes-traducao/a.js', 'app/electron/pwa/marked.min.js', 'a.css', 'a.json', 'a.ts']) {
+  for (const caminho of ['app/dist/assets/a.js', 'MAC/x/dist/a.js', 'backup-antes-traducao/a.js', 'app/electron/pwa/marked.min.js', 'a.css', 'a.json', 'a.ts']) {
     assert.equal(regra.seAplica(CONFIG, caminho), false, caminho);
   }
 });
@@ -327,10 +327,10 @@ test('falha: arquivo novo no caminho de um arquivo apagado não herda o teto', (
 });
 
 test('o que configuracao.json isenta não é medido, nem leva teto ao sair da isenção', () => {
-  const repo = criar({ 'MAC/x/reservas/a.js': TRES_PONTOS });
+  const repo = criar({ 'MAC/x/dist/a.js': TRES_PONTOS });
   repo.escrever({ 'app/dist/assets/novo.js': TRES_PONTOS });
   const isento = executar(repo);
-  repo.git('mv', 'MAC/x/reservas/a.js', 'app/saiu.js');
+  repo.git('mv', 'MAC/x/dist/a.js', 'app/saiu.js');
   const saiu = executar(repo);
   repo.limpar();
   assert.equal(isento.codigo, 0, isento.saida);

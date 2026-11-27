@@ -58,9 +58,18 @@ test('cópia idêntica de arquivo que já existe não escapa da regra de backup'
   assert.ok(!r.saida.includes('app/copia.js'), r.saida);
 });
 
-test('cópia idêntica continua isenta de comentário e a pasta reservas aceita o backup', () => {
+test('arquivo novo em reservas/ é barrado como cópia de backup e a mensagem cita a pasta fora do repositório', () => {
   const base = { 'app/a.js': '// velho\nconst a = 1;\n' };
-  const r = tentar('sem-binario-nem-lixo', { 'MAC/x/reservas/20261116/a.js.antes-patch': '// velho\nconst a = 1;\n' }, base);
+  const novos = ['MAC/x/reservas/20261116/a.js.antes-patch', 'MAC/x/reservas/a.js', 'reservas/b.js', 'iphone/y/reservas/1/c.js', 'app/reservas/d.txt'];
+  const r = tentar('sem-binario-nem-lixo', Object.fromEntries(novos.map(caminho => [caminho, '// velho\nconst a = 1;\n'])), base);
+  assert.equal(r.codigo, 1, r.saida);
+  for (const caminho of novos) assert.ok(r.saida.includes(caminho), r.saida);
+  assert.ok(r.saida.includes('~/Nova-AI-reservas/'), r.saida);
+});
+
+test('cópia idêntica continua isenta de comentário fora de reservas/', () => {
+  const base = { 'app/a.js': '// velho\nconst a = 1;\n' };
+  const r = tentar('sem-comentario-novo', { 'app/b.js': '// velho\nconst a = 1;\n' }, base);
   assert.equal(r.codigo, 0, r.saida);
 });
 
@@ -115,11 +124,10 @@ test('pastas vendor, dist e fixtures fora do lugar previsto não escapam da regr
   for (const nome of ['vendor/x.js', 'dist/y.js', 'fixtures/z.js']) assert.ok(r.saida.includes(nome), r.saida);
 });
 
-test('os lugares previstos continuam isentos: bundle da interface, reservas e backup', () => {
+test('os lugares previstos continuam isentos: bundle da interface e backup', () => {
   const r = tentar('sem-comentario-novo', {
     'app/dist/assets/a.js': '// por que\n',
     'MAC/x/index-Dun7lr2S.patched.js': '// por que\n',
-    'MAC/x/reservas/1/a.js': '// por que\n',
     'backup-antes-traducao/a.js': '// por que\n',
   });
   assert.equal(r.codigo, 0, r.saida);
