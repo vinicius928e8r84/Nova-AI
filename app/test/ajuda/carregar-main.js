@@ -4,17 +4,30 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const CAMINHO_DO_MAIN = path.join(__dirname, '..', '..', 'electron', 'main.js');
+const PASTA_DO_MAIN = path.join(__dirname, '..', '..', 'electron');
+const CAMINHO_DO_MAIN = path.join(PASTA_DO_MAIN, 'main.js');
+const PEDIDO_DE_MODULO_DO_MAIN = /^\.\/main\.[a-z-]+(\.js)?$/;
+const ehArquivoDoMain = (arquivo) => path.dirname(arquivo) === PASTA_DO_MAIN && /^main(\.[a-z-]+)?\.js$/.test(path.basename(arquivo));
 const ARRANQUE_INTERROMPIDO = Symbol('arranque interrompido no primeiro show da janela');
 
 let carregamentoAtual = null;
 const carregarOriginal = Module._load;
+
+function pedidoDeArquivoDoMain(pedido, pai) {
+  if (!carregamentoAtual || !pai?.filename) return false;
+  return ehArquivoDoMain(pai.filename) && !PEDIDO_DE_MODULO_DO_MAIN.test(pedido);
+}
+
+function moduloSubstituto(atual, pedido) {
+  if (atual.ausentes.includes(pedido)) throw Object.assign(new Error(`Cannot find module '${pedido}'`), { code: 'MODULE_NOT_FOUND' });
+  if (Object.prototype.hasOwnProperty.call(atual.modulos, pedido)) return { valor: atual.modulos[pedido] };
+  if (!Module.isBuiltin(pedido)) return { valor: atual.dubleDoModulo(pedido) };
+  return null;
+}
+
 Module._load = function (pedido, pai, ...resto) {
-  const atual = carregamentoAtual;
-  if (atual && pai?.filename === atual.caminho) {
-    if (Object.prototype.hasOwnProperty.call(atual.modulos, pedido)) return atual.modulos[pedido];
-    if (!Module.isBuiltin(pedido)) return atual.dubleDoModulo(pedido);
-  }
+  const substituto = pedidoDeArquivoDoMain(pedido, pai) ? moduloSubstituto(carregamentoAtual, pedido) : null;
+  if (substituto) return substituto.valor;
   return carregarOriginal.call(this, pedido, pai, ...resto);
 };
 
@@ -133,8 +146,9 @@ function processosProibidos() {
 }
 
 function silenciado(funcao) {
-  const antes = { log: console.log, warn: console.warn, error: console.error };
+  const antes = { log: console.log, info: console.info, warn: console.warn, error: console.error };
   console.log = () => {};
+  console.info = () => {};
   console.warn = () => {};
   console.error = () => {};
   const restaurar = () => Object.assign(console, antes);
@@ -165,16 +179,17 @@ function guardarEstadoDoProcesso() {
   };
 }
 
-function carregarMain({ electron: sobreporElectron = {}, modulos = {} } = {}) {
+function carregarMain({ electron: sobreporElectron = {}, modulos = {}, ausentes = [], preparar = () => {} } = {}) {
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'nova-main-'));
   raizesCriadas.push(raiz);
+  preparar(raiz);
   const registro = [];
   const arranque = { interromper: true, erros: [] };
   const falso = criarElectron(raiz, registro, arranque, sobreporElectron);
   const dubles = new Map();
   const restaurarProcesso = guardarEstadoDoProcesso();
   carregamentoAtual = {
-    caminho: CAMINHO_DO_MAIN,
+    ausentes,
     modulos: {
       electron: falso.electron,
       child_process: processosProibidos(),
@@ -189,7 +204,7 @@ function carregarMain({ electron: sobreporElectron = {}, modulos = {} } = {}) {
   };
   process.resourcesPath = raiz;
   try {
-    delete require.cache[CAMINHO_DO_MAIN];
+    for (const arquivo of Object.keys(require.cache)) if (ehArquivoDoMain(arquivo)) delete require.cache[arquivo];
     silenciado(() => require(CAMINHO_DO_MAIN));
   } finally {
     restaurarProcesso();

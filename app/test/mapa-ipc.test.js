@@ -187,6 +187,7 @@ function montarMapa() {
   totais.total = registros.reduce((soma, r) => soma + r.canais.length, 0);
   return {
     totais,
+    canais: registros.flatMap((r) => r.canais).sort(),
     registrados,
     dinamicos: registros.flatMap((r) => r.dinamicos),
     consumidos: comoObjeto(consumos),

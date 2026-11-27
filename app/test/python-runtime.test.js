@@ -47,7 +47,7 @@ const fonte = arquivo => fs.readFileSync(path.join(__dirname, '..', arquivo), 'u
 
 test('os tres processos Python rodam com windowsHide', () => {
   const main = fonte('electron/main.js');
-  assert.match(main, /spawn\(pythonRuntime\.python\(\), \[scriptPath\], \{ windowsHide: true \}\)/);
+  assert.match(fonte('electron/main.sistema.js'), /spawn\(pythonRuntime\.python\(\), \[scriptPath\], \{ windowsHide: true \}\)/);
   assert.match(main, /exec\(cmd, \{ cwd: ytDir, windowsHide: true \}\)/);
   assert.match(fonte('electron/services/agent-swarm-controller.js'), /pythonArgs, \{ cwd: path\.join\(__dirname, '\.\.', '\.\.'\), windowsHide: true \}/);
 });

@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const raiz=path.resolve(__dirname,'../..');
 const arquivos=[
  'app/electron/services/ios-camera.js',
- 'app/electron/services/cam-live-iphone.js',
+ 'app/electron/services/cam-live-iphone-tunel.js',
  'app/electron/services/ios-bridge.js',
  'app/electron/services/idioma-ipc.js',
  'app/electron/services/physicalMobileService.js',
