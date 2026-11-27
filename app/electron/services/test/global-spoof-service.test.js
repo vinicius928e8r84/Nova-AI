@@ -51,6 +51,7 @@ Module._load = function (pedido, ...resto) {
 const GlobalSpoofService = require('../global-spoof-service');
 
 const plataformaOriginal = Object.getOwnPropertyDescriptor(process, 'platform');
+const matarDeVerdade = process.kill;
 const raizes = [];
 const servicos = [];
 
@@ -65,12 +66,16 @@ beforeEach(() => {
     aoSpawn: () => processoFalso(),
     aoExecSync: () => '',
     cliente: clienteCdpFalso(),
+    sinais: [],
   });
+  ffmpegFalso(0);
+  process.kill = (pid, sinal) => { palco.sinais.push({ pid, sinal }); return true; };
 });
 
 afterEach(async () => {
   while (servicos.length) await servicos.pop().stopHijack();
   Object.defineProperty(process, 'platform', plataformaOriginal);
+  process.kill = matarDeVerdade;
 });
 
 after(() => {
@@ -91,6 +96,7 @@ function criarServico() {
   } finally {
     os.tmpdir = tmpdirOriginal;
   }
+  servico.ffmpegPath = 'ffmpeg-falso';
   servico._findChrome = () => 'chrome-falso';
   servico._generateY4M = async () => {};
   servicos.push(servico);
@@ -197,7 +203,7 @@ function abrirChromeOrfao(marca) {
   return orfao;
 }
 
-const estaVivo = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const estaVivo = (pid) => { try { matarDeVerdade(pid, 0); return true; } catch { return false; } };
 
 test('no Windows a limpeza acha o Chrome órfão do spoof e o encerra', { skip: !eWindows }, async () => {
   const marca = `nova_webcam_hijack_teste_${process.pid}`;
@@ -225,13 +231,14 @@ function rodarDisfarceNaPagina(fonte, agenteDoUsuario) {
   const pagina = vm.createContext({
     MediaStreamTrack,
     MediaDevices,
-    navigator: { userAgent: agenteDoUsuario },
     document: { addEventListener() {}, documentElement: {} },
     fetch: () => Promise.resolve('chegou'),
     console,
     setTimeout,
   });
   pagina.window = pagina;
+  pagina.navigator = vm.runInContext('({})', pagina);
+  pagina.navigator.userAgent = agenteDoUsuario;
   vm.runInContext(fonte, pagina);
   return pagina;
 }
@@ -273,4 +280,69 @@ test('perfil Default e perfil sem o campo: a proteção contra varredura de port
 test('perfil que desliga a proteção de propósito continua deixando o fetch para localhost passar', async () => {
   const pagina = await abrirPaginaComPerfil({ timezone: 'Europe/Lisbon', locale: 'pt-PT', portScanProtection: 'disable' });
   assert.strictEqual(await pagina.fetch('http://localhost:9222/json'), 'chegou');
+});
+
+function ffmpegFalso(demora) {
+  palco.aoSpawn = (comando, args) => {
+    const processo = processoFalso();
+    if (comando === 'ffmpeg-falso') {
+      setTimeout(() => {
+        try { fs.writeFileSync(args[args.length - 1], 'RIFF'); } catch {}
+        processo.emit('close', 0);
+      }, demora);
+    }
+    return processo;
+  };
+}
+
+async function abrirSemAudioPath(sistema) {
+  usarPlataforma(sistema);
+  const { servico, tempDir } = criarServico();
+  ffmpegFalso(80);
+  await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default' }));
+  return path.join(tempDir, 'room_ambience.wav');
+}
+
+for (const [sistema, tocador] of [['win32', 'powershell'], ['darwin', '/usr/bin/afplay']]) {
+  test(`${sistema}: sem audioPath o WAV de ambiente já existe na primeira abertura e toca`, async () => {
+    const wav = await abrirSemAudioPath(sistema);
+    const argumentosDoChrome = palco.spawns.find((s) => s.comando === 'chrome-falso').args;
+    assert.ok(argumentosDoChrome.includes(`--use-file-for-fake-audio-capture=${wav}`));
+    const reproducao = palco.spawns.find((s) => s.comando === tocador);
+    assert.ok(reproducao, 'o áudio falso não foi tocado');
+    assert.ok(reproducao.args.join(' ').includes(wav));
+    assert.ok(!reproducao.args.join(' ').includes('undefined'));
+  });
+}
+
+for (const [sistema, tocador] of [['win32', 'powershell'], ['darwin', '/usr/bin/afplay']]) {
+  test(`${sistema}: com audioPath, o arquivo escolhido é o que toca`, async () => {
+    usarPlataforma(sistema);
+    const { servico, tempDir } = criarServico();
+    const escolhido = path.join(tempDir, 'minha-voz.wav');
+    fs.mkdirSync(tempDir, { recursive: true });
+    fs.writeFileSync(escolhido, 'RIFF');
+    await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default', audioPath: escolhido }));
+    const reproducao = palco.spawns.find((s) => s.comando === tocador);
+    assert.ok(reproducao.args.join(' ').includes(escolhido));
+  });
+}
+
+test('darwin: o stopHijack encerra o grupo do Chrome sem chamar o taskkill', async () => {
+  usarPlataforma('darwin');
+  const { servico } = criarServico();
+  await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default' }));
+  await servico.stopHijack();
+  assert.ok(!palco.spawns.some((s) => s.comando === 'taskkill'));
+  assert.ok(palco.sinais.some((s) => s.pid === -4242));
+});
+
+test('win32: o stopHijack continua usando o taskkill pelo PID do Chrome', async () => {
+  usarPlataforma('win32');
+  const { servico } = criarServico();
+  await servico.startHijack(Buffer.alloc(0), ajustesDaInterface({ profile: 'Default' }));
+  await servico.stopHijack();
+  const taskkill = palco.spawns.find((s) => s.comando === 'taskkill');
+  assert.deepStrictEqual(taskkill.args, ['/F', '/T', '/PID', '4242']);
+  assert.ok(!palco.sinais.some((s) => s.pid === -4242));
 });

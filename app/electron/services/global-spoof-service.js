@@ -7,7 +7,7 @@ const fs    = require('fs');
 const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
-const { prepararPagina, abrirUrlPedida } = require('./global-spoof-abertura');
+const { prepararPagina, abrirUrlPedida, gerarAmbiente, encerrarChrome } = require('./global-spoof-abertura');
 function ensureProfileStealthSpecs(p) {
   if (!p) return;
   const platform = p.platform || 'android';
@@ -537,16 +537,14 @@ class GlobalSpoofService {
                     '-f', 'lavfi', '-i', 'anoisesrc=a=0.01:c=white:r=48000', 
                     '-t', '15', '-ac', '1', '-ar', '48000', audioFile
                 ];
-                spawn(this.ffmpegPath, audioArgs, { windowsHide: true }).on('close', () => {
-                    console.log('[GlobalSpoof] Ambient audio file generated.');
-                });
+                await gerarAmbiente(spawn, this.ffmpegPath, audioArgs);
             }
         }
 
         if (audioFile && fs.existsSync(audioFile)) {
             chromeArgs.push(`--use-file-for-fake-audio-capture=${audioFile}`);
             try {
-                const psCommand = `$wmp = New-Object -ComObject wmplayer.ocx; $wmp.URL = '${settings.audioPath.replace(/'/g, "''")}'; $wmp.settings.setMode('loop', $true); $wmp.controls.play(); while($wmp.playState -ne 1){ Start-Sleep -Seconds 1 }`;
+                const psCommand = `$wmp = New-Object -ComObject wmplayer.ocx; $wmp.URL = '${audioFile.replace(/'/g, "''")}'; $wmp.settings.setMode('loop', $true); $wmp.controls.play(); while($wmp.playState -ne 1){ Start-Sleep -Seconds 1 }`;
                 this.ffplayProcess = process.platform === 'darwin' ? spawn('/usr/bin/afplay', [audioFile]) : spawn('powershell', ['-WindowStyle', 'Hidden', '-Command', psCommand], {
                     windowsHide: true,
                     detached: false,
@@ -1446,9 +1444,7 @@ applyStealth(window);
 
         if (this.chromePid) {
             try {
-                spawn('taskkill', ['/F', '/T', '/PID', String(this.chromePid)], {
-                    windowsHide: true, detached: true, stdio: 'ignore',
-                }).unref();
+                encerrarChrome(spawn, this.chromePid);
             } catch (_) {}
             this.chromePid     = null;
             this.chromeProcess = null;
