@@ -8,33 +8,51 @@ const LIBERAR = 'Runtime.runIfWaitingForDebugger';
 const PRAZO_EM_MS = 300;
 const DOCUMENTO = { requestId: 'documento-1', resourceType: 'Document', request: { url: 'https://site.example.com/b', headers: { Referer: 'https://site.example.com/a' } } };
 
-function criarChrome({ comFalha } = {}) {
-  const chrome = { enviados: [], ouvintes: {}, pausadas: new Set(), destravar: new Map() };
-  const travaDe = (sessao) => {
-    if (!chrome.destravar.has(sessao)) {
-      let destravar;
-      const destravada = new Promise((resolve) => { destravar = resolve; });
-      chrome.destravar.set(sessao, { destravada, destravar });
-    }
-    return chrome.destravar.get(sessao);
-  };
-  const responderDepois = async (metodo, sessao) => {
-    if (chrome.pausadas.has(sessao)) await travaDe(sessao).destravada;
-    if (metodo === comFalha) throw new Error(`${metodo} recusado`);
-    return {};
-  };
-  chrome.on = (evento, ouvinte) => { chrome.ouvintes[evento] = ouvinte; };
-  chrome.send = async (metodo, params, sessao) => {
-    chrome.enviados.push({ metodo, params, sessao });
-    if (metodo.startsWith('Fetch.')) {
-      if (metodo === 'Fetch.failRequest') travaDe(sessao).destravar();
-      return {};
-    }
-    if (metodo === LIBERAR && chrome.pausadas.has(sessao)) setTimeout(() => chrome.ouvintes['Fetch.requestPaused'](DOCUMENTO, sessao), 5);
-    return metodo === LIBERAR ? {} : responderDepois(metodo, sessao);
-  };
-  return chrome;
+function criarTrava() {
+  let destravar;
+  const destravada = new Promise((resolve) => { destravar = resolve; });
+  return { destravada, destravar };
 }
+
+class ChromeFalso {
+  constructor(comFalha) {
+    this.comFalha = comFalha;
+    this.enviados = [];
+    this.ouvintes = {};
+    this.pausadas = new Set();
+    this.destravar = new Map();
+  }
+
+  on(evento, ouvinte) {
+    this.ouvintes[evento] = ouvinte;
+  }
+
+  travaDe(sessao) {
+    if (!this.destravar.has(sessao)) this.destravar.set(sessao, criarTrava());
+    return this.destravar.get(sessao);
+  }
+
+  async responderDepoisDaNavegacao(metodo, sessao) {
+    if (this.pausadas.has(sessao)) await this.travaDe(sessao).destravada;
+    if (metodo === this.comFalha) throw new Error(`${metodo} recusado`);
+    return {};
+  }
+
+  liberar(sessao) {
+    if (this.pausadas.has(sessao)) setTimeout(() => this.ouvintes['Fetch.requestPaused'](DOCUMENTO, sessao), 5);
+    return {};
+  }
+
+  async send(metodo, params, sessao) {
+    this.enviados.push({ metodo, params, sessao });
+    if (metodo === 'Fetch.failRequest') this.travaDe(sessao).destravar();
+    if (metodo.startsWith('Fetch.')) return {};
+    if (metodo === LIBERAR) return this.liberar(sessao);
+    return this.responderDepoisDaNavegacao(metodo, sessao);
+  }
+}
+
+const criarChrome = ({ comFalha } = {}) => new ChromeFalso(comFalha);
 
 async function anexar(chrome, sessionId, targetInfo, { pausada = true } = {}) {
   if (pausada) chrome.pausadas.add(sessionId);
