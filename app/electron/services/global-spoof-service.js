@@ -119,6 +119,10 @@ function ensureProfileStealthSpecs(p) {
   }
 }
 
+function valorFixo(valor, atual) {
+  return valor && valor !== 'optimal' ? valor : atual;
+}
+
 class GlobalSpoofService {
     constructor(mainWindow, app, browserFarmService) {
         this.mainWindow = mainWindow;
@@ -381,9 +385,7 @@ class GlobalSpoofService {
                 }
             }
 
-            if (activeProfile.timezone !== 'optimal') {
-                tTimezone = activeProfile.timezone;
-            }
+            tTimezone = valorFixo(activeProfile.timezone, tTimezone);
             if (activeProfile.locationMode === 'custom') {
                 if (activeProfile.latitude !== undefined && activeProfile.latitude !== null) {
                     tLat = activeProfile.latitude;
@@ -392,9 +394,7 @@ class GlobalSpoofService {
                     tLng = activeProfile.longitude;
                 }
             }
-            if (activeProfile.locale !== 'optimal') {
-                tLocale = activeProfile.locale;
-            }
+            tLocale = valorFixo(activeProfile.locale, tLocale);
         }
 
         let tOffset     = -Math.round(((regional.utcOffset  !== undefined) ? regional.utcOffset : 4) * 60);
