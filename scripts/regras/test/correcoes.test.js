@@ -207,7 +207,7 @@ test('workflows: sem pull_request_target, ações presas por SHA e regras lidas 
     const texto = fs.readFileSync(path.join(pasta, arquivo), 'utf8');
     assert.ok(!/pull_request_target/.test(texto), arquivo);
     for (const m of texto.matchAll(/uses: (\S+)/g)) assert.match(m[1], /@[0-9a-f]{40}$/, `${arquivo}: ${m[1]}`);
-    assert.ok(texto.includes('git archive'), `${arquivo} não usa as regras da base`);
+    if (texto.includes('scripts/regras')) assert.ok(texto.includes('git archive'), `${arquivo} não usa as regras da base`);
     assert.ok(!/^\s*#/m.test(texto), `${arquivo} tem comentário`);
   }
 });

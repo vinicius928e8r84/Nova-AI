@@ -4,12 +4,15 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const portao = require('../../ci/portao-dos-testes');
 
 const RAIZ = path.join(__dirname, '..', '..', '..');
 const SCRIPT = path.join(RAIZ, 'scripts', 'ci', 'portao-dos-testes.js');
-const WORKFLOW = fs.readFileSync(path.join(RAIZ, '.github', 'workflows', 'regras.yml'), 'utf8');
+const PASTA_DOS_WORKFLOWS = path.join(RAIZ, '.github', 'workflows');
+const lerWorkflow = nome => fs.readFileSync(path.join(PASTA_DOS_WORKFLOWS, nome), 'utf8');
+const WORKFLOW = fs.readdirSync(PASTA_DOS_WORKFLOWS).map(lerWorkflow).join('\n');
 
 const LISTA = {
   grupos: [
@@ -130,6 +133,69 @@ test('o workflow lê os grupos da lista e não repete nome de teste', () => {
   for (const job of jobs) assert.match(WORKFLOW, new RegExp(`node scripts/ci/portao-dos-testes\\.js --job ${job}\\b`), `o workflow precisa rodar o job ${job} da lista`);
 });
 
+const TESTES_DO_MAC = [
+  'iphone/proxy/tool/test/parse_test.m',
+  'iphone/proxy/tool/test/upstream_test.m',
+  'iphone/proxy/tool/test/rodar.sh',
+  'iphone/idioma/test/rodar.sh',
+  'iphone/idioma/test/teste-novalanguage.sh',
+  'iphone/idioma/test/teste-helper.sh',
+];
+const gruposDoMac = () => lista.grupos.filter(grupo => grupo.job === 'mac');
+const arquivosDosGruposDoMac = () => new Set(gruposDoMac().flatMap(grupo => portao.arquivosDoGrupo(grupo, versionados)));
+
+test('os testes do Mac do proxy e do idioma estão num grupo do job mac', () => {
+  const noMac = arquivosDosGruposDoMac();
+  assert.deepEqual(TESTES_DO_MAC.filter(arquivo => !noMac.has(arquivo)), []);
+});
+
+test('nenhum teste em Objective-C ou shell do iPhone fica de fora do job mac', () => {
+  const noMac = arquivosDosGruposDoMac();
+  const doIphone = portao.arquivosDeTeste(versionados).filter(arquivo => arquivo.startsWith('iphone/') && /\.(m|sh)$/.test(arquivo));
+  assert.ok(doIphone.length >= TESTES_DO_MAC.length);
+  assert.deepEqual(doIphone.filter(arquivo => !noMac.has(arquivo)), []);
+});
+
+test('o job mac executa os dois rodar.sh com bash e só eles', () => {
+  assert.deepEqual(portao.arquivosDoJob(lista, 'mac', versionados), [['mac-do-iphone', ['iphone/idioma/test/rodar.sh', 'iphone/proxy/tool/test/rodar.sh'], 'bash']]);
+});
+
+test('grupo com executar só pode executar arquivo que ele mesmo cobre', () => {
+  const grupo = { nome: 'mac', job: 'mac', com: 'bash', arquivos: ['t/a/rodar.sh', 't/a/x_test.m'], executar: ['t/a/rodar.sh', 't/b/rodar.sh'] };
+  const arquivos = ['t/a/rodar.sh', 't/a/x_test.m', 't/b/rodar.sh'];
+  assert.match(problemasDe({ grupos: [grupo], fora: [] }, arquivos).join('\n'), /mac.*executa t\/b\/rodar\.sh.*não cobre/);
+  assert.deepEqual(problemasDe({ grupos: [{ ...grupo, executar: ['t/a/rodar.sh'] }], fora: [] }, arquivos.slice(0, 2)), []);
+});
+
+test('rodar.sh novo de outra pasta do iPhone é executado pelo job mac, mas só depois de coberto pelo grupo', () => {
+  const novo = 'iphone/modelo/test/rodar.sh';
+  const [, executados] = portao.arquivosDoJob(lista, 'mac', [...versionados, novo])[0];
+  assert.ok(executados.includes(novo));
+  assert.match(portao.conferir(lista, [...versionados, novo]).join('\n'), /iphone\/modelo\/test\/rodar\.sh/);
+});
+
+test('grupo com executar sem com é problema', () => {
+  const grupo = { nome: 'mac', job: 'mac', arquivos: ['t/a/rodar.sh'], executar: ['t/a/rodar.sh'] };
+  assert.match(problemasDe({ grupos: [grupo], fora: [] }, ['t/a/rodar.sh']).join('\n'), /mac.*sem com/);
+});
+
+test('rodar o job entrega o programa do grupo a quem executa', () => {
+  const chamadas = [];
+  const rodar = (arquivos, com) => chamadas.push([arquivos, com]) && 0;
+  portao.rodarGrupos([['a', ['x.cjs']], ['mac', ['y.sh'], 'bash']], rodar, () => {});
+  assert.deepEqual(chamadas, [[['x.cjs'], undefined], [['y.sh'], 'bash']]);
+});
+
+test('o workflow do Mac roda o job mac num macos-latest só quando o iPhone ou ele mesmo mudam', () => {
+  const texto = lerWorkflow('mac-iphone.yml');
+  assert.match(texto, /runs-on: macos-latest/);
+  assert.match(texto, /node scripts\/ci\/portao-dos-testes\.js --job mac\b/);
+  const paths = texto.match(/^ {4}paths:\r?\n((?: {6}- .+\r?\n)+)/m);
+  assert.ok(paths, 'o gatilho pull_request precisa de paths');
+  const caminhos = paths[1].split(/\r?\n/).filter(Boolean).map(linha => linha.replace(/^ +- /, '').replace(/^'|'$/g, ''));
+  assert.deepEqual(caminhos.sort(), ['.github/workflows/mac-iphone.yml', 'iphone/**']);
+});
+
 test('o teste do portão roda no job das regras', () => {
   const regras = portao.arquivosDoJob(lista, 'regras', versionados).flatMap(([, arquivos]) => arquivos);
   assert.ok(regras.includes('scripts/regras/test/portao-dos-testes.test.js'));
@@ -158,6 +224,23 @@ test('rodar o job devolve falha se um grupo falha, e roda os outros mesmo assim'
   assert.equal(portao.rodarGrupos(grupos, rodar, () => {}), 1);
   assert.deepEqual(execucoes, [['ruim.cjs'], ['bom.cjs']]);
   assert.equal(portao.rodarGrupos([['b', ['bom.cjs']]], rodar, () => {}), 0);
+});
+
+test('rodar arquivos com o programa do grupo executa cada um de verdade e falha se um deles falha', () => {
+  const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'portao-com-'));
+  const marca = path.join(pasta, 'segundo-rodou');
+  const ruim = path.join(pasta, 'ruim.js');
+  const bom = path.join(pasta, 'bom.js');
+  fs.writeFileSync(ruim, 'process.exit(3);\n');
+  fs.writeFileSync(bom, `require('fs').writeFileSync(${JSON.stringify(marca)}, 'sim');\n`);
+  try {
+    assert.equal(portao.rodarArquivos([ruim, bom], process.execPath), 1);
+    assert.equal(fs.readFileSync(marca, 'utf8'), 'sim');
+    assert.equal(portao.rodarArquivos([bom], process.execPath), 0);
+    assert.notEqual(portao.rodarArquivos([bom], path.join(pasta, 'programa-que-nao-existe')), 0);
+  } finally {
+    fs.rmSync(pasta, { recursive: true, force: true });
+  }
 });
 
 test('grupo que não achou arquivo nenhum falha em vez de passar vazio', () => {

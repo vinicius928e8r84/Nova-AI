@@ -13,7 +13,7 @@ const NOME_DE_TESTE = /(?:\.(?:test|spec)\.[A-Za-z0-9]+$|^teste?-|^test_|_test\.
 
 const AJUDA = `uso: node scripts/ci/portao-dos-testes.js --job <nome> [--listar]
 
-Roda com node --test os arquivos de cada grupo da lista scripts/ci/portao-dos-testes.json cujo job é <nome>.
+Roda os arquivos de cada grupo da lista scripts/ci/portao-dos-testes.json cujo job é <nome>: com node --test, ou um por um com o programa do campo com, quando o grupo tem executar.
 Com --listar só mostra os grupos e os arquivos. Sai com 1 se um grupo falhar ou não achar arquivo nenhum.`;
 
 function carregarLista() {
@@ -74,29 +74,44 @@ function problemasDeLugar(lista, arquivos) {
   return problemas;
 }
 
+function problemasDeExecucao(grupos, arquivos) {
+  const problemas = [];
+  for (const grupo of grupos.filter(item => item.executar)) {
+    if (!grupo.com) problemas.push(`o grupo ${grupo.nome} executa arquivos sem com: diga o programa que os executa`);
+    for (const arquivo of arquivos.filter(item => casaAlgum(grupo.executar, item) && !casaAlgum(globsDe(grupo), item))) problemas.push(`o grupo ${grupo.nome} executa ${arquivo}, que ele não cobre em arquivos`);
+  }
+  return problemas;
+}
+
 function conferir(lista, arquivos) {
-  return [...problemasDeGrupo(lista.grupos), ...problemasDeFora(lista.fora), ...problemasDeGlob(lista, arquivos), ...problemasDeLugar(lista, arquivos)];
+  return [...problemasDeGrupo(lista.grupos), ...problemasDeExecucao(lista.grupos, arquivos), ...problemasDeFora(lista.fora), ...problemasDeGlob(lista, arquivos), ...problemasDeLugar(lista, arquivos)];
 }
 
 const arquivosDoGrupo = (grupo, arquivos) => arquivos.filter(arquivo => casaAlgum(globsDe(grupo), arquivo)).sort();
 
-const arquivosDoJob = (lista, job, arquivos) => lista.grupos.filter(grupo => grupo.job === job).map(grupo => [grupo.nome, arquivosDoGrupo(grupo, arquivos)]);
+const entradaDoGrupo = (grupo, arquivos) => (grupo.executar ? [grupo.nome, arquivosDoGrupo({ arquivos: grupo.executar }, arquivos), grupo.com] : [grupo.nome, arquivosDoGrupo(grupo, arquivos)]);
+
+const arquivosDoJob = (lista, job, arquivos) => lista.grupos.filter(grupo => grupo.job === job).map(grupo => entradaDoGrupo(grupo, arquivos));
 
 function rodarGrupos(grupos, rodar, escrever) {
   let falhou = false;
-  for (const [nome, arquivos] of grupos) {
+  for (const [nome, arquivos, com] of grupos) {
     escrever(`\n=== grupo ${nome}: ${arquivos.length} arquivo(s) ===\n`);
     if (arquivos.length === 0) {
       escrever(`o grupo ${nome} não achou arquivo nenhum: falha em vez de passar vazio\n`);
       falhou = true;
-    } else if (rodar(arquivos) !== 0) {
+    } else if (rodar(arquivos, com) !== 0) {
       falhou = true;
     }
   }
   return falhou ? 1 : 0;
 }
 
-const rodarComNode = arquivos => spawnSync(process.execPath, ['--test', ...arquivos], { cwd: RAIZ, stdio: 'inherit' }).status;
+const executarCom = (programa, arquivo) => spawnSync(programa, [arquivo], { cwd: RAIZ, stdio: 'inherit' }).status;
+
+const rodarUmPorUm = (programa, arquivos) => (arquivos.map(arquivo => executarCom(programa, arquivo)).every(status => status === 0) ? 0 : 1);
+
+const rodarArquivos = (arquivos, com) => (com ? rodarUmPorUm(com, arquivos) : spawnSync(process.execPath, ['--test', ...arquivos], { cwd: RAIZ, stdio: 'inherit' }).status);
 
 function listar(grupos, escrever) {
   for (const [nome, arquivos] of grupos) escrever(`${nome}\n${arquivos.map(arquivo => `  ${arquivo}\n`).join('')}`);
@@ -120,9 +135,9 @@ function principal(args) {
     return 1;
   }
   const escrever = texto => process.stdout.write(texto);
-  return args.includes('--listar') ? listar(grupos, escrever) : rodarGrupos(grupos, rodarComNode, escrever);
+  return args.includes('--listar') ? listar(grupos, escrever) : rodarGrupos(grupos, rodarArquivos, escrever);
 }
 
 if (require.main === module) process.exitCode = principal(process.argv.slice(2));
 
-module.exports = { carregarLista, arquivosDoRepositorio, arquivosDeTeste, conferir, arquivosDoGrupo, arquivosDoJob, rodarGrupos };
+module.exports = { carregarLista, arquivosDoRepositorio, arquivosDeTeste, conferir, arquivosDoGrupo, arquivosDoJob, rodarGrupos, rodarArquivos };
