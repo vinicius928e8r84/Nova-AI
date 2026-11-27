@@ -22,6 +22,8 @@ const ESPERA_DA_CONEXAO_MS = 30000;
 const ESPERA_DA_RESPOSTA_MS = 10000;
 const ESPERA_PARA_DESTRUIR_O_SOQUETE_MS = 300;
 const PEDIDO_DE_PING = 6;
+const PORTA_PADRAO_DO_RTMP = 1935;
+const FORMATO_DO_ENDERECO = /^(rtmps?):\/\/([^/:]+)(?::(\d+))?(?:\/(.*))?$/i;
 const RESPOSTA_DE_PING = 7;
 const VALORES_LIDOS_POR_COMANDO = 12;
 const CODIGO_DE_CONEXAO_ACEITA = 'NetConnection.Connect.Success';
@@ -29,14 +31,18 @@ const RESPOSTAS_DE_COMANDO = new Set(['_result', '_error']);
 const TAMANHO_DO_CABECALHO_DA_MENSAGEM = { 0: 11, 1: 7, 2: 3 };
 const BYTES_A_MAIS_NO_CSID = { 0: 1, 1: 2 };
 
+function lerEnderecoDoDestino(url) {
+  const achado = FORMATO_DO_ENDERECO.exec(String(url || '').trim());
+  if (!achado) throw new Error(`URL inválida '${url}'`);
+  return { esquema: achado[1].toLowerCase(), host: achado[2], porta: achado[3], caminho: achado[4] };
+}
+
 function parseTarget(url, key) {
-  const m = /^(rtmps?):\/\/([^/:]+)(?::(\d+))?(?:\/(.*))?$/i.exec(String(url || '').trim());
-  if (!m) throw new Error(`URL inválida '${url}'`);
-  const scheme = m[1].toLowerCase();
-  if (scheme === 'rtmps') throw new Error('rtmps ainda não é suportado (use rtmp://)');
-  const port = m[3] ? parseInt(m[3], 10) : 1935;
-  const app = (m[4] || '').replace(/\/+$/, '');
-  return { host: m[2], port, app, key, tcUrl: `${scheme}://${m[2]}:${port}/${app}` };
+  const { esquema, host, porta, caminho } = lerEnderecoDoDestino(url);
+  if (esquema === 'rtmps') throw new Error('rtmps ainda não é suportado (use rtmp://)');
+  const port = porta ? parseInt(porta, 10) : PORTA_PADRAO_DO_RTMP;
+  const app = (caminho || '').replace(/\/+$/, '');
+  return { host, port, app, key, tcUrl: `${esquema}://${host}:${port}/${app}` };
 }
 
 function criarDesfecho(resolve, reject, limpar) {
