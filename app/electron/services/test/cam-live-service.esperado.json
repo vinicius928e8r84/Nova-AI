@@ -1,0 +1,3004 @@
+{
+  "transmissão completa: vídeo em blocos, áudio, segunda partida recusada e parada do usuário": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "segundoInicio": {
+        "ok": false,
+        "error": "já está transmitindo"
+      },
+      "parada": {
+        "ok": true
+      },
+      "segundaParada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 105,
+              "inicio": "1701000000e8",
+              "sha": "45e499e1c30f"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 33,
+            "conteudo": {
+              "tamanho": 55,
+              "inicio": "270100000009",
+              "sha": "489d5aff46d3"
+            }
+          },
+          {
+            "csid": 5,
+            "tipo": 8,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 4,
+              "inicio": "af001190",
+              "sha": "20478a2b3d17"
+            }
+          },
+          {
+            "csid": 5,
+            "tipo": 8,
+            "idDoFluxo": 1,
+            "ts": 40,
+            "conteudo": {
+              "tamanho": 22,
+              "inicio": "af01a4a4a4a4",
+              "sha": "31910aa1954d"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 66,
+            "conteudo": {
+              "tamanho": 10005,
+              "inicio": "27010000002a",
+              "sha": "b49ef24ae982"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 66,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream"
+    ]
+  },
+  "tempo estendido: o tempo acima de 16777215 ms usa o campo extra em cada bloco": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 35,
+              "inicio": "170100000000",
+              "sha": "6a8fc44c0c5d"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 20000000,
+            "extendido": true,
+            "conteudo": {
+              "tamanho": 5005,
+              "inicio": "170100000000",
+              "sha": "8de9a5bd463a"
+            }
+          },
+          {
+            "csid": 5,
+            "tipo": 8,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 4,
+              "inicio": "af001190",
+              "sha": "20478a2b3d17"
+            }
+          },
+          {
+            "csid": 5,
+            "tipo": 8,
+            "idDoFluxo": 1,
+            "ts": 20000001,
+            "extendido": true,
+            "conteudo": {
+              "tamanho": 7002,
+              "inicio": "af01a8a8a8a8",
+              "sha": "0492a38e054a"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 20000000,
+            "extendido": true,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream"
+    ]
+  },
+  "quadro que não é chave espera a chave e pede um novo quadro-chave": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 65,
+              "inicio": "1701000000a6",
+              "sha": "b50a9d748671"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 34,
+            "conteudo": {
+              "tamanho": 45,
+              "inicio": "2701000000c8",
+              "sha": "7d65e4f97cbe"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 34,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:keyframe",
+        {}
+      ],
+      [
+        "camlive:keyframe",
+        {}
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream"
+    ]
+  },
+  "connect recusado pelo servidor: tenta de novo duas vezes e desiste": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Reconectando em 1s (tentativa 1/2)",
+          "error": "connect recusado: NetConnection.Connect.Rejected"
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Reconectando em 1s (tentativa 2/2)",
+          "error": "connect recusado: NetConnection.Connect.Rejected"
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "Desistiu depois de 2 tentativas de reconexão. (connect recusado: NetConnection.Connect.Rejected)",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live failed: connect recusado: NetConnection.Connect.Rejected",
+      "Output 'CAM LIVE': Reconnecting in 1 seconds (attempt 1/2)",
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live failed: connect recusado: NetConnection.Connect.Rejected",
+      "Output 'CAM LIVE': Reconnecting in 1 seconds (attempt 2/2)",
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live failed: connect recusado: NetConnection.Connect.Rejected"
+    ]
+  },
+  "porta sem servidor: desiste na hora com a mensagem de conexão recusada": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      }
+    },
+    "conexoes": [],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "Desistiu depois de 0 tentativas de reconexão. (connect ECONNREFUSED 127.0.0.1:1)",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:1/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:1/live failed: connect ECONNREFUSED 127.0.0.1:1"
+    ]
+  },
+  "endereços inválidos: http, rtmps e vazio": {
+    "retornos": {
+      "http": {
+        "ok": true
+      },
+      "rtmps": {
+        "ok": true
+      },
+      "vazio": {
+        "ok": true
+      }
+    },
+    "conexoes": [],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "URL inválida 'http://exemplo.test/live'",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "rtmps ainda não é suportado (use rtmp://)",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "URL inválida ''",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream] URL inválida 'http://exemplo.test/live'",
+      "[rtmp stream] rtmps ainda não é suportado (use rtmp://)",
+      "[rtmp stream] URL inválida ''"
+    ]
+  },
+  "servidor que não responde ao connect: espera dez segundos e desiste": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "Desistiu depois de 0 tentativas de reconexão. (sem resposta para connect)",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live failed: sem resposta para connect"
+    ]
+  },
+  "servidor que fecha no meio: reconecta, manda os cabeçalhos de novo e espera a chave": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "servidor",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 85,
+              "inicio": "1701000000e8",
+              "sha": "622a3fdc637d"
+            }
+          }
+        ]
+      },
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "servidor",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 95,
+              "inicio": "1701000000d0",
+              "sha": "900dae9e669d"
+            }
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Reconectando em 1s (tentativa 1/3)",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 1,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 0
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Reconectando em 1s (tentativa 2/3)",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] Disconnected from rtmp://127.0.0.1:<porta>/live",
+      "Output 'CAM LIVE': Reconnecting in 1 seconds (attempt 1/3)",
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] Disconnected from rtmp://127.0.0.1:<porta>/live",
+      "Output 'CAM LIVE': Reconnecting in 1 seconds (attempt 2/3)"
+    ]
+  },
+  "mensagens de controle do servidor: ping, banda, tamanho de bloco e respostas sem dono": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 2,
+            "tipo": 4,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": {
+              "evento": 7,
+              "resto": "00000309"
+            }
+          },
+          {
+            "csid": 2,
+            "tipo": 5,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 2500000
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 65,
+              "inicio": "1701000000e8",
+              "sha": "2364c82ea6f4"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp] onStatus NetStream.Teste.Longa128",
+      "[rtmp] onStatus NetStream.Teste.Longa4096",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream"
+    ]
+  },
+  "o servidor manda 2,6 MB e o cliente confirma o que recebeu": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 2,
+            "tipo": 3,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 2556116
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream"
+    ]
+  },
+  "fila congestionada: descarta quadros P e depois tudo abaixo do alto": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)",
+                "audiocodecid": 10,
+                "audiosamplerate": 48000,
+                "audiosamplesize": 16,
+                "audiochannels": 2,
+                "stereo": true,
+                "audiodatarate": 128
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "1701000000e8",
+              "sha": "d4cd85fd3728"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 966,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 44,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 8,
+          "dropped": 44,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 44,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 44,
+          "congestion": 0,
+          "bitrate": 600,
+          "queued": 0,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp stream] buffer_duration_usec: 733326",
+      "[rtmp stream] buffer_duration_usec: 766659",
+      "[rtmp stream] buffer_duration_usec: 799992",
+      "[rtmp stream] buffer_duration_usec: 833325",
+      "[rtmp stream] buffer_duration_usec: 866658",
+      "[rtmp stream] buffer_duration_usec: 899991",
+      "[rtmp stream] buffer_duration_usec: 933324",
+      "[rtmp stream] buffer_duration_usec: 933324",
+      "[rtmp stream: 'CAM LIVE'] dropped 29 frames (pframes)",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream"
+    ]
+  },
+  "bitrate dinâmico: baixa quando a fila cresce e sobe de novo": {
+    "retornos": {
+      "inicio": {
+        "ok": true
+      },
+      "parada": {
+        "ok": true
+      }
+    },
+    "conexoes": [
+      {
+        "handshake": {
+          "versao": 3,
+          "zerosNoInicioDoC1": true,
+          "c2IgualAoS1": true
+        },
+        "encerradaPor": "cliente",
+        "mensagens": [
+          {
+            "csid": 2,
+            "tipo": 1,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": 4096
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "connect",
+              1,
+              {
+                "app": "live",
+                "type": "nonprivate",
+                "flashVer": "FMLE/3.0 (compatible; FMSc/1.0)",
+                "swfUrl": "rtmp://127.0.0.1:<porta>/live",
+                "tcUrl": "rtmp://127.0.0.1:<porta>/live"
+              }
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "releaseStream",
+              2,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "FCPublish",
+              3,
+              null,
+              "chave-de-teste"
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "createStream",
+              4,
+              null
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "publish",
+              5,
+              null,
+              "chave-de-teste",
+              "live"
+            ]
+          },
+          {
+            "csid": 4,
+            "tipo": 18,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "@setDataFrame",
+              "onMetaData",
+              {
+                "duration": 0,
+                "fileSize": 0,
+                "width": 640,
+                "height": 360,
+                "videocodecid": 7,
+                "videodatarate": 600,
+                "framerate": 30,
+                "encoder": "CAM LIVE (reconstrução do MiniOBS)"
+              }
+            ]
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 34,
+              "inicio": "170000000001",
+              "sha": "d280fbcbcde7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "1701000000e8",
+              "sha": "d4cd85fd3728"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 33,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000009",
+              "sha": "5402d2dcbd59"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 66,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000002a",
+              "sha": "2692a42d76af"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 99,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000004b",
+              "sha": "3be0f4562750"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 133,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000006d",
+              "sha": "1803539db2e5"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 166,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000008e",
+              "sha": "ee3261f27d0f"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 199,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000af",
+              "sha": "f7aefa8509f6"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 233,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000d1",
+              "sha": "7cb553db3967"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 266,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000f2",
+              "sha": "14ee2385c0c0"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 299,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000013",
+              "sha": "624ce7490468"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 333,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000035",
+              "sha": "00dc1fe88639"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 366,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000056",
+              "sha": "1ead5de837ef"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 399,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000077",
+              "sha": "f11c2a68a9f0"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 433,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000099",
+              "sha": "52312e9b33f1"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 466,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000ba",
+              "sha": "18299c764d40"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 499,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000db",
+              "sha": "3a8969c0e1ab"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 533,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000fd",
+              "sha": "897f4a508cf9"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 566,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000001e",
+              "sha": "82cf79eed26d"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 599,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000003f",
+              "sha": "0cd8905a042b"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 633,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000061",
+              "sha": "be9fbb093029"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 666,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000082",
+              "sha": "c4ec340d37d5"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 699,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000a3",
+              "sha": "924795ad4630"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 733,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000c5",
+              "sha": "dc83fb8e55ef"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 766,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000e6",
+              "sha": "534fc967abbc"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 799,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000007",
+              "sha": "c586996b6604"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 833,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000029",
+              "sha": "6db1a4b63870"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 866,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000004a",
+              "sha": "094e54379c2a"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 899,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000006b",
+              "sha": "397fefaaedcf"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 933,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "27010000008d",
+              "sha": "5e971d3d38d7"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 966,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000ae",
+              "sha": "ecbe019a3979"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 999,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000cf",
+              "sha": "22635973b324"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 1033,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "2701000000f1",
+              "sha": "628402710ba2"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 1066,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000012",
+              "sha": "75fb2b6558fc"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 1099,
+            "conteudo": {
+              "tamanho": 1005,
+              "inicio": "270100000033",
+              "sha": "196c336236a1"
+            }
+          },
+          {
+            "csid": 6,
+            "tipo": 9,
+            "idDoFluxo": 1,
+            "ts": 6966,
+            "conteudo": {
+              "tamanho": 5,
+              "inicio": "1702000000",
+              "sha": "c55aa507882b"
+            }
+          },
+          {
+            "csid": 4,
+            "tipo": 20,
+            "idDoFluxo": 1,
+            "ts": 0,
+            "conteudo": [
+              "FCUnpublish",
+              6,
+              null
+            ]
+          },
+          {
+            "csid": 3,
+            "tipo": 20,
+            "idDoFluxo": 0,
+            "ts": 0,
+            "conteudo": [
+              "deleteStream",
+              7,
+              null,
+              1
+            ]
+          }
+        ]
+      }
+    ],
+    "eventos": [
+      [
+        "camlive:status",
+        {
+          "status": "Conectando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "AO VIVO",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 32,
+          "dropped": 0,
+          "congestion": 1.3809385714285713,
+          "bitrate": 600,
+          "queued": 31,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:set-bitrate",
+        {
+          "kbps": 50
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 48,
+          "dropped": 0,
+          "congestion": 2.9523514285714287,
+          "bitrate": 50,
+          "queued": 64,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 48,
+          "dropped": 0,
+          "congestion": 4.380908571428572,
+          "bitrate": 50,
+          "queued": 94,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 56,
+          "dropped": 0,
+          "congestion": 5.9047028571428575,
+          "bitrate": 50,
+          "queued": 126,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 48,
+          "dropped": 0,
+          "congestion": 7.33326,
+          "bitrate": 50,
+          "queued": 156,
+          "connectMs": 70
+        }
+      ],
+      [
+        "camlive:set-bitrate",
+        {
+          "kbps": 110
+        }
+      ],
+      [
+        "camlive:set-bitrate",
+        {
+          "kbps": 50
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Parando…",
+          "error": ""
+        }
+      ],
+      [
+        "camlive:set-bitrate",
+        {
+          "kbps": 600
+        }
+      ],
+      [
+        "camlive:status",
+        {
+          "status": "Pronto",
+          "error": "",
+          "finished": true
+        }
+      ],
+      [
+        "camlive:stats",
+        {
+          "sentKbps": 0,
+          "dropped": 0,
+          "congestion": 0,
+          "bitrate": 0,
+          "queued": 0
+        }
+      ]
+    ],
+    "log": [
+      "[rtmp stream: 'CAM LIVE'] Dynamic bitrate using default interpolation",
+      "[rtmp stream: 'CAM LIVE'] Dynamic bitrate enabled.  Dropped frames begone!",
+      "[rtmp stream: 'CAM LIVE'] Connecting to RTMP URL rtmp://127.0.0.1:<porta>/live...",
+      "[rtmp] onStatus NetStream.Publish.Start",
+      "[rtmp stream: 'CAM LIVE'] Connection to rtmp://127.0.0.1:<porta>/live (127.0.0.1) successful",
+      "[rtmp stream: 'CAM LIVE'] bitrate decreased to: 50",
+      "[rtmp stream] buffer_duration_msec: 1399",
+      "[rtmp stream: 'CAM LIVE'] bitrate increased to: 110, waiting",
+      "[rtmp stream: 'CAM LIVE'] bitrate decreased to: 50",
+      "[rtmp stream] buffer_duration_msec: 5566",
+      "[rtmp stream: 'CAM LIVE'] User stopped the stream",
+      "[rtmp stream: 'CAM LIVE'] Freeing 176 remaining packets"
+    ]
+  }
+}
