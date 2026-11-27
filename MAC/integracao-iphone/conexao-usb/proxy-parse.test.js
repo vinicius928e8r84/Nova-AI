@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const P = require("../MAC/integracao-iphone/conexao-usb/proxy-parse.js");
+const P = require("./proxy-parse.js");
 const PASS = "segredoFalso_country-US_mode-quality_session-AAAABBBB_lifetime-1440";
 let falhas = 0;
 function relatoDaFalha(nome, real, esperado) {
