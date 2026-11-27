@@ -6,19 +6,9 @@ const fs = require('fs');
 const { chromium, firefox } = require('playwright');
 const crypto = require('crypto');
 const os = require('os');
-const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
+const { completarEspecificacoes, tamanhoDaJanela, idiomaDoPais, proximoNumeroDePerfil, perfilPadrao, perfilAdicionado } = require('./farm-perfil');
+const { executavelDoNavegador } = require('./farm-navegadores');
 const si = require('systeminformation');
-
-const MOBILE_UAS = [
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
-  'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-  'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
-  'Mozilla/5.0 (Linux; Android 14; CPH2573) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36',
-  'Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
-  'Mozilla/5.0 (Linux; Android 12; Redmi Note 12 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36',
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/122.0.6261.89 Mobile/15E148 Safari/604.1',
-];
 
 const STEALTH_SCRIPT = `
 (function() {
@@ -156,22 +146,6 @@ const BYPASS_POPUPS_SCRIPT = `
 })();
 `;
 
-function getLocaleForCountry(countryCode) {
-  const map = {
-    US: 'en-US',
-    GB: 'en-GB',
-    PK: 'ur-PK',
-    FR: 'fr-FR',
-    DE: 'de-DE',
-    CA: 'en-CA',
-    AU: 'en-AU',
-    IN: 'hi-IN',
-    AE: 'ar-AE',
-    SA: 'ar-SA',
-  };
-  return map[String(countryCode).toUpperCase()] || 'en-US';
-}
-
 function detectPlatform(url) {
   if (!url) return 'unknown';
   if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
@@ -243,118 +217,6 @@ function parseProxy(proxyStr) {
   };
 }
 
-function ensureProfileStealthSpecs(p) {
-  if (!p) return;
-  const platform = p.platform || 'android';
-
-  if (!p.cpuCores || p.cpuCores === 'Auto') {
-    const coresOptions = ['4', '6', '8', '12', '16'];
-    p.cpuCores = coresOptions[Math.floor(Math.random() * coresOptions.length)];
-  }
-
-  if (!p.ramSize || p.ramSize === 'Auto') {
-    const ramOptions = ['4', '8', '12', '16', '32'];
-    p.ramSize = ramOptions[Math.floor(Math.random() * ramOptions.length)];
-  }
-
-  if (!p.platformStr || !p.webglVendor || !p.webglRenderer) {
-    if (platform === 'mac') {
-      p.platformStr = 'MacIntel';
-      p.webglVendor = 'Apple Inc.';
-      p.webglRenderer = 'Apple M1';
-    } else if (platform === 'linux') {
-      p.platformStr = 'Linux x86_64';
-      p.webglVendor = 'Intel Open Source Technology Center';
-      p.webglRenderer = 'Mesa DRI Intel(R) HD Graphics 520 (Skylake GT2)';
-    } else if (platform === 'android') {
-      p.platformStr = 'Linux aarch64';
-      const androidGpus = [
-        { vendor: 'Google Inc. (Qualcomm)', renderer: 'Adreno (TM) 750' },
-        { vendor: 'Google Inc. (Qualcomm)', renderer: 'Adreno (TM) 740' },
-        { vendor: 'Google Inc. (ARM)', renderer: 'Mali-G715 MC10' },
-        { vendor: 'Google Inc. (ARM)', renderer: 'Mali-G720 MC12' },
-        { vendor: 'Google Inc. (ARM)', renderer: 'Mali-G68 MC4' }
-      ];
-      const gpu = androidGpus[Math.floor(Math.random() * androidGpus.length)];
-      p.webglVendor = gpu.vendor;
-      p.webglRenderer = gpu.renderer;
-    } else if (platform === 'ios') {
-      p.platformStr = 'iPhone';
-      p.webglVendor = 'Apple Inc.';
-      p.webglRenderer = 'Apple GPU';
-    } else {
-      p.platformStr = 'Win32';
-      const winGpus = [
-        'NVIDIA GeForce RTX 3060',
-        'NVIDIA GeForce RTX 4070',
-        'NVIDIA GeForce RTX 3080',
-        'Intel(R) Iris(R) Xe Graphics',
-        'AMD Radeon(TM) RX 6700 XT',
-        'NVIDIA GeForce GTX 1660 Super'
-      ];
-      p.webglVendor = 'Google Inc. (NVIDIA)';
-      p.webglRenderer = winGpus[Math.floor(Math.random() * winGpus.length)];
-    }
-  }
-
-  if (!p.deviceName || p.deviceName === 'USER-PC-X6NAGE1') {
-    const rand = Math.random().toString(36).substring(2, 9).toUpperCase();
-    p.deviceName = `LAPTOP-${rand}`;
-  }
-
-  if (!p.macAddress || p.macAddress === '00-1B-21-29-FE-FA') {
-    const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase();
-    p.macAddress = `00-1B-21-${hex()}-${hex()}-${hex()}`;
-  }
-
-  if (!p.screenResolution || p.screenResolution === 'Based on User-Agent') {
-    if (platform === 'android' || platform === 'ios') {
-      p.screenResolution = '412x915';
-      p.windowMode = 'custom';
-    } else if (platform === 'mac') {
-      p.screenResolution = '1440x900';
-      p.windowMode = 'custom';
-    } else {
-      p.screenResolution = '1920x1080';
-      p.windowMode = 'maximized';
-    }
-  }
-
-  if (p.canvasNoiseSeed === undefined || p.canvasNoiseSeed === null) {
-    p.canvasNoiseSeed = Math.floor(Math.random() * 200) + 1;
-  }
-  if (p.webglNoiseSeed === undefined || p.webglNoiseSeed === null) {
-    p.webglNoiseSeed = Math.floor(Math.random() * 200) + 1;
-  }
-  if (p.audioNoiseSeed === undefined || p.audioNoiseSeed === null) {
-    p.audioNoiseSeed = parseFloat((Math.random() * 0.0001).toFixed(8));
-  }
-
-  if (!p.virtualCamId) {
-    p.virtualCamId = crypto.randomBytes(32).toString('hex');
-  }
-  if (!p.virtualCamLabel) {
-    const camBrands = ['HD Camera', 'Integrated Webcam', 'USB Camera', 'FaceTime HD Camera', 'FHD Web Camera'];
-    p.virtualCamLabel = camBrands[Math.floor(Math.random() * camBrands.length)];
-  }
-
-  if (!p.virtualMicId) {
-    p.virtualMicId = crypto.randomBytes(32).toString('hex');
-  }
-  if (!p.virtualMicLabel) {
-    const micBrands = ['Microphone (Realtek High Definition Audio)', 'Internal Microphone', 'Microphone (USB Audio Device)', 'Built-in Microphone'];
-    p.virtualMicLabel = micBrands[Math.floor(Math.random() * micBrands.length)];
-  }
-
-  if (!p.virtualSpeakerId) {
-    p.virtualSpeakerId = crypto.randomBytes(32).toString('hex');
-  }
-  if (!p.virtualSpeakerLabel) {
-    const spkBrands = ['Speakers (Realtek High Definition Audio)', 'Internal Speakers', 'Headphones (Realtek High Definition Audio)', 'Built-in Output'];
-    p.virtualSpeakerLabel = spkBrands[Math.floor(Math.random() * spkBrands.length)];
-  }
-}
-
 class BrowserFarmService {
   constructor(mainWindow) {
     this.mainWindow = mainWindow;
@@ -368,52 +230,7 @@ class BrowserFarmService {
   }
 
   _getProfileWindowSize(profile) {
-    const plt = profile.platform || 'windows';
-    let w = 1280;
-    let h = 720;
-    let maximized = profile.windowMode === 'maximized';
-
-    if (maximized) {
-      if (plt === 'android' || plt === 'ios') {
-        w = 412;
-        h = 915;
-        maximized = false;
-      } else {
-        try {
-          const { screen } = require('electron');
-          const primaryDisplay = screen.getPrimaryDisplay();
-          if (primaryDisplay && primaryDisplay.bounds) {
-            w = primaryDisplay.bounds.width || 1920;
-            h = primaryDisplay.bounds.height || 1080;
-          }
-        } catch (e) {
-          console.error('[Farm] Failed to get screen size for maximized window:', e);
-          w = 1920;
-          h = 1080;
-        }
-      }
-    } else {
-      if (profile.screenResolution && profile.screenResolution.includes('x')) {
-        const parts = profile.screenResolution.split('x');
-        w = parseInt(parts[0]) || 1280;
-        h = parseInt(parts[1]) || 720;
-      } else {
-        if (plt === 'android' || plt === 'ios') {
-          w = 412;
-          h = 915;
-        } else if (plt === 'mac') {
-          w = 1440;
-          h = 900;
-        } else if (plt === 'linux') {
-          w = 1366;
-          h = 768;
-        } else {
-          w = 1920;
-          h = 1080;
-        }
-      }
-    }
-    return { width: w, height: h, maximized };
+    return tamanhoDaJanela(profile);
   }
 
   _profilesPath() {
@@ -423,80 +240,19 @@ class BrowserFarmService {
 
 
   getChromeExecutablePath() {
-        if (process.platform === "darwin") {
-            return require('./mac-native').browser('chrome');
-        }
-
-    const paths = [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
-      findBundledChromiumExecutable([process.resourcesPath && path.join(process.resourcesPath, 'browsers'), path.join(app.getAppPath(), 'browsers')]),
-      path.join(process.resourcesPath || '', 'browsers', 'chrome', 'chrome.exe'),
-      path.join(app.getAppPath(), 'browsers', 'chrome', 'chrome.exe')
-    ];
-    return primeiroCaminhoExistente(paths);
+    return executavelDoNavegador('chrome');
   }
 
   getBraveExecutablePath() {
-        if (process.platform === "darwin") {
-            return require('./mac-native').browser('brave');
-        }
-
-    const paths = [
-      path.join(process.resourcesPath || '', 'browsers', 'brave', 'brave.exe'),
-      path.join(app.getAppPath(), 'browsers', 'brave', 'brave.exe'),
-      'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
-      'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
-      path.join(process.env.LOCALAPPDATA || '', 'BraveSoftware\\Brave-Browser\\Application\\brave.exe')
-    ];
-    for (const p of paths) {
-      if (fs.existsSync(p)) {
-        return p;
-      }
-    }
+    return executavelDoNavegador('brave');
   }
 
   getVivaldiExecutablePath() {
-        if (process.platform === "darwin") {
-            return require('./mac-native').browser('vivaldi');
-        }
-
-    const paths = [
-      path.join(process.resourcesPath || '', 'browsers', 'vivaldi', 'vivaldi.exe'),
-      path.join(app.getAppPath(), 'browsers', 'vivaldi', 'vivaldi.exe'),
-      path.join(__dirname, '../../browsers/vivaldi/vivaldi.exe'),
-      path.join(__dirname, '../browsers/vivaldi/vivaldi.exe'),
-      path.join(process.env.LOCALAPPDATA || '', 'Vivaldi\\Application\\vivaldi.exe'),
-      'C:\\Program Files\\Vivaldi\\Application\\vivaldi.exe',
-      'C:\\Program Files (x86)\\Vivaldi\\Application\\vivaldi.exe'
-    ];
-    for (const p of paths) {
-      if (fs.existsSync(p)) {
-        return p;
-      }
-    }
-    return null;
+    return executavelDoNavegador('vivaldi');
   }
 
   getFirefoxExecutablePath() {
-        if (process.platform === "darwin") {
-            return require('./mac-native').browser('firefox');
-        }
-
-    const paths = [
-      path.join(process.resourcesPath || '', 'browsers', 'firefox', 'firefox.exe'),
-      path.join(app.getAppPath(), 'browsers', 'firefox', 'firefox.exe'),
-      'C:\\Program Files\\Mozilla Firefox\\firefox.exe',
-      'C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe',
-      path.join(process.env.LOCALAPPDATA || '', 'Mozilla Firefox\\firefox.exe')
-    ];
-    for (const p of paths) {
-      if (fs.existsSync(p)) {
-        return p;
-      }
-    }
-    return null;
+    return executavelDoNavegador('firefox');
   }
 
   loadProfiles() {
@@ -507,7 +263,7 @@ class BrowserFarmService {
         this.profiles = JSON.parse(fs.readFileSync(p, 'utf8'));
         for (const prof of this.profiles) {
           const before = JSON.stringify(prof);
-          ensureProfileStealthSpecs(prof);
+          completarEspecificacoes(prof);
           const after = JSON.stringify(prof);
           if (before !== after) {
             modified = true;
@@ -537,65 +293,11 @@ class BrowserFarmService {
   }
 
   _makeDefaultProfiles(count) {
-    return Array.from({ length: count }, (_, i) => {
-      const p = {
-        id: `profile_${String(i + 1).padStart(2, '0')}`,
-        name: `Profile ${String(i + 1).padStart(2, '0')}`,
-        ua: MOBILE_UAS[i % MOBILE_UAS.length],
-        proxy: '',
-        email: '',
-        status: 'idle',
-        battery: Math.floor(Math.random() * 50) + 40,
-        anonymityScore: Math.floor(Math.random() * 30) + 65,
-        lastRun: null,
-        platform: 'android',
-        timezone: 'optimal',
-        locale: 'optimal',
-        latitude: null,
-        longitude: null,
-        canvasNoise: true,
-        webglNoise: true,
-        audioNoise: true
-      };
-      ensureProfileStealthSpecs(p);
-      return p;
-    });
+    return Array.from({ length: count }, (_, i) => perfilPadrao(i));
   }
 
   addProfile(name = '', browser = 'aloha') {
-    let nextNum = 1;
-    if (this.profiles && this.profiles.length > 0) {
-      const nums = this.profiles
-        .map(p => {
-          if (!p || !p.id) return 0;
-          const match = p.id.match(/^profile_(\d+)$/);
-          return match ? parseInt(match[1], 10) : 0;
-        })
-        .filter(n => !isNaN(n));
-      if (nums.length > 0) {
-        nextNum = Math.max(...nums) + 1;
-      }
-    }
-    const i = this.profiles.length;
-    const p = {
-      id: `profile_${String(nextNum).padStart(2, '0')}`,
-      name: name || `Profile ${String(nextNum).padStart(2, '0')}`,
-      browser: browser || 'chrome',
-      ua: MOBILE_UAS[i % MOBILE_UAS.length],
-      proxy: '', email: '', status: 'idle',
-      battery: Math.floor(Math.random() * 50) + 40,
-      anonymityScore: Math.floor(Math.random() * 30) + 65,
-      lastRun: null,
-      platform: 'android',
-      timezone: 'optimal',
-      locale: 'optimal',
-      latitude: null,
-      longitude: null,
-      canvasNoise: true,
-      webglNoise: true,
-      audioNoise: true
-    };
-    ensureProfileStealthSpecs(p);
+    const p = perfilAdicionado(proximoNumeroDePerfil(this.profiles), name, browser, this.profiles.length);
     this.profiles.push(p);
     this._saveProfiles();
     return p;
@@ -1724,7 +1426,7 @@ class BrowserFarmService {
                 lat: data.lat || 0,
                 lng: data.lon || 0,
                 country: data.countryCode || 'US',
-                locale: getLocaleForCountry(data.countryCode)
+                locale: idiomaDoPais(data.countryCode)
               });
               return;
             }
@@ -1786,7 +1488,7 @@ class BrowserFarmService {
     const doNotTrack = profile.doNotTrack || 'default';
     const portScanProtection = profile.portScanProtection || 'enable';
 
-    ensureProfileStealthSpecs(profile);
+    completarEspecificacoes(profile);
 
     return `
       (function() {

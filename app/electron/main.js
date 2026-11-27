@@ -16,11 +16,8 @@ const screenshot = require('screenshot-desktop');
 const {
   getMemoryPath, getUserProfilePath, getDashboardSettingsPath, getFolderConfigPath, getVaultPath,
   getHistoryPath, getHistorySettingsPath, getContactsPath, getNotesPath, getTasksPath,
-  getSecretKeyPath, getGroqKeyPath, getOpenRouterKeyPath, getThinkingSettingsPath,
-  getGeminiPreferencePath, getChildAgentModelPath, getChildAgentKeyPath, getNovaVoicePath,
-  getChatsPath, getCustomModelsPath, getWhatsAppSettingsPath, getGoogleKeyPath,
-  getVisualSettingsPath, getElevenLabsSettingsPath, getWaApiKeyPath,
-  ensureNovaDirectories, syncConfigurationBackup, restoreConfigurationBackup,
+  getSecretKeyPath, getChildAgentModelPath, getChildAgentKeyPath,
+  getChatsPath, getWhatsAppSettingsPath, ensureNovaDirectories,
 } = require('./main.caminhos');
 const { registrarSistema, iniciarPalavraDeAtivacao, encerrarPalavraDeAtivacao } = require('./main.sistema');
 const { registrarTeclado } = require('./main.teclado');
@@ -103,39 +100,14 @@ let productionPort = process.env.NOVA_TEST_PORT || 45678;
 
 const { PDFParse } = require('pdf-parse');
 const mammoth = require('mammoth');
-const { autoUpdater } = require('electron-updater');
-const { hasUpdateConfig, edgeTtsBinary } = require('./services/paridade-utils');
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
-
-if (process.env.NODE_ENV === 'development') {
-  autoUpdater.forceDevUpdateConfig = true;
-  console.log('FORCE DEV UPDATE CONFIG ENABLED');
-}
+const { edgeTtsBinary } = require('./services/paridade-utils');
+const { configurarAtualizador, registrarAtualizador, ligarAtualizador } = require('./main.atualizador');
+const { registrarConfiguracao } = require('./main.config');
 
 let mainWindow;
 let tray = null;
 
-autoUpdater.logger = {
-  info(text) {
-    console.log(text);
-    if (typeof mainWindow !== 'undefined' && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-log', text);
-    }
-  },
-  warn(text) {
-    console.warn(text);
-    if (typeof mainWindow !== 'undefined' && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-log', `WARN: ${text}`);
-    }
-  },
-  error(text) {
-    console.error(text);
-    if (typeof mainWindow !== 'undefined' && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('update-log', `ERROR: ${text}`);
-    }
-  }
-};
+configurarAtualizador(() => mainWindow);
 
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -513,8 +485,6 @@ function setupPermissions(session) {
   });
 }
 
-const getLocalEditionStatus = () => ({plan:'pro',status:'active',edition:'mac-local',activationRequired:false});
-
 function novaIosConsolePortOpen(port) {
   return new Promise((resolve) => {
     const socket = require('net').connect({ host: '127.0.0.1', port, timeout: 800 });
@@ -797,25 +767,6 @@ function registerHandlers() {
     return app.physicalMobileService.verifyAppliedProfile(deviceId);
   });
 
-
-  ipcMain.handle('license:get-status', async () => getLocalEditionStatus());
-  ipcMain.handle('license:verify', async () => ({success:true,...getLocalEditionStatus()}));
-  ipcMain.handle('license:save', async () => true);
-
-  ipcMain.handle('get-custom-models', async () => {
-    try {
-      const p = getCustomModelsPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return { openRouter: [], gemini: [] };
-    } catch (e) { return { openRouter: [], gemini: [] }; }
-  });
-
-  ipcMain.handle('save-custom-models', async (event, models) => {
-    try {
-      fs.writeFileSync(getCustomModelsPath(), JSON.stringify(models, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
 
   ipcMain.handle('get-ytdl-stats', async () => {
     return { totalDownloads: 0 };
@@ -1270,56 +1221,6 @@ function registerHandlers() {
       return true;
     }
     return false;
-  });
-
-  ipcMain.handle('save-child-agent-model', async (event, model) => {
-    try {
-      fs.writeFileSync(getChildAgentModelPath(), JSON.stringify({ model, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch(e) { return false; }
-  });
-  ipcMain.handle('get-child-agent-model', async () => {
-    try {
-      const p = getChildAgentModelPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.model || 'gemini-3.8-flash';
-      }
-      return 'gemini-3.8-flash';
-    } catch(e) { return 'gemini-3.8-flash'; }
-  });
-  ipcMain.handle('save-nova-voice', async (event, voice) => {
-    try {
-      fs.writeFileSync(getNovaVoicePath(), JSON.stringify({ voice, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch(e) { return false; }
-  });
-  ipcMain.handle('get-nova-voice', async () => {
-    try {
-      const p = getNovaVoicePath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.voice || 'female';
-      }
-      return 'female';
-    } catch(e) { return 'female'; }
-  });
-
-  ipcMain.handle('save-child-agent-key', async (event, apiKey) => {
-    try {
-      fs.writeFileSync(getChildAgentKeyPath(), JSON.stringify({ apiKey, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch(e) { return false; }
-  });
-  ipcMain.handle('get-child-agent-key', async () => {
-    try {
-      const p = getChildAgentKeyPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.apiKey || '';
-      }
-      return '';
-    } catch(e) { return ''; }
   });
 
   ipcMain.handle('select-media-file', async (event, type) => {
@@ -2481,205 +2382,6 @@ function registerHandlers() {
     if (agentSwarmController) agentSwarmController.cancel();
   });
 
-  ipcMain.handle('get-gemini-token', async () => {
-    try {
-      const p = getSecretKeyPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.apiKey || data.geminiKey || process.env.GEMINI_API_KEY || null;
-      }
-      return process.env.GEMINI_API_KEY || null;
-    } catch (e) {
-      return process.env.GEMINI_API_KEY || null;
-    }
-  });
-
-  ipcMain.handle('save-gemini-token', async (event, apiKey) => {
-    try {
-      const p = getSecretKeyPath();
-      let data = {};
-      if (fs.existsSync(p)) {
-        try { data = JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { }
-      }
-      data.apiKey = apiKey;
-      data.geminiKey = apiKey;
-      data.updatedAt = Date.now();
-      fs.writeFileSync(p, JSON.stringify(data, null, 2));
-      return true;
-    } catch (e) {
-      return false;
-    }
-  });
-
-  ipcMain.handle('get-groq-token', async () => {
-    try {
-      const p = getGroqKeyPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.apiKey || null;
-      }
-      return process.env.GROQ_API_KEY || null;
-    } catch (e) { return null; }
-  });
-
-  ipcMain.handle('save-groq-token', async (event, apiKey) => {
-    try {
-      fs.writeFileSync(getGroqKeyPath(), JSON.stringify({ apiKey, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-wa-api-key', async () => {
-    try {
-      const p = getWaApiKeyPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.apiKey || null;
-      }
-      return null;
-    } catch (e) { return null; }
-  });
-
-  ipcMain.handle('save-wa-api-key', async (event, apiKey) => {
-    try {
-      fs.writeFileSync(getWaApiKeyPath(), JSON.stringify({ apiKey, updatedAt: Date.now() }, null, 2));
-      console.log('[Main] WhatsApp dedicated API key saved.');
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-openrouter-token', async () => {
-    try {
-      const p = getOpenRouterKeyPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.apiKey || null;
-      }
-      return process.env.OPENROUTER_API_KEY || null;
-    } catch (e) { return null; }
-  });
-
-  ipcMain.handle('save-openrouter-token', async (event, apiKey) => {
-    try {
-      fs.writeFileSync(getOpenRouterKeyPath(), JSON.stringify({ apiKey, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-thinking-enabled', async () => {
-    try {
-      const p = getThinkingSettingsPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.enabled !== undefined ? data.enabled : true;
-      }
-      return true;
-    } catch (e) { return true; }
-  });
-
-  ipcMain.handle('save-thinking-enabled', async (event, enabled) => {
-    try {
-      fs.writeFileSync(getThinkingSettingsPath(), JSON.stringify({ enabled, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-prefer-direct-gemini', async () => {
-    try {
-      const p = getGeminiPreferencePath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.preferDirect !== undefined ? data.preferDirect : false;
-      }
-      return false;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('save-prefer-direct-gemini', async (event, preferDirect) => {
-    try {
-      fs.writeFileSync(getGeminiPreferencePath(), JSON.stringify({ preferDirect, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-google-token', async () => {
-    try {
-      const p = getGoogleKeyPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.apiKey || null;
-      }
-      return process.env.GOOGLE_API_KEY || null;
-    } catch (e) { return null; }
-  });
-
-  ipcMain.handle('save-google-token', async (event, apiKey) => {
-    try {
-      fs.writeFileSync(getGoogleKeyPath(), JSON.stringify({ apiKey, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-elevenlabs-settings', async () => {
-    try {
-      const p = getElevenLabsSettingsPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return { apiKey: '', voiceId: '21m00Tcm4TlvDq8ikWAM' };
-    } catch (e) { return { apiKey: '', voiceId: '21m00Tcm4TlvDq8ikWAM' }; }
-  });
-
-  ipcMain.handle('save-elevenlabs-settings', async (event, settings) => {
-    try {
-      fs.writeFileSync(getElevenLabsSettingsPath(), JSON.stringify(settings, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-visual-feed-enabled', async () => {
-    try {
-      const p = getVisualSettingsPath();
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        return data.enabled !== undefined ? data.enabled : true;
-      }
-      return true;
-    } catch (e) { return true; }
-  });
-
-  ipcMain.handle('save-visual-feed-enabled', async (event, enabled) => {
-    try {
-      fs.writeFileSync(getVisualSettingsPath(), JSON.stringify({ enabled, updatedAt: Date.now() }, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-openrouter-models', async () => {
-    try {
-      const p = getOpenRouterKeyPath();
-      let apiKey = process.env.OPENROUTER_API_KEY;
-
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        if (data.apiKey) apiKey = data.apiKey;
-      }
-
-      if (!apiKey) return { error: 'OpenRouter Key missing' };
-
-      const response = await axios.get('https://openrouter.ai/api/v1/models', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://nova.ai',
-          'X-Title': 'Nova AI'
-        }
-      });
-
-      return response.data;
-    } catch (e) {
-      console.error('[Electron] Error fetching models:', e.message);
-      return { error: e.message };
-    }
-  });
-
   ipcMain.handle('system-fs-op', async (event, { operation, path: targetPath, content, dest }) => {
     try {
       let resolvedPath = targetPath;
@@ -2981,6 +2683,8 @@ function registerHandlers() {
 
   registrarSistema({ janela: () => mainWindow, desligando: () => isShuttingDown() });
   registrarTeclado();
+  registrarConfiguracao();
+  registrarAtualizador();
 
   ipcMain.handle('whatsapp-init', async () => {
     try {
@@ -3302,39 +3006,6 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('check-for-update', async () => {
-    if (!app.isPackaged) {
-      return { success: false, message: 'Bypassed in dev mode' };
-    }
-    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
-    try {
-      const result = await autoUpdater.checkForUpdates();
-      return { success: true, version: result?.updateInfo?.version };
-    } catch (e) {
-      return { error: e.message };
-    }
-  });
-
-  ipcMain.handle('download-update', async () => {
-    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
-    try {
-      await autoUpdater.downloadUpdate();
-      return { success: true };
-    } catch (e) {
-      return { error: e.message };
-    }
-  });
-
-  ipcMain.handle('install-update', async () => {
-    if (!hasUpdateConfig()) return { success: false, message: 'Esta instalação não tem feed de atualização.' };
-    autoUpdater.quitAndInstall(false, true);
-    return { success: true };
-  });
-
-  ipcMain.handle('get-app-version', async () => {
-    return app.getVersion();
-  });
-
   try {
     const { registerBrowserHandlers, browserService } = require('./services/browser-manager');
     registerBrowserHandlers();
@@ -3346,12 +3017,6 @@ function registerHandlers() {
   } catch (e) {
     console.error('Failed to register browser handlers:', e);
   }
-
-  ipcMain.handle('sync-configuration-backup', async (event, { action }) => {
-    if (action === 'export') return syncConfigurationBackup();
-    if (action === 'import') return restoreConfigurationBackup();
-    return { success: false, error: 'Invalid action' };
-  });
 
   let geminiBrowserEngine = null;
   try {
@@ -3566,68 +3231,7 @@ if (!gotTheLock) {
 
     try { require('./services/idioma-ipc').register(app, ipcMain); } catch (e) { console.error('[idioma] IPC nao registrado:', e && e.message); }
 
-    autoUpdater.on('checking-for-update', () => {
-      console.log('🔍 [NOVA UPDATE] Checking for updates...');
-    });
-
-    autoUpdater.on('update-available', (info) => {
-      console.log('🎉 [NOVA UPDATE] Update available:', info.version);
-      console.log('   Release Date:', info.releaseDate);
-      console.log('   Current Version:', app.getVersion());
-      if (createdWindow) {
-        createdWindow.webContents.send('update-available', {
-          version: info.version,
-          releaseDate: info.releaseDate
-        });
-      }
-    });
-
-    autoUpdater.on('update-not-available', (info) => {
-      console.log('✓ [NOVA UPDATE] No updates available. Current version is latest:', app.getVersion());
-    });
-
-    autoUpdater.on('download-progress', (progress) => {
-      const percent = Math.round(progress.percent);
-      console.log(`📥 [NOVA UPDATE] Download progress: ${percent}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`);
-      if (createdWindow) {
-        createdWindow.webContents.send('update-download-progress', {
-          percent: percent,
-          bytesPerSecond: progress.bytesPerSecond,
-          transferred: progress.transferred,
-          total: progress.total
-        });
-      }
-    });
-
-    autoUpdater.on('update-downloaded', (info) => {
-      console.log('✅ [NOVA UPDATE] Update downloaded successfully:', info?.version);
-      if (createdWindow) {
-        createdWindow.webContents.send('update-downloaded', { version: info?.version });
-      }
-    });
-
-    autoUpdater.on('error', (err) => {
-      console.error('❌ [NOVA UPDATE ERROR]:', err.message);
-      console.error('Full error details:', err);
-
-      if (createdWindow) {
-        createdWindow.webContents.send('update-error', {
-          message: err.message,
-          code: err.code,
-          stack: err.stack
-        });
-      }
-    });
-
-    if (app.isPackaged) {
-      setTimeout(() => {
-        if (hasUpdateConfig()) autoUpdater.checkForUpdates().catch(err => {
-          console.log('[AutoUpdater] Production check failed:', err.message);
-        });
-      }, 5000);
-    } else {
-      console.log('✓ [Dev Mode] Auto-Updater strictly bypassed to prevent Code 2 errors.');
-    }
+    ligarAtualizador(createdWindow);
 
     if (createdWindow) iniciarPalavraDeAtivacao(createdWindow, isShuttingDown);
 
