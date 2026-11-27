@@ -44,8 +44,7 @@ try {
 } catch(e) {}
 `;
 
-const DEPOIS_DAS_VARIAVEIS = `var _isIOS = (_d.id && _d.id.indexOf("iphone") !== -1) || (navigator.userAgent && (navigator.userAgent.indexOf("iPhone") !== -1 || navigator.userAgent.indexOf("iPad") !== -1));
-var _lbl = _virtualCamLabel;
+const DEPOIS_DAS_VARIAVEIS = `var _lbl = _virtualCamLabel;
 
 function applyStealth(win) {
   if (!win || win.__nova_stealth_applied) return;
