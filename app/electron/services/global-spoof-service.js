@@ -672,7 +672,7 @@ var _m = ${_mStr};
 var _devId = "${randDeviceId}";
 var _grpId = "${randGroupId}";
 var _isIOS = (_d.id && _d.id.indexOf("iphone") !== -1) || (navigator.userAgent && (navigator.userAgent.indexOf("iPhone") !== -1 || navigator.userAgent.indexOf("iPad") !== -1));
-var _lbl = _isIOS ? "iPhone Front Camera" : "FaceTime HD Camera";
+var _lbl = _virtualCamLabel;
 
 function applyStealth(win) {
   if (!win || win.__nova_stealth_applied) return;

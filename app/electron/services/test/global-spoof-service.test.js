@@ -216,3 +216,39 @@ test('no Windows a limpeza acha o Chrome órfão do spoof e o encerra', { skip: 
     for (const processo of [orfao, outro]) if (estaVivo(processo.pid)) processo.kill();
   }
 });
+
+const vm = require('vm');
+
+function rodarDisfarceNaPagina(fonte, agenteDoUsuario) {
+  class MediaStreamTrack { getSettings() { return {}; } }
+  class MediaDevices { enumerateDevices() { return Promise.resolve([{ kind: 'videoinput', deviceId: 'nativo', label: 'Câmera real' }]); } }
+  const pagina = vm.createContext({
+    MediaStreamTrack,
+    MediaDevices,
+    navigator: { userAgent: agenteDoUsuario },
+    document: { addEventListener() {}, documentElement: {} },
+    console,
+    setTimeout,
+  });
+  pagina.window = pagina;
+  vm.runInContext(fonte, pagina);
+  return pagina;
+}
+
+const rotuloDaTrilha = (pagina) => Object.getOwnPropertyDescriptor(pagina.MediaStreamTrack.prototype, 'label').get.call({ kind: 'video' });
+
+for (const [nome, dispositivo, agenteDoUsuario] of [
+  ['desktop', { id: 'desktop' }, 'Mozilla/5.0 (Windows NT 10.0)'],
+  ['iPhone', { id: 'iphone-15' }, 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)'],
+]) {
+  test(`${nome}: o rótulo da trilha da câmera é o mesmo da lista de dispositivos`, async () => {
+    usarPlataforma('win32');
+    const { servico, userData, tempDir } = criarServico();
+    gravarPerfil(userData, { id: 'profile_01', name: 'Fixo', timezone: 'Europe/Lisbon', locale: 'pt-PT', virtualCamLabel: 'USB Camera' });
+    await servico.startHijack(Buffer.alloc(0), { device: dispositivo, url: 'about:blank', profile: 'profile_01' });
+    const pagina = rodarDisfarceNaPagina(lerInject(tempDir), agenteDoUsuario);
+    const lista = await pagina.MediaDevices.prototype.enumerateDevices();
+    assert.strictEqual(lista[0].label, 'USB Camera');
+    assert.strictEqual(rotuloDaTrilha(pagina), lista[0].label);
+  });
+}
