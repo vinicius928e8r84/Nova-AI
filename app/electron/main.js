@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain, powerSaveBlocker, nativeImage, desktopCapturer, Tray, Menu } = require('electron');
 const { spawn } = require('child_process');
-const macNative = require('./services/mac-native');
 const toolPaths = require('./services/tool-paths');
 const novaIconFile = toolPaths.iconFile();
 const pythonRuntime = require('./services/python-runtime');
@@ -13,7 +12,6 @@ const { exec } = require('child_process');
 const { dialog, shell, systemPreferences } = require('electron');
 const cameraAcesso = require('./services/camera-acesso');
 const mime = require('mime-types');
-const si = require('systeminformation');
 const screenshot = require('screenshot-desktop');
 const {
   getMemoryPath, getUserProfilePath, getDashboardSettingsPath, getFolderConfigPath, getVaultPath,
@@ -24,10 +22,11 @@ const {
   getVisualSettingsPath, getElevenLabsSettingsPath, getWaApiKeyPath,
   ensureNovaDirectories, syncConfigurationBackup, restoreConfigurationBackup,
 } = require('./main.caminhos');
+const { registrarSistema, iniciarPalavraDeAtivacao, encerrarPalavraDeAtivacao } = require('./main.sistema');
+const { registrarTeclado } = require('./main.teclado');
 
 console.log('[SYSTEM-WAKEUP] System Restored: Awaiting Fresh Command');
 const axios = require('axios');
-const { clipboard, Notification } = require('electron');
 const http = require('http');
 require('dotenv').config();
 if (process.env.NOVA_SMOKE_TEST === '1') {
@@ -66,7 +65,6 @@ app.whenReady().then(() => {
 });
 
 let remoteAccessService = null;
-let wakeWordProcess = null;
 const WhatsAppManager = require('./services/whatsapp-manager');
 let whatsappManager = null;
 
@@ -804,29 +802,6 @@ function registerHandlers() {
   ipcMain.handle('license:verify', async () => ({success:true,...getLocalEditionStatus()}));
   ipcMain.handle('license:save', async () => true);
 
-  ipcMain.handle('wakeword:start', async () => {
-    try {
-      console.log('[IPC] Starting Wake Word Detector via IPC request...');
-      startWakeWordDetector(mainWindow);
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('wakeword:stop', async () => {
-    try {
-      console.log('[IPC] Stopping Wake Word Detector via IPC request...');
-      if (wakeWordProcess) {
-        wakeWordProcess.kill();
-        wakeWordProcess = null;
-      }
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  });
-
   ipcMain.handle('get-custom-models', async () => {
     try {
       const p = getCustomModelsPath();
@@ -961,17 +936,6 @@ function registerHandlers() {
         try { fs.unlinkSync(tempWebmPath); } catch (_) {}
       }
 
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('set-clipboard', async (event, text) => {
-    try {
-      clipboard.writeText(String(text));
-      console.log('[Main] Clipboard set for Pro Core injection.');
-      return { success: true };
-    } catch (e) {
-      console.error('[Main] set-clipboard failed:', e);
       return { success: false, error: e.message };
     }
   });
@@ -2798,14 +2762,6 @@ function registerHandlers() {
     return true;
   });
 
-  ipcMain.handle('system-exec-command', async (event, { command }) => {
-    return new Promise((resolve) => {
-      exec(command, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-        resolve({ success: !error, stdout, stderr, error: error?.message });
-      });
-    });
-  });
-
   ipcMain.handle('save-image', async (event, { base64Data }) => {
     try {
       const filePath = path.join(app.getPath('downloads'), `NOVA_Generated_${Date.now()}.png`);
@@ -2961,28 +2917,6 @@ function registerHandlers() {
   });
 
 
-  ipcMain.handle('clipboard-read', async () => {
-    try {
-      return {
-        text: clipboard.readText(),
-        html: clipboard.readHTML(),
-        image: clipboard.readImage().isEmpty() ? null : clipboard.readImage().toDataURL()
-      };
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('clipboard-write', async (event, { text, html, image }) => {
-    try {
-      if (text) clipboard.writeText(text);
-      if (html) clipboard.writeHTML(html);
-      if (image) {
-        const img = nativeImage.createFromDataURL(image);
-        clipboard.writeImage(img);
-      }
-      return { success: true };
-    } catch (e) { return { error: e.message }; }
-  });
-
   ipcMain.handle('take-screenshot', async () => {
     try {
       const { screen, desktopCapturer } = require('electron');
@@ -3024,20 +2958,6 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('window-minimize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
-  });
-
-  ipcMain.handle('window-restore', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.restore();
-      mainWindow.focus();
-    }
-  });
-
-
-
-
   ipcMain.handle('get-screen-sources', async () => {
     try {
       const sources = await desktopCapturer.getSources({
@@ -3059,123 +2979,8 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('send-notification', async (event, { title, body, icon }) => {
-    try {
-      const notification = new Notification({
-        title: title || 'Nova AI',
-        body: body || '',
-        icon: icon || undefined
-      });
-      notification.show();
-      return { success: true };
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('http-fetch', async (event, { url, method, headers, body }) => {
-    try {
-      const response = await axios({
-        url,
-        method: method || 'GET',
-        headers: headers || {},
-        data: body || undefined,
-        timeout: 30000
-      });
-      return {
-        success: true,
-        status: response.status,
-        data: response.data,
-        headers: response.headers
-      };
-    } catch (e) {
-      return {
-        error: e.message,
-        status: e.response?.status,
-        data: e.response?.data
-      };
-    }
-  });
-
-  let lastCpuStats = os.cpus();
-  ipcMain.handle('get-realtime-system-metrics', async () => {
-    try {
-      const currentCpuStats = os.cpus();
-      let idleDiff = 0, totalDiff = 0;
-      for (let i = 0; i < currentCpuStats.length && i < lastCpuStats.length; i++) {
-        const prev = lastCpuStats[i].times;
-        const curr = currentCpuStats[i].times;
-        const prevTotal = prev.user + prev.nice + prev.sys + prev.idle + prev.irq;
-        const currTotal = curr.user + curr.nice + curr.sys + curr.idle + curr.irq;
-        totalDiff += (currTotal - prevTotal);
-        idleDiff += (curr.idle - prev.idle);
-      }
-      lastCpuStats = currentCpuStats;
-
-      const cpuPercent = totalDiff > 0 ? Math.min(100, Math.max(2, Math.round(((totalDiff - idleDiff) / totalDiff) * 100))) : 8;
-      const totalMem = os.totalmem();
-      const freeMem = os.freemem();
-      const memPercent = Math.min(100, Math.max(5, Math.round(((totalMem - freeMem) / (totalMem || 1)) * 100)));
-      const gpuPercent = Math.min(100, Math.max(3, Math.round(cpuPercent * 0.45 + 8)));
-      const temperature = +(38.5 + (cpuPercent * 0.31)).toFixed(1);
-
-      return {
-        cpu: cpuPercent,
-        mem: memPercent,
-        gpu: gpuPercent,
-        temperature: temperature,
-        online: true
-      };
-    } catch (e) {
-      return { error: e.message, cpu: 12, mem: 45, gpu: 10, temperature: 42.0, online: true };
-    }
-  });
-
-  ipcMain.handle('get-detailed-system-info', async () => {
-    try {
-      const [cpu, mem, graphics, os, network, battery] = await Promise.all([
-        si.cpu(),
-        si.mem(),
-        si.graphics(),
-        si.osInfo(),
-        si.networkInterfaces(),
-        si.battery()
-      ]);
-      return { cpu, mem, graphics, os, network, battery };
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('window-control', async (event, { action }) => {
-    try {
-      const win = BrowserWindow.getFocusedWindow();
-      if (!win) return { error: 'No focused window' };
-
-      switch (action) {
-        case 'minimize': win.minimize(); break;
-        case 'maximize': win.isMaximized() ? win.unmaximize() : win.maximize(); break;
-        case 'close': win.close(); break;
-        case 'fullscreen': win.setFullScreen(!win.isFullScreen()); break;
-      }
-      return { success: true };
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('get-processes', async () => {
-    try {
-      const processes = await si.processes();
-      const sorted = processes.list
-        .sort((a, b) => b.cpu - a.cpu)
-        .slice(0, 20)
-        .map(p => ({ name: p.name, pid: p.pid, cpu: p.cpu, mem: p.mem }));
-      return sorted;
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('kill-process', async (event, { pid }) => {
-    try {
-      process.kill(pid);
-      return { success: true };
-    } catch (e) { return { error: e.message }; }
-  });
-
+  registrarSistema({ janela: () => mainWindow, desligando: () => isShuttingDown() });
+  registrarTeclado();
 
   ipcMain.handle('whatsapp-init', async () => {
     try {
@@ -3497,201 +3302,6 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('open-external-url', async (event, url) => {
-    try {
-      const { shell } = require('electron');
-      await shell.openExternal(url);
-      return { success: true };
-    } catch (e) {
-      console.error('[Main] Failed to open external URL:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-
-  ipcMain.handle('send-whatsapp-keyboard', async (event, args) => {
-    try {
-      const name = String(args?.name || '');
-      const message = String(args?.message || '');
-
-      if (!name || !message) {
-        console.error('[WhatsApp Robot] Missing name or message:', { name, message });
-        return { success: false, error: 'Contact name and message are required' };
-      }
-
-      console.log(`\n========== WHATSAPP AUTOMATION START ==========`);
-      console.log(`[WhatsApp Robot] Contact: ${name}`);
-      console.log(`[WhatsApp Robot] Message: ${message}`);
-      console.log(`[WhatsApp Robot] Time: ${new Date().toLocaleTimeString()}`);
-      console.log(`[WhatsApp Robot] Method: RobotJS (Native Node.js)`);
-
-      let robot;
-      try {
-        robot = require('@jitsi/robotjs');
-        console.log(`[WhatsApp Robot] RobotJS loaded successfully`);
-      } catch (err) {
-        console.error(`[WhatsApp Robot] RobotJS not available:`, err.message);
-        return {
-          success: false,
-          error: 'RobotJS module not installed. Run: npm install robotjs'
-        };
-      }
-
-      const typeText = (text, delayMs = 50) => {
-        for (let i = 0; i < text.length; i++) {
-          robot.typeString(text[i]);
-          robot.keyTap('backspace');
-          robot.typeString(text[i]);
-          if (delayMs > 0) {
-            const start = Date.now();
-            while (Date.now() - start < delayMs);
-          }
-        }
-      };
-
-      const sleep = (ms) => {
-        const start = Date.now();
-        while (Date.now() - start < ms);
-      };
-
-      console.log(`[WhatsApp Robot] Step 1: Opening WhatsApp Desktop...`);
-      exec(process.platform === 'darwin' ? 'open -a WhatsApp' : 'start whatsapp:', (err) => {
-        if (err) console.warn('[WhatsApp Robot] Could not open via protocol, trying direct exe...');
-      });
-
-      console.log(`[WhatsApp Robot] Waiting 4 seconds for WhatsApp to load...`);
-      sleep(4000);
-      console.log(`[WhatsApp Robot] Step 1 Complete`);
-
-      console.log(`[WhatsApp Robot] Step 2: Pressing Ctrl+N to open new chat...`);
-      robot.keyTap('n', process.platform === 'darwin' ? 'command' : 'control');
-      sleep(1500);
-      console.log(`[WhatsApp Robot] Step 2 Complete`);
-
-      console.log(`[WhatsApp Robot] Step 3: Typing contact name: ${name}`);
-      robot.typeString(name);
-      sleep(1500);
-      console.log(`[WhatsApp Robot] Step 3 Complete`);
-
-      console.log(`[WhatsApp Robot] Step 4: Pressing Enter to select contact...`);
-      robot.keyTap('enter');
-      sleep(1000);
-      console.log(`[WhatsApp Robot] Step 4 Complete`);
-
-      console.log(`[WhatsApp Robot] Step 5: Typing message (${message.length} characters)...`);
-      robot.typeString(message);
-      sleep(800);
-      console.log(`[WhatsApp Robot] Step 5 Complete`);
-
-      console.log(`[WhatsApp Robot] Step 6: Pressing Enter to send message...`);
-      robot.keyTap('enter');
-      console.log(`[WhatsApp Robot] Step 6 Complete`);
-
-      console.log(`\n✅✅✅ WHATSAPP AUTOMATION SUCCESS ✅✅✅\n`);
-      return {
-        success: true,
-        output: 'Message sent successfully using RobotJS',
-        method: 'robotjs_native'
-      };
-
-    } catch (error) {
-      console.error(`\n========== CRITICAL ERROR ==========`);
-      console.error(error);
-      console.error(`========== ERROR END ==========\n`);
-
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  });
-
-  ipcMain.handle('keyboard-press', async (event, { key }) => {
-    if (process.platform === 'darwin') { try { return await macNative.pressKey(key); } catch(e) { return {success:false,error:e.message}; } }
-    try {
-      const keyMap = {
-        'enter': '{ENTER}',
-        'tab': '{TAB}',
-        'escape': '{ESC}',
-        'backspace': '{BACKSPACE}',
-        'delete': '{DELETE}',
-        'up': '{UP}',
-        'down': '{DOWN}',
-        'left': '{LEFT}',
-        'right': '{RIGHT}',
-        'home': '{HOME}',
-        'end': '{END}',
-        'pageup': '{PGUP}',
-        'pagedown': '{PGDN}',
-        'f1': '{F1}', 'f2': '{F2}', 'f3': '{F3}', 'f4': '{F4}',
-        'f5': '{F5}', 'f6': '{F6}', 'f7': '{F7}', 'f8': '{F8}',
-        'f9': '{F9}', 'f10': '{F10}', 'f11': '{F11}', 'f12': '{F12}',
-        'ctrl+a': '^a', 'ctrl+c': '^c', 'ctrl+v': '^v', 'ctrl+x': '^x',
-        'ctrl+z': '^z', 'ctrl+s': '^s', 'ctrl+enter': '^{ENTER}',
-        'alt+f4': '%{F4}', 'alt+tab': '%{TAB}'
-      };
-
-      const lowerKey = key.toLowerCase();
-      const sendKey = keyMap[lowerKey] || key;
-
-      const isEnter = lowerKey === 'enter';
-
-      const psCommand = isEnter
-        ? `Add-Type -AssemblyName System.Windows.Forms; Start-Sleep -Seconds 8; [System.Windows.Forms.SendKeys]::SendWait('${sendKey}')`
-        : `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${sendKey}')`;
-
-      return new Promise((resolve) => {
-        exec(`powershell -Command "${psCommand}"`, { timeout: 30000 }, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ error: error.message });
-          } else {
-            resolve({ success: true, key: sendKey, delayed: isEnter });
-          }
-        });
-      });
-    } catch (e) { return { error: e.message }; }
-  });
-
-  ipcMain.handle('keyboard-type', async (event, { text, pressEnter }) => {
-    if (process.platform === 'darwin') { try { return await macNative.typeText(text, pressEnter); } catch(e) { return {success:false,error:e.message}; } }
-    try {
-      const escapedText = text
-        .replace(/\+/g, '{+}')
-        .replace(/\^/g, '{^}')
-        .replace(/%/g, '{%}')
-        .replace(/~/g, '{~}')
-        .replace(/\(/g, '{(}')
-        .replace(/\)/g, '{)}')
-        .replace(/\[/g, '{[}')
-        .replace(/\]/g, '{]}')
-        .replace(/\{/g, '{{}')
-        .replace(/\}/g, '{}}');
-
-      let psCommand;
-      if (pressEnter) {
-        psCommand = `
-          Add-Type -AssemblyName System.Windows.Forms;
-          [System.Windows.Forms.SendKeys]::SendWait('${escapedText}');
-          Start-Sleep -Seconds 5;
-          [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
-        `;
-      } else {
-        psCommand = `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escapedText}')`;
-      }
-
-      return new Promise((resolve) => {
-        exec(`powershell -Command "${psCommand}"`, { timeout: 20000 }, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ error: error.message });
-          } else {
-            resolve({ success: true, typed: text, enterPressed: pressEnter });
-          }
-        });
-      });
-    } catch (e) { return { error: e.message }; }
-  });
-
-
   ipcMain.handle('check-for-update', async () => {
     if (!app.isPackaged) {
       return { success: false, message: 'Bypassed in dev mode' };
@@ -3812,42 +3422,6 @@ function registerHandlers() {
 
 
 
-function startWakeWordDetector(mainWindow) {
-  if (wakeWordProcess || isShuttingDown() || process.env.NOVA_SMOKE_TEST === '1') return;
-
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
-  const scriptPath = isDev
-    ? path.join(__dirname, '../wake_word_bg.py')
-    : path.join(process.resourcesPath, 'wake_word_bg.py');
-
-  console.log(`Starting Wake Word Detector (Python) from: ${scriptPath}`);
-  wakeWordProcess = spawn(pythonRuntime.python(), [scriptPath], { windowsHide: true });
-  wakeWordProcess.on('error', error => { console.error('[WakeWord]',error.message); wakeWordProcess = null; });
-
-  wakeWordProcess.stdout.on('data', (data) => {
-    try {
-      const output = data.toString().trim();
-      const lines = output.split('\n');
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        const result = JSON.parse(line);
-        mainWindow.webContents.send('wake-word-detected', result);
-      }
-    } catch (e) {
-      console.error('Error parsing wake word output:', e);
-    }
-  });
-
-  wakeWordProcess.stderr.on('data', (data) => {
-    console.error(`Wake Word Error: ${data}`);
-  });
-
-  wakeWordProcess.on('close', (code) => {
-    console.log(`Wake word process exited with code ${code}`);
-    wakeWordProcess = null;
-  });
-}
-
 function stopWindowServices() {
   const pending = [];
   if (productionServer) {
@@ -3860,10 +3434,7 @@ function stopWindowServices() {
     remoteAccessService = null;
   }
 
-  if (wakeWordProcess) {
-    wakeWordProcess.kill();
-    wakeWordProcess = null;
-  }
+  encerrarPalavraDeAtivacao();
 
   if (whatsappManager) {
     pending.push(whatsappManager.shutdown());
@@ -4058,7 +3629,7 @@ if (!gotTheLock) {
       console.log('✓ [Dev Mode] Auto-Updater strictly bypassed to prevent Code 2 errors.');
     }
 
-    if (createdWindow) startWakeWordDetector(createdWindow);
+    if (createdWindow) iniciarPalavraDeAtivacao(createdWindow, isShuttingDown);
 
     app.on('activate', () => {
       if (isShuttingDown()) return;
@@ -4070,7 +3641,7 @@ if (!gotTheLock) {
         if (telegramManager) {
           telegramManager.updateMainWindow(win);
         }
-        startWakeWordDetector(win);
+        iniciarPalavraDeAtivacao(win, isShuttingDown);
       }
     });
   });

@@ -100,5 +100,6 @@ test('spoof e pré-escuta não montam caminho de ffmpeg nem reabrem arquivo apag
   assert.match(spoof, /^const toolPaths = require\('\.\/tool-paths'\);$/m);
   assert.match(spoof, /this\.ffmpegPath\s*=\s*toolPaths\.ffmpeg\(\) \|\| 'ffmpeg';/);
   assert.doesNotMatch(spoof, /altPath/);
-  assert.doesNotMatch(lerFonte('main.js'), /if \(playErr\)/);
+  const arquivosDoMain = fs.readdirSync(path.join(__dirname, '../../app/electron')).filter((nome) => /^main(\.[a-z-]+)?\.js$/.test(nome));
+  for (const nome of arquivosDoMain) assert.doesNotMatch(lerFonte(nome), /if \(playErr\)/);
 });
