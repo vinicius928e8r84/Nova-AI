@@ -22,6 +22,7 @@
         "test/iphone/routing.cjs",
         "test/iphone/wireless.cjs",
         "iphone/idioma/test/teste-ipc.js",
+        "iphone/idioma/test/teste-ipc-caracterizacao.test.js",
         "iphone/modelo/test/teste-novamodel.cjs",
         "iphone/modelo/test/teste-novamodel-saida.test.cjs",
         "iphone/retrato/test/*.test.js",
