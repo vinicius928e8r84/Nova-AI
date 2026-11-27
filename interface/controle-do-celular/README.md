@@ -36,6 +36,8 @@ Cada lado mostra só os aparelhos e as funções daquela plataforma.
 | Arquivo | Papel |
 |---|---|
 | `aplicar.py` | aplica o patch no bundle do renderer e valida a sintaxe com `node --check` |
+| `passos_do_estado.py`, `passos_da_conexao.py`, `passos_da_identidade.py` | os passos do patch, na ordem em que o `aplicar.py` os roda: o estado e as abas, a conexão e o guia do iPhone, a identidade e o proxy |
+| `passos_de_patch.py`, `sintaxe_do_bundle.py`, `delimitadores.py` | rodam os passos (`Substituicao` e `Transformacao`), conferem a sintaxe com o `node --check` e acham o parêntese que fecha um bloco do bundle |
 | `index-Dun7lr2S.patched.js` | cópia do bundle já corrigido |
 | `git show 1b45c3f:MAC/controle-celular-plataformas/reservas/index-Dun7lr2S.antes-20261104.js` | bundle original, antes desta alteração (a pasta `reservas/` foi apagada) |
 | `docs/*.png` | capturas das duas telas (teste em navegador com dispositivos simulados) |

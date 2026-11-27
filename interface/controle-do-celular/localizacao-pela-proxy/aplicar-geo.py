@@ -1,142 +1,34 @@
 #!/usr/bin/env python3
 import pathlib
-import re
-import subprocess
 import sys
-import tempfile
 
-if len(sys.argv) != 3:
-    print('uso: aplicar-geo.py <origem.js> <saida.js>')
-    sys.exit(2)
-
-origem = pathlib.Path(sys.argv[1])
-saida = pathlib.Path(sys.argv[2])
-s = origem.read_text(encoding='utf-8')
-passos = []
+from passos_da_localizacao import PASSOS
+from passos_de_patch import executar_passos
+from sintaxe_do_bundle import conferir_com_o_node
 
 
-def rep(velho, novo, rotulo, esperado=1):
-    global s
-    n = s.count(velho)
-    if n != esperado:
-        raise SystemExit(f'[{rotulo}] esperava {esperado} ocorrência(s), achei {n}: {velho[:90]!r}')
-    s = s.replace(velho, novo)
-    passos.append(rotulo)
+def conferir_sintaxe_final(texto):
+    resultado = conferir_com_o_node(texto, 'bundle.mjs')
+    if resultado.returncode != 0:
+        detalhe = resultado.stderr.split('SyntaxError')[-1][:300]
+        raise SystemExit(f'quebrou em [final]: SyntaxError{detalhe}')
 
 
-def check(rotulo):
-    with tempfile.TemporaryDirectory() as tmp:
-        prova = pathlib.Path(tmp) / 'bundle.mjs'
-        prova.write_text(s, encoding='utf-8')
-        r = subprocess.run(['node', '--check', str(prova)], capture_output=True, text=True)
-        if r.returncode != 0:
-            msg = r.stderr.split('SyntaxError')[-1][:300]
-            raise SystemExit(f'quebrou em [{rotulo}]: SyntaxError{msg}')
+def principal(argumentos):
+    if len(argumentos) != 3:
+        print('uso: aplicar-geo.py <origem.js> <saida.js>')
+        sys.exit(2)
+    origem = pathlib.Path(argumentos[1])
+    saida = pathlib.Path(argumentos[2])
+    original = origem.read_text(encoding='utf-8')
+    texto, rotulos = executar_passos(PASSOS, original)
+    conferir_sintaxe_final(texto)
+    saida.write_text(texto, encoding='utf-8')
+    tamanho_da_origem_depois_de_gravar = len(origem.read_text(encoding='utf-8'))
+    print(f'ok: {len(rotulos)} passos, {len(texto)} bytes (origem {tamanho_da_origem_depois_de_gravar})')
+    for rotulo in rotulos:
+        print('  -', rotulo)
 
 
-def match_close(texto, i):
-    pares = {'(': ')', '[': ']', '{': '}'}
-    abre = texto[i]
-    fecha = pares[abre]
-    prof = 0
-    instr = None
-    esc = False
-    while i < len(texto):
-        ch = texto[i]
-        if instr:
-            if esc:
-                esc = False
-            elif ch == '\\':
-                esc = True
-            elif ch == instr:
-                instr = None
-        else:
-            if ch in '"\'`':
-                instr = ch
-            elif ch in '([{':
-                prof += 1
-            elif ch in ')]}':
-                prof -= 1
-                if prof == 0:
-                    return i
-        i += 1
-    raise SystemExit('delimitador não fechou')
-
-
-def achar_antes(texto, marcador, abertura, rotulo):
-    pos = texto.find(marcador)
-    if pos < 0:
-        raise SystemExit(f'[{rotulo}] marcador não encontrado: {marcador[:60]!r}')
-    i = texto.rfind(abertura, 0, pos)
-    if i < 0:
-        raise SystemExit(f'[{rotulo}] não achei {abertura!r} antes do marcador')
-    return i
-
-
-HELPER = (
-    'pGeoApply=async pPx=>{if(!W||!SI)return;const pG=await SI.invoke("spoofer:geo-from-proxy",{deviceId:W,'
-    'proxy:(pPx||"").trim()}).catch(pE=>({success:!1,error:String(pE&&pE.message||pE)}));'
-    'if(!(pG&&pG.success)){kI("Não consegui pegar a localização da proxy: "+((pG&&pG.error)||"erro")),VI("error");return}'
-    'Gl(String(pG.lat)),cl(String(pG.lon));'
-    'const pA=await SI.invoke("spoofer:set-location",{deviceId:W,latitude:pG.lat,longitude:pG.lon})'
-    '.catch(pE=>({success:!1,error:String(pE&&pE.message||pE)}));'
-    'const pL=await SI.invoke("spoofer:apply-locale",{deviceId:W,timezone:pG.timezone,countryCode:pG.countryCode})'
-    '.catch(pE=>({success:!1,error:String(pE&&pE.message||pE)}));'
-    'const pLT=pL&&pL.success?` · idioma ${pL.language} · fuso ${pL.timezone||pG.timezone||"—"}`'
-    ':(pL&&pL.error==="helper-not-installed"?" · idioma: helper não instalado":(pL&&pL.error?` · idioma: ${pL.error}`:""));'
-    'pA&&pA.success?(M("set"),kI(`✓ GPS em ${pG.city} / ${pG.country} (IP ${pG.ip})`+pLT),VI("success"))'
-    ':(M("error"),kI(`Proxy em ${pG.city} / ${pG.country}, mas o GPS não aplicou: ${(pA&&pA.error)||"erro"}`),VI("error"))},'
-    'pGeoOnOpen=()=>{if(!W||!SI||!String(W).startsWith("ios-"))return;const pP=localStorage.getItem("nova_iphone_proxy_"+W)||(pProxy||"").trim();'
-    'pP&&pGeoApply(pP)},'
-)
-rep('pSaveProxy=async()=>{const pV=pProxy.trim();', HELPER + 'pSaveProxy=async()=>{const pV=pProxy.trim();', 'helper pGeoApply')
-
-rep(
-    'F.useEffect(()=>{c==="spoofer"&&Object.keys(lI).length===0&&Vl()},[c]);',
-    'F.useEffect(()=>{c==="spoofer"&&Object.keys(lI).length===0&&Vl()},[c]);'
-    'F.useEffect(()=>{c==="spoofer"&&pGeoOnOpen()},[c,W]);',
-    'useEffect geo ao abrir',
-)
-
-rep(
-    'pSetProxyMsg("Proxy aplicado no iPhone."),pSetProxyStatus("ok")}',
-    'pSetProxyMsg("Proxy aplicado no iPhone."),pSetProxyStatus("ok"),await pGeoApply(pV)}',
-    'geo ao salvar proxy',
-)
-
-velho_fim = 'ainda depende do hook do jailbreak.")}'
-if s.count(velho_fim) != 1:
-    raise SystemExit(f'[geo ao salvar identidade] esperava 1, achei {s.count(velho_fim)}')
-s = s.replace(velho_fim, 'ainda depende do hook do jailbreak."),await pGeoApply(pV)}')
-passos.append('geo ao salvar identidade')
-
-rep(
-    'Ul=async()=>{if(!(!W||!SI))try{await SI.invoke("spoofer:stop-gps",{deviceId:W}),M("idle"),kI("Loop de GPS falso parado. Localização real restaurada."),VI("idle")}catch(eI){kI(`Error: ${eI.message}`)}}',
-    'Ul=async()=>{if(!(!W||!SI))try{await SI.invoke("spoofer:stop-gps",{deviceId:W}).catch(()=>{}),'
-    'await SI.invoke("spoofer:revert-locale",{deviceId:W}).catch(()=>{}),M("idle"),'
-    'kI("GPS, fuso e idioma restaurados."),VI("idle")}catch(eI){kI(`Error: ${eI.message}`)}}',
-    'parar restaura idioma/fuso',
-)
-
-marca = '"Fixar GPS Falso"'
-pos = s.find(marca)
-if pos < 0:
-    raise SystemExit('[botões GPS] não achei "Fixar GPS Falso"')
-ini = achar_antes(s, marca, 'b.jsxs("div",{className:"grid grid-cols-2 gap-2"', 'botões GPS')
-fim = match_close(s, s.index('(', ini))
-NOVOS_BOTOES = (
-    'b.jsxs("div",{className:"flex items-center justify-between gap-2",children:['
-    'b.jsx("span",{className:`text-[9px] font-bold uppercase tracking-wider ${yl==="set"?"text-emerald-400":"text-white/35"}`,'
-    'children:yl==="set"?"GPS aplicado pela proxy":"O GPS é aplicado sozinho ao salvar a proxy"}),'
-    'yl==="set"&&b.jsxs("button",{onClick:Ul,className:"py-1.5 px-3 rounded-lg font-black text-[9px] uppercase tracking-widest '
-    'flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all",'
-    'children:[b.jsx(GG,{size:9})," Parar"]})]})'
-)
-s = s[:ini] + NOVOS_BOTOES + s[fim + 1:]
-passos.append('remove botão Fixar GPS')
-
-check('final')
-saida.write_text(s, encoding='utf-8')
-print(f'ok: {len(passos)} passos, {len(s)} bytes (origem {len(origem.read_text(encoding="utf-8"))})')
-for p in passos:
-    print('  -', p)
+if __name__ == '__main__':
+    principal(sys.argv)

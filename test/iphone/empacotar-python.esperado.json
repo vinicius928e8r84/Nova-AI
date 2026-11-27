@@ -1,0 +1,1711 @@
+{
+ "runtime completo, com as chamadas e o manifesto em ordem alfabética": {
+  "codigo": 0,
+  "stdout": "Python portátil criado: 7 arquivos Mach-O\n",
+  "erro": "",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Python",
+    "tipo": "link",
+    "alvo": "Versions/Current/Python"
+   },
+   {
+    "caminho": "Python.framework/Resources",
+    "tipo": "link",
+    "alvo": "Versions/Current/Resources"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 343,
+    "sha256": "c66f68c1d3161749188125e45060f74d6d6d57dd0407c3a85075b4493f1026d4"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3",
+    "tipo": "link",
+    "alvo": "python3.15"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3.15",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 136,
+    "sha256": "076657a987c9e5823621a92c5f1cd46d658285ee9e5241ae683d0ebabf75540a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 498,
+    "sha256": "3f6fcc72224d9eaadbb26cb1c4309bf1bfc9c408373cafc04db7d1724a509f6a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 537,
+    "sha256": "f1c8ddf2444c1ebdaee126d9d86d42262dcb803c2b7192e64d8a2f7bcf46d45a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 265,
+    "sha256": "609c5b2888a0589ddf58889e781fd777630671b88579c184f5f7ef71849f3725"
+   },
+   {
+    "caminho": "Python.framework/Versions/Current",
+    "tipo": "link",
+    "alvo": "3.15"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 315,
+    "sha256": "9ca2ff177c22481404df6f044b3c98f253411cb6ef3c65cb9f1571b1ab1e0639"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 333,
+    "sha256": "7c3c320728c559ad3274d9ba54ac267a2ee5d6bfc0b997814aca40dd1184828a"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 388,
+    "sha256": "27c14be769e4661788eed22e2842cb475ef3f77a79443c22e2cbfd144b66caf4"
+   },
+   {
+    "caminho": "manifest.json",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 1114,
+    "sha256": "aed80fcd77a4d7e31ce466f7e64227d6af626da4cce16b7bbb6efeb8c3b24c8e"
+   },
+   {
+    "caminho": "run-python",
+    "tipo": "arquivo",
+    "executavel": true,
+    "bytes": 417,
+    "sha256": "6d9906e500e8910efb2ef185028e27dcb8189c939b2c464529aaa921904cc111"
+   }
+  ],
+  "manifesto": [
+   {
+    "file": "lib/libcrypto.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib"
+   },
+   {
+    "file": "lib/libportaudio.2.dylib",
+    "source": "<raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib"
+   },
+   {
+    "file": "lib/libssl.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/bin/python3.15",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/bin/python3.15"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "source": "<raiz>/recursos/python-env/lib/python3.15/site-packages/pacote/nativo.so"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/Python",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Python"
+   }
+  ],
+  "runPython": "#!/bin/sh\nnova_runtime=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexport NOVA_PYTHON_RUNTIME=\"$nova_runtime\"\nexport PYTHONHOME=\"$nova_runtime/Python.framework/Versions/3.15\"\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nexport SSL_CERT_FILE=\"$PYTHONHOME/lib/python3.15/site-packages/certifi/cacert.pem\"\nexport REQUESTS_CA_BUNDLE=\"$SSL_CERT_FILE\"\nunset PYTHONPATH\nexec \"$PYTHONHOME/bin/python3.15\" \"$@\"\n",
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _system_find_library\ndef _find_library(name):\n    if name == 'portaudio':\n        return _os.path.join(_os.environ['NOVA_PYTHON_RUNTIME'], 'lib', 'libportaudio.2.dylib')\n    return _system_find_library(name)\n",
+  "chamadas": [
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/bin/python3.15",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib",
+   "install_name_tool -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../../../../lib/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "install_name_tool -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/../../../../../../../lib/libportaudio.2.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../lib/libssl.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "install_name_tool -id @loader_path/libcrypto.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "install_name_tool -id @loader_path/libportaudio.2.dylib -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "install_name_tool -id @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib"
+  ]
+ },
+ "uma só biblioteca nativa, com as chamadas na ordem da fila": {
+  "codigo": 0,
+  "stdout": "Python portátil criado: 4 arquivos Mach-O\n",
+  "erro": "",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Python",
+    "tipo": "link",
+    "alvo": "Versions/Current/Python"
+   },
+   {
+    "caminho": "Python.framework/Resources",
+    "tipo": "link",
+    "alvo": "Versions/Current/Resources"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 343,
+    "sha256": "c66f68c1d3161749188125e45060f74d6d6d57dd0407c3a85075b4493f1026d4"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 265,
+    "sha256": "609c5b2888a0589ddf58889e781fd777630671b88579c184f5f7ef71849f3725"
+   },
+   {
+    "caminho": "Python.framework/Versions/Current",
+    "tipo": "link",
+    "alvo": "3.15"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 315,
+    "sha256": "9ca2ff177c22481404df6f044b3c98f253411cb6ef3c65cb9f1571b1ab1e0639"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 333,
+    "sha256": "7c3c320728c559ad3274d9ba54ac267a2ee5d6bfc0b997814aca40dd1184828a"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 388,
+    "sha256": "27c14be769e4661788eed22e2842cb475ef3f77a79443c22e2cbfd144b66caf4"
+   },
+   {
+    "caminho": "manifest.json",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 514,
+    "sha256": "690f07e0acf70f812e4b3f451981be6f7dd102d0d2682efaef1377c758a20247"
+   },
+   {
+    "caminho": "run-python",
+    "tipo": "arquivo",
+    "executavel": true,
+    "bytes": 417,
+    "sha256": "6d9906e500e8910efb2ef185028e27dcb8189c939b2c464529aaa921904cc111"
+   }
+  ],
+  "manifesto": [
+   {
+    "file": "Python.framework/Versions/3.15/Python",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Python"
+   },
+   {
+    "file": "lib/libportaudio.2.dylib",
+    "source": "<raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib"
+   },
+   {
+    "file": "lib/libssl.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib"
+   },
+   {
+    "file": "lib/libcrypto.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib"
+   }
+  ],
+  "runPython": "#!/bin/sh\nnova_runtime=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexport NOVA_PYTHON_RUNTIME=\"$nova_runtime\"\nexport PYTHONHOME=\"$nova_runtime/Python.framework/Versions/3.15\"\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nexport SSL_CERT_FILE=\"$PYTHONHOME/lib/python3.15/site-packages/certifi/cacert.pem\"\nexport REQUESTS_CA_BUNDLE=\"$SSL_CERT_FILE\"\nunset PYTHONPATH\nexec \"$PYTHONHOME/bin/python3.15\" \"$@\"\n",
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _system_find_library\ndef _find_library(name):\n    if name == 'portaudio':\n        return _os.path.join(_os.environ['NOVA_PYTHON_RUNTIME'], 'lib', 'libportaudio.2.dylib')\n    return _system_find_library(name)\n",
+  "chamadas": [
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../lib/libssl.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "install_name_tool -id @loader_path/libportaudio.2.dylib -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "install_name_tool -id @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib",
+   "install_name_tool -id @loader_path/libcrypto.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib"
+  ]
+ },
+ "runtime que já existe": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "RuntimeError: Runtime já existe; não sobrescrevendo a compilação anterior.",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": null,
+  "chamadas": []
+ },
+ "duas bibliotecas com o mesmo nome e conteúdo diferente": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "RuntimeError: Library collision: <raiz>/homebrew/opt/b/lib/libx.dylib",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "ce0aeb0283507e2eac95bf86507d6d23455b5e06beefd6abc79a4049e49425ae"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 71,
+    "sha256": "8f5dfa14a8ab8d617dd72b41b2b6879f1b9568678ccfbc6359a3f4347a149beb"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 22,
+    "sha256": "3f4263f8d54465bcf8ab3d125a01b8877d59034621cfa2c96ac09ebf4c0e7a86"
+   },
+   {
+    "caminho": "lib/libx.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 14,
+    "sha256": "18d3b906d28cdac2085b3f748da1610b6050504421c489cd2b1aa3208be49fc6"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _find_library\n",
+  "chamadas": []
+ },
+ "duas bibliotecas com o mesmo nome e o mesmo conteúdo": {
+  "codigo": 0,
+  "stdout": "Python portátil criado: 3 arquivos Mach-O\n",
+  "erro": "",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Python",
+    "tipo": "link",
+    "alvo": "Versions/Current/Python"
+   },
+   {
+    "caminho": "Python.framework/Resources",
+    "tipo": "link",
+    "alvo": "Versions/Current/Resources"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 409,
+    "sha256": "61c66f4af0a60d8dffa9a4428f10bd4c0b3e0e1940b494c3219e8ec7311efe8d"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 265,
+    "sha256": "609c5b2888a0589ddf58889e781fd777630671b88579c184f5f7ef71849f3725"
+   },
+   {
+    "caminho": "Python.framework/Versions/Current",
+    "tipo": "link",
+    "alvo": "3.15"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 333,
+    "sha256": "7c3c320728c559ad3274d9ba54ac267a2ee5d6bfc0b997814aca40dd1184828a"
+   },
+   {
+    "caminho": "lib/libx.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 202,
+    "sha256": "5becb499a2de6a49225acf351a61f6375306a8ea8ed466267c0be28bd0fc485c"
+   },
+   {
+    "caminho": "manifest.json",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 384,
+    "sha256": "06d202da2a43eaeb4dec3121dd9ecc932046750f7dcec532aa927cbc56bcc3cc"
+   },
+   {
+    "caminho": "run-python",
+    "tipo": "arquivo",
+    "executavel": true,
+    "bytes": 417,
+    "sha256": "6d9906e500e8910efb2ef185028e27dcb8189c939b2c464529aaa921904cc111"
+   }
+  ],
+  "manifesto": [
+   {
+    "file": "Python.framework/Versions/3.15/Python",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Python"
+   },
+   {
+    "file": "lib/libportaudio.2.dylib",
+    "source": "<raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib"
+   },
+   {
+    "file": "lib/libx.dylib",
+    "source": "<raiz>/homebrew/opt/a/lib/libx.dylib"
+   }
+  ],
+  "runPython": "#!/bin/sh\nnova_runtime=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexport NOVA_PYTHON_RUNTIME=\"$nova_runtime\"\nexport PYTHONHOME=\"$nova_runtime/Python.framework/Versions/3.15\"\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nexport SSL_CERT_FILE=\"$PYTHONHOME/lib/python3.15/site-packages/certifi/cacert.pem\"\nexport REQUESTS_CA_BUNDLE=\"$SSL_CERT_FILE\"\nunset PYTHONPATH\nexec \"$PYTHONHOME/bin/python3.15\" \"$@\"\n",
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _system_find_library\ndef _find_library(name):\n    if name == 'portaudio':\n        return _os.path.join(_os.environ['NOVA_PYTHON_RUNTIME'], 'lib', 'libportaudio.2.dylib')\n    return _system_find_library(name)\n",
+  "chamadas": [
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/a/lib/libx.dylib @loader_path/../../../lib/libx.dylib -change <raiz>/homebrew/opt/b/lib/libx.dylib @loader_path/../../../lib/libx.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "install_name_tool -id @loader_path/libportaudio.2.dylib -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "install_name_tool -id @loader_path/libx.dylib <raiz>/recursos/python-runtime-portable/lib/libx.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libx.dylib"
+  ]
+ },
+ "dependência fora do Homebrew e do sistema": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "RuntimeError: Unexpected dependency: <raiz>/fora/libx.dylib",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "ce0aeb0283507e2eac95bf86507d6d23455b5e06beefd6abc79a4049e49425ae"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 71,
+    "sha256": "8f5dfa14a8ab8d617dd72b41b2b6879f1b9568678ccfbc6359a3f4347a149beb"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 22,
+    "sha256": "3f4263f8d54465bcf8ab3d125a01b8877d59034621cfa2c96ac09ebf4c0e7a86"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _find_library\n",
+  "chamadas": []
+ },
+ "extensão do app que lista a si mesma entre as dependências": {
+  "codigo": 0,
+  "stdout": "Python portátil criado: 7 arquivos Mach-O\n",
+  "erro": "",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Python",
+    "tipo": "link",
+    "alvo": "Versions/Current/Python"
+   },
+   {
+    "caminho": "Python.framework/Resources",
+    "tipo": "link",
+    "alvo": "Versions/Current/Resources"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 343,
+    "sha256": "c66f68c1d3161749188125e45060f74d6d6d57dd0407c3a85075b4493f1026d4"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3",
+    "tipo": "link",
+    "alvo": "python3.15"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3.15",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 136,
+    "sha256": "076657a987c9e5823621a92c5f1cd46d658285ee9e5241ae683d0ebabf75540a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 498,
+    "sha256": "3f6fcc72224d9eaadbb26cb1c4309bf1bfc9c408373cafc04db7d1724a509f6a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 421,
+    "sha256": "61bbd0a89a93d25d299d141059d2d847a93867c248926997a9046a4ba05374ba"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 265,
+    "sha256": "609c5b2888a0589ddf58889e781fd777630671b88579c184f5f7ef71849f3725"
+   },
+   {
+    "caminho": "Python.framework/Versions/Current",
+    "tipo": "link",
+    "alvo": "3.15"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 315,
+    "sha256": "9ca2ff177c22481404df6f044b3c98f253411cb6ef3c65cb9f1571b1ab1e0639"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 333,
+    "sha256": "7c3c320728c559ad3274d9ba54ac267a2ee5d6bfc0b997814aca40dd1184828a"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 388,
+    "sha256": "27c14be769e4661788eed22e2842cb475ef3f77a79443c22e2cbfd144b66caf4"
+   },
+   {
+    "caminho": "manifest.json",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 1114,
+    "sha256": "aed80fcd77a4d7e31ce466f7e64227d6af626da4cce16b7bbb6efeb8c3b24c8e"
+   },
+   {
+    "caminho": "run-python",
+    "tipo": "arquivo",
+    "executavel": true,
+    "bytes": 417,
+    "sha256": "6d9906e500e8910efb2ef185028e27dcb8189c939b2c464529aaa921904cc111"
+   }
+  ],
+  "manifesto": [
+   {
+    "file": "lib/libcrypto.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib"
+   },
+   {
+    "file": "lib/libportaudio.2.dylib",
+    "source": "<raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib"
+   },
+   {
+    "file": "lib/libssl.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/bin/python3.15",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/bin/python3.15"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "source": "<raiz>/recursos/python-env/lib/python3.15/site-packages/pacote/nativo.so"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/Python",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Python"
+   }
+  ],
+  "runPython": "#!/bin/sh\nnova_runtime=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexport NOVA_PYTHON_RUNTIME=\"$nova_runtime\"\nexport PYTHONHOME=\"$nova_runtime/Python.framework/Versions/3.15\"\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nexport SSL_CERT_FILE=\"$PYTHONHOME/lib/python3.15/site-packages/certifi/cacert.pem\"\nexport REQUESTS_CA_BUNDLE=\"$SSL_CERT_FILE\"\nunset PYTHONPATH\nexec \"$PYTHONHOME/bin/python3.15\" \"$@\"\n",
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _system_find_library\ndef _find_library(name):\n    if name == 'portaudio':\n        return _os.path.join(_os.environ['NOVA_PYTHON_RUNTIME'], 'lib', 'libportaudio.2.dylib')\n    return _system_find_library(name)\n",
+  "chamadas": [
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/bin/python3.15",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib",
+   "install_name_tool -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../../../../lib/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "install_name_tool -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/../../../../../../../lib/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../lib/libssl.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "install_name_tool -id @loader_path/libcrypto.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "install_name_tool -id @loader_path/libportaudio.2.dylib -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "install_name_tool -id @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib"
+  ]
+ },
+ "sem o sounddevice.py no app": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py'",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 343,
+    "sha256": "c66f68c1d3161749188125e45060f74d6d6d57dd0407c3a85075b4493f1026d4"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3",
+    "tipo": "link",
+    "alvo": "python3.15"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3.15",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 136,
+    "sha256": "076657a987c9e5823621a92c5f1cd46d658285ee9e5241ae683d0ebabf75540a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 498,
+    "sha256": "3f6fcc72224d9eaadbb26cb1c4309bf1bfc9c408373cafc04db7d1724a509f6a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 537,
+    "sha256": "f1c8ddf2444c1ebdaee126d9d86d42262dcb803c2b7192e64d8a2f7bcf46d45a"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 315,
+    "sha256": "9ca2ff177c22481404df6f044b3c98f253411cb6ef3c65cb9f1571b1ab1e0639"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 333,
+    "sha256": "7c3c320728c559ad3274d9ba54ac267a2ee5d6bfc0b997814aca40dd1184828a"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 388,
+    "sha256": "27c14be769e4661788eed22e2842cb475ef3f77a79443c22e2cbfd144b66caf4"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": null,
+  "chamadas": [
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/bin/python3.15",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib",
+   "install_name_tool -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../../../../lib/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "install_name_tool -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/../../../../../../../lib/libportaudio.2.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../lib/libssl.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "install_name_tool -id @loader_path/libcrypto.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "install_name_tool -id @loader_path/libportaudio.2.dylib -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "install_name_tool -id @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib"
+  ]
+ },
+ "sounddevice.py sem a linha do find_library": {
+  "codigo": 0,
+  "stdout": "Python portátil criado: 7 arquivos Mach-O\n",
+  "erro": "",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Python",
+    "tipo": "link",
+    "alvo": "Versions/Current/Python"
+   },
+   {
+    "caminho": "Python.framework/Resources",
+    "tipo": "link",
+    "alvo": "Versions/Current/Resources"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 343,
+    "sha256": "c66f68c1d3161749188125e45060f74d6d6d57dd0407c3a85075b4493f1026d4"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3",
+    "tipo": "link",
+    "alvo": "python3.15"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/bin/python3.15",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 136,
+    "sha256": "076657a987c9e5823621a92c5f1cd46d658285ee9e5241ae683d0ebabf75540a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 498,
+    "sha256": "3f6fcc72224d9eaadbb26cb1c4309bf1bfc9c408373cafc04db7d1724a509f6a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 537,
+    "sha256": "f1c8ddf2444c1ebdaee126d9d86d42262dcb803c2b7192e64d8a2f7bcf46d45a"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 17,
+    "sha256": "1a64bba15793ad5bba35a9c004781fa7a70460537ead82a712de55cb816f0de2"
+   },
+   {
+    "caminho": "Python.framework/Versions/Current",
+    "tipo": "link",
+    "alvo": "3.15"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 315,
+    "sha256": "9ca2ff177c22481404df6f044b3c98f253411cb6ef3c65cb9f1571b1ab1e0639"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 333,
+    "sha256": "7c3c320728c559ad3274d9ba54ac267a2ee5d6bfc0b997814aca40dd1184828a"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 388,
+    "sha256": "27c14be769e4661788eed22e2842cb475ef3f77a79443c22e2cbfd144b66caf4"
+   },
+   {
+    "caminho": "manifest.json",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 1114,
+    "sha256": "aed80fcd77a4d7e31ce466f7e64227d6af626da4cce16b7bbb6efeb8c3b24c8e"
+   },
+   {
+    "caminho": "run-python",
+    "tipo": "arquivo",
+    "executavel": true,
+    "bytes": 417,
+    "sha256": "6d9906e500e8910efb2ef185028e27dcb8189c939b2c464529aaa921904cc111"
+   }
+  ],
+  "manifesto": [
+   {
+    "file": "lib/libcrypto.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib"
+   },
+   {
+    "file": "lib/libportaudio.2.dylib",
+    "source": "<raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib"
+   },
+   {
+    "file": "lib/libssl.3.dylib",
+    "source": "<raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/bin/python3.15",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/bin/python3.15"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+    "source": "<raiz>/recursos/python-env/lib/python3.15/site-packages/pacote/nativo.so"
+   },
+   {
+    "file": "Python.framework/Versions/3.15/Python",
+    "source": "<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Python"
+   }
+  ],
+  "runPython": "#!/bin/sh\nnova_runtime=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nexport NOVA_PYTHON_RUNTIME=\"$nova_runtime\"\nexport PYTHONHOME=\"$nova_runtime/Python.framework/Versions/3.15\"\nexport PYTHONNOUSERSITE=1\nexport PYTHONDONTWRITEBYTECODE=1\nexport SSL_CERT_FILE=\"$PYTHONHOME/lib/python3.15/site-packages/certifi/cacert.pem\"\nexport REQUESTS_CA_BUNDLE=\"$SSL_CERT_FILE\"\nunset PYTHONPATH\nexec \"$PYTHONHOME/bin/python3.15\" \"$@\"\n",
+  "sounddevice": "import os as _os\n",
+  "chamadas": [
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/bin/python3.15",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "codesign --force --sign - <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib",
+   "install_name_tool -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../../../../lib/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/lib-dynload/_ssl.so",
+   "install_name_tool -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/../../../../../../../lib/libportaudio.2.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/../../../../../../../lib/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote/nativo.so",
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../lib/libssl.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python",
+   "install_name_tool -id @loader_path/libcrypto.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libcrypto.3.dylib",
+   "install_name_tool -id @loader_path/libportaudio.2.dylib -change <raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib @loader_path/libportaudio.2.dylib <raiz>/recursos/python-runtime-portable/lib/libportaudio.2.dylib",
+   "install_name_tool -id @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/libssl.3.dylib -change <raiz>/homebrew/opt/openssl@3/lib/libcrypto.3.dylib @loader_path/libcrypto.3.dylib <raiz>/recursos/python-runtime-portable/lib/libssl.3.dylib"
+  ]
+ },
+ "sem o portaudio do Homebrew": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "FileNotFoundError: [Errno 2] No such file or directory: '<raiz>/homebrew/opt/portaudio/lib/libportaudio.2.dylib'",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "ce0aeb0283507e2eac95bf86507d6d23455b5e06beefd6abc79a4049e49425ae"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 71,
+    "sha256": "8f5dfa14a8ab8d617dd72b41b2b6879f1b9568678ccfbc6359a3f4347a149beb"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _find_library\n",
+  "chamadas": []
+ },
+ "install_name_tool falha": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "subprocess.CalledProcessError: Command '['<raiz>/ferramentas/install_name_tool', '-id', '@loader_path/Python', '-change', '<raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib', '@loader_path/../../../lib/libssl.3.dylib', '<raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python']' returned non-zero exit status 1.",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "ce0aeb0283507e2eac95bf86507d6d23455b5e06beefd6abc79a4049e49425ae"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 71,
+    "sha256": "8f5dfa14a8ab8d617dd72b41b2b6879f1b9568678ccfbc6359a3f4347a149beb"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "78179bca41594aa8c36eac9e5eae3d20ba2e2930b22d1a7fc815a85c3d135f5b"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 22,
+    "sha256": "3f4263f8d54465bcf8ab3d125a01b8877d59034621cfa2c96ac09ebf4c0e7a86"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 16,
+    "sha256": "af8088b0a118b43f241b014e0e46a2d125949ddcbb0d2022fa8362c1bb773b04"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _find_library\n",
+  "chamadas": []
+ },
+ "codesign falha": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "subprocess.CalledProcessError: Command '['<raiz>/ferramentas/codesign', '--force', '--sign', '-', '<raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python']' returned non-zero exit status 1.",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 238,
+    "sha256": "53e5bcaf1dd519e1140d002c92d38101d7238bb9a8e3b0fb978636135a696ae3"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 71,
+    "sha256": "8f5dfa14a8ab8d617dd72b41b2b6879f1b9568678ccfbc6359a3f4347a149beb"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libcrypto.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "78179bca41594aa8c36eac9e5eae3d20ba2e2930b22d1a7fc815a85c3d135f5b"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 22,
+    "sha256": "3f4263f8d54465bcf8ab3d125a01b8877d59034621cfa2c96ac09ebf4c0e7a86"
+   },
+   {
+    "caminho": "lib/libssl.3.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 16,
+    "sha256": "af8088b0a118b43f241b014e0e46a2d125949ddcbb0d2022fa8362c1bb773b04"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _find_library\n",
+  "chamadas": [
+   "install_name_tool -id @loader_path/Python -change <raiz>/homebrew/opt/openssl@3/lib/libssl.3.dylib @loader_path/../../../lib/libssl.3.dylib <raiz>/recursos/python-runtime-portable/Python.framework/Versions/3.15/Python"
+  ]
+ },
+ "otool falha": {
+  "codigo": 1,
+  "stdout": "",
+  "erro": "subprocess.CalledProcessError: Command '['<raiz>/ferramentas/otool', '-L', '<raiz>/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Python']' returned non-zero exit status 1.",
+  "arvore": [
+   {
+    "caminho": "Python.framework",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Python",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 19,
+    "sha256": "ce0aeb0283507e2eac95bf86507d6d23455b5e06beefd6abc79a4049e49425ae"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/Resources/Info.plist",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 9,
+    "sha256": "b62f9714ac7f08b49bdf44178409779fd47c9884ce5212cd2ce83cbb5bb566ec"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/os.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 11,
+    "sha256": "c517577851c489e45abae2591256c40404a05c6d19cd4d5ae7fd22b0084cec6c"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/certifi/cacert.pem",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 13,
+    "sha256": "61ab671f976f37c212052f0a071ed613592f3c7cda46e6daa6de001d7f27b9fc"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/pacote",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "Python.framework/Versions/3.15/lib/python3.15/site-packages/sounddevice.py",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 71,
+    "sha256": "8f5dfa14a8ab8d617dd72b41b2b6879f1b9568678ccfbc6359a3f4347a149beb"
+   },
+   {
+    "caminho": "lib",
+    "tipo": "diretorio"
+   },
+   {
+    "caminho": "lib/libportaudio.2.dylib",
+    "tipo": "arquivo",
+    "executavel": false,
+    "bytes": 22,
+    "sha256": "3f4263f8d54465bcf8ab3d125a01b8877d59034621cfa2c96ac09ebf4c0e7a86"
+   }
+  ],
+  "manifesto": null,
+  "runPython": null,
+  "sounddevice": "import os as _os\nfrom ctypes.util import find_library as _find_library\n",
+  "chamadas": []
+ }
+}
