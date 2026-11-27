@@ -15,6 +15,15 @@ const cameraAcesso = require('./services/camera-acesso');
 const mime = require('mime-types');
 const si = require('systeminformation');
 const screenshot = require('screenshot-desktop');
+const {
+  getMemoryPath, getUserProfilePath, getDashboardSettingsPath, getFolderConfigPath, getVaultPath,
+  getHistoryPath, getHistorySettingsPath, getContactsPath, getNotesPath, getTasksPath,
+  getSecretKeyPath, getGroqKeyPath, getOpenRouterKeyPath, getThinkingSettingsPath,
+  getGeminiPreferencePath, getChildAgentModelPath, getChildAgentKeyPath, getNovaVoicePath,
+  getChatsPath, getCustomModelsPath, getWhatsAppSettingsPath, getGoogleKeyPath,
+  getVisualSettingsPath, getElevenLabsSettingsPath, getWaApiKeyPath,
+  ensureNovaDirectories, syncConfigurationBackup, restoreConfigurationBackup,
+} = require('./main.caminhos');
 
 console.log('[SYSTEM-WAKEUP] System Restored: Awaiting Fresh Command');
 const axios = require('axios');
@@ -136,74 +145,6 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 let powerSaveId = null;
 
 
-
-const migrateStonicToNova = () => {
-  try {
-    const documentsPath = app.getPath('documents');
-    const oldDocsPath = path.join(documentsPath, 'Stonic Data');
-    const newDocsPath = path.join(documentsPath, 'Nova Data');
-    const oldVaultPath = path.join(documentsPath, 'Stonic_Vault');
-    const newVaultPath = path.join(documentsPath, 'Nova_Vault');
-
-    if (!fs.existsSync(newDocsPath) && fs.existsSync(oldDocsPath)) {
-      console.log('[Migration] Copying Nova Data...');
-      fs.mkdirSync(newDocsPath, { recursive: true });
-      const files = fs.readdirSync(oldDocsPath);
-      files.forEach(file => {
-        const src = path.join(oldDocsPath, file);
-        const dest = path.join(newDocsPath, file);
-        if (fs.lstatSync(src).isFile()) {
-          fs.copyFileSync(src, dest);
-        }
-      });
-    }
-
-    if (!fs.existsSync(newVaultPath) && fs.existsSync(oldVaultPath)) {
-        console.log('[Migration] Renaming old vault to Nova_Vault...');
-        fs.renameSync(oldVaultPath, newVaultPath);
-    }
-
-    const newUserData = app.getPath('userData');
-    const oldUserData = path.join(path.dirname(newUserData), 'Stonic AI');
-
-    if (fs.existsSync(oldUserData) && oldUserData !== newUserData) {
-      const filesToMigrate = [
-        'memories.json', 'user_profile.json', 'dashboard_settings.json', 
-        'imported_folders.json', 'history.json', 'history_settings.json', 
-        'contacts.json', 'notes.json', 'tasks.json', 'secret_key.json', 
-        'groq_key.json', 'openrouter_key.json', 'thinking_settings.json', 
-        'gemini_preference.json', 'chats.json', 'custom_models.json', 
-        'whatsapp_settings.json'
-      ];
-
-      filesToMigrate.forEach(file => {
-        const src = path.join(oldUserData, file);
-        const dest = path.join(newUserData, file);
-        if (fs.existsSync(src) && !fs.existsSync(dest)) {
-          console.log(`[Migration] Copying ${file} to new profile...`);
-          fs.copyFileSync(src, dest);
-        }
-      });
-    }
-  } catch (error) {
-    console.error('[Migration] Failed:', error);
-  }
-};
-
-const ensureNovaDirectories = () => {
-  try {
-    migrateStonicToNova();
-    const notesPath = path.join(app.getPath('documents'), 'Nova Data');
-    if (!fs.existsSync(notesPath)) {
-      fs.mkdirSync(notesPath, { recursive: true });
-      console.log('Created Nova Data directory:', notesPath);
-    }
-    return notesPath;
-  } catch (error) {
-    console.error('Failed to create Nova directories:', error);
-    return null;
-  }
-};
 
 function openIphoneConsole() {
   const consoleWin = new BrowserWindow({
@@ -573,83 +514,6 @@ function setupPermissions(session) {
     );
   });
 }
-
-const getMemoryPath = () => path.join(app.getPath('userData'), 'memories.json');
-const getUserProfilePath = () => path.join(app.getPath('userData'), 'user_profile.json');
-const getDashboardSettingsPath = () => path.join(app.getPath('userData'), 'dashboard_settings.json');
-const getFolderConfigPath = () => path.join(app.getPath('userData'), 'imported_folders.json');
-const getVaultPath = () => path.join(app.getPath('documents'), 'Nova_Vault');
-const getHistoryPath = () => path.join(app.getPath('userData'), 'history.json');
-const getHistorySettingsPath = () => path.join(app.getPath('userData'), 'history_settings.json');
-const getContactsPath = () => path.join(app.getPath('userData'), 'contacts.json');
-const getNotesPath = () => path.join(app.getPath('userData'), 'notes.json');
-const getTasksPath = () => path.join(app.getPath('userData'), 'tasks.json');
-const getSecretKeyPath = () => path.join(app.getPath('userData'), 'secret_key.json');
-const getGroqKeyPath = () => path.join(app.getPath('userData'), 'groq_key.json');
-const getOpenRouterKeyPath = () => path.join(app.getPath('userData'), 'openrouter_key.json');
-const getThinkingSettingsPath = () => path.join(app.getPath('userData'), 'thinking_settings.json');
-const getGeminiPreferencePath = () => path.join(app.getPath('userData'), 'gemini_preference.json');
-const getChildAgentModelPath = () => path.join(app.getPath('userData'), 'child_agent_model.json');
-const getChildAgentKeyPath   = () => path.join(app.getPath('userData'), 'child_agent_key.json');
-const getNovaVoicePath       = () => path.join(app.getPath('userData'), 'nova_voice.json');
-const getChatsPath = () => path.join(app.getPath('userData'), 'chats.json');
-const getCustomModelsPath = () => path.join(app.getPath('userData'), 'custom_models.json');
-const getWhatsAppSettingsPath = () => path.join(app.getPath('userData'), 'whatsapp_settings.json');
-const getGoogleKeyPath = () => path.join(app.getPath('userData'), 'google_key.json');
-const getVisualSettingsPath = () => path.join(app.getPath('userData'), 'visual_settings.json');
-const getElevenLabsSettingsPath = () => path.join(app.getPath('userData'), 'elevenlabs_settings.json');
-const getWaApiKeyPath = () => path.join(app.getPath('userData'), 'wa_api_key.json');
-const getBackupConfigPath = () => path.join(process.cwd(), 'config_bak_C.dat');
-
-const syncConfigurationBackup = () => {
-  try {
-    const userData = app.getPath('userData');
-    const backupPath = getBackupConfigPath();
-    const filesToSync = [
-      'secret_key.json', 'whatsapp_settings.json', 'dashboard_settings.json',
-      'thinking_settings.json', 'gemini_preference.json', 'visual_settings.json',
-      'elevenlabs_settings.json', 'google_key.json', 'groq_key.json', 'openrouter_key.json'
-    ];
-
-    const backupData = {};
-    filesToSync.forEach(file => {
-      const p = path.join(userData, file);
-      if (fs.existsSync(p)) {
-        try {
-          backupData[file] = JSON.parse(fs.readFileSync(p, 'utf8'));
-        } catch (e) { console.error(`Failed to pack ${file}:`, e); }
-      }
-    });
-
-    fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
-    return { success: true, count: Object.keys(backupData).length };
-  } catch (error) {
-    console.error('Backup failed:', error);
-    return { success: false, error: error.message };
-  }
-};
-
-const restoreConfigurationBackup = () => {
-  try {
-    const backupPath = getBackupConfigPath();
-    if (!fs.existsSync(backupPath)) return { success: false, error: 'Backup file not found' };
-
-    const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
-    const userData = app.getPath('userData');
-    let count = 0;
-
-    Object.keys(backupData).forEach(file => {
-      const p = path.join(userData, file);
-      fs.writeFileSync(p, JSON.stringify(backupData[file], null, 2));
-      count++;
-    });
-
-    return { success: true, count };
-  } catch (error) {
-    console.error('Restore failed:', error);
-    return { success: false, error: error.message };
-  }
-};
 
 const getLocalEditionStatus = () => ({plan:'pro',status:'active',edition:'mac-local',activationRequired:false});
 
