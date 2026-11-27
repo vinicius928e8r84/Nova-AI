@@ -1,0 +1,97 @@
+{
+  "descricao": "O portão dos testes. Em grupos ficam os arquivos que a CI roda com node --test; o job diz em qual job do workflow o grupo roda. Em fora ficam os arquivos de teste que a CI não roda, cada um com o motivo (e a issue, quando o motivo é uma falha). Um teste confere que todo arquivo de teste do repositório está em exatamente um lugar daqui.",
+  "grupos": [
+    {
+      "nome": "app",
+      "job": "testes",
+      "arquivos": ["app/test/**/*.test.js", "app/tests/**/*.test.js", "app/electron/services/test*/**/*.test.js"]
+    },
+    {
+      "nome": "mac-que-roda-sem-mac",
+      "job": "testes",
+      "arquivos": [
+        "MAC/integracao-camlive/test/iphone-lifecycle.cjs",
+        "MAC/integracao-camlive/test/iphone-protocol.cjs",
+        "MAC/integracao-iphone/conexao-usb/*.test.*",
+        "MAC/integracao-iphone/tests/android-install.cjs",
+        "MAC/integracao-iphone/tests/chave-de-host.cjs",
+        "MAC/integracao-iphone/tests/ferramenta-ausente.cjs",
+        "MAC/integracao-iphone/tests/ios-tools-windows.cjs",
+        "MAC/integracao-iphone/tests/routing.cjs",
+        "MAC/integracao-iphone/tests/wireless.cjs",
+        "MAC/integracao-iphone/idioma-iphone/teste/teste-ipc.js",
+        "MAC/integracao-modelo-app/novamodel.test.cjs",
+        "MAC/integracao-modelo/test/teste-novamodel.cjs",
+        "MAC/integracao-modelo/test/teste-novamodel-saida.test.cjs",
+        "MAC/integracao-sequestro-cam/controles-independentes.test.cjs",
+        "MAC/controle-celular-plataformas/geo-proxy/teste-geo.cjs"
+      ]
+    },
+    {
+      "nome": "ferramentas",
+      "job": "testes",
+      "arquivos": ["scripts/painel/test/*.test.js", ".claude/skills/**/*.test.js"]
+    },
+    {
+      "nome": "regras",
+      "job": "regras",
+      "arquivos": ["scripts/regras/test/*.test.js"]
+    }
+  ],
+  "fora": [
+    {
+      "arquivos": ["MAC/integracao-camlive/test/iphone-media.cjs"],
+      "motivo": "pede um Mac: dois dos três casos chamam o ffmpeg do app instalado em /Applications/Nova AI Mac.app",
+      "issue": 260
+    },
+    {
+      "arquivos": ["MAC/integracao-iphone/tests/relay.cjs"],
+      "motivo": "está quebrado: espera a porta 18999, mas ios-camera.serve() escolhe a porta e o teste fica pendurado",
+      "issue": 261
+    },
+    {
+      "arquivos": ["MAC/integracao-kling/test/teste-motor-local.cjs"],
+      "motivo": "pede um Mac: lê o serviço de process.argv[2] e usa o ffmpeg do app instalado em /Applications/Nova AI Mac.app",
+      "issue": 262
+    },
+    {
+      "arquivos": ["MAC/integracao-kling/test/teste-movimento.cjs"],
+      "motivo": "pede um Mac: lê o serviço de process.argv[2] e usa o ffmpeg do app instalado em /Applications/Nova AI Mac.app",
+      "issue": 263
+    },
+    {
+      "arquivos": ["MAC/navegador-mac/tests/navegador.cjs"],
+      "motivo": "falha no Windows (medido no ticket 180); passa no Linux, e quem decide se ele entra num grupo é o dono",
+      "issue": 264
+    },
+    {
+      "arquivos": ["MAC/proxy-iphone/tool/teste/*"],
+      "motivo": "teste em Objective-C: compila com clang e Foundation, só roda no Mac; o job macOS da CI é a issue 205",
+      "issue": 205
+    },
+    {
+      "arquivos": ["MAC/integracao-iphone/idioma-iphone/teste/*.sh"],
+      "motivo": "shell, e o portão só roda node --test; teste-novalanguage.sh ainda compila com clang (só Mac) e rodar.sh chama os dois"
+    },
+    {
+      "arquivos": ["MAC/integracao-camlive/test/rtmp-e2e.js", "MAC/integracao-camlive/test/rtmp-audio-e2e.js"],
+      "motivo": "mede e imprime (ffprobe, volume), sem nenhuma afirmação; precisa de ffmpeg com libx264, ffprobe e da porta fixa 19350"
+    },
+    {
+      "arquivos": ["MAC/integracao-camlive/test/harness.js", "MAC/integracao-camlive/test/harness-usb.js"],
+      "motivo": "servidor de bancada para abrir no navegador, não é teste: fica de pé até alguém parar"
+    },
+    {
+      "arquivos": ["MAC/integracao-iphone/conexao-usb/test/modal/*.js"],
+      "motivo": "janela do Electron para ver o modal do iPhone à mão, não é teste"
+    },
+    {
+      "arquivos": ["**/*.cenas.js", "**/*.palco.js", "app/electron/services/test/caminhos-do-palco.js", "app/test/ajuda/*"],
+      "motivo": "auxiliar dos testes de cena e do palco: não roda sozinho, os .test.js dos grupos o carregam"
+    },
+    {
+      "arquivos": ["scripts/regras/test/auxiliar.js"],
+      "motivo": "auxiliar dos testes das regras: não roda sozinho, os .test.js do grupo regras o carregam"
+    }
+  ]
+}
