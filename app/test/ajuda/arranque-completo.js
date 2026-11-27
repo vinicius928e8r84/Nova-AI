@@ -7,6 +7,16 @@ function servidorHttpFalso() {
   };
 }
 
+function processoFilhoInerte() {
+  const fluxo = { on: () => {} };
+  return { pid: 0, stdout: fluxo, stderr: fluxo, stdin: { write: () => {}, end: () => {} }, on: () => {}, once: () => {}, kill: () => {}, unref: () => {} };
+}
+
+function processosInertes() {
+  const proibido = (nome) => () => { throw new Error(`main.js tentou ${nome} um processo de verdade no arranque completo`); };
+  return { spawn: processoFilhoInerte, exec: proibido('exec'), execFile: proibido('execFile'), execSync: proibido('execSync'), spawnSync: proibido('spawnSync'), fork: proibido('fork') };
+}
+
 function carregarComArranqueCompleto(opcoes = {}) {
   const temporizadores = [];
   const originais = { setTimeout: global.setTimeout, setInterval: global.setInterval };
@@ -17,7 +27,7 @@ function carregarComArranqueCompleto(opcoes = {}) {
   global.setTimeout = registrar('timeout');
   global.setInterval = registrar('interval');
   try {
-    const main = carregarMain({ ...opcoes, arranqueCompleto: true, modulos: { http: servidorHttpFalso(), ...opcoes.modulos } });
+    const main = carregarMain({ ...opcoes, arranqueCompleto: true, modulos: { http: servidorHttpFalso(), child_process: processosInertes(), ...opcoes.modulos } });
     return { main, temporizadores };
   } finally {
     global.setTimeout = originais.setTimeout;
