@@ -135,15 +135,17 @@ test('o log acrescenta uma linha com a data ao arquivo, ignora quem não tem arq
   assert.strictEqual(linhas[2], '');
   new CamLiveService({ send: () => {}, studioFile: path.join(raiz, 's.json'), logFile: null }).log('sem arquivo');
 
-  const anteriores = { log: console.log, debug: process.env.CAMLIVE_DEBUG };
+  const anteriores = { log: console.log, info: console.info, debug: process.env.CAMLIVE_DEBUG };
   const chamadas = [];
   console.log = (...partes) => chamadas.push(partes);
+  console.info = (...partes) => chamadas.push(partes);
   try {
     servico.log('sem depuração');
     process.env.CAMLIVE_DEBUG = '1';
     servico.log('com depuração');
   } finally {
     console.log = anteriores.log;
+    console.info = anteriores.info;
     if (anteriores.debug === undefined) delete process.env.CAMLIVE_DEBUG;
     else process.env.CAMLIVE_DEBUG = anteriores.debug;
   }
