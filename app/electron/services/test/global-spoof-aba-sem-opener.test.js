@@ -155,7 +155,7 @@ async function abrirChromeDoSpoof(t) {
   return true;
 }
 
-test('a aba aberta com window.open e noopener carrega a URL e já recebe o disfarce na primeira carga', async (t) => {
+test('no Windows, com o Chrome instalado: a aba aberta com window.open e noopener carrega a URL e já recebe o disfarce na primeira carga', async (t) => {
   if (!await abrirChromeDoSpoof(t)) return;
   const { origem, porta, primeira } = chromeDoSpoof;
 
@@ -166,7 +166,7 @@ test('a aba aberta com window.open e noopener carrega a URL e já recebe o disfa
   assert.strictEqual(pedidos.filter((url) => url === '/segunda').length, 1);
 });
 
-test('se o Chrome recusa o disfarce na aba aberta com noopener, o site não recebe nenhum pedido e a aba fica em branco', async (t) => {
+test('no Windows, com o Chrome instalado: se o Chrome recusa o disfarce na aba aberta com noopener, o site não recebe nenhum pedido e a aba fica em branco', async (t) => {
   if (!await abrirChromeDoSpoof(t)) return;
   const { origem, porta, primeira } = chromeDoSpoof;
   abaQueRecusaOAgente.pedida = true;
