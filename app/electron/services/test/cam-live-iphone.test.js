@@ -262,12 +262,14 @@ const COMPORTAMENTO_DO_TUNEL = {
   ocupado: (processo) => { processo.stderr.write('remote forward failure for listen'); processo.emit('exit', 255); },
   encerra: (processo) => processo.emit('exit', 1),
   erro: (processo) => processo.emit('error', new Error('ENOENT')),
+  ruidoso: (processo) => { processo.stderr.write(`remote forward failure${'x'.repeat(4100)}`); processo.emit('exit', 1); },
 };
 
 const COMPORTAMENTO_DO_CODIFICADOR = {
   sobe: (processo) => processo.emit('spawn'),
   erro: (processo) => processo.emit('error', new Error('x')),
   saida: (processo) => { processo.stderr.write('falhou assim'); processo.emit('exit', 1); },
+  ruidoso: (processo) => { processo.stderr.write(`${'a'.repeat(3000)}${'b'.repeat(1000)}falhou assim`); processo.emit('exit', 1); },
 };
 
 function celularFalso({ estado, dispositivos, unixFalha, ssh }, comandos) {
@@ -602,7 +604,7 @@ test('socket Unix recusado: mata o primeiro túnel, apaga o socket sem esperar e
   todasFalham.tentativas = 0;
   await assert.rejects(todasFalham.servico._tcpForward(9), { message: 'falha 3' });
   assert.strictEqual(todasFalham.tentativas, 3);
-  todasFalham.servico._openForward = async () => { throw undefined; };
+  todasFalham.servico._openForward = () => Promise.reject();
   await assert.rejects(todasFalham.servico._tcpForward(9, 0), { message: 'Não foi possível abrir o túnel do iPhone.' });
 });
 
@@ -694,4 +696,13 @@ test('mediaEndpoint, stats e snapshot', async () => {
   } finally {
     await servico.stop();
   }
+});
+
+test('só os últimos 4096 bytes do stderr do túnel e 2048 do encoder entram nas mensagens de erro', async () => {
+  const tunel = montar({ tunel: 'ruidoso' });
+  assert.strictEqual((await tunel.servico.start()).error, 'O túnel USB foi encerrado. Reconecte o iPhone em PHONE CONTROL.');
+  const { error } = await montar({ codificador: 'ruidoso' }).servico.start();
+  const texto = error.replace('O encoder de áudio do CAM LIVE foi encerrado. ', '');
+  assert.strictEqual(texto.length, 2048);
+  assert.strictEqual(texto, `${'a'.repeat(1036)}${'b'.repeat(1000)}falhou assim`);
 });
