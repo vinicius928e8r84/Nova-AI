@@ -56,12 +56,16 @@ test('falha: arquivo que já existia e é mudado', () => {
   assert.equal(r.codigo, 1);
 });
 
-test('falha: arquivo renomeado para dentro de .codescene/', () => {
-  const repo = criar({ 'docs/regras.json': REGRAS_DO_CODESCENE });
+test('falha: arquivo renomeado para dentro de .codescene/ ou para code-health-rules.json', () => {
+  const repo = criar({ 'docs/regras.json': REGRAS_DO_CODESCENE, 'docs/outras.json': REGRAS_DO_CODESCENE });
   repo.git('mv', 'docs/regras.json', 'docs/code-health-rules.json');
+  fs.mkdirSync(path.join(repo.raiz, '.codescene'));
+  repo.git('mv', 'docs/outras.json', '.codescene/outras.json');
   const r = repo.rodar('--regra', ID);
   repo.limpar();
-  assert.equal(r.codigo, 1);
+  assert.equal(r.codigo, 1, r.saida);
+  assert.match(r.saida, /docs\/code-health-rules\.json: /);
+  assert.match(r.saida, /\.codescene\/outras\.json: /);
 });
 
 test('passa: apagar a configuração que já existia', () => {
@@ -90,10 +94,10 @@ test('linha nova com @codescene(...) continua barrada pela sem-comentario-novo',
   const casos = {
     'app/a.js': '// @codescene(disable: "Complex Method")\nconst a = 1;\n',
     'app/a.py': '# @codescene(disable: "Complex Method")\na = 1\n',
-    'app/a.js ': '/* @codescene(disable: "Complex Method") */\nconst a = 1;\n',
+    'app/b.js': '/* @codescene(disable: "Complex Method") */\nconst a = 1;\n',
   };
   for (const [arquivo, texto] of Object.entries(casos)) {
-    const r = tentar({}, { [arquivo.trim()]: texto }, 'sem-comentario-novo');
+    const r = tentar({}, { [arquivo]: texto }, 'sem-comentario-novo');
     assert.equal(r.codigo, 1, `${arquivo}: ${r.saida}`);
     assert.match(r.saida, /sem-comentario-novo/);
   }
