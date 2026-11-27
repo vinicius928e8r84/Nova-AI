@@ -81,7 +81,7 @@
       "motivo": "mede e imprime (ffprobe, volume), sem nenhuma afirmação; precisa de ffmpeg com libx264, ffprobe e da porta fixa 19350"
     },
     {
-      "arquivos": ["test/cam-live/harness.js", "test/cam-live/harness-usb.js"],
+      "arquivos": ["test/cam-live/harness.js", "test/cam-live/harness-usb.js", "test/cam-live/harness-servidor.js"],
       "motivo": "servidor de bancada para abrir no navegador, não é teste: fica de pé até alguém parar"
     },
     {
