@@ -45,7 +45,7 @@ const processosFalsos = {
   },
   spawn(arquivo, argumentos) {
     registrador.comandos.push([normalizar(arquivo), ...argumentos].join(' '));
-    return new EventEmitter();
+    return Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });
   },
 };
 
@@ -501,4 +501,59 @@ test('applySpoofProfile: IMEI escolhido e aparelho sem resposta caem nos padrõe
   assert.deepStrictEqual([resultado.applied.android_version, resultado.applied.security_patch], ['11', '2021-05-05']);
   assert.ok(comandos.includes('ADB -s R5 shell resetprop "ro.build.id" "RQ2A.210505.003" 2>/dev/null; true'));
   assert.strictEqual(comandos.filter(c => c.includes('getprop init.svc.zygote')).length, 40);
+});
+
+async function comRecursosDoPacote(arquivosDoFrida, fn) {
+  const recursos = fs.mkdtempSync(path.join(os.tmpdir(), 'celular-fisico-recursos-'));
+  pastasCriadas.push(recursos);
+  fs.mkdirSync(path.join(recursos, 'frida'));
+  for (const nome of arquivosDoFrida) fs.writeFileSync(path.join(recursos, 'frida', nome), '');
+  const resourcesPathOriginal = process.resourcesPath;
+  process.resourcesPath = recursos;
+  Module._load = function (pedido, ...resto) {
+    if (pedido === 'child_process') return processosFalsos;
+    return carregadorOriginal.call(this, pedido, ...resto);
+  };
+  try {
+    return await fn(recursos);
+  } finally {
+    Module._load = carregadorOriginal;
+    process.resourcesPath = resourcesPathOriginal;
+  }
+}
+
+test('fridaInject: no app empacotado lê o script de process.resourcesPath e inicia o frida sem erro', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar();
+  await comRecursosDoPacote(['nova_camera_inject.js'], async recursos => {
+    const resultado = await comTempoInstantaneo(() => servico.fridaInject('R5', 'tiktok'));
+    assert.deepStrictEqual(resultado, {
+      success: true,
+      message: '⚡ Frida injected into tiktok (com.zhiliaoapp.musically). Camera replaced!',
+      package: 'com.zhiliaoapp.musically',
+    });
+    const script = path.join(recursos, 'frida', 'nova_camera_inject.js');
+    assert.deepStrictEqual(registrador.comandos.slice(-2), [
+      'ADB -s R5 forward tcp:27042 tcp:27042',
+      `frida -U -f com.zhiliaoapp.musically -l ${script} --runtime=v8`,
+    ]);
+  });
+});
+
+test('fridaInject: com o frida-server no pacote empurra para o aparelho; sem o script devolve o erro dos recursos', async () => {
+  const servico = novoServico();
+  servico.app.isPackaged = true;
+  registrador.limpar();
+  await comRecursosDoPacote(['nova_camera_inject.js', 'frida-server'], async recursos => {
+    const resultado = await comTempoInstantaneo(() => servico.fridaInject('R5', 'com.exemplo.app'));
+    assert.strictEqual(resultado.success, true);
+    assert.strictEqual(resultado.package, 'com.exemplo.app');
+    assert.strictEqual(registrador.comandos[0], `ADB -s R5 push "${path.join(recursos, 'frida', 'frida-server')}" /data/local/tmp/frida-server`);
+  });
+  registrador.limpar();
+  await comRecursosDoPacote([], async () => {
+    assert.deepStrictEqual(await servico.fridaInject('R5', 'tiktok'), { success: false, error: 'Frida script not found. Resources missing.' });
+    assert.deepStrictEqual(registrador.comandos, []);
+  });
 });
