@@ -199,3 +199,91 @@ test('corte: mudança ainda sem commit é julgada, para o pre-commit pegar', () 
   assert.equal(r.codigo, 1);
   assert.match(r.saida, /app\/antigo\.js: 40001 bytes/);
 });
+
+const CARACTERIZACAO = JSON.stringify({ casos: 'x'.repeat(30000) }, null, 2);
+const PASTAS_DE_TESTE = ['test', 'tests', 'teste', 'testes', 'fixtures'];
+
+test('testes: caracterização .esperado.json de 30 KB numa pasta test/ passa e a mesma fora dela é barrada', () => {
+  const dentro = tentar({}, { 'app/test/caso.esperado.json': CARACTERIZACAO });
+  const fora = tentar({}, { 'app/dados/caso.esperado.json': CARACTERIZACAO });
+  assert.equal(dentro.codigo, 0, dentro.saida);
+  assert.equal(fora.codigo, 1);
+  assert.match(fora.saida, /app\/dados\/caso\.esperado\.json: 30\d{3} bytes/);
+});
+
+for (const pasta of PASTAS_DE_TESTE) {
+  test(`testes: a pasta ${pasta}/ em qualquer profundidade fica fora do teto`, () => {
+    const r = tentar({}, {
+      [`${pasta}/raiz.json`]: comBytes(LIMITE * 2),
+      [`MAC/area/${pasta}/fundo/dados.js`]: comBytes(LIMITE * 2),
+    });
+    assert.equal(r.codigo, 0, r.saida);
+  });
+}
+
+test('testes: arquivo *.test.* fica fora do teto em qualquer pasta', () => {
+  const r = tentar({}, { 'app/modulo.test.js': comBytes(LIMITE * 2), 'app/outra/pasta/modulo.test.mjs': comBytes(LIMITE * 2) });
+  assert.equal(r.codigo, 0, r.saida);
+});
+
+test('testes: nome parecido com pasta de teste não isenta', () => {
+  const r = tentar({}, {
+    'app/contest/dados.js': comBytes(LIMITE * 2),
+    'app/testar.js': comBytes(LIMITE * 2),
+    'app/modulo.testes.js': comBytes(LIMITE * 2),
+    'app/atesto.json': comBytes(LIMITE * 2),
+  });
+  assert.equal(r.codigo, 1);
+  for (const nome of ['contest/dados.js', 'testar.js', 'modulo.testes.js', 'atesto.json']) assert.match(r.saida, new RegExp(`app/${nome.replaceAll('.', '[.]')}: 40000 bytes`));
+});
+
+test('testes: código de produto grande, documentação e JSON de dados continuam no teto', () => {
+  const r = tentar({}, {
+    'app/produto.js': comBytes(LIMITE + 1),
+    'docs/guia.md': comBytes(LIMITE + 1),
+    'app/dados.json': comBytes(LIMITE + 1),
+  });
+  assert.equal(r.codigo, 1);
+  for (const nome of ['app/produto.js', 'docs/guia.md', 'app/dados.json']) assert.match(r.saida, new RegExp(nome.replaceAll('.', '[.]')));
+});
+
+test('testes: o arquivo de produto grande continua sem poder crescer ao lado de um teste grande', () => {
+  const r = tentar({ 'app/grande.js': comBytes(LIMITE * 2) }, { 'app/grande.js': comBytes(LIMITE * 2 + 1), 'app/test/grande.test.js': comBytes(LIMITE * 3) });
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /app\/grande\.js: 40001 bytes/);
+  assert.doesNotMatch(r.saida, /grande\.test\.js/);
+});
+
+test('testes: arquivo grande que sai de uma pasta de teste para o produto é arquivo novo', () => {
+  const repo = criar({ 'app/test/antigo.js': comBytes(LIMITE * 2) });
+  repo.git('mv', 'app/test/antigo.js', 'app/antigo.js');
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 1);
+  assert.match(r.saida, /app\/antigo\.js: 40000 bytes/);
+});
+
+test('testes: arquivo grande do produto que vai para uma pasta de teste passa', () => {
+  const repo = criar({ 'app/grande.js': comBytes(LIMITE * 2) });
+  fs.mkdirSync(path.join(repo.raiz, 'app', 'test'));
+  repo.git('mv', 'app/grande.js', 'app/test/grande.js');
+  repo.escrever({ 'app/test/grande.js': comBytes(LIMITE * 3) });
+  const r = executar(repo);
+  repo.limpar();
+  assert.equal(r.codigo, 0, r.saida);
+});
+
+test('testes: as outras regras continuam julgando o arquivo de teste', () => {
+  const repo = criar();
+  repo.escrever({ 'app/test/caso.test.js': '// comentário novo\nconst a = 1;\n' });
+  const r = repo.rodar('--regra', 'sem-comentario-novo');
+  repo.limpar();
+  assert.equal(r.codigo, 1, r.saida);
+  assert.match(r.saida, /app\/test\/caso\.test\.js/);
+});
+
+test('testes: cada glob da lista do limite-de-tamanho traz o motivo', () => {
+  const lista = tamanhoDeArquivo.foraDoTeto;
+  assert.deepEqual(lista.map(({ glob }) => glob).sort(), ['*.test.*', 'fixtures/', 'test/', 'teste/', 'testes/', 'tests/']);
+  for (const item of lista) assert.ok(typeof item.motivo === 'string' && item.motivo.length > 10, item.glob);
+});
