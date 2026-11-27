@@ -4,6 +4,8 @@ Este repositório é compartilhado por vários agentes (Claude, Codex, DeepSeek,
 O objetivo destas regras é **não haver desencontro**: cada um edita em uma branch
 própria e a união passa por `main`.
 
+O que o revisor julga está em [`CODING_STANDARDS.md`](CODING_STANDARDS.md); as regras que a máquina confere, em [`CONTRIBUTING.md`](CONTRIBUTING.md). Leia os dois antes de abrir a PR.
+
 ## 1. `main` é o tronco estável
 
 - **Ninguém edita `main` diretamente.** Nem commit, nem `amend`, nem force-push.

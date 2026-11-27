@@ -4,6 +4,8 @@ Este repositório é público e compartilhado por vários agentes e pessoas. Est
 
 Antes de começar, siga o `AGENTS.md` (uma branch por tarefa, nada direto na `main`).
 
+O que o revisor julga, e a máquina não, está em [`CODING_STANDARDS.md`](CODING_STANDARDS.md): os três níveis do veredito, o teste que exercita a função, o arquivo novo carregado onde é usado, a issue da PR, o portão dos testes e onde ler antes de julgar cada área.
+
 ## O que a máquina confere
 
 Rode tudo localmente com `node scripts/regras/verificar.js --base origin/main` (use a branch-alvo da sua PR no lugar de `origin/main`). Para o ESLint rodar, instale-o (`npm i -g eslint@9`) ou aponte `ESLINT_BIN` para o `eslint.js`. Para a `saude-do-codigo` rodar, instale o analisador uma vez (`npm ci --prefix scripts/regras/analisador`) e tenha o Python 3 (ou aponte `PYTHON=`); sem eles a regra só avisa e pula na sua máquina, e no CI falha. No GitHub, as regras que valem são as da **branch-alvo** (a PR não consegue afrouxá-las; a mudança vale a partir da PR seguinte), e só na PR que cria as regras valem as da própria PR.
