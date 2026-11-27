@@ -30842,10 +30842,6 @@
   ],
   [
    "stdout",
-   "[BrowserService] Smart resolve (case): \"<raiz>/arquivos/video.mp4\" → \"<raiz>/arquivos/Video.MP4\""
-  ],
-  [
-   "stdout",
    "[BrowserService] Smart resolve (ext): \"<raiz>/arquivos/NOTA\" → \"<raiz>/arquivos/nota.final\""
   ],
   [
@@ -30858,7 +30854,6 @@
   [
    "p1>locator(#arquivo).first().setInputFiles",
    [
-    "<raiz>/arquivos/Video.MP4",
     "<raiz>/arquivos/nota.final"
    ],
    {
@@ -30895,14 +30890,12 @@
    {
     "success": true,
     "toolName": "browser_upload_file",
-    "result": "Uploaded 2 file(s): Video.MP4, nota.final",
+    "result": "Uploaded 1 file(s): nota.final",
     "data": {
      "fileNames": [
-      "Video.MP4",
       "nota.final"
      ],
      "filePaths": [
-      "<raiz>/arquivos/Video.MP4",
       "<raiz>/arquivos/nota.final"
      ]
     },
@@ -31265,6 +31258,445 @@
     {
      "caminho": "outra/arquivo-11.txt",
      "conteudo": "x"
+    },
+    {
+     "caminho": "userData/"
+    },
+    {
+     "caminho": "userData/browser-data/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/"
+    },
+    {
+     "caminho": "userData/browser-data/Default/Preferences",
+     "conteudo": "{\n  \"download\": {\n    \"default_directory\": \"<raiz>/downloads\",\n    \"directory_upgrade\": true,\n    \"prompt_for_download\": false\n  },\n  \"savefile\": {\n    \"default_directory\": \"<raiz>/downloads\"\n  },\n  \"profile\": {\n    \"default_content_setting_values\": {\n      \"automatic_downloads\": 1\n    }\n  }\n}"
+    },
+    {
+     "caminho": "userData/logs/"
+    },
+    {
+     "caminho": "userData/logs/browser-launch.log",
+     "conteudo": "[2026-11-21T12:00:00.000Z] launch: exe=playwright-default port=9222 firstRun=true\n[2026-11-21T12:00:00.000Z] launch OK in 0ms\n"
+    }
+   ]
+  ]
+ ],
+ "envio de arquivo: resolução esperta por maiúsculas (só em sistema que diferencia maiúsculas: no Windows e no Mac o arquivo é achado direto)": [
+  [
+   "net.listen",
+   9222,
+   "127.0.0.1"
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "canal",
+   "browser-navigate"
+  ],
+  [
+   "canal",
+   "browser-go-back"
+  ],
+  [
+   "canal",
+   "browser-go-forward"
+  ],
+  [
+   "canal",
+   "browser-reload"
+  ],
+  [
+   "canal",
+   "browser-snapshot"
+  ],
+  [
+   "canal",
+   "browser-get-html"
+  ],
+  [
+   "canal",
+   "browser-query-selector"
+  ],
+  [
+   "canal",
+   "browser-extract"
+  ],
+  [
+   "canal",
+   "browser-screenshot"
+  ],
+  [
+   "canal",
+   "browser-click"
+  ],
+  [
+   "canal",
+   "browser-type"
+  ],
+  [
+   "canal",
+   "browser-fill-form"
+  ],
+  [
+   "canal",
+   "browser-hover"
+  ],
+  [
+   "canal",
+   "browser-select"
+  ],
+  [
+   "canal",
+   "browser-press-key"
+  ],
+  [
+   "canal",
+   "browser-scroll"
+  ],
+  [
+   "canal",
+   "browser-scroll-into-view"
+  ],
+  [
+   "canal",
+   "browser-highlight"
+  ],
+  [
+   "canal",
+   "browser-wait"
+  ],
+  [
+   "canal",
+   "browser-execute-script"
+  ],
+  [
+   "canal",
+   "browser-upload-file"
+  ],
+  [
+   "canal",
+   "browser-wait-download"
+  ],
+  [
+   "canal",
+   "browser-download-by-click"
+  ],
+  [
+   "canal",
+   "browser-handle-dialog"
+  ],
+  [
+   "canal",
+   "browser-save-pdf"
+  ],
+  [
+   "canal",
+   "browser-get-cookies"
+  ],
+  [
+   "canal",
+   "browser-set-cookie"
+  ],
+  [
+   "canal",
+   "browser-clear-cookies"
+  ],
+  [
+   "canal",
+   "browser-get-storage"
+  ],
+  [
+   "canal",
+   "browser-set-storage"
+  ],
+  [
+   "canal",
+   "browser-clear-storage"
+  ],
+  [
+   "canal",
+   "browser-resize-viewport"
+  ],
+  [
+   "canal",
+   "browser-emulate-device"
+  ],
+  [
+   "canal",
+   "browser-emulate-color-scheme"
+  ],
+  [
+   "canal",
+   "browser-set-offline"
+  ],
+  [
+   "canal",
+   "browser-set-extra-headers"
+  ],
+  [
+   "canal",
+   "browser-set-http-credentials"
+  ],
+  [
+   "canal",
+   "browser-set-geolocation"
+  ],
+  [
+   "canal",
+   "browser-get-console"
+  ],
+  [
+   "canal",
+   "browser-get-errors"
+  ],
+  [
+   "canal",
+   "browser-get-tabs"
+  ],
+  [
+   "canal",
+   "browser-switch-tab"
+  ],
+  [
+   "canal",
+   "browser-new-tab"
+  ],
+  [
+   "canal",
+   "browser-close-tab"
+  ],
+  [
+   "canal",
+   "browser-drag-drop"
+  ],
+  [
+   "canal",
+   "browser-close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ All 46 browser handlers registered (with auto-recovery)"
+  ],
+  [
+   "stdout",
+   "[BrowserService] CDP port 9222 reserved."
+  ],
+  [
+   "stdout",
+   "[BrowserService] Creating persistent browser profile..."
+  ],
+  [
+   "findBundledChromiumExecutable",
+   [
+    "<raiz>/resources/browsers",
+    "<app>/browsers"
+   ]
+  ],
+  [
+   "stdout",
+   "[BrowserService] Using SYSTEM installed browser (fallback)."
+  ],
+  [
+   "net.close"
+  ],
+  [
+   "stdout",
+   "[BrowserService] Launching Chromium with CDP port 9222..."
+  ],
+  [
+   "chromium.launchPersistentContext",
+   "<raiz>/userData/browser-data",
+   {
+    "executablePath": "<undefined>",
+    "headless": false,
+    "viewport": null,
+    "userAgent": "UA de teste",
+    "acceptDownloads": true,
+    "timeout": 120000,
+    "args": [
+     "--disable-blink-features=AutomationControlled",
+     "--no-first-run",
+     "--no-default-browser-check",
+     "--enable-logging",
+     "--remote-debugging-port=9222"
+    ]
+   }
+  ],
+  [
+   "contexto1.on",
+   "close"
+  ],
+  [
+   "http.get",
+   {
+    "host": "127.0.0.1",
+    "port": 9222,
+    "path": "/json/version",
+    "timeout": 3000
+   }
+  ],
+  [
+   "setTimeout",
+   0
+  ],
+  [
+   "contexto1.browser"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.on",
+   "console"
+  ],
+  [
+   "p1.on",
+   "pageerror"
+  ],
+  [
+   "stdout",
+   "[BrowserService] ✅ Browser launched successfully."
+  ],
+  [
+   "retorno",
+   "launch",
+   "<undefined>"
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.isClosed"
+  ],
+  [
+   "p1.locator",
+   ":root"
+  ],
+  [
+   "p1>locator(:root).ariaSnapshot"
+  ],
+  [
+   "p1.title"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "p1.url"
+  ],
+  [
+   "retorno",
+   "snapshot",
+   {
+    "success": true,
+    "toolName": "browser_snapshot",
+    "result": "SNAPSHOT — \"Título de about:blank\" (about:blank)\n- banner:\n  - heading \"Bem-vindo\" [ref=e1] [level=1]\n  - link \"Entrar\" [ref=e2]\n  - button \"Dentro\" [ref=e3]\n  - paragraph: rodapé\n- main:\n  - textbox \"Busca\" [ref=e4]\n  - button \"Ok\" [ref=e5]\n  - button \"Ok\" [ref=e6] [nth=1]\n    - listitem: um\n- paragraph: texto solto\n\n5 interactive elements. Use [ref=eN] to interact (e.g. browser_click with ref \"e3\").",
+    "data": {
+     "title": "Título de about:blank",
+     "url": "about:blank",
+     "elementCount": 6,
+     "interactiveCount": 5
+    },
+    "debugInfo": {
+     "executionTimeMs": 0
+    }
+   }
+  ],
+  [
+   "navegador de contexto1.isConnected"
+  ],
+  [
+   "contexto1.pages"
+  ],
+  [
+   "p1.isClosed"
+  ],
+  [
+   "stdout",
+   "[BrowserService] Smart resolve (case): \"<raiz>/arquivos/video.mp4\" → \"<raiz>/arquivos/Video.MP4\""
+  ],
+  [
+   "p1.locator",
+   "#arquivo"
+  ],
+  [
+   "p1>locator(#arquivo).first"
+  ],
+  [
+   "p1>locator(#arquivo).first().setInputFiles",
+   [
+    "<raiz>/arquivos/Video.MP4"
+   ],
+   {
+    "timeout": 30000
+   }
+  ],
+  [
+   "p1>locator(#arquivo).first().elementHandle"
+  ],
+  [
+   "alça de p1>locator(#arquivo).first().evaluate",
+   {
+    "naPagina": {
+     "resultado": "<undefined>",
+     "chamadas": [
+      [
+       "el.dispatchEvent",
+       "input",
+       true
+      ],
+      [
+       "el.dispatchEvent",
+       "change",
+       true
+      ]
+     ],
+     "contorno": "none"
+    }
+   }
+  ],
+  [
+   "retorno",
+   "browser-upload-file",
+   {
+    "success": true,
+    "toolName": "browser_upload_file",
+    "result": "Uploaded 1 file(s): Video.MP4",
+    "data": {
+     "fileNames": [
+      "Video.MP4"
+     ],
+     "filePaths": [
+      "<raiz>/arquivos/Video.MP4"
+     ]
+    },
+    "debugInfo": {
+     "executionTimeMs": 0
+    }
+   }
+  ],
+  [
+   "error",
+   "[BrowserService] ❌ CDP on port 9222 is NOT our Chromium (got: no response). Browser sharing may fail — restart the app."
+  ],
+  [
+   "arquivos",
+   [
+    {
+     "caminho": "arquivos/"
+    },
+    {
+     "caminho": "arquivos/Video.MP4",
+     "conteudo": "mp4"
+    },
+    {
+     "caminho": "downloads/"
     },
     {
      "caminho": "userData/"
