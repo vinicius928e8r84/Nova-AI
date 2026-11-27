@@ -97,7 +97,11 @@ class ProcessoFalso extends EventEmitter {
 const falsos = {
     'socket.io': { Server: ServidorIoFalso },
     http: { createServer: (atender) => new ServidorHttpFalso(atender) },
-    qrcode: { toDataURL: async (url) => `qr:${url}` },
+    qrcode: { toDataURL: async (url, opcoes) => { if (cena.falhaDoQr) throw cena.falhaDoQr; cena.opcoesDoQr = opcoes; return `qr:${url}`; } },
+    get localtunnel() {
+        if (cena.semLocaltunnel) throw new Error("Cannot find module 'localtunnel'");
+        return async (opcoes) => cena.abrirLocaltunnel(opcoes);
+    },
     child_process: {
         spawn: (bin, args, opcoes) => {
             if (cena.erroDeSpawn) throw cena.erroDeSpawn;
@@ -761,4 +765,209 @@ test('túnel em produção sem resourcesPath ou com spawn quebrado registra a fa
     await servico.startCloudflaredTunnel();
     assert.strictEqual(servico.recuos, 2);
     assert.deepStrictEqual(cena.logs.at(-1), ['error', '[RemoteAccess] Failed to start Cloudflare Tunnel:', 'Error: spawn EACCES']);
+});
+
+test('token com pasta de dados quebrada só registra: ler JSON ruim, gravar em pasta que não existe e ligar sem arquivo', () => {
+    const dados = pastaTemporaria('remote-quebrado-');
+    fs.writeFileSync(path.join(dados, 'remote_tokens.json'), '{');
+    const lido = new RemoteAccessService({ getPath: () => dados });
+    assert.strictEqual(lido.tokens.size, 0);
+    assert.deepStrictEqual(cena.logs.map((l) => l.slice(0, 2)), [['error', '[RemoteAccess] Error loading tokens:']]);
+    cena.logs.length = 0;
+    const semPasta = new RemoteAccessService({ getPath: () => path.join(dados, 'nao-existe') });
+    assert.strictEqual(semPasta.tokens.size, 1);
+    assert.deepStrictEqual(cena.logs.map((l) => l.slice(0, 2)), [
+        ['log', '[RemoteAccess] No saved tokens found. Generating a default token...'],
+        ['error', '[RemoteAccess] Error saving tokens:'],
+        ['log', `[RemoteAccess] Generated new token for: Default Mobile with token: ${[...semPasta.tokens.keys()][0]}`]
+    ]);
+});
+
+test('generateToken com URL pública grava o arquivo de acesso com o link direto do primeiro token ativo', () => {
+    const servico = novoServico();
+    servico.publicUrl = 'https://a.trycloudflare.com';
+    const novo = servico.generateToken('Tablet');
+    assert.deepStrictEqual(Object.keys(novo), ['token', 'deviceName', 'createdAt', 'lastUsed', 'active']);
+    assert.strictEqual(novo.deviceName, 'Tablet');
+    assert.strictEqual(novo.token.length, 32);
+    assert.strictEqual(novo.token, novo.token.toUpperCase());
+    const [primeiro] = [...servico.tokens.values()].filter((t) => t.active);
+    const arquivo = path.join(cena.dirEletron, 'REMOTE_ACCESS_INFO.txt');
+    assert.strictEqual(fs.readFileSync(arquivo, 'utf8'), `==================================================
+NOVA REMOTE ACCESS INFO
+==================================================
+Active Cloudflare Link: https://a.trycloudflare.com
+Active Token: ${[...servico.tokens.values()].map((t) => t.token).join(', ')}
+
+Direct Link (Open on Mobile):
+https://a.trycloudflare.com?token=${primeiro.token}
+==================================================
+Note: Yeh files aur links temporary hain. Har baar Nova restart 
+hone par ye file automatically update ho jayegi.
+`);
+    servico.tokens.clear();
+    servico.writeLinkToFile();
+    assert.ok(fs.readFileSync(arquivo, 'utf8').includes('Active Token: None generated\n\nDirect Link (Open on Mobile):\nhttps://a.trycloudflare.com\n'));
+    cena.dirEletron = path.join(cena.dirEletron, 'nao-existe');
+    cena.logs.length = 0;
+    servico.writeLinkToFile();
+    assert.deepStrictEqual(cena.logs.map((l) => l.slice(0, 2)), [['error', '[RemoteAccess] Error writing link to file:']]);
+});
+
+test('validar, listar e revogar token: lastUsed, token mascarado e o celular conectado é desligado', async () => {
+    const { servico, io, socket, token } = await conectado();
+    assert.strictEqual(servico.validateToken('inexistente'), false);
+    assert.strictEqual(servico.tokens.get(token).lastUsed, null);
+    assert.strictEqual(servico.validateToken(token), true);
+    assert.strictEqual(typeof servico.tokens.get(token).lastUsed, 'number');
+    assert.deepStrictEqual(servico.getAllTokens(), [{
+        deviceName: 'Default Mobile', createdAt: servico.tokens.get(token).createdAt, lastUsed: servico.tokens.get(token).lastUsed,
+        active: true, token: `${token.substring(0, 8)}...`
+    }]);
+    socket.ouvintes.authenticate({ token });
+    io.sockets.sockets.set('s1', socket);
+    io.emitidos.length = 0;
+    assert.strictEqual(servico.revokeToken('inexistente'), false);
+    assert.strictEqual(servico.revokeToken(token), true);
+    assert.deepStrictEqual(io.emitidos, [['s1', 'token-revoked', undefined]]);
+    assert.strictEqual(socket.desconexoes, 1);
+    assert.strictEqual(servico.tokens.get(token).active, false);
+    assert.strictEqual(servico.validateToken(token), false);
+    assert.strictEqual(JSON.parse(fs.readFileSync(servico.tokensPath, 'utf8')).tokens[token].active, false);
+    servico.revogarTodosOsTokens();
+    assert.strictEqual(servico.tokens.size, 0);
+    assert.deepStrictEqual(io.emitidos.at(-1), ['s1', 'token-revoked', undefined]);
+    assert.strictEqual(socket.desconexoes, 2);
+});
+
+test('servePWA: fora da pasta é 403, desconhecido volta ao index.html, o tipo vem da extensão e erro de leitura é 500', async (t) => {
+    const { servidor } = await servicoIniciado();
+    const pedir = async (url) => {
+        const res = resposta();
+        servidor.atender(requisicao(url, 'GET'), res);
+        await new Promise((r) => { const olhar = () => (res.fins.length ? r() : setTimeout(olhar, 5)); olhar(); });
+        return res;
+    };
+    const pwa = path.join(__dirname, '..', '..', 'pwa');
+    const proibido = await pedir('/../../main.js');
+    assert.deepStrictEqual([proibido.cabecalhos, proibido.fins], [[[403]], [['Forbidden']]]);
+    for (const [url, tipo, arquivo] of [['/nao-existe.html', 'text/html', 'index.html'], ['/style.css', 'text/css', 'style.css'], ['/app.js', 'application/javascript', 'app.js'],
+        ['/manifest.json', 'application/json', 'manifest.json'], ['/icon-192.png', 'image/png', 'icon-192.png'], ['/favicon.ico', 'image/x-icon', 'favicon.ico']]) {
+        const res = await pedir(url);
+        assert.deepStrictEqual(res.cabecalhos, [[200, { 'Content-Type': tipo }]], url);
+        assert.deepStrictEqual(res.fins[0][0], fs.readFileSync(path.join(pwa, arquivo)), url);
+    }
+    t.mock.method(fs, 'readFile', (arquivo, retorno) => retorno(new Error('falhou')));
+    const quebrado = await pedir('/app.js');
+    assert.deepStrictEqual([quebrado.cabecalhos, quebrado.fins], [[[500]], [['Server Error']]]);
+});
+
+test('túnel reserva só abre com o serviço rodando e sem URL, avisa o desktop e limpa a URL ao fechar', async () => {
+    const servico = novoServico();
+    cena.abrirLocaltunnel = async () => assert.fail('não devia abrir');
+    await servico.startFallbackTunnel();
+    servico.isRunning = true;
+    servico.publicUrl = 'https://ja.exemplo';
+    await servico.startFallbackTunnel();
+    servico.publicUrl = null;
+    assert.deepStrictEqual(cena.logs, []);
+    const aoFechar = [];
+    cena.abrirLocaltunnel = async (opcoes) => ({ url: 'https://lt.exemplo', opcoes, on: (evento, fn) => aoFechar.push([evento, fn]) });
+    await servico.startFallbackTunnel();
+    assert.strictEqual(servico.publicUrl, 'https://lt.exemplo');
+    assert.deepStrictEqual(servico.desktop, [['tunnel-ready', { url: 'https://lt.exemplo', provider: 'localtunnel' }]]);
+    assert.ok(fs.readFileSync(path.join(cena.dirEletron, 'REMOTE_ACCESS_INFO.txt'), 'utf8').includes('Active Cloudflare Link: https://lt.exemplo'));
+    assert.deepStrictEqual(cena.logs.map((l) => l.slice(0, 2)), [
+        ['log', '[RemoteAccess] Starting Localtunnel fallback...'],
+        ['log', '[RemoteAccess] ✅ Localtunnel Ready: https://lt.exemplo'],
+        ['log', `[RemoteAccess] Saved remote info to ${path.join(cena.dirEletron, 'REMOTE_ACCESS_INFO.txt')}`]
+    ]);
+    assert.deepStrictEqual(aoFechar.map(([evento]) => evento), ['close']);
+    cena.logs.length = 0;
+    aoFechar[0][1]();
+    assert.strictEqual(servico.publicUrl, null);
+    assert.deepStrictEqual(cena.logs, [['log', '[RemoteAccess] Localtunnel closed']]);
+});
+
+test('túnel reserva sem o módulo ou com a abertura falhando só registra', async () => {
+    const servico = novoServico();
+    servico.isRunning = true;
+    cena.semLocaltunnel = true;
+    await servico.startFallbackTunnel();
+    assert.deepStrictEqual(cena.logs, [
+        ['log', '[RemoteAccess] Starting Localtunnel fallback...'],
+        ['error', '[RemoteAccess] localtunnel module not installed. Fallback unavailable.']
+    ]);
+    cena.semLocaltunnel = false;
+    cena.logs.length = 0;
+    cena.abrirLocaltunnel = async () => { throw new Error('sem rede'); };
+    await servico.startFallbackTunnel();
+    assert.deepStrictEqual(cena.logs, [
+        ['log', '[RemoteAccess] Starting Localtunnel fallback...'],
+        ['error', '[RemoteAccess] Fallback tunnel failed:', 'Error: sem rede']
+    ]);
+    assert.strictEqual(servico.publicUrl, null);
+});
+
+test('generateQRCode usa a URL pública, ou a da rede local sem ela, e devolve a falha do gerador', async () => {
+    const servico = novoServico();
+    assert.deepStrictEqual(await servico.generateQRCode('TOK'), {
+        success: true, qrCode: 'qr:http://192.0.2.7:3456?token=TOK', url: 'http://192.0.2.7:3456', directUrl: 'http://192.0.2.7:3456?token=TOK', token: 'TOK'
+    });
+    assert.deepStrictEqual(cena.opcoesDoQr, { width: 400, margin: 2, color: { dark: '#000000', light: '#FFFFFF' } });
+    servico.publicUrl = 'https://p.trycloudflare.com';
+    assert.deepStrictEqual(await servico.generateQRCode('TOK'), {
+        success: true, qrCode: 'qr:https://p.trycloudflare.com?token=TOK', url: 'https://p.trycloudflare.com', directUrl: 'https://p.trycloudflare.com?token=TOK', token: 'TOK'
+    });
+    cena.falhaDoQr = new Error('sem canvas');
+    cena.logs.length = 0;
+    assert.deepStrictEqual(await servico.generateQRCode('TOK'), { success: false, error: 'sem canvas' });
+    assert.deepStrictEqual(cena.logs, [['error', '[RemoteAccess] QR Code generation failed:', 'Error: sem canvas']]);
+});
+
+test('getStatus, sendToMobile, broadcastToMobile e stop descrevem e encerram o serviço', async () => {
+    const semServidor = novoServico();
+    semServidor.sendToMobile('x', 'evento', 1);
+    semServidor.broadcastToMobile('evento', 1);
+    assert.deepStrictEqual(semServidor.getStatus(), {
+        isRunning: false, port: PORTA, localUrl: `http://localhost:${PORTA}`, localNetworkUrl: `http://192.0.2.7:${PORTA}`,
+        publicUrl: null, connectedClients: [], totalTokens: 1, activeTokens: 1
+    });
+    const { servico, servidor, io, socket, token } = await conectado();
+    socket.ouvintes.authenticate({ token });
+    servico.generateToken('Outro');
+    servico.revokeToken([...servico.tokens.keys()][1]);
+    io.emitidos.length = 0;
+    servico.sendToMobile('s1', 'ai-response', { a: 1 });
+    servico.broadcastToMobile('ai-thinking');
+    assert.deepStrictEqual(io.emitidos, [['s1', 'ai-response', { a: 1 }], ['autenticados', 'ai-thinking', undefined]]);
+    const status = servico.getStatus();
+    assert.deepStrictEqual([status.isRunning, status.totalTokens, status.activeTokens, status.connectedClients.length], [true, 2, 1, 1]);
+    const processo = new ProcessoFalso();
+    servico.cloudflaredProcess = processo;
+    servico.publicUrl = 'https://p.exemplo';
+    cena.logs.length = 0;
+    await servico.stop();
+    assert.deepStrictEqual([servico.isRunning, servico.publicUrl, servico.cloudflaredProcess, servico.connectedClients.size], [false, null, null, 0]);
+    assert.deepStrictEqual([io.fechado, servidor.fechado, processo.mortes], [true, true, 1]);
+    assert.deepStrictEqual(io.emitidos.at(-1), ['server-shutdown', undefined]);
+    assert.deepStrictEqual(cena.logs, [['log', '[RemoteAccess] Stopping service...'], ['log', '[RemoteAccess] Service stopped']]);
+    await novoServico().stop();
+});
+
+test('a chave do Groq no arquivo ilegível só registra o erro e a do arquivo vence a do ambiente', async () => {
+    const { servico, socket, token } = await conectado();
+    socket.ouvintes.authenticate({ token });
+    const arquivo = path.join(servico.dados, 'groq_key.json');
+    fs.writeFileSync(arquivo, JSON.stringify({ apiKey: 'gk-arquivo' }));
+    process.env.GROQ_API_KEY = 'gk-ambiente';
+    socket.emitidos.length = 0;
+    socket.ouvintes['get-groq-key']();
+    assert.deepStrictEqual(socket.emitidos, [['groq-key', { apiKey: 'gk-arquivo' }]]);
+    fs.writeFileSync(arquivo, '{');
+    socket.emitidos.length = 0;
+    cena.logs.length = 0;
+    socket.ouvintes['get-groq-key']();
+    assert.deepStrictEqual(socket.emitidos, []);
+    assert.deepStrictEqual(cena.logs.map((l) => l.slice(0, 2)), [['error', '[RemoteAccess] Error reading Groq key:']]);
 });
