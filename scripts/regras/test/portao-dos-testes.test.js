@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawnSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const portao = require('../../ci/portao-dos-testes');
 
@@ -223,6 +224,23 @@ test('rodar o job devolve falha se um grupo falha, e roda os outros mesmo assim'
   assert.equal(portao.rodarGrupos(grupos, rodar, () => {}), 1);
   assert.deepEqual(execucoes, [['ruim.cjs'], ['bom.cjs']]);
   assert.equal(portao.rodarGrupos([['b', ['bom.cjs']]], rodar, () => {}), 0);
+});
+
+test('rodar arquivos com o programa do grupo executa cada um de verdade e falha se um deles falha', () => {
+  const pasta = fs.mkdtempSync(path.join(os.tmpdir(), 'portao-com-'));
+  const marca = path.join(pasta, 'segundo-rodou');
+  const ruim = path.join(pasta, 'ruim.js');
+  const bom = path.join(pasta, 'bom.js');
+  fs.writeFileSync(ruim, 'process.exit(3);\n');
+  fs.writeFileSync(bom, `require('fs').writeFileSync(${JSON.stringify(marca)}, 'sim');\n`);
+  try {
+    assert.equal(portao.rodarArquivos([ruim, bom], process.execPath), 1);
+    assert.equal(fs.readFileSync(marca, 'utf8'), 'sim');
+    assert.equal(portao.rodarArquivos([bom], process.execPath), 0);
+    assert.notEqual(portao.rodarArquivos([bom], path.join(pasta, 'programa-que-nao-existe')), 0);
+  } finally {
+    fs.rmSync(pasta, { recursive: true, force: true });
+  }
 });
 
 test('grupo que não achou arquivo nenhum falha em vez de passar vazio', () => {
