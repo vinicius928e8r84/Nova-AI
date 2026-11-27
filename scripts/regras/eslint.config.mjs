@@ -33,8 +33,8 @@ const opcoes = { noInlineConfig: true };
 export default [
   {
     ignores: [
-      '**/node_modules/**', 'app/dist/assets/**', 'MAC/**/dist/**', 'MAC/**/reservas/**', 'backup-antes-traducao/**', 'MAC/**/backup-*/**',
-      'MAC/**/fixtures/**', 'MAC/**/index-Dun7lr2S*.js', 'app/electron/pwa/marked.min.js',
+      '**/node_modules/**', 'app/dist/assets/**', 'MAC/**/dist/**', 'interface/dist/**', 'MAC/**/reservas/**', '{iphone,interface,distribuicao}/**/reservas/**', 'backup-antes-traducao/**', 'MAC/**/backup-*/**',
+      '{iphone,interface,distribuicao}/**/backup-*/**', 'MAC/**/fixtures/**', 'test/cam-live/fixtures/**', 'MAC/**/index-Dun7lr2S*.js', 'app/electron/pwa/marked.min.js',
     ],
   },
   { files: ['**/*.js', '**/*.cjs'], languageOptions: { ecmaVersion: 'latest', sourceType: 'commonjs', globals: globais }, linterOptions: opcoes, rules: regras },

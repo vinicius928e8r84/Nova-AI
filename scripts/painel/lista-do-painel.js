@@ -26,8 +26,9 @@ const PADROES_DE_TESTE = [
 ];
 
 const PADROES_DE_FERRAMENTA = [
-  /^(scripts|app\/scripts|pesquisas)\//,
+  /^(scripts|app\/scripts|pesquisas|docs\/pesquisas)\//,
   /^MAC\/.+\.py$/,
+  /^(iphone|interface|distribuicao)\/.+\.py$/,
 ];
 
 function grupoDe(caminho) {

@@ -20,6 +20,27 @@ test('separa produto, ferramenta e teste pelo caminho', () => {
   assert.equal(grupoDe('app/test/ajuda/wake-word-palco.py'), 'teste');
 });
 
+test('as pastas novas ficam no mesmo grupo das de MAC/', () => {
+  assert.equal(grupoDe('iphone/proxy/tool/Upstream.m'), 'produto');
+  assert.equal(grupoDe('iphone/camera/Tweak.x'), 'produto');
+  assert.equal(grupoDe('interface/controle-do-celular/iphone/proxy-parse.js'), 'produto');
+  assert.equal(grupoDe('interface/dist/index-Dun7lr2S.patched.js'), 'produto');
+  assert.equal(grupoDe('distribuicao/empacotar-python.sh'), 'produto');
+  assert.equal(grupoDe('interface/controle-do-celular/aplicar.py'), 'ferramenta');
+  assert.equal(grupoDe('interface/controle-do-celular/iphone/aplicar-botao-iphone.py'), 'ferramenta');
+  assert.equal(grupoDe('iphone/camera/prepare_tweak.py'), 'ferramenta');
+  assert.equal(grupoDe('distribuicao/empacotar-python.py'), 'ferramenta');
+  assert.equal(grupoDe('docs/pesquisas/nota-10-global-spoof/README.md'), 'ferramenta');
+  assert.equal(grupoDe('docs/pesquisas/geo-proxy.cjs'), 'ferramenta');
+  assert.equal(grupoDe('docs/guia/README.md'), 'produto');
+  assert.equal(grupoDe('app/outra/x.py'), 'produto');
+  assert.equal(grupoDe('iphone/proxy/tool/test/upstream_test.m'), 'teste');
+  assert.equal(grupoDe('iphone/idioma/test/teste-ipc.js'), 'teste');
+  assert.equal(grupoDe('test/iphone/modal/integracao.js'), 'teste');
+  assert.equal(grupoDe('test/cam-live/harness.js'), 'teste');
+  assert.equal(grupoDe('interface/controle-do-celular/iphone/test/botao.test.cjs'), 'teste');
+});
+
 test('ordena da pior nota para a melhor e deixa de fora quem não tem nota', () => {
   const lista = montarLista([
     arquivo('app/electron/a.js', 10, 50),
