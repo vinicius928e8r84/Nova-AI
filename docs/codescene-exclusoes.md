@@ -16,7 +16,7 @@ Nova-AI/**/marked.min.js
 | `app/dist/assets/face_mesh-*.js` | MediaPipe Face Mesh | Biblioteca de terceiros embarcada pronta |
 | `**/marked.min.js` | marked, em `app/electron/pwa/` | Biblioteca de terceiros minificada |
 
-As pastas `MAC/**/reservas/` e `MAC/**/backup-*/` saíram da lista porque o repositório já não tem nenhum arquivo nelas (as cópias foram apagadas, e o histórico do git guarda os originais); `scripts/regras/configuracao.json` continua isentando-as nas regras. Se uma PR voltar a versionar código nelas, ela acrescenta a linha de volta, pois o teste confere que toda linha da lista casa com algum arquivo.
+A pasta `MAC/**/backup-*/` saiu da lista porque o repositório já não tem nenhum arquivo nela (as cópias foram apagadas, e o histórico do git guarda os originais); `scripts/regras/configuracao.json` continua isentando-a nas regras. Se uma PR voltar a versionar código nela, ela acrescenta a linha de volta, pois o teste confere que toda linha da lista casa com algum arquivo. A cópia do arquivo anterior do app instalado não fica no repositório: vai para `~/Nova-AI-reservas/` (`AGENTS.md` seção 5).
 
 `app/dist/` inteira **não** sai: `app/dist/cam-live.js` e `app/dist/cam-live-audio.js` são código do CAM LIVE escrito à mão, carregado por `<script>` no `index.html`.
 
