@@ -8,7 +8,7 @@
     ["btnFit.addEventListener","click","sem-opcoes"],
     ["btnSound.addEventListener","click","sem-opcoes"],
     ["btnFull.addEventListener","click","sem-opcoes"],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=spoof-viewer"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=spoof-viewer"],
     ["body.addEventListener","click","{\"once\":true}"],
     [">> mensagem","{\"type\":\"load-video\",\"hasVideo\":true}"],
     ["emptyOverlay.style.display","none"],
@@ -89,7 +89,7 @@
     [">> ws.onclose"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=spoof-viewer"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=spoof-viewer"],
     [">> mensagem","{\"type\":\"play\"}"],
     ["spoofVideo.play"],
     [">> mensagem","não é json"]
@@ -103,7 +103,7 @@
     ["btnFit.addEventListener","click","sem-opcoes"],
     ["btnSound.addEventListener","click","sem-opcoes"],
     ["btnFull.addEventListener","click","sem-opcoes"],
-    ["new WebSocket","ws://192.168.0.10:8899/?role=spoof-viewer"],
+    ["new WebSocket","ws://192.0.2.10:8899/?role=spoof-viewer"],
     ["body.addEventListener","click","{\"once\":true}"],
     [">> mensagem","{\"type\":\"load-video\",\"hasVideo\":true}"],
     ["emptyOverlay.style.display","none"],
@@ -184,7 +184,7 @@
     [">> ws.onclose"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","ws://192.168.0.10:8899/?role=spoof-viewer"],
+    ["new WebSocket","ws://192.0.2.10:8899/?role=spoof-viewer"],
     [">> mensagem","{\"type\":\"play\"}"],
     ["spoofVideo.play"],
     [">> mensagem","não é json"]
@@ -198,7 +198,7 @@
     ["btnFit.addEventListener","click","sem-opcoes"],
     ["btnSound.addEventListener","click","sem-opcoes"],
     ["btnFull.addEventListener","click","sem-opcoes"],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=spoof-viewer"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=spoof-viewer"],
     ["body.addEventListener","click","{\"once\":true}"],
     [">> mensagem","{\"type\":\"load-video\",\"hasVideo\":true}"],
     ["emptyOverlay.style.display","none"],
@@ -279,7 +279,7 @@
     [">> ws.onclose"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=spoof-viewer"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=spoof-viewer"],
     [">> mensagem","{\"type\":\"play\"}"],
     ["spoofVideo.play"],
     [">> mensagem","não é json"]
@@ -289,7 +289,7 @@
     ["startBtn.addEventListener","click","sem-opcoes"],
     ["stopBtn.addEventListener","click","sem-opcoes"],
     ["flipBtn.addEventListener","click","sem-opcoes"],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=sender"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=sender"],
     [">> ws.onopen"],
     ["status.textContent","CONNECTED TO PC"],
     ["status.className","status connected"],
@@ -376,14 +376,14 @@
     ["status.className","status"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=sender"]
+    ["new WebSocket","wss://192.0.2.10:8899/?role=sender"]
   ],
   "câmera do celular: câmera negada, http": [
     ["canvas.getContext","2d"],
     ["startBtn.addEventListener","click","sem-opcoes"],
     ["stopBtn.addEventListener","click","sem-opcoes"],
     ["flipBtn.addEventListener","click","sem-opcoes"],
-    ["new WebSocket","ws://192.168.0.10:8899/?role=sender"],
+    ["new WebSocket","ws://192.0.2.10:8899/?role=sender"],
     [">> ws.onopen"],
     ["status.textContent","CONNECTED TO PC"],
     ["status.className","status connected"],
@@ -423,14 +423,14 @@
     ["status.className","status"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","ws://192.168.0.10:8899/?role=sender"]
+    ["new WebSocket","ws://192.0.2.10:8899/?role=sender"]
   ],
   "câmera do celular: play recusado": [
     ["canvas.getContext","2d"],
     ["startBtn.addEventListener","click","sem-opcoes"],
     ["stopBtn.addEventListener","click","sem-opcoes"],
     ["flipBtn.addEventListener","click","sem-opcoes"],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=sender"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=sender"],
     [">> ws.onopen"],
     ["status.textContent","CONNECTED TO PC"],
     ["status.className","status connected"],
@@ -482,10 +482,10 @@
     ["status.className","status"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=sender"]
+    ["new WebSocket","wss://192.0.2.10:8899/?role=sender"]
   ],
   "webcam do pc: abrir, receber e reconectar": [
-    ["new WebSocket","wss://192.168.0.10:8899/?role=viewer"],
+    ["new WebSocket","wss://192.0.2.10:8899/?role=viewer"],
     [">> ws.onopen"],
     ["status.textContent","LIVE FROM PC"],
     ["status.className","status connected"],
@@ -498,6 +498,6 @@
     ["status.className","status"],
     ["setTimeout",2000],
     [">> setTimeout",2000],
-    ["new WebSocket","wss://192.168.0.10:8899/?role=viewer"]
+    ["new WebSocket","wss://192.0.2.10:8899/?role=viewer"]
   ]
 }

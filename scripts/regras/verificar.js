@@ -8,14 +8,13 @@ const { classificar, resumo } = require('./risco');
 const { soTiraComentario } = require('./so-tira-comentario');
 const { extensaoDe } = require('./globs');
 const caminhosSensiveis = require('./caminhos-sensiveis.json');
-const { atualizarLinhasDeBase, criarLinhasDeBase, regrasDaLinhaDeBase } = require('./linha-de-base');
-const linhas = require('./regra-linhas');
 
 const REGRAS = [
   require('./regra-comentario'),
   require('./regra-teto-de-comentarios'),
-  linhas,
+  require('./regra-linhas'),
   require('./regra-segredo-completa'),
+  require('./regra-dados-pessoais'),
   require('./regra-binario'),
   require('./regra-debug'),
   require('./regra-sintaxe'),
@@ -27,7 +26,6 @@ const REGRAS = [
 ];
 
 const AJUDA = `uso: node scripts/regras/verificar.js [--raiz <pasta>] [--base <ref>] [--regra <id>]... [--lista]
-                                     [--criar-linha-de-base | --atualizar-linha-de-base]
 
 Confere o que a mudança (merge-base com a base até a árvore de trabalho) acrescenta ou toca; linha que a mudança não toca nunca falha.
 
@@ -35,17 +33,11 @@ Confere o que a mudança (merge-base com a base até a árvore de trabalho) acre
   --raiz <pasta>               outro repositório (os testes usam)
   --regra <id>                 roda só esta regra (pode repetir)
   --lista                      lista as regras e sai
-  --criar-linha-de-base        cria em scripts/regras/linha-de-base.json a linha de base que ainda falta
-                               (com --regra, só a dessa regra: limite-de-linhas, saude-do-codigo ou teto-de-comentarios)
-  --atualizar-linha-de-base    baixa a linha de base depois de melhorar ou mover um arquivo (nunca sobe;
-                               com --regra, só a dessa regra)
   --help                       esta ajuda
 
 Sai com 0 se tudo passa, 1 se alguma regra falha, 2 em erro de uso.`;
 
-const BANDEIRAS = new Map([
-  ['--help', 'ajuda'], ['-h', 'ajuda'], ['--lista', 'lista'], ['--criar-linha-de-base', 'criar'], ['--atualizar-linha-de-base', 'atualizar'],
-]);
+const BANDEIRAS = new Map([['--help', 'ajuda'], ['-h', 'ajuda'], ['--lista', 'lista']]);
 const BANDEIRAS_COM_VALOR = ['--raiz', '--base', '--regra'];
 
 function lerValor(argv, i) {
@@ -69,12 +61,11 @@ function lerBandeira(opcoes, argv, i) {
 
 function conferirOpcoes(opcoes) {
   for (const id of opcoes.regras) if (!REGRAS.some(r => r.id === id)) throw new ErroDeUso(`regra desconhecida: ${id}`);
-  if (opcoes.criar && opcoes.atualizar) throw new ErroDeUso('--criar-linha-de-base e --atualizar-linha-de-base não andam juntas');
   return opcoes;
 }
 
 function lerArgumentos(argv) {
-  const opcoes = { regras: [], raiz: null, base: null, lista: false, criar: false, atualizar: false, ajuda: false };
+  const opcoes = { regras: [], raiz: null, base: null, lista: false, ajuda: false };
   for (let i = 0; i < argv.length;) i = lerBandeira(opcoes, argv, i);
   return conferirOpcoes(opcoes);
 }
@@ -153,11 +144,6 @@ function abrirRepositorio(opcoes, env) {
   return { raiz, base: resolverBase(raiz, opcoes.base, env) };
 }
 
-function mexerNaLinhaDeBase(opcoes, ctx) {
-  const regras = regrasDaLinhaDeBase(REGRAS, opcoes.regras);
-  return opcoes.criar ? criarLinhasDeBase(ctx, regras) : atualizarLinhasDeBase(ctx, regras);
-}
-
 function rodarRegras(escolhidas, ctx) {
   const falhas = [];
   for (const regra of escolhidas) {
@@ -194,7 +180,6 @@ function main(argv, env = process.env) {
   }
   const avisos = [];
   const ctx = contexto(raiz, base, env, avisos);
-  if (opcoes.criar || opcoes.atualizar) return mexerNaLinhaDeBase(opcoes, ctx);
   const { falhas, escolhidas } = conferirMudanca(opcoes, ctx, base);
   for (const aviso of avisos) console.log(`aviso: ${aviso}`);
   return encerrar(falhas, escolhidas, base);

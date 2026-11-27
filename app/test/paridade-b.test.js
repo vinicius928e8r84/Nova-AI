@@ -30,7 +30,7 @@ test('pkill do Mac: so casa Chrome/Chromium/Edge da sessao, nao um bash com o te
     return f;
   };
   const IDLE = 'setTimeout(()=>{},60000)';
-  const sess = '--user-data-dir=/Users/u/Library/Application Support/Nova AI/.wwebjs_auth/session-nova-desktop-client';
+  const sess = '--user-data-dir=/Users/usuario/Library/Application Support/Nova AI/.wwebjs_auth/session-nova-desktop-client';
   const chromium = mk('Chromium.app/Contents/MacOS/Chromium');
   const chrome = mk('Google Chrome.app/Contents/MacOS/Google Chrome');
   const edge = mk('Microsoft Edge.app/Contents/MacOS/Microsoft Edge');

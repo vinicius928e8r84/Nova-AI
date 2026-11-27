@@ -59,7 +59,7 @@ jobs:
             npm ci --no-audit --no-fund --ignore-scripts --prefix scripts/regras/analisador
           fi
       - name: Testes das regras
-        run: node --test "scripts/regras/test/*.test.js"
+        run: node scripts/ci/portao-dos-testes.js --job regras
       - name: CodeScene na refatoração
         if: ${{ !cancelled() }}
         run: node scripts/ci/codescene-na-refatoracao.js
@@ -111,18 +111,5 @@ jobs:
       - name: Instalar as dependências de app/ (sem scripts de instalação)
         working-directory: app
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Testes de app/
-        run: node --test "app/test/**/*.test.js" "app/tests/**/*.test.js" "app/electron/services/test*/**/*.test.js"
-      - name: Testes de MAC/ que rodam sem Mac
-        run: >-
-          node --test
-          MAC/integracao-camlive/test/iphone-lifecycle.cjs
-          MAC/integracao-camlive/test/iphone-protocol.cjs
-          MAC/integracao-iphone/conexao-usb/locale-helper.test.cjs
-          MAC/integracao-iphone/conexao-usb/proxy-parse.test.js
-          MAC/integracao-iphone/conexao-usb/setup.test.cjs
-          MAC/integracao-iphone/conexao-usb/tool-paths.test.cjs
-          MAC/integracao-iphone/tests/ferramenta-ausente.cjs
-          MAC/integracao-modelo-app/novamodel.test.cjs
-          MAC/integracao-modelo/test/teste-novamodel.cjs
-          MAC/integracao-sequestro-cam/controles-independentes.test.cjs
+      - name: Grupos de teste do portão
+        run: node scripts/ci/portao-dos-testes.js --job testes

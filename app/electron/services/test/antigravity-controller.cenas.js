@@ -2,8 +2,8 @@
 const path = require('path');
 const { descrever, definirAmbiente } = require('./antigravity-controller.palco');
 
-const EXE_DO_PERFIL = path.posix.join('C:\\Users\\nova', 'AppData\\Local\\Programs\\Antigravity\\Antigravity.exe');
-const EXE_LOCAL = path.posix.join('C:\\Users\\nova\\AppData\\Local', 'Programs\\Antigravity\\Antigravity.exe');
+const EXE_DO_PERFIL = path.posix.join('C:\\Users\\usuario', 'AppData\\Local\\Programs\\Antigravity\\Antigravity.exe');
+const EXE_LOCAL = path.posix.join('C:\\Users\\usuario\\AppData\\Local', 'Programs\\Antigravity\\Antigravity.exe');
 const EXE_DO_SISTEMA = 'C:\\Program Files\\Antigravity\\Antigravity.exe';
 const ESTATISTICAS = 'PID:42|CPU:0|MEM:310|RESP:True|TITLE:main.js - Antigravity';
 const RODANDO = { stdout: ' Antigravity 42 \n' };

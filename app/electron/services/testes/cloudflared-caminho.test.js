@@ -8,7 +8,7 @@ function achar(plataforma, existentes) {
         resourcesPath: plataforma === 'win32' ? 'C:\\Nova\\resources' : '/Nova/resources',
         dirname: plataforma === 'win32' ? 'C:\\Nova\\app\\electron\\services' : '/Nova/app/electron/services',
         cwd: plataforma === 'win32' ? 'C:\\Nova' : '/Nova',
-        homedir: plataforma === 'win32' ? 'C:\\Users\\a' : '/Users/a',
+        homedir: plataforma === 'win32' ? 'C:\\Users\\usuario' : '/Users/usuario',
         env: { PATH: plataforma === 'win32' ? 'C:\\Tools' : '/opt/tools' },
         exists: (f) => existentes.includes(f)
     });

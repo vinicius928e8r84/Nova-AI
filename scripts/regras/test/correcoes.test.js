@@ -166,7 +166,7 @@ test('segredo: hash hexadecimal longo em campo de senha falha; URL de exemplo pa
   assert.equal(acharNaLinha(`"senha": "${HASH}"`), 'valor literal em campo de segredo');
   assert.equal(acharNaLinha('esquema://usuario:senha@host:porta'), null);
   assert.equal(acharNaLinha('socks5://h:1002:usr:s3nh@x'), null);
-  assert.equal(acharNaLinha(`http://admin:${SENHA}@10.0.0.1/`), 'URL com usuário e senha');
+  assert.equal(acharNaLinha(`http://admin:${SENHA}@192.0.2.1/`), 'URL com usuário e senha');
 });
 
 test('segredo e registro: entrada patológica não trava', { timeout: 30000 }, () => {

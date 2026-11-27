@@ -214,7 +214,7 @@ const CENAS_DO_PROGRESSO = [
   cena('progresso: COMPLETE com caminho, abrir pasta e fechar', (palco) => {
     abrirProgresso(palco);
     palco.progresso({ progress: 99.9, downloaded: '10 MiB' });
-    palco.progresso({ status: 'COMPLETE', filePath: '/Users/eu/Downloads/Nova Downloads/a.mp4' });
+    palco.progresso({ status: 'COMPLETE', filePath: '/Users/usuario/Downloads/Nova Downloads/a.mp4' });
     palco.foto('completo');
     palco.clicar(botoesDe(palco, 'ng-progress-dlg')[0], 'Open Folder');
     palco.progresso({ status: 'COMPLETE' });

@@ -55,6 +55,17 @@
   "auditoria": {
     "nivelMinimo": ["high", "critical"]
   },
+  "dadosPessoais": {
+    "excecoes": [
+      {"glob": "app/dist/assets/index-Dun7lr2S.js", "motivo": "bundle gerado da interface: placeholders e textos de ajuda com IP e e-mail de exemplo"},
+      {"glob": "MAC/integracao-iphone/conexao-usb/dist/index-Dun7lr2S.patched.js", "motivo": "o mesmo bundle da interface, com os patches do iPhone"},
+      {"glob": "MAC/traducao-interface/revisao.html", "motivo": "tabela de revisão da tradução, com os mesmos IPs de exemplo do bundle da interface"},
+      {"glob": "app/electron/services/global-spoof-service.js", "motivo": "IP padrão do perfil regional de spoof: valor de spoofing não se troca (AGENTS.md seção 6)"},
+      {"glob": "app/electron/services/test/celular-fisico-adb.test.js", "motivo": "o teste confere a sub-rede do celular no adb, que depende de IP de rede privada"},
+      {"glob": "app/electron/services/test/live-cam-bridge.cenas.js", "motivo": "o teste confere qual interface de rede o CAM LIVE escolhe, por faixa privada, docker e VPN"},
+      {"glob": "app/electron/services/test/live-cam-bridge.esperado.json", "motivo": "saída de caracterização de live-cam-bridge.cenas.js"}
+    ]
+  },
   "autoria": {
     "emailsDeAutor": ["48294278+vinicius928e8r84@users.noreply.github.com"],
     "emailsDeCommitter": ["noreply@github.com"]

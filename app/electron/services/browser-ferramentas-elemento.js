@@ -70,7 +70,7 @@ function arquivoNaoEncontrado(startTime, pathsArray) {
         errorCode: 'FILE_NOT_FOUND',
         errorCategory: 'permanent',
         retryable: false,
-        retrySuggestion: `Use the EXACT file path WITH extension. Example: C:\\Users\\USMAN\\Downloads\\final thumbnail.png (not "final thumbnail"). Use fs_read on the folder to get exact filename first.`,
+        retrySuggestion: `Use the EXACT file path WITH extension. Example: C:\\Users\\<user>\\Downloads\\final thumbnail.png (not "final thumbnail"). Use fs_read on the folder to get exact filename first.`,
     }, { pathsArray });
 }
 

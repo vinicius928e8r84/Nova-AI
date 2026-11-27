@@ -270,6 +270,8 @@ function lerMudancas(raiz, base, config = null) {
   return { base, itens, acrescentadas, copias: classificador.copias };
 }
 
+const origemNaBase = item => (item.status === 'A' ? null : item.antigo || item.caminho);
+
 function arquivoNaBase(raiz, desde, caminho) {
   try {
     return git(raiz, ['show', `${desde}:${caminho}`]);
@@ -278,4 +280,4 @@ function arquivoNaBase(raiz, desde, caminho) {
   }
 }
 
-module.exports = { ErroDeUso, arquivoNaBase, bytesDaBase, contarLinhas, git, lerArquivo, lerMudancas, lerStatus, resolverBase, tentar };
+module.exports = { ErroDeUso, arquivoNaBase, bytesDaBase, contarLinhas, git, lerArquivo, lerMudancas, lerStatus, origemNaBase, resolverBase, tentar };

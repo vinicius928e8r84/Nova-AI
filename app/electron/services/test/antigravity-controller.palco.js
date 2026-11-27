@@ -180,8 +180,8 @@ class Palco {
     };
     this.usarPlataforma('win32');
     for (const nome of RELOGIOS) global[nome] = (...argumentos) => this[nome](...argumentos);
-    definirAmbiente('USERPROFILE', 'C:\\Users\\nova');
-    definirAmbiente('LOCALAPPDATA', 'C:\\Users\\nova\\AppData\\Local');
+    definirAmbiente('USERPROFILE', 'C:\\Users\\usuario');
+    definirAmbiente('LOCALAPPDATA', 'C:\\Users\\usuario\\AppData\\Local');
   }
 
   usarPlataforma(plataforma) {
