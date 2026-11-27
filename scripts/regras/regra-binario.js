@@ -4,6 +4,8 @@ const { bytesDaBase } = require('./git');
 const { ehCodigoDeComentario, ehCodigoDoLimite } = require('./escopo');
 const { casaAlgum, extensaoDe } = require('./globs');
 
+const RESERVAS = ['MAC/**/reservas/', '{iphone,interface,distribuicao}/**/reservas/'];
+
 const id = 'sem-binario-nem-lixo';
 const titulo = 'Nenhum instalador, binário, arquivo grande ou cópia de backup novo';
 const conserto = 'Instaladores e binários (.dmg, .exe, .zip, .deb, .tgz…) ficam fora do git: .gitignore e AGENTS.md seção 4. Gere-os no CI ou publique como release. '
@@ -49,14 +51,14 @@ function verificar(ctx) {
     }
     if (item.status === 'M') {
       const modificado = ctx.ler(caminho);
-      const problema = modificado && !casaAlgum(['MAC/**/reservas/'], caminho) ? verificarModificado(ctx, item, modificado, maximo) : null;
+      const problema = modificado && !casaAlgum(RESERVAS, caminho) ? verificarModificado(ctx, item, modificado, maximo) : null;
       if (problema) achados.push({ arquivo: caminho, detalhe: problema });
       continue;
     }
     if (item.status !== 'A' && item.status !== 'R') continue;
     const arquivo = ctx.ler(caminho);
     if (!arquivo) continue;
-    const emReservas = casaAlgum(['MAC/**/reservas/'], caminho);
+    const emReservas = casaAlgum(RESERVAS, caminho);
     if (!emReservas && casaAlgum(binarios.lixo, caminho)) {
       achados.push({ arquivo: caminho, detalhe: 'cópia de backup, sobra de editor, log ou pasta de dependências' });
       continue;
