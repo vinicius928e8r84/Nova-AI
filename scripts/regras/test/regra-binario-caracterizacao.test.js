@@ -135,3 +135,16 @@ test('binário: achados por arquivo, na ordem do diff, para cada tipo de mudanç
   ]);
   assert.ok(achados.every(achado => Object.keys(achado).join() === 'arquivo,detalhe'));
 });
+
+test('binário: cópia idêntica de um arquivo com assinatura passa quando a extensão não é proibida', () => {
+  const repo = criar({ 'app/original.dat': zip });
+  try {
+    repo.escrever({ 'app/copia-do-zip.dat': zip, 'app/outro-zip.dat': Buffer.concat([zip, Buffer.from('novo')]) });
+    repo.git('add', '-A');
+    const ctx = contextoDoRepositorio(repo, CONFIG_COM_LIMITE_DE_1_MB);
+    assert.deepEqual([...ctx.mudancas.copias], ['app/copia-do-zip.dat']);
+    assert.deepEqual(resumo(regra.verificar(ctx)), ['app/outro-zip.dat | o conteúdo é arquivo ZIP, mesmo com outro nome']);
+  } finally {
+    repo.limpar();
+  }
+});
