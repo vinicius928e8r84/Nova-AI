@@ -1,0 +1,4374 @@
+{
+  "mensagem ausente não faz nada": [],
+  "voz: o áudio vira texto pela transcrição e segue como mensagem do celular": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice buffer downloaded. Sending to Whisper..."
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/groq_key.json",
+      false
+    ],
+    [
+      "form.append",
+      "file",
+      {
+        "buffer": "YXVkaW8="
+      },
+      {
+        "filename": "audio.ogg",
+        "contentType": "audio/ogg"
+      }
+    ],
+    [
+      "form.append",
+      "model",
+      "whisper-large-v3"
+    ],
+    [
+      "form.append",
+      "response_format",
+      "json"
+    ],
+    [
+      "axios.post",
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      {},
+      {
+        "headers": {
+          "content-type": "multipart/form-data",
+          "Authorization": "Bearer chave-do-ambiente"
+        },
+        "timeout": 45000,
+        "maxBodyLength": "Infinity"
+      }
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice message transcribed: \"oi chefe\""
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"oi chefe\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "oi chefe",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-"
+        }
+      }
+    ]
+  ],
+  "voz: chave da Groq guardada em arquivo tem prioridade sobre a do ambiente": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice buffer downloaded. Sending to Whisper..."
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/groq_key.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/dados/userData/groq_key.json",
+      "utf8"
+    ],
+    [
+      "form.append",
+      "file",
+      {
+        "buffer": "YXVkaW8="
+      },
+      {
+        "filename": "audio.ogg",
+        "contentType": "audio/ogg"
+      }
+    ],
+    [
+      "form.append",
+      "model",
+      "whisper-large-v3"
+    ],
+    [
+      "form.append",
+      "response_format",
+      "json"
+    ],
+    [
+      "axios.post",
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      {},
+      {
+        "headers": {
+          "content-type": "multipart/form-data",
+          "Authorization": "Bearer chave-do-arquivo"
+        },
+        "timeout": 45000,
+        "maxBodyLength": "Infinity"
+      }
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice message transcribed: \"olá\""
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"olá\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "olá",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-"
+        }
+      }
+    ]
+  ],
+  "voz: sem chave da Groq a transcrição é pulada e a mensagem vazia é ignorada": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice buffer downloaded. Sending to Whisper..."
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/groq_key.json",
+      false
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Groq API key missing for transcription."
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Transcription failed or empty."
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "voz: transcrição vazia avisa e a mensagem vazia é ignorada": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice buffer downloaded. Sending to Whisper..."
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/groq_key.json",
+      false
+    ],
+    [
+      "form.append",
+      "file",
+      {
+        "buffer": "YXVkaW8="
+      },
+      {
+        "filename": "audio.ogg",
+        "contentType": "audio/ogg"
+      }
+    ],
+    [
+      "form.append",
+      "model",
+      "whisper-large-v3"
+    ],
+    [
+      "form.append",
+      "response_format",
+      "json"
+    ],
+    [
+      "axios.post",
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      {},
+      {
+        "headers": {
+          "content-type": "multipart/form-data",
+          "Authorization": "Bearer k"
+        },
+        "timeout": 45000,
+        "maxBodyLength": "Infinity"
+      }
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Transcription failed or empty."
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "voz: erro da Groq com corpo da resposta é registrado e a mensagem é ignorada": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Voice buffer downloaded. Sending to Whisper..."
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/groq_key.json",
+      false
+    ],
+    [
+      "form.append",
+      "file",
+      {
+        "buffer": "YXVkaW8="
+      },
+      {
+        "filename": "audio.ogg",
+        "contentType": "audio/ogg"
+      }
+    ],
+    [
+      "form.append",
+      "model",
+      "whisper-large-v3"
+    ],
+    [
+      "form.append",
+      "response_format",
+      "json"
+    ],
+    [
+      "axios.post",
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      {},
+      {
+        "headers": {
+          "content-type": "multipart/form-data",
+          "Authorization": "Bearer k"
+        },
+        "timeout": 45000,
+        "maxBodyLength": "Infinity"
+      }
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Transcription error:",
+      {
+        "erro": "limite"
+      }
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Transcription failed or empty."
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "voz: falha ao baixar a mídia é registrada e a mensagem é ignorada": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Voice processing error:",
+      "download falhou"
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "voz: mídia sem dados não chama a transcrição": [
+    [
+      "console.log",
+      "[WhatsApp] Voice message detected. Downloading media..."
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "mensagem comum do contato vai para a interface com os campos do celular": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"oi tudo bem\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "oi tudo bem",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-  oi tudo bem  "
+        }
+      }
+    ]
+  ],
+  "mensagem sem id usa o instante como id": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"sem id\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "sem id",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "msg-1790000000000"
+        }
+      }
+    ]
+  ],
+  "mesma mensagem repetida pelo id é ignorada": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"repetida\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "repetida",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-repetida"
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"repetida\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ]
+  ],
+  "mesmo texto no mesmo chat com outro id é ignorado até o prazo de 5 segundos passar": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"de novo\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "de novo",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "a"
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"de novo\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"de novo\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "de novo",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "c"
+        }
+      }
+    ]
+  ],
+  "eco do próprio robô (assinatura, robô ou espaço invisível) é ignorado": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"resposta [NOVA_AI_BO\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"olá 🤖\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"invisível​\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "mensagem enviada por mim para outra pessoa é ignorada": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"para você\" | fromMe=true | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "conversa comigo mesmo sem comando de dono dispara o pulso e vai para a interface": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"anota aí\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "anota aí"
+          }
+        }
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "anota aí",
+          "chatId": "5511@c.us",
+          "fromMe": true,
+          "isSelfChat": true,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "dono-anota aí"
+        }
+      }
+    ]
+  ],
+  "comando de trancar o computador no Windows usa o rundll32 e responde": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!lock\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!lock"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 🔒 Instant System Lock Triggered"
+    ],
+    [
+      "exec",
+      "rundll32.exe user32.dll,LockWorkStation"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1320
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "comando de trancar o computador no Mac usa o CGSession e responde": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"Lock PC\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "Lock PC"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 🔒 Instant System Lock Triggered"
+    ],
+    [
+      "mac-native.run",
+      "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession",
+      [
+        "-suspend"
+      ]
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1320
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "trancar também vale em \"laptop band\" e \"lock\"": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"laptop band\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "laptop band"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 🔒 Instant System Lock Triggered"
+    ],
+    [
+      "exec",
+      "rundll32.exe user32.dll,LockWorkStation"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1320
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"lock\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "lock"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 🔒 Instant System Lock Triggered"
+    ],
+    [
+      "exec",
+      "rundll32.exe user32.dll,LockWorkStation"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1320
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "🔒 ✅ *[ROOT_CMD]* PC/Laptop instantly lock kar diya gaya hai Boss!",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "comando de navegador completa o endereço sem protocolo e mantém o que já tem http": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!browser exemplo.com\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!browser exemplo.com"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 🌐 Opening browser: https://exemplo.com"
+    ],
+    [
+      "shell.openExternal",
+      "https://exemplo.com"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1400
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Browser mein kholna shuru kar diya:\nhttps://exemplo.com",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!browser http://loca\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!browser http://local.test/x"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 🌐 Opening browser: http://local.test/x"
+    ],
+    [
+      "shell.openExternal",
+      "http://local.test/x"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1400
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Browser mein kholna shuru kar diya:\nhttp://local.test/x",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "comando de status mostra memória, processador e modo ocupado": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!sysinfo\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!sysinfo"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 📊 Status request"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      3500
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "*🖥️ NOVA SYSTEM STATUS*\n\n*CPU:* CPU de teste\n*CPU Load:* 1.23%\n*RAM:* 4.00 GB Free / 16.00 GB Total\n*Platform:* plataforma-de-teste 1.0\n*Boss Name:* Chefe\n*Busy Mode:* 🔴 OFF",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"sysinfo\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "sysinfo"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 📊 Status request"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      3500
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "*🖥️ NOVA SYSTEM STATUS*\n\n*CPU:* CPU de teste\n*CPU Load:* 1.23%\n*RAM:* 4.00 GB Free / 16.00 GB Total\n*Platform:* plataforma-de-teste 1.0\n*Boss Name:* Chefe\n*Busy Mode:* 🔴 OFF",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!status\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!status"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 📊 Status request"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      3500
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "*🖥️ NOVA SYSTEM STATUS*\n\n*CPU:* CPU de teste\n*CPU Load:* 1.23%\n*RAM:* 4.00 GB Free / 16.00 GB Total\n*Platform:* plataforma-de-teste 1.0\n*Boss Name:* Chefe\n*Busy Mode:* 🔴 OFF",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "ocupado ligado e desligado grava as preferências e avisa a janela": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy on\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!busy on"
+          }
+        }
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/whatsapp_settings.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "utf8"
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "{\n  \"outra\": 1,\n  \"busyStatus\": \"busy hain ya shayad kahin bahar gaye hain\",\n  \"busyPreset\": \"custom\"\n}"
+    ],
+    [
+      "janela.send",
+      "whatsapp-busy-status-updated",
+      {
+        "busyStatus": "busy hain ya shayad kahin bahar gaye hain"
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Busy] Settings saved:",
+      "busy hain ya shayad kahin bahar gaye hain"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1260
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Busy Mode *ACTIVE*. Guests ko auto-reply milega.",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy off\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!busy off"
+          }
+        }
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/whatsapp_settings.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "utf8"
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "{\n  \"outra\": 1,\n  \"busyStatus\": \"busy hain ya shayad kahin bahar gaye hain\",\n  \"busyPreset\": \"custom\"\n}"
+    ],
+    [
+      "janela.send",
+      "whatsapp-busy-status-updated",
+      {
+        "busyStatus": "busy hain ya shayad kahin bahar gaye hain"
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Busy] Settings saved:",
+      "busy hain ya shayad kahin bahar gaye hain"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1000
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Busy Mode *DISABLED*.",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "ocupado com a janela destruída grava as preferências sem avisar a janela": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy on\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/whatsapp_settings.json",
+      false
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "{\n  \"busyStatus\": \"busy hain ya shayad kahin bahar gaye hain\",\n  \"busyPreset\": \"custom\"\n}"
+    ],
+    [
+      "console.log",
+      "[WA-Busy] Settings saved:",
+      "busy hain ya shayad kahin bahar gaye hain"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1260
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Busy Mode *ACTIVE*. Guests ko auto-reply milega.",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "ocupado: preset conhecido, texto livre e texto curto demais": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy driving\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!busy driving"
+          }
+        }
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/whatsapp_settings.json",
+      false
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "{\n  \"busyStatus\": \"The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein.\",\n  \"busyPreset\": \"custom\"\n}"
+    ],
+    [
+      "janela.send",
+      "whatsapp-busy-status-updated",
+      {
+        "busyStatus": "The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein."
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Busy] Settings saved:",
+      "The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein."
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1960
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Status set: \"The Carl Moon sir abhi drive kar rahe hain 🚗, baad mein call karein.\"",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy Reunião longa\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!busy Reunião longa"
+          }
+        }
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/whatsapp_settings.json",
+      false
+    ],
+    [
+      "fs.writeFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "{\n  \"busyStatus\": \"reunião longa\",\n  \"busyPreset\": \"custom\"\n}"
+    ],
+    [
+      "janela.send",
+      "whatsapp-busy-status-updated",
+      {
+        "busyStatus": "reunião longa"
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Busy] Settings saved:",
+      "reunião longa"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1000
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Custom Status set: \"reunião longa\"",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy ab\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!busy ab"
+          }
+        }
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "!busy ab",
+          "chatId": "5511@c.us",
+          "fromMe": true,
+          "isSelfChat": true,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "dono-!busy ab"
+        }
+      }
+    ]
+  ],
+  "ocupado: falha ao gravar as preferências é registrada": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!busy on\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!busy on"
+          }
+        }
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/whatsapp_settings.json",
+      true
+    ],
+    [
+      "fs.readFileSync",
+      "/dados/userData/whatsapp_settings.json",
+      "utf8"
+    ],
+    [
+      "console.error",
+      "[WA-Busy] Failed to save settings:",
+      "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+    ],
+    [
+      "client.getChatById",
+      "5511@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1260
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "✅ *[ROOT_CMD]* Busy Mode *ACTIVE*. Guests ko auto-reply milega.",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ]
+  ],
+  "captura de tela por !ss e pelos gatilhos envia a imagem ao próprio chat": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!ss\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!ss"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 📸 Screenshot command"
+    ],
+    [
+      "console.log",
+      "[WA-Screenshot] Capturing primary screen..."
+    ],
+    [
+      "screenshot",
+      {
+        "format": "png"
+      }
+    ],
+    [
+      "new MessageMedia",
+      "image/png",
+      "aW1hZ2Vt",
+      "nova_screenshot.png"
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      {},
+      {
+        "caption": "🖥️ Here is your current PC screen"
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"screen bhejo\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "screen bhejo"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 📸 Screenshot command"
+    ],
+    [
+      "console.log",
+      "[WA-Screenshot] Capturing primary screen..."
+    ],
+    [
+      "screenshot",
+      {
+        "format": "png"
+      }
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Screenshot] ✅ Screenshot sent to self-chat"
+    ],
+    [
+      "new MessageMedia",
+      "image/png",
+      "aW1hZ2Vt",
+      "nova_screenshot.png"
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      {},
+      {
+        "caption": "🖥️ Here is your current PC screen"
+      }
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "console.log",
+      "[WA-Screenshot] ✅ Screenshot sent to self-chat"
+    ]
+  ],
+  "captura de tela com falha avisa no chat": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"!ss\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "!ss"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[ROOT_CMD] 📸 Screenshot command"
+    ],
+    [
+      "console.log",
+      "[WA-Screenshot] Capturing primary screen..."
+    ],
+    [
+      "screenshot",
+      {
+        "format": "png"
+      }
+    ],
+    [
+      "console.error",
+      "[WA-Screenshot] Capture/send error:",
+      "sem tela"
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "❌ Screenshot failed: sem tela\n\n_[NOVA_AI_BOT]_",
+      "(undefined)"
+    ]
+  ],
+  "captura de tela com cliente desconectado só avisa no log": [
+    [
+      "console.warn",
+      "[WA-Screenshot] Client not ready — cannot send screenshot."
+    ]
+  ],
+  "grupo: menção ao nome do dono e palavra urgente geram alerta, conversa comum não": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"Chefe, vem cá\" | fromMe=false | isSelf=false | targetId=1203@g.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Monitor] 🔔 Group Alert in 1203@g.us: Chefe, vem cá"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "group-alert",
+          "data": {
+            "chatId": "1203@g.us",
+            "message": "Chefe, vem cá",
+            "sender": "1203@g.us",
+            "reason": "MENTION",
+            "bossName": "Chefe"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"pagamento: payment h\" | fromMe=false | isSelf=false | targetId=1203@g.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Monitor] 🔔 Group Alert in 1203@g.us: pagamento: payment hoje"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "group-alert",
+          "data": {
+            "chatId": "1203@g.us",
+            "message": "pagamento: payment hoje",
+            "sender": "1203@g.us",
+            "reason": "URGENT_KEYWORD",
+            "bossName": "Chefe"
+          }
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"bom dia pessoal\" | fromMe=false | isSelf=false | targetId=1203@g.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ]
+  ],
+  "conversa privada urgente mostra a notificação com o nome do contato": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"é urgent, me liga\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Intelligence] 🚨 URGENT message detected from 5522@c.us"
+    ],
+    [
+      "Notification.show",
+      {
+        "title": "🚨 URGENT: WhatsApp from Ana",
+        "body": "é urgent, me liga"
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "é urgent, me liga",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-é urgent, me liga"
+        }
+      }
+    ]
+  ],
+  "conversa privada urgente sem nome usa o nome do chat e corta o texto longo": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"emergency xxxxxxxxxx\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Intelligence] 🚨 URGENT message detected from 5522@c.us"
+    ],
+    [
+      "Notification.show",
+      {
+        "title": "🚨 URGENT: WhatsApp from Chat",
+        "body": "emergency xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "emergency xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-emergency xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        }
+      }
+    ]
+  ],
+  "conversa privada urgente sem contato nem chat usa \"Someone\"": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"call me\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Intelligence] 🚨 URGENT message detected from 5522@c.us"
+    ],
+    [
+      "Notification.show",
+      {
+        "title": "🚨 URGENT: WhatsApp from Someone",
+        "body": "call me"
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "call me",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-call me"
+        }
+      }
+    ]
+  ],
+  "falha ao montar a notificação é registrada e a mensagem segue": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"jaldi\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Intelligence] 🚨 URGENT message detected from 5522@c.us"
+    ],
+    [
+      "console.error",
+      "Notification error",
+      {
+        "erro": "Error",
+        "mensagem": "sem chat"
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "jaldi",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-jaldi"
+        }
+      }
+    ]
+  ],
+  "modo ocupado ligado registra a resposta automática e segue": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"tem alguém aí\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "console.log",
+      "[WA-Intelligence] 💤 Busy Mode Active. Auto-replying to 5522@c.us"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "tem alguém aí",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-tem alguém aí"
+        }
+      }
+    ]
+  ],
+  "envio sem cliente conectado é pulado": [
+    [
+      "console.warn",
+      "[WhatsApp] Send skipped. Client not ready."
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Cannot send to owner. Client not ready."
+    ],
+    [
+      "retorno",
+      [
+        false,
+        false,
+        false
+      ]
+    ]
+  ],
+  "envio recusa chat inválido, \"self\" e texto vazio": [
+    [
+      "console.warn",
+      "[WhatsApp] sendReply: invalid chatId or empty message. chatId:",
+      ""
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] sendReply: invalid chatId or empty message. chatId:",
+      "self"
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] sendReply: invalid chatId or empty message. chatId:",
+      "5522@c.us"
+    ],
+    [
+      "retorno",
+      [
+        false,
+        false,
+        false
+      ]
+    ]
+  ],
+  "envio com assinatura, sem assinatura e guarda o id enviado por dois minutos": [
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "olá\n\n_[NOVA_AI_BOT]_",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "sem assinar",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "retorno",
+      {
+        "retornos": [
+          true,
+          true
+        ],
+        "antes": [
+          "enviada-0"
+        ],
+        "depois": []
+      }
+    ]
+  ],
+  "envio cuja resposta não traz id não guarda nada": [
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "oi\n\n_[NOVA_AI_BOT]_",
+      "(undefined)"
+    ],
+    [
+      "retorno",
+      [
+        true,
+        []
+      ]
+    ]
+  ],
+  "envio que falha devolve falso": [
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "oi\n\n_[NOVA_AI_BOT]_",
+      "(undefined)"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Send error:",
+      "envio recusado"
+    ],
+    [
+      "retorno",
+      false
+    ]
+  ],
+  "envio com imitação digita antes de enviar e guarda o id": [
+    [
+      "client.getChatById",
+      "5522@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1000
+    ],
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "uma resposta de teste\n\n_[NOVA_AI_BOT]_",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "retorno",
+      [
+        true,
+        [
+          "enviada-0"
+        ]
+      ]
+    ]
+  ],
+  "envio com imitação sem assinatura, texto curto e chat vazio": [
+    [
+      "client.getChatById",
+      "5522@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      1000
+    ],
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "ok",
+      "(undefined)"
+    ],
+    [
+      "setTimeout",
+      120000
+    ],
+    [
+      "retorno",
+      [
+        true,
+        false
+      ]
+    ]
+  ],
+  "envio com imitação longo limita a digitação a 4 segundos e falha devolve falso": [
+    [
+      "client.getChatById",
+      "5522@c.us"
+    ],
+    [
+      "setTimeout",
+      1750
+    ],
+    [
+      "chat.sendStateTyping"
+    ],
+    [
+      "setTimeout",
+      4000
+    ],
+    [
+      "client.sendMessage",
+      "5522@c.us",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n_[NOVA_AI_BOT]_",
+      "(undefined)"
+    ],
+    [
+      "console.error",
+      "[WA-Intelligence] Mimicry Send error:",
+      "envio recusado"
+    ],
+    [
+      "retorno",
+      false
+    ]
+  ],
+  "envio ao dono usa o próprio id e devolve falso quando falha": [
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "aviso",
+      "(undefined)"
+    ],
+    [
+      "client.sendMessage",
+      "5511@c.us",
+      "aviso",
+      "(undefined)"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] sendToOwner error:",
+      "envio recusado"
+    ],
+    [
+      "retorno",
+      [
+        true,
+        false
+      ]
+    ]
+  ],
+  "iniciar ignora quando já está iniciando e quando já está conectado": [
+    [
+      "console.log",
+      "[WhatsApp] Initialize skipped (already initializing)."
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Initialize skipped (already connected)."
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "connected"
+        }
+      }
+    ],
+    [
+      "retorno",
+      {
+        "status": "connected",
+        "reason": null,
+        "isReady": true,
+        "isInitializing": false,
+        "qrCode": null,
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "iniciar monta o cliente com as opções, usa o navegador do ambiente e espera o aviso do cliente": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/navegador/chrome",
+      true
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Browser executable:",
+      "/navegador/chrome"
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ],
+          "executablePath": "/navegador/chrome"
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "retorno",
+      {
+        "status": "initializing",
+        "reason": null,
+        "isReady": false,
+        "isInitializing": true,
+        "qrCode": "",
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "iniciar derruba o cliente antigo que nunca ficou pronto e reconecta com o status certo": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "attempt": 2
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": null,
+        "isReady": false,
+        "isInitializing": true,
+        "qrCode": "",
+        "reconnectAttempts": 2
+      }
+    ]
+  ],
+  "iniciar com erro de rede marca desconectado, derruba o cliente e agenda nova tentativa": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialize error:",
+      "net::ERR_INTERNET_DISCONNECTED"
+    ],
+    [
+      "clearTimeout",
+      1
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "net::ERR_INTERNET_DISCONNECTED"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "init-error",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "init-error",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 1
+      }
+    ]
+  ],
+  "iniciar com erro de mensagem vazia usa o nome do erro como motivo": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialize error:",
+      "Error"
+    ],
+    [
+      "clearTimeout",
+      1
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "Error"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "init-error",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "init-error",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 1
+      }
+    ]
+  ],
+  "iniciar com perfil travado no Windows mata o navegador, limpa os arquivos de trava e reconecta": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialize error:",
+      "The browser is already running for /dados/userData"
+    ],
+    [
+      "clearTimeout",
+      1
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "profile-lock"
+        }
+      }
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Recovering from browser profile lock...",
+      "The browser is already running for /dados/userData"
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "spawnSync",
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "$ErrorActionPreference='SilentlyContinue' Get-CimInstance Win32_Process | Where-Object {     ($_.Name -in @('chrome.exe','msedge.exe')) -and     ($_.CommandLine -like '*session-nova-desktop-client*') } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"
+      ],
+      {
+        "windowsHide": true,
+        "timeout": 12000,
+        "encoding": "utf8"
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonLock",
+      true
+    ],
+    [
+      "fs.unlinkSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonLock"
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonCookie",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonSocket",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/DevToolsActivePort",
+      true
+    ],
+    [
+      "fs.unlinkSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/DevToolsActivePort"
+    ],
+    [
+      "setTimeout",
+      1200
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "profile-lock",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "profile-lock",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 1
+      }
+    ]
+  ],
+  "iniciar com perfil travado no Mac usa o pkill e continua se não conseguir remover a trava": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "findBundledChromiumExecutable",
+      [
+        "/dados/userData/browsers"
+      ]
+    ],
+    [
+      "mac-native.browser",
+      "chrome"
+    ],
+    [
+      "mac-native.browser",
+      "edge"
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialize error:",
+      "SingletonLock presente"
+    ],
+    [
+      "clearTimeout",
+      1
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "profile-lock"
+        }
+      }
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Recovering from browser profile lock...",
+      "SingletonLock presente"
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "spawnSync",
+      "pkill",
+      [
+        "-f",
+        "--",
+        "^/.*/Contents/MacOS/(Google Chrome|Chromium|Microsoft Edge)[^/]* (.* )?--user-data-dir=[^=]*//.wwebjs_auth/session-nova-desktop-client( |$)"
+      ],
+      {
+        "timeout": 12000,
+        "encoding": "utf8"
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonLock",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonCookie",
+      true
+    ],
+    [
+      "fs.unlinkSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonCookie"
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Failed removing lock file:",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonCookie",
+      "arquivo em uso"
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonSocket",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/DevToolsActivePort",
+      false
+    ],
+    [
+      "setTimeout",
+      1200
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "profile-lock",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "profile-lock",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 1
+      }
+    ]
+  ],
+  "iniciar com perfil travado em outro sistema não mata nada": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialize error:",
+      "userDataDir em uso"
+    ],
+    [
+      "clearTimeout",
+      1
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "profile-lock"
+        }
+      }
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Recovering from browser profile lock...",
+      "userDataDir em uso"
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonLock",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonCookie",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/SingletonSocket",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth/session-nova-desktop-client/DevToolsActivePort",
+      false
+    ],
+    [
+      "setTimeout",
+      1200
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "profile-lock",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "profile-lock",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 1
+      }
+    ]
+  ],
+  "iniciar cujo cliente foi trocado no meio do caminho não mexe no estado": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 0
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "retorno",
+      {
+        "status": "initializing",
+        "reason": null,
+        "isReady": false,
+        "isInitializing": true,
+        "qrCode": "",
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "tentativas esgotadas avisam por diálogo e param de reconectar": [
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_auth",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_auth",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/.wwebjs_cache",
+      false
+    ],
+    [
+      "fs.mkdirSync",
+      "/dados/userData/.wwebjs_cache",
+      {
+        "recursive": true
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "initializing",
+          "attempt": 8
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "new Client",
+      {
+        "authStrategy": {
+          "opcoes": {
+            "clientId": "nova-desktop-client",
+            "dataPath": "/dados/userData/.wwebjs_auth"
+          }
+        },
+        "authTimeoutMs": 120000,
+        "qrMaxRetries": 3,
+        "takeoverOnConflict": true,
+        "takeoverTimeoutMs": 15000,
+        "webVersionCache": {
+          "type": "local",
+          "path": "/dados/userData/.wwebjs_cache"
+        },
+        "puppeteer": {
+          "headless": true,
+          "args": [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu"
+          ]
+        }
+      }
+    ],
+    [
+      "client.initialize"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialize error:",
+      "falha"
+    ],
+    [
+      "clearTimeout",
+      1
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "falha"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Reconnect limit reached. Waiting for manual restart."
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "reconnect-limit-reached",
+          "hint": "O WhatsApp não iniciou após 8 tentativas. Confira se o firewall ou o antivírus está bloqueando o Nova AI e se a pasta de dados do app permite gravação."
+        }
+      }
+    ],
+    [
+      "dialog.showMessageBox",
+      {
+        "type": "warning",
+        "title": "WhatsApp",
+        "message": "O WhatsApp não iniciou após 8 tentativas. Confira se o firewall ou o antivírus está bloqueando o Nova AI e se a pasta de dados do app permite gravação."
+      }
+    ],
+    [
+      "retorno",
+      {
+        "status": "disconnected",
+        "reason": "reconnect-limit-reached",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 8
+      }
+    ]
+  ],
+  "espera da reconexão cresce em dobro até o teto de 30 segundos": [
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "teste",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "teste",
+          "attempt": 2,
+          "delayMs": 4000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      4000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "teste",
+          "attempt": 3,
+          "delayMs": 8000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      8000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "teste",
+          "attempt": 4,
+          "delayMs": 16000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      16000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "teste",
+          "attempt": 5,
+          "delayMs": 30000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      30000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "teste",
+          "attempt": 6,
+          "delayMs": 30000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      30000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "teste",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": null,
+        "reconnectAttempts": 6
+      }
+    ]
+  ],
+  "tempo de iniciar estourado reconstrói o cliente e agenda nova tentativa": [
+    [
+      "setTimeout",
+      60000
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Initialization timeout. Rebuilding client."
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "init-timeout"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "init-timeout",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "init-timeout",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": null,
+        "reconnectAttempts": 1
+      }
+    ]
+  ],
+  "qr: codifica, manda à interface e ignora o mesmo código repetido": [
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "scan_qr"
+        }
+      }
+    ],
+    [
+      "qrcode.toDataURL",
+      "codigo-1"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "qr-code",
+        "data": {
+          "url": "data:qr:codigo-1"
+        }
+      }
+    ],
+    [
+      "retorno",
+      {
+        "status": "scan_qr",
+        "reason": null,
+        "isReady": true,
+        "isInitializing": false,
+        "qrCode": "data:qr:codigo-1",
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "qr: falha ao codificar é registrada e o código fica sem imagem": [
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "scan_qr"
+        }
+      }
+    ],
+    [
+      "qrcode.toDataURL",
+      "codigo-2"
+    ],
+    [
+      "console.error",
+      "[WhatsApp] QR encode error:",
+      "qr inválido"
+    ],
+    [
+      "retorno",
+      {
+        "status": "scan_qr",
+        "reason": null,
+        "isReady": true,
+        "isInitializing": false,
+        "qrCode": null,
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "carregando, autenticado e pronto atualizam o estado e avisam a interface": [
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "loading",
+        "data": {
+          "percent": 50,
+          "message": "carregando"
+        }
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "authenticated"
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Authenticated"
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Remote session saved"
+    ],
+    [
+      "console.log",
+      "[WhatsApp] 🤖 Authenticated as: Chefe"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "ready",
+          "data": {
+            "status": "connected",
+            "bossName": "Chefe"
+          }
+        }
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "connected"
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Client ready"
+    ],
+    [
+      "retorno",
+      {
+        "status": "connected",
+        "reason": null,
+        "isReady": true,
+        "isInitializing": false,
+        "qrCode": "",
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "pronto sem nome no perfil usa Boss": [
+    [
+      "console.log",
+      "[WhatsApp] 🤖 Authenticated as: Boss"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "ready",
+          "data": {
+            "status": "connected",
+            "bossName": "Boss"
+          }
+        }
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "connected"
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Client ready"
+    ],
+    [
+      "retorno",
+      [
+        "Boss",
+        {
+          "status": "connected",
+          "reason": null,
+          "isReady": true,
+          "isInitializing": false,
+          "qrCode": "",
+          "reconnectAttempts": 0
+        }
+      ]
+    ]
+  ],
+  "falha de autenticação e desconexão derrubam o cliente e agendam reconexão": [
+    [
+      "console.error",
+      "[WhatsApp] Auth failure:",
+      "sessão inválida"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "auth_failure",
+          "reason": "sessão inválida"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "auth_failure",
+          "attempt": 1,
+          "delayMs": 2000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      2000
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Disconnected:",
+      "LOGOUT"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "LOGOUT"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "reconnecting",
+          "reason": "LOGOUT",
+          "attempt": 2,
+          "delayMs": 4000
+        }
+      }
+    ],
+    [
+      "setTimeout",
+      4000
+    ],
+    [
+      "retorno",
+      {
+        "status": "reconnecting",
+        "reason": "LOGOUT",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": null,
+        "reconnectAttempts": 2
+      }
+    ]
+  ],
+  "mensagem recebida vai ao tratador e mensagem criada só vai quando é minha": [
+    [
+      "console.log",
+      "[WA-Bridge] body=\"chegou\" | fromMe=false | isSelf=false | targetId=5522@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "chegou",
+          "chatId": "5522@c.us",
+          "fromMe": false,
+          "isSelfChat": false,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "contato-chegou"
+        }
+      }
+    ],
+    [
+      "console.log",
+      "[WA-Bridge] body=\"criada por mim\" | fromMe=true | isSelf=true | targetId=5511@c.us"
+    ],
+    [
+      "setTimeout",
+      5000
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "whatsapp-event",
+        "data": {
+          "event": "root-pulse",
+          "data": {
+            "command": "criada por mim"
+          }
+        }
+      }
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "mobile-message",
+        "data": {
+          "message": "criada por mim",
+          "chatId": "5511@c.us",
+          "fromMe": true,
+          "isSelfChat": true,
+          "bossName": "Chefe",
+          "timestamp": 1790000000,
+          "messageId": "dono-criada por mim"
+        }
+      }
+    ]
+  ],
+  "sair derruba a sessão e desligar preserva a sessão": [
+    [
+      "client.logout"
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "status",
+        "data": {
+          "status": "disconnected",
+          "reason": "manual-logout"
+        }
+      }
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "retorno",
+      {
+        "status": "disconnected",
+        "reason": "manual-logout",
+        "isReady": false,
+        "isInitializing": false,
+        "qrCode": null,
+        "reconnectAttempts": 0
+      }
+    ]
+  ],
+  "derrubar o cliente registra falhas de sair e de destruir e não derruba duas vezes ao mesmo tempo": [
+    [
+      "client.logout"
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Logout during destroy failed:",
+      "logout recusado"
+    ],
+    [
+      "client.destroy"
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Destroy failed:",
+      "destroy recusado"
+    ],
+    [
+      "retorno",
+      false
+    ]
+  ],
+  "janela destruída ou com erro no envio não derruba o aviso à interface": [
+    [
+      "janela.send",
+      "whatsapp-event",
+      {
+        "event": "a",
+        "data": 1
+      }
+    ],
+    [
+      "console.error",
+      "[WhatsApp] Failed to send IPC event:",
+      "janela quebrou"
+    ]
+  ],
+  "navegador no Windows: o do ambiente vem primeiro quando existe": [
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/navegador/chrome.exe",
+      true
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Browser executable:",
+      "C:/navegador/chrome.exe"
+    ],
+    [
+      "retorno",
+      "C:/navegador/chrome.exe"
+    ]
+  ],
+  "navegador no Windows: pastas de navegadores, versão mais nova primeiro": [
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      true
+    ],
+    [
+      "fs.readdirSync",
+      "/dados/userData/browsers",
+      {
+        "withFileTypes": true
+      }
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers/chromium-1208/chrome-win64/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers/chromium-1300/chrome-win64/chrome.exe",
+      true
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Browser executable:",
+      "/dados/userData/browsers/chromium-1300/chrome-win64/chrome.exe"
+    ],
+    [
+      "retorno",
+      "/dados/userData/browsers/chromium-1300/chrome-win64/chrome.exe"
+    ]
+  ],
+  "navegador no Windows: erro ao listar a pasta é registrado e cai nos instalados": [
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      true
+    ],
+    [
+      "fs.readdirSync",
+      "/projeto/browsers",
+      {
+        "withFileTypes": true
+      }
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] Failed scanning browser directory:",
+      "/projeto/browsers",
+      "sem permissão"
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/projeto/browsers/chromium-1208/chrome-win64/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      true
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Browser executable:",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+    ],
+    [
+      "retorno",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+    ]
+  ],
+  "navegador no Windows: Edge é o último dos instalados": [
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      true
+    ],
+    [
+      "console.log",
+      "[WhatsApp] Browser executable:",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe"
+    ],
+    [
+      "retorno",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe"
+    ]
+  ],
+  "navegador no Windows: sem nenhum devolve nulo e deixa o padrão do Puppeteer": [
+    [
+      "fs.existsSync",
+      "/projeto/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "/dados/userData/browsers",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+      false
+    ],
+    [
+      "fs.existsSync",
+      "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+      false
+    ],
+    [
+      "console.warn",
+      "[WhatsApp] No explicit browser executable found. Puppeteer default resolution will be used."
+    ],
+    [
+      "retorno",
+      null
+    ]
+  ],
+  "navegador no Mac: ambiente, baixado, Chrome, Edge e nenhum": [
+    [
+      "findBundledChromiumExecutable",
+      [
+        "/dados/userData/browsers"
+      ]
+    ],
+    [
+      "mac-native.browser",
+      "chrome"
+    ],
+    [
+      "mac-native.browser",
+      "edge"
+    ],
+    [
+      "retorno",
+      "/Apps/Edge"
+    ]
+  ],
+  "navegador no Mac: o baixado no usuário vem antes dos instalados": [
+    [
+      "findBundledChromiumExecutable",
+      [
+        "/dados/userData/browsers"
+      ]
+    ],
+    [
+      "retorno",
+      "/dados/userData/browsers/chromium/chrome"
+    ]
+  ],
+  "navegador no Mac: o do ambiente vem antes de tudo": [
+    [
+      "fs.existsSync",
+      "/navegador/chrome",
+      true
+    ],
+    [
+      "retorno",
+      "/navegador/chrome"
+    ]
+  ]
+}
