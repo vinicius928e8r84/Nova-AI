@@ -29,18 +29,14 @@ function contarLicenca(totais, { plan, status, machineId }) {
     if (plan === 'pro') totais.pro++;
 }
 
-function escaparParaOnclick(texto) {
-    return texto.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-}
-
 function atributosDoBotaoResetar(machineId) {
     return !machineId ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : '';
 }
 
 function criarLinhaDaLicenca({ key, plan, status, machineId, customerName, customerMobile, createdAt, activatedAt }) {
     const tr = document.createElement('tr');
-    const escName = escaparParaOnclick(customerName);
-    const escMobile = escaparParaOnclick(customerMobile);
+    const escName = customerName.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const escMobile = customerMobile.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     tr.innerHTML = `
                         <td style="font-weight: 700; color: white;">${key}</td>

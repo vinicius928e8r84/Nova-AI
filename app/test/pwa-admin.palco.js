@@ -208,13 +208,13 @@ class Palco {
       navigator: this.navegador(),
       localStorage: this.localStorage,
       sessionStorage: this.sessionStorage,
-      firebase: this.firebase(),
       fetch: (url, opcoes) => this.buscar(url, opcoes),
       alert: registrar('alert'),
       confirm: (pergunta) => { this.anotar('confirm', pergunta); return this.cena.confirma !== false; },
       prompt: (pergunta, padrao) => { this.anotar('prompt', pergunta, padrao); return respostas.length ? respostas.shift() : null; },
       window: this.janela(),
     };
+    if (!this.cena.semFirebase) contexto.firebase = this.firebase();
     return contexto;
   }
 }

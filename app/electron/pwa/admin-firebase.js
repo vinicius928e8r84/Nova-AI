@@ -114,14 +114,20 @@ function configuracaoDoFirestore(config) {
     };
 }
 
+function sdkDoFirebase() {
+    if (!globalThis.firebase) throw new ReferenceError('firebase is not defined');
+    return globalThis.firebase;
+}
+
 function conectarAoFirebase(config, alertBox) {
     const firebaseConfig = configuracaoDoFirestore(config);
+    const sdk = sdkDoFirebase();
 
-    if (!globalThis.firebase.apps.length) {
-        globalThis.firebase.initializeApp(firebaseConfig);
+    if (!sdk.apps.length) {
+        sdk.initializeApp(firebaseConfig);
     }
 
-    db = globalThis.firebase.firestore();
+    db = sdk.firestore();
     isFirebaseInit = true;
     alertBox.style.display = 'none';
     console.info('[Firebase] Connection initialized successfully.');

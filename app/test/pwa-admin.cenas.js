@@ -184,6 +184,13 @@ async function bancoQueNaoInicia(palco) {
   await palco.chamar('initFirebase()');
 }
 
+async function semOSdkDoFirebase(palco) {
+  await entrar(palco);
+  await palco.chamar('loadLicenses()');
+  await palco.chamar('initAlertsListener()');
+  await palco.chamar('generateLicense()');
+}
+
 const LISTA = [
   { nome: 'abertura sem nada guardado cria a configuração padrão', acao: palco => palco.carregar() },
   {
@@ -260,6 +267,9 @@ const LISTA = [
     respostas: { '/api/save-firebase-config': ok({}) },
     acao: ajustesDoBanco,
   },
+  { nome: 'registro com o nome que não é texto mostra a falha da consulta', armazenado: ARMAZENADA, licencas: [{ id: 'NOVA-1', dados: { customerName: 123 } }], acao: entrar },
+  { nome: 'registro só com o celular que não é texto mostra a falha da consulta', armazenado: ARMAZENADA, licencas: [{ id: 'NOVA-2', dados: { customerMobile: 5511 } }], acao: entrar },
+  { nome: 'o SDK do Firebase não carregou: o painel mostra o erro e segue sem banco', armazenado: ARMAZENADA, semFirebase: true, acao: semOSdkDoFirebase },
   { nome: 'o banco não inicia: sem configuração guardada e com a inicialização falhando', licencas: [], acao: bancoQueNaoInicia },
 ];
 
