@@ -67,6 +67,8 @@ cp /tmp/novo.js "/Applications/Nova AI Mac.app/Contents/Resources/app/dist/asset
 
 Backend: `geo-proxy.js` e os trechos de geo já estão em `app/electron/main.js` e `app/electron/services/physicalMobileService.js`.
 
+O `aplicar-geo.py` é só a entrada. Os seis passos moram em `passos_da_localizacao.py`, a execução deles em `passos_de_patch.py`, a conferência de sintaxe com o `node --check` em `sintaxe_do_bundle.py` e a busca do delimitador que fecha o bloco dos botões de GPS em `delimitadores.py`; todos na mesma pasta, que é onde o Python procura.
+
 ## Desfazer
 
 ```sh
