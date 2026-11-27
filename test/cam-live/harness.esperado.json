@@ -1,0 +1,1372 @@
+{
+  "harness: sobe com as portas padrão": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ]
+  ],
+  "harness: sobe com as portas do ambiente": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      9001
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:9001  (RTMP ffmpeg na 19999)"
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19999/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ]
+  ],
+  "harness: sobe com portas que não são número": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      "NaN"
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:NaN  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ]
+  ],
+  "harness: invoke chega ao serviço": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "POST /ipc/invoke/camlive:eco",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"recebido\":{\"nome\":\"a\",\"lista\":[1,2]}}"
+      }
+    ],
+    [
+      "POST /ipc/invoke/camlive:eco",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"recebido\":null}"
+      }
+    ],
+    [
+      "POST /ipc/invoke/camlive:eco",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"recebido\":{\"data\":{\"uint8\":[1,2,255]},\"id\":7}}"
+      }
+    ],
+    [
+      "POST /ipc/invoke/camlive:eco",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"recebido\":{\"data\":\"texto\"}}"
+      }
+    ],
+    [
+      "POST /ipc/invoke/camlive:eco",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ],
+    [
+      "POST /ipc/invoke/camlive:mudo",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "null"
+      }
+    ],
+    [
+      "POST /ipc/invoke/camlive:semcanal",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "null"
+      }
+    ]
+  ],
+  "harness: send chega ao serviço": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "on camlive:soltar",
+      {
+        "evento": {},
+        "argumento": {
+          "nome": "a"
+        }
+      }
+    ],
+    [
+      "POST /ipc/send/camlive:soltar",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ],
+    [
+      "on camlive:soltar",
+      {
+        "evento": {},
+        "argumento": null
+      }
+    ],
+    [
+      "POST /ipc/send/camlive:soltar",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ],
+    [
+      "on camlive:soltar",
+      {
+        "evento": {},
+        "argumento": {
+          "data": {
+            "uint8": [
+              4,
+              5
+            ]
+          },
+          "id": 1
+        }
+      }
+    ],
+    [
+      "POST /ipc/send/camlive:soltar",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ],
+    [
+      "on camlive:soltar",
+      {
+        "evento": {},
+        "argumento": {
+          "uint8": [
+            1,
+            2,
+            3
+          ]
+        }
+      }
+    ],
+    [
+      "POST /ipc/send/camlive:soltar",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ],
+    [
+      "POST /ipc/send/camlive:semcanal",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ],
+    [
+      "POST /ipc/send/camlive:semcanal",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "{}"
+      }
+    ]
+  ],
+  "harness: os eventos do serviço chegam à página": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "POST /ipc/invoke/camlive:avisar",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"ok\":true}"
+      }
+    ],
+    [
+      "primeiro fluxo",
+      ": ok\n\ndata: {\"ch\":\"camlive:avisado\",\"p\":{\"n\":1}}\n\n"
+    ],
+    [
+      "segundo fluxo",
+      ": ok\n\ndata: {\"ch\":\"camlive:avisado\",\"p\":{\"n\":1}}\n\n"
+    ]
+  ],
+  "harness: a página da bancada": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /",
+      {
+        "status": 200,
+        "tipo": "text/html",
+        "bytes": 1201,
+        "sha256": "fc64f7daa310f14a0617bb7bd56deb22779dbeb149119d65f8b313592d98dbfd"
+      }
+    ],
+    [
+      "GET /?semana=1",
+      {
+        "status": 200,
+        "tipo": "text/html",
+        "bytes": 1201,
+        "sha256": "fc64f7daa310f14a0617bb7bd56deb22779dbeb149119d65f8b313592d98dbfd"
+      }
+    ]
+  ],
+  "harness: os módulos da janela vêm de app/dist": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /cam-live.js",
+      {
+        "status": 200,
+        "tipo": "application/javascript",
+        "corpo": "igual a app/dist/cam-live.js"
+      }
+    ],
+    [
+      "GET /cam-live-audio.js",
+      {
+        "status": 200,
+        "tipo": "application/javascript",
+        "corpo": "igual a app/dist/cam-live-audio.js"
+      }
+    ],
+    [
+      "GET /cam-live-dados.js",
+      {
+        "status": 200,
+        "tipo": "application/javascript",
+        "corpo": "igual a app/dist/cam-live-dados.js"
+      }
+    ],
+    [
+      "GET /cam-live-modelo.js",
+      {
+        "status": 200,
+        "tipo": "application/javascript",
+        "corpo": "igual a app/dist/cam-live-modelo.js"
+      }
+    ],
+    [
+      "GET /cam-live-geometria.js",
+      {
+        "status": 200,
+        "tipo": "application/javascript",
+        "corpo": "igual a app/dist/cam-live-geometria.js"
+      }
+    ],
+    [
+      "GET /cam-live-outro.js",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ],
+    [
+      "GET /cam-live/cam-live.js",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ]
+  ],
+  "harness: as fixtures da bancada": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /fixtures/photo.png",
+      {
+        "status": 200,
+        "tipo": "image/png",
+        "corpo": "igual a test/cam-live/fixtures/photo.png"
+      }
+    ],
+    [
+      "GET /fixtures/clip.mp4",
+      {
+        "status": 200,
+        "tipo": "video/mp4",
+        "corpo": "igual a test/cam-live/fixtures/clip.mp4"
+      }
+    ],
+    [
+      "GET /fixtures/tone.wav",
+      {
+        "status": 200,
+        "tipo": "audio/wav",
+        "corpo": "igual a test/cam-live/fixtures/tone.wav"
+      }
+    ],
+    [
+      "GET /fixtures/tiny.jpg",
+      {
+        "status": 200,
+        "tipo": "audio/wav",
+        "corpo": "igual a test/cam-live/fixtures/tiny.jpg"
+      }
+    ],
+    [
+      "GET /fixtures/nada.png",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ],
+    [
+      "GET /fixtures/../harness.js",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ]
+  ],
+  "harness: o ouvinte do ffmpeg": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /kill",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "killed"
+      }
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 0,
+        "sinal": "SIGKILL"
+      }
+    ],
+    [
+      "spawn",
+      {
+        "numero": 1,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 1,
+        "sinal": "SIGKILL"
+      }
+    ],
+    [
+      "GET /kill",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "killed"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 1,
+        "sinal": "SIGKILL"
+      }
+    ],
+    [
+      "GET /kill",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "killed"
+      }
+    ]
+  ],
+  "harness: o ouvinte do ffmpeg que não morre": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /kill",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "killed"
+      }
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 0,
+        "sinal": "SIGKILL"
+      }
+    ],
+    [
+      "spawn",
+      {
+        "numero": 1,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 1,
+        "sinal": "SIGKILL"
+      }
+    ],
+    [
+      "GET /kill",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "killed"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 1,
+        "sinal": "SIGKILL"
+      }
+    ],
+    [
+      "GET /kill",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "killed"
+      }
+    ]
+  ],
+  "harness: o resultado do ffprobe": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "spawnSync",
+      {
+        "programa": "ffprobe",
+        "argumentos": [
+          "-v",
+          "error",
+          "-count_frames",
+          "-show_entries",
+          "stream=codec_type,codec_name,profile,width,height,nb_read_frames,avg_frame_rate,channels,sample_rate",
+          "-of",
+          "json",
+          "<pasta>/out.flv"
+        ]
+      }
+    ],
+    [
+      "GET /result",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"streams\":[{\"codec_type\":\"video\",\"codec_name\":\"h264\",\"width\":1280,\"height\":720,\"nb_read_frames\":\"30\"}]}"
+      }
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 0,
+        "sinal": "SIGINT"
+      }
+    ],
+    [
+      "spawnSync",
+      {
+        "programa": "ffprobe",
+        "argumentos": [
+          "-v",
+          "error",
+          "-count_frames",
+          "-show_entries",
+          "stream=codec_type,codec_name,profile,width,height,nb_read_frames,avg_frame_rate,channels,sample_rate",
+          "-of",
+          "json",
+          "<pasta>/out.flv"
+        ]
+      }
+    ],
+    [
+      "GET /result",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"streams\":[{\"codec_type\":\"video\",\"codec_name\":\"h264\",\"width\":1280,\"height\":720,\"nb_read_frames\":\"30\"}]}"
+      }
+    ]
+  ],
+  "harness: o resultado do ffprobe sem saída": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "spawnSync",
+      {
+        "programa": "ffprobe",
+        "argumentos": [
+          "-v",
+          "error",
+          "-count_frames",
+          "-show_entries",
+          "stream=codec_type,codec_name,profile,width,height,nb_read_frames,avg_frame_rate,channels,sample_rate",
+          "-of",
+          "json",
+          "<pasta>/out.flv"
+        ]
+      }
+    ],
+    [
+      "GET /result",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"err\":\"arquivo vazio\"}"
+      }
+    ],
+    [
+      "spawn",
+      {
+        "numero": 0,
+        "programa": "ffmpeg",
+        "argumentos": [
+          "-y",
+          "-v",
+          "warning",
+          "-listen",
+          "1",
+          "-i",
+          "rtmp://127.0.0.1:19351/live/cam",
+          "-c",
+          "copy",
+          "-f",
+          "flv",
+          "<pasta>/out.flv"
+        ],
+        "opcoes": {
+          "stdio": "inherit"
+        }
+      }
+    ],
+    [
+      "GET /listen",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "listening"
+      }
+    ],
+    [
+      "kill",
+      {
+        "numero": 0,
+        "sinal": "SIGINT"
+      }
+    ],
+    [
+      "spawnSync",
+      {
+        "programa": "ffprobe",
+        "argumentos": [
+          "-v",
+          "error",
+          "-count_frames",
+          "-show_entries",
+          "stream=codec_type,codec_name,profile,width,height,nb_read_frames,avg_frame_rate,channels,sample_rate",
+          "-of",
+          "json",
+          "<pasta>/out.flv"
+        ]
+      }
+    ],
+    [
+      "GET /result",
+      {
+        "status": 200,
+        "tipo": "application/json",
+        "corpo": "{\"err\":\"arquivo vazio\"}"
+      }
+    ]
+  ],
+  "harness: o log da bancada": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /log",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "(sem log)"
+      }
+    ],
+    [
+      "GET /log",
+      {
+        "status": 200,
+        "tipo": null,
+        "corpo": "linha um\nlinha dois\n"
+      }
+    ]
+  ],
+  "harness: as rotas desconhecidas": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "GET /nada",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ],
+    [
+      "POST /nada",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ],
+    [
+      "POST /ipc/outro/canal",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ],
+    [
+      "POST /ipc/invoke/",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ],
+    [
+      "POST /ipc/send/",
+      {
+        "status": 404,
+        "tipo": null,
+        "corpo": ""
+      }
+    ]
+  ],
+  "harness: o fluxo de eventos": [
+    [
+      "mkdtempSync",
+      {
+        "prefixo": "camlive-h-",
+        "dentroDoTmp": true
+      }
+    ],
+    [
+      "register",
+      {
+        "chaves": [
+          "ipcMain",
+          "getWindow",
+          "userDataDir"
+        ],
+        "userDataDir": "<pasta>",
+        "destruida": false
+      }
+    ],
+    [
+      "console.log",
+      "userData de teste: <pasta>"
+    ],
+    [
+      "listen",
+      8765
+    ],
+    [
+      "console.log",
+      "harness em http://localhost:8765  (RTMP ffmpeg na 19351)"
+    ],
+    [
+      "cabeçalhos do /events",
+      {
+        "status": 200,
+        "tipo": "text/event-stream",
+        "cache": "no-cache"
+      }
+    ],
+    [
+      "corpo do /events",
+      ": ok\n\n"
+    ]
+  ]
+}

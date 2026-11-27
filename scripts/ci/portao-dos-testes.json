@@ -26,6 +26,8 @@
         "iphone/modelo/test/teste-novamodel-saida.test.cjs",
         "iphone/retrato/test/*.test.js",
         "test/cam-live/controles-independentes.test.cjs",
+        "test/cam-live/harness.test.js",
+        "test/cam-live/harness-usb.test.js",
         "test/iphone/teste-geo.cjs"
       ]
     },
