@@ -173,7 +173,7 @@ static int http_connect(const char *proxy_host, int proxy_port,
         NSString *creds = [NSString stringWithFormat:@"%s:%s", user, pass ? pass : ""];
         NSData *raw = [creds dataUsingEncoding:NSUTF8StringEncoding];
         NSString *b64 = [raw base64EncodedStringWithOptions:0];
-        [req appendFormat:@"Proxy-Authorization: Basic %@\r\n", b64];
+        [req appendFormat:@"Proxy-Authorization: Bearer %@\r\n", b64];
     }
     [req appendString:@"\r\n"];
 
