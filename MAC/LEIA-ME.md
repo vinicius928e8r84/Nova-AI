@@ -717,3 +717,5 @@ Arquivos do app instalado no Mac que mudam: `Resources/app/electron/main.js`, `R
 - **O que mudou:** receita nova `MAC/integracao-iphone/distribuicao/empacotar-ferramentas-windows.sh` (shell MSYS2 UCRT64: instala `libimobiledevice`, `libusbmuxd` e `ideviceinstaller` com `pacman`, limpa `app/resources/ios-tools/bin/`, copia `iproxy`, `idevice_id`, `ideviceinfo`, `ideviceinstaller` `.exe` e as DLLs de `/ucrt64/bin` e grava `manifest.sha256`; falha de `ldd`, `cp` ou DLL `not found` aborta). `docs/windows.md` §4 e `app/README.md` deixaram de dizer "só Mac" e avisam que o driver USB da Apple (Apple Devices ou iTunes) precisa estar instalado no PC. Nenhum código do app mudou.
 - **Arquivos do app instalado no Mac que mudam:** nenhum.
 - **Sem testar:** a receita num MSYS2 real, Windows com iPhone e Apple Devices reais, Mac real.
+
+linha a mais da prova descartável da revisão da PR 164
