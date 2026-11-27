@@ -80,7 +80,7 @@ afterEach(async () => {
 
 after(() => {
   Module._load = carregarOriginal;
-  for (const raiz of raizes) fs.rmSync(raiz, { recursive: true, force: true });
+  for (const raiz of raizes) fs.rmSync(raiz, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 });
 });
 
 function criarServico() {
