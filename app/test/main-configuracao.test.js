@@ -165,11 +165,14 @@ function chamarDireto(main, canal, ...argumentos) {
   return Promise.resolve(main.canais.handle.get(canal)({ sender: {} }, ...argumentos));
 }
 
+const NIVEIS_DO_MESMO_REGISTRO = { log: ['log', 'info'] };
+
 function anotandoConsole(nivel, funcao) {
-  const antes = console[nivel];
+  const niveis = NIVEIS_DO_MESMO_REGISTRO[nivel] || [nivel];
+  const antes = niveis.map((nome) => console[nome]);
   const chamadas = [];
-  console[nivel] = (...partes) => chamadas.push(partes);
-  const restaurar = () => { console[nivel] = antes; };
+  for (const nome of niveis) console[nome] = (...partes) => chamadas.push(partes);
+  const restaurar = () => niveis.forEach((nome, indice) => { console[nome] = antes[indice]; });
   return Promise.resolve().then(funcao).then((resultado) => ({ resultado, chamadas }), (erro) => { throw erro; }).finally(restaurar);
 }
 

@@ -47,10 +47,12 @@ function comNodeEnv(valor, funcao) {
   }
 }
 
+const NIVEL_NO_REGISTRO = { info: 'log' };
+
 function anotandoConsole(funcao) {
-  const antes = { log: console.log, warn: console.warn, error: console.error };
+  const antes = { log: console.log, info: console.info, warn: console.warn, error: console.error };
   const chamadas = [];
-  for (const nivel of Object.keys(antes)) console[nivel] = (...partes) => chamadas.push([nivel, ...partes]);
+  for (const nivel of Object.keys(antes)) console[nivel] = (...partes) => chamadas.push([NIVEL_NO_REGISTRO[nivel] || nivel, ...partes]);
   try {
     funcao();
   } finally {
@@ -201,13 +203,14 @@ test('a busca na abertura: só empacotado espera 5 s e só busca com feed', asyn
 
   autoUpdater.falhar = new Error('sem rede');
   const falha = [];
-  const antes = console.log;
-  console.log = (...partes) => falha.push(partes);
+  const antes = { log: console.log, info: console.info };
+  console.log = (...partes) => falha.push(['log', ...partes]);
+  console.info = console.log;
   try {
     busca.funcao();
     await new Promise((resolver) => setImmediate(resolver));
   } finally {
-    console.log = antes;
+    Object.assign(console, antes);
   }
-  assert.deepStrictEqual(falha, [['[AutoUpdater] Production check failed:', 'sem rede']]);
+  assert.deepStrictEqual(falha, [['log', '[AutoUpdater] Production check failed:', 'sem rede']]);
 });
