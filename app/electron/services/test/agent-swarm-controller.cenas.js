@@ -26,7 +26,8 @@ async function detectar(a, comando) {
 }
 
 function chamarExecuteWorkflow(a, comando, delegado, ...filho) {
-  return a.controlador.executeWorkflow(comando, 'chave-da-api', delegado, ...filho);
+  const [modelo, groqKey] = filho;
+  return a.controlador.executeWorkflow(comando, 'chave-da-api', delegado, { model: modelo, groqKey });
 }
 
 async function executarEEsperar(a, comando, delegado, ...filho) {

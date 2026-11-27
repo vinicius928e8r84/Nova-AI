@@ -2092,7 +2092,7 @@ function registerHandlers() {
           if (groqKey) console.log('[Swarm] Groq fallback key loaded.');
         }
       } catch(e) { }
-      return await agentSwarmController.executeWorkflow(command, effectiveApiKey, isDelegated, childModel, groqKey);
+      return await agentSwarmController.executeWorkflow(command, effectiveApiKey, isDelegated, { model: childModel, groqKey });
     } catch (e) {
       console.error('[Swarm] Error:', e);
       return { handled: false, error: e.message };
