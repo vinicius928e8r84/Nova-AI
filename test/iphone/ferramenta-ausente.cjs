@@ -34,7 +34,8 @@ test('ios-bridge.start não sobe nada sem ferramenta',()=>{
 test('com ferramentas presentes, tool/has/available seguem o caminho de sempre',()=>{
  const fs=require('node:fs'),os=require('node:os');
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'ios-ok-'));const bin=path.join(root,'ios-tools','bin');fs.mkdirSync(bin,{recursive:true});
- for(const n of ['iproxy','idevice_id','ideviceinfo']){fs.writeFileSync(path.join(bin,n),'#!/bin/sh\n',{mode:0o755});}
+ const sufixo=process.platform==='win32'?'.exe':'';
+ for(const n of ['iproxy','idevice_id','ideviceinfo']){fs.writeFileSync(path.join(bin,n+sufixo),'#!/bin/sh\n',{mode:0o755});}
  const prev=process.resourcesPath;process.resourcesPath=root;
- try{assert.equal(iosTools.tool('iproxy'),path.join(bin,'iproxy'));assert.equal(iosTools.available(),true);}finally{process.resourcesPath=prev;}
+ try{assert.equal(iosTools.tool('iproxy'),path.join(bin,'iproxy'+sufixo));assert.equal(iosTools.available(),true);}finally{process.resourcesPath=prev;}
 });

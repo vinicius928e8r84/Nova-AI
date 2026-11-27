@@ -39,7 +39,7 @@ test('ffmpeg no Windows procura .exe e separa o PATH por ponto e vírgula', () =
   assert.equal(tp.ffmpeg({ ...win, exists: () => false }), null);
 });
 
-test('ffmpeg no Mac devolve o mesmo que mac-native.tool', () => {
+test('ffmpeg no Mac devolve o mesmo que mac-native.tool (só Mac e Linux: no Windows o programa é ffmpeg.exe e o mac-native não o procura)', { skip: process.platform === 'win32' }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tp-'));
   fs.writeFileSync(path.join(dir, 'ffmpeg'), '#!/bin/sh\n', { mode: 0o755 });
   const antes = process.env.PATH;
@@ -52,16 +52,18 @@ test('ffmpeg no Mac devolve o mesmo que mac-native.tool', () => {
   } finally { process.env.PATH = antes; fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+const comPlataforma = (plataforma, acao) => {
+  const orig = Object.getOwnPropertyDescriptor(process, 'platform');
+  Object.defineProperty(process, 'platform', { value: plataforma });
+  try { return acao(); } finally { Object.defineProperty(process, 'platform', orig); }
+};
+
 test('sshOptions no Mac não muda e no Windows usa NUL e /', () => {
   const ssh = require('../../app/electron/services/iphone-ssh');
   const p = { key: '/Users/usuario/Library/Application Support/k', knownHosts: '/Users/usuario/Library/Application Support/kh' };
-  assert.deepEqual(ssh.sshOptions(p), ['-i', p.key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile="' + p.knownHosts + '"', '-o', 'GlobalKnownHostsFile=/dev/null']);
-  const orig = Object.getOwnPropertyDescriptor(process, 'platform');
-  Object.defineProperty(process, 'platform', { value: 'win32' });
-  try {
-    const o = ssh.sshOptions({ key: 'C:\\U\\id', knownHosts: 'C:\\U\\kh' });
-    assert.deepEqual(o, ['-i', 'C:/U/id', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=C:/U/kh', '-o', 'GlobalKnownHostsFile=NUL']);
-  } finally { Object.defineProperty(process, 'platform', orig); }
+  assert.deepEqual(comPlataforma('darwin', () => ssh.sshOptions(p)), ['-i', p.key, '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile="' + p.knownHosts + '"', '-o', 'GlobalKnownHostsFile=/dev/null']);
+  const o = comPlataforma('win32', () => ssh.sshOptions({ key: 'C:\\U\\id', knownHosts: 'C:\\U\\kh' }));
+  assert.deepEqual(o, ['-i', 'C:/U/id', '-o', 'IdentitiesOnly=yes', '-o', 'UserKnownHostsFile=C:/U/kh', '-o', 'GlobalKnownHostsFile=NUL']);
 });
 
 test('GPS do iPhone: Mac mantém a lista de antes e Windows procura .exe, Scripts do Python e PATH', () => {
