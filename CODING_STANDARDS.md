@@ -69,7 +69,7 @@ O revisor cobra isso à mão: o check `Registro da PR` não olha a issue. PR sem
 
 Teste que a CI não roda não protege nada: ele passa na máquina de quem o escreveu e ninguém vê quando quebra. O revisor confere que todo arquivo de teste que a PR cria está no que a CI roda.
 
-Hoje o que a CI roda está no `.github/workflows/regras.yml`: os testes de `app/` são achados por glob, os de `MAC/` estão numa lista de nomes (um teste novo de `MAC/` precisa entrar nela) e os das regras são os de `scripts/regras/test/`. O portão dos testes (ticket #180) troca essa lista por uma lista de grupos e por um teste que falha com arquivo de teste fora dela; depois que ele entrar, o arquivo de teste novo tem de estar num grupo, ou numa lista de fora com o motivo escrito.
+O que a CI roda está em `scripts/ci/portao-dos-testes.json`: os grupos (cada um com o job do workflow em que roda) e a lista de fora, com o motivo de cada arquivo e a issue quando o motivo é uma falha. O workflow só chama `node scripts/ci/portao-dos-testes.js --job <job>`. O teste `scripts/regras/test/portao-dos-testes.test.js` falha se um arquivo de teste do repositório não está em exatamente um lugar dessa lista. O arquivo de teste novo tem de entrar num grupo, ou em fora com o motivo escrito.
 
 Um teste que passa só no Mac ou só com o aparelho ligado não vai para o portão como se rodasse na CI: ele diz, no nome ou na issue ligada, onde se roda, e a PR registra `Prova que falta:` (item 5) quando não deu para rodar.
 
