@@ -8,118 +8,7 @@ const crypto = require('crypto');
 const os    = require('os');
 const { findBundledChromiumExecutable, primeiroCaminhoExistente } = require('./platform-utils');
 const { prepararPagina, abrirUrlPedida, conectarAoChrome, gerarAmbiente, recursosDesligadosDoChrome, encerrarChrome } = require('./global-spoof-abertura');
-function ensureProfileStealthSpecs(p) {
-  if (!p) return;
-  const platform = p.platform || 'android';
-
-  if (!p.cpuCores || p.cpuCores === 'Auto') {
-    const coresOptions = ['4', '6', '8', '12', '16'];
-    p.cpuCores = coresOptions[Math.floor(Math.random() * coresOptions.length)];
-  }
-
-  if (!p.ramSize || p.ramSize === 'Auto') {
-    const ramOptions = ['4', '8', '12', '16', '32'];
-    p.ramSize = ramOptions[Math.floor(Math.random() * ramOptions.length)];
-  }
-
-  if (!p.platformStr || !p.webglVendor || !p.webglRenderer) {
-    if (platform === 'mac') {
-      p.platformStr = 'MacIntel';
-      p.webglVendor = 'Apple Inc.';
-      p.webglRenderer = 'Apple M1';
-    } else if (platform === 'linux') {
-      p.platformStr = 'Linux x86_64';
-      p.webglVendor = 'Intel Open Source Technology Center';
-      p.webglRenderer = 'Mesa DRI Intel(R) HD Graphics 520 (Skylake GT2)';
-    } else if (platform === 'android') {
-      p.platformStr = 'Linux aarch64';
-      const androidGpus = [
-        { vendor: 'Google Inc. (Qualcomm)', renderer: 'Adreno (TM) 750' },
-        { vendor: 'Google Inc. (Qualcomm)', renderer: 'Adreno (TM) 740' },
-        { vendor: 'Google Inc. (ARM)', renderer: 'Mali-G715 MC10' },
-        { vendor: 'Google Inc. (ARM)', renderer: 'Mali-G720 MC12' },
-        { vendor: 'Google Inc. (ARM)', renderer: 'Mali-G68 MC4' }
-      ];
-      const gpu = androidGpus[Math.floor(Math.random() * androidGpus.length)];
-      p.webglVendor = gpu.vendor;
-      p.webglRenderer = gpu.renderer;
-    } else if (platform === 'ios') {
-      p.platformStr = 'iPhone';
-      p.webglVendor = 'Apple Inc.';
-      p.webglRenderer = 'Apple GPU';
-    } else {
-      p.platformStr = 'Win32';
-      const winGpus = [
-        'NVIDIA GeForce RTX 3060',
-        'NVIDIA GeForce RTX 4070',
-        'NVIDIA GeForce RTX 3080',
-        'Intel(R) Iris(R) Xe Graphics',
-        'AMD Radeon(TM) RX 6700 XT',
-        'NVIDIA GeForce GTX 1660 Super'
-      ];
-      p.webglVendor = 'Google Inc. (NVIDIA)';
-      p.webglRenderer = winGpus[Math.floor(Math.random() * winGpus.length)];
-    }
-  }
-
-  if (!p.deviceName || p.deviceName === 'USER-PC-X6NAGE1') {
-    const rand = Math.random().toString(36).substring(2, 9).toUpperCase();
-    p.deviceName = `LAPTOP-${rand}`;
-  }
-
-  if (!p.macAddress || p.macAddress === '00-1B-21-29-FE-FA') {
-    const hex = () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0').toUpperCase();
-    p.macAddress = `00-1B-21-${hex()}-${hex()}-${hex()}`;
-  }
-
-  if (!p.screenResolution || p.screenResolution === 'Based on User-Agent') {
-    if (platform === 'android' || platform === 'ios') {
-      p.screenResolution = '412x915';
-      p.windowMode = 'custom';
-    } else if (platform === 'mac') {
-      p.screenResolution = '1440x900';
-      p.windowMode = 'custom';
-    } else {
-      p.screenResolution = '1920x1080';
-      p.windowMode = 'maximized';
-    }
-  }
-
-  if (p.canvasNoiseSeed === undefined || p.canvasNoiseSeed === null) {
-    p.canvasNoiseSeed = Math.floor(Math.random() * 200) + 1;
-  }
-  if (p.webglNoiseSeed === undefined || p.webglNoiseSeed === null) {
-    p.webglNoiseSeed = Math.floor(Math.random() * 200) + 1;
-  }
-  if (p.audioNoiseSeed === undefined || p.audioNoiseSeed === null) {
-    p.audioNoiseSeed = parseFloat((Math.random() * 0.0001).toFixed(8));
-  }
-
-  if (!p.virtualCamId) {
-    p.virtualCamId = crypto.randomBytes(32).toString('hex');
-  }
-  if (!p.virtualCamLabel) {
-    const camBrands = ['HD Camera', 'Integrated Webcam', 'USB Camera', 'FaceTime HD Camera', 'FHD Web Camera'];
-    p.virtualCamLabel = camBrands[Math.floor(Math.random() * camBrands.length)];
-  }
-
-  if (!p.virtualMicId) {
-    p.virtualMicId = crypto.randomBytes(32).toString('hex');
-  }
-  if (!p.virtualMicLabel) {
-    const micBrands = ['Microphone (Realtek High Definition Audio)', 'Internal Microphone', 'Microphone (USB Audio Device)', 'Built-in Microphone'];
-    p.virtualMicLabel = micBrands[Math.floor(Math.random() * micBrands.length)];
-  }
-
-  if (!p.virtualSpeakerId) {
-    p.virtualSpeakerId = crypto.randomBytes(32).toString('hex');
-  }
-  if (!p.virtualSpeakerLabel) {
-    const spkBrands = ['Speakers (Realtek High Definition Audio)', 'Internal Speakers', 'Headphones (Realtek High Definition Audio)', 'Built-in Output'];
-    p.virtualSpeakerLabel = spkBrands[Math.floor(Math.random() * spkBrands.length)];
-  }
-}
-
+const { caminhoDosPerfis, ehNomeLivre, criarPerfilDeNomeLivre, carregarPerfilSalvo, criarPerfilTemporario, listarPerfis, textoDoProxy } = require('./global-spoof-perfil');
 function valorFixo(valor, atual) {
   return valor && valor !== 'optimal' ? valor : atual;
 }
@@ -211,100 +100,12 @@ class GlobalSpoofService {
         const device    = settings.device || { id: 'desktop', ua: '', res: '1920,1080', dpr: 1 };
         const targetUrl = (settings.url || '').trim();
         let profileName = settings.profile || 'Default';
-        const pPath = path.join(this.app.getPath('userData'), 'farm_profiles.json');
-        
-        if (profileName && !profileName.startsWith('profile_') && profileName !== 'Default') {
-            let farmProfiles = [];
-            if (this.browserFarmService) {
-                farmProfiles = this.browserFarmService.profiles || [];
-            } else if (fs.existsSync(pPath)) {
-                try { farmProfiles = JSON.parse(fs.readFileSync(pPath, 'utf8')); } catch(e) {}
-            }
-            let nextNum = 1;
-            if (farmProfiles && farmProfiles.length > 0) {
-                const nums = farmProfiles
-                    .map(p => {
-                        if (!p || !p.id) return 0;
-                        const match = p.id.match(/^profile_(\d+)$/);
-                        return match ? parseInt(match[1], 10) : 0;
-                    })
-                    .filter(n => !isNaN(n));
-                if (nums.length > 0) {
-                    nextNum = Math.max(...nums) + 1;
-                }
-            }
-            const newId = `profile_${String(nextNum).padStart(2, '0')}`;
-            const newProfile = {
-                id: newId,
-                name: profileName,
-                browser: settings.browser || 'chrome',
-                ua: device.ua || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                proxy: settings.proxy ? `${settings.proxy.user ? settings.proxy.user + ':' + settings.proxy.pass + '@' : ''}${settings.proxy.ip}:${settings.proxy.port}` : '',
-                email: '',
-                status: 'idle',
-                battery: Math.floor(Math.random() * 50) + 40,
-                anonymityScore: Math.floor(Math.random() * 30) + 65,
-                lastRun: null,
-                platform: device.id !== 'desktop' ? 'android' : 'windows',
-                timezone: 'optimal',
-                locale: 'optimal',
-                latitude: settings.regional ? settings.regional.lat : null,
-                longitude: settings.regional ? settings.regional.lng : null,
-                canvasNoise: true,
-                webglNoise: true,
-                audioNoise: true
-            };
-            ensureProfileStealthSpecs(newProfile);
-            if (this.browserFarmService) {
-                this.browserFarmService.profiles.push(newProfile);
-                this.browserFarmService._saveProfiles();
-            } else {
-                farmProfiles.push(newProfile);
-                fs.writeFileSync(pPath, JSON.stringify(farmProfiles, null, 2));
-            }
-            profileName = newId;
-        }
+        const pPath = caminhoDosPerfis(this.app);
+        if (ehNomeLivre(profileName)) profileName = criarPerfilDeNomeLivre(this, profileName, device, settings);
 
-        let activeProfile = null;
-        let farmProfiles = [];
-        if (fs.existsSync(pPath)) {
-            try { farmProfiles = JSON.parse(fs.readFileSync(pPath, 'utf8')); } catch(e) {}
-        }
-        if (profileName && profileName !== 'Default') {
-            activeProfile = farmProfiles.find(p => p.id === profileName);
-            if (activeProfile) {
-                console.log(`[GlobalSpoof] Loaded active profile config: ${activeProfile.name} (${activeProfile.id})`);
-                const before = JSON.stringify(activeProfile);
-                ensureProfileStealthSpecs(activeProfile);
-                const after = JSON.stringify(activeProfile);
-                if (before !== after) {
-                    const idx = farmProfiles.findIndex(p => p.id === profileName);
-                    if (idx !== -1) {
-                        farmProfiles[idx] = activeProfile;
-                        try {
-                            fs.writeFileSync(pPath, JSON.stringify(farmProfiles, null, 2));
-                        } catch (e) {}
-                    }
-                }
-                if (activeProfile.ua) {
-                    device.ua = activeProfile.ua;
-                }
-            }
-        }
-
-        if (!activeProfile) {
-            activeProfile = {
-                id: 'temp_launch_' + Math.random().toString(36).substring(2, 9),
-                name: 'Temporary Profile',
-                platform: device.id !== 'desktop' ? (device.id.includes('iphone') ? 'ios' : 'android') : 'windows',
-                ua: device.ua || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                proxy: '',
-                canvasNoise: true,
-                webglNoise: true,
-                audioNoise: true
-            };
-            ensureProfileStealthSpecs(activeProfile);
-        }
+        const perfilSalvo = carregarPerfilSalvo(this.app, profileName);
+        if (perfilSalvo && perfilSalvo.ua) device.ua = perfilSalvo.ua;
+        const activeProfile = perfilSalvo || criarPerfilTemporario(device);
 
         const browserChoice = activeProfile.browser || 'chrome';
         const chromePath = this._findChrome(browserChoice);
@@ -319,7 +120,7 @@ class GlobalSpoofService {
         let proxyServer = '';
         let proxyUser = '';
         let proxyPass = '';
-        const rawProxy = activeProfile ? activeProfile.proxy : (settings.proxy ? `${settings.proxy.user ? settings.proxy.user + ':' + settings.proxy.pass + '@' : ''}${settings.proxy.ip}:${settings.proxy.port}` : '');
+        const rawProxy = activeProfile ? activeProfile.proxy : textoDoProxy(settings.proxy);
         if (rawProxy && rawProxy.trim()) {
             const cleaned = rawProxy.trim();
             if (cleaned.includes('@')) {
@@ -1462,24 +1263,7 @@ applyStealth(window);
     }
 
     listProfiles() {
-        const pPath = path.join(this.app.getPath('userData'), 'farm_profiles.json');
-        if (!fs.existsSync(pPath)) {
-            return [{ id: 'Default', name: 'Default', email: '', platform: 'windows', proxy: '' }];
-        }
-        try {
-            const list = JSON.parse(fs.readFileSync(pPath, 'utf8'));
-            const mapped = list.map(item => ({
-                id: item.id,
-                name: item.name,
-                email: item.email || '',
-                platform: item.platform || 'android',
-                proxy: item.proxy || '',
-                anonymityScore: item.anonymityScore || 75
-            }));
-            return [{ id: 'Default', name: 'Default', email: '', platform: 'windows', proxy: '' }, ...mapped];
-        } catch (e) {
-            return [{ id: 'Default', name: 'Default', email: '', platform: 'windows', proxy: '' }];
-        }
+        return listarPerfis(this.app);
     }
 
     _generateY4M(inputPath, rotateDeg = 0, deviceRes = '1080,1920') {

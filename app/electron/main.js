@@ -14,10 +14,9 @@ const cameraAcesso = require('./services/camera-acesso');
 const mime = require('mime-types');
 const screenshot = require('screenshot-desktop');
 const {
-  getMemoryPath, getUserProfilePath, getDashboardSettingsPath, getFolderConfigPath, getVaultPath,
-  getHistoryPath, getHistorySettingsPath, getContactsPath, getNotesPath, getTasksPath,
+  getFolderConfigPath, getVaultPath,
   getSecretKeyPath, getChildAgentModelPath, getChildAgentKeyPath,
-  getChatsPath, getWhatsAppSettingsPath, ensureNovaDirectories,
+  getWhatsAppSettingsPath, ensureNovaDirectories,
 } = require('./main.caminhos');
 const { registrarSistema, iniciarPalavraDeAtivacao, encerrarPalavraDeAtivacao } = require('./main.sistema');
 const { registrarTeclado } = require('./main.teclado');
@@ -80,8 +79,6 @@ let novaHumanController = null;
 const AntigravityController = require('./services/antigravity-controller');
 let antigravityController = null;
 
-const { analyzeUserGraph, getUserContext } = require('./services/user-profile-manager');
-
 const VirtualCamInjector = require('./services/virtual-cam-injector');
 let virtualCamInjector = null;
 
@@ -103,14 +100,13 @@ const mammoth = require('mammoth');
 const { edgeTtsBinary } = require('./services/paridade-utils');
 const { configurarAtualizador, registrarAtualizador, ligarAtualizador } = require('./main.atualizador');
 const { registrarConfiguracao } = require('./main.config');
+const { registrarDados } = require('./main.dados');
 
 let mainWindow;
 let tray = null;
 
 configurarAtualizador(() => mainWindow);
 
-
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 let powerSaveId = null;
 
@@ -1696,279 +1692,6 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('load-memories', async () => {
-    try {
-      const p = getMemoryPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return [];
-    } catch (e) { return []; }
-  });
-  ipcMain.handle('save-memories', async (e, memories) => {
-    try {
-      fs.writeFileSync(getMemoryPath(), JSON.stringify(memories, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('load-user-profile', async () => {
-    try {
-      const p = getUserProfilePath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return {};
-    } catch (e) { return {}; }
-  });
-
-  ipcMain.handle('save-user-profile', async (event, profile) => {
-    try {
-      fs.writeFileSync(getUserProfilePath(), JSON.stringify(profile, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('load-dashboard-settings', async () => {
-    try {
-      const p = getDashboardSettingsPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return { interests: ['Tech', 'Pakistan', 'Global Economy'], refreshInterval: 3600 };
-    } catch (e) { return { interests: [], refreshInterval: 3600 }; }
-  });
-
-  ipcMain.handle('save-dashboard-settings', async (event, settings) => {
-    try {
-      fs.writeFileSync(getDashboardSettingsPath(), JSON.stringify(settings, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('fetch-dashboard-data', async (event, { location, interests }) => {
-    try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error('API Key missing');
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-3.8-flash",
-        tools: [{ googleSearch: {} }]
-      }, { apiVersion: 'v1beta' });
-      
-      const prompt = `Search for top 5 news headlines for: ${interests.join(', ')} in ${location || 'Pakistan'}. Also get weather. Respond in ENGLISH and return JSON: {"headlines": [...], "weather": {"today": "...", "tomorrow": "...", "dayAfter": "..."}}`;
-      
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : { headlines: ['Error parsing data'], weather: { today: 'N/A' } };
-    } catch (error) {
-      return { headlines: [`Error: ${error.message}`], weather: { today: "Error ⚠️" } };
-    }
-  });
-
-  ipcMain.handle('load-history', async () => {
-    try {
-      const p = getHistoryPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return [];
-    } catch (e) { return []; }
-  });
-
-  ipcMain.handle('save-history', async (event, history) => {
-    try {
-      fs.writeFileSync(getHistoryPath(), JSON.stringify(history, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('clear-history', async () => {
-    try {
-      const p = getHistoryPath();
-      if (fs.existsSync(p)) fs.unlinkSync(p);
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('load-chats', async () => {
-    try {
-      const p = getChatsPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-
-      const h = getHistoryPath();
-      if (fs.existsSync(h)) {
-        const legacyMessages = JSON.parse(fs.readFileSync(h, 'utf8'));
-        if (legacyMessages && legacyMessages.length > 0) {
-          const firstChat = {
-            id: 'legacy-history',
-            title: 'Chat Legado',
-            messages: legacyMessages,
-            timestamp: Date.now(),
-            model: 'Claude 4.5 Sonnet'
-          };
-          return [firstChat];
-        }
-      }
-      return [];
-    } catch (e) { return []; }
-  });
-
-  let globalChatSaveSessionCount = 0;
-  ipcMain.handle('save-chats', async (event, chats) => {
-    try {
-      fs.writeFileSync(getChatsPath(), JSON.stringify(chats, null, 2));
-      
-      globalChatSaveSessionCount++;
-      if (globalChatSaveSessionCount % 10 === 0) {
-        const tokenPath = getSecretKeyPath();
-        if (fs.existsSync(tokenPath)) {
-           const tokenData = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
-           const apiKey = tokenData.apiKey || tokenData.geminiKey || process.env.GEMINI_API_KEY;
-           if (apiKey) {
-               analyzeUserGraph(apiKey, chats).catch(e => console.error('[Continuous Learning] Sync error:', e));
-           }
-        }
-      }
-      
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('get-user-context', () => {
-    return getUserContext();
-  });
-
-  ipcMain.handle('sync-user-context', async (event, chats) => {
-    try {
-        const tokenPath = getSecretKeyPath();
-        let apiKey = process.env.GEMINI_API_KEY;
-        if (fs.existsSync(tokenPath)) {
-           const tokenData = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
-           apiKey = tokenData.apiKey || tokenData.geminiKey || apiKey;
-        }
-        return await analyzeUserGraph(apiKey, chats);
-    } catch(e) {
-      return null;
-    }
-  });
-
-  ipcMain.handle('load-history-settings', async () => {
-    try {
-      const p = getHistorySettingsPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return { maxContextMessages: 20, storeHistory: true };
-    } catch (e) { return { maxContextMessages: 20, storeHistory: true }; }
-  });
-
-  ipcMain.handle('save-history-settings', async (event, settings) => {
-    try {
-      fs.writeFileSync(getHistorySettingsPath(), JSON.stringify(settings, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('load-contacts', async () => {
-    try {
-      const p = getContactsPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return [];
-    } catch (e) { return []; }
-  });
-
-  ipcMain.handle('save-contacts', async (event, contacts) => {
-    try {
-      fs.writeFileSync(getContactsPath(), JSON.stringify(contacts, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('load-notes', async () => {
-    try {
-      const p = getNotesPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return [];
-    } catch (e) { return []; }
-  });
-
-  ipcMain.handle('save-notes', async (event, notes) => {
-    try {
-      fs.writeFileSync(getNotesPath(), JSON.stringify(notes, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('save-quick-note', async (event, { text, timestamp }) => {
-    try {
-      const p = getNotesPath();
-      let notes = [];
-      if (fs.existsSync(p)) {
-        try { notes = JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_e) { notes = []; }
-      }
-      const newNote = {
-        id: `qn_${Date.now()}`,
-        title: text.length > 40 ? text.substring(0, 40) + '...' : text,
-        content: text,
-        timestamp: timestamp || Date.now(),
-        createdAt: new Date().toISOString(),
-        source: 'whatsapp'
-      };
-      notes.unshift(newNote);
-      fs.writeFileSync(p, JSON.stringify(notes, null, 2));
-      console.log('[Main] Quick note saved via WhatsApp:', text.substring(0, 50));
-      return { success: true, note: newNote };
-    } catch (e) {
-      console.error('[Main] save-quick-note error:', e);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('load-tasks', async () => {
-    try {
-      const p = getTasksPath();
-      if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
-      return [];
-    } catch (e) { return []; }
-  });
-
-  ipcMain.handle('save-tasks', async (event, tasks) => {
-    try {
-      fs.writeFileSync(getTasksPath(), JSON.stringify(tasks, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('ltm:save-insight', async (event, { content, category }) => {
-    try {
-      const p = getMemoryPath();
-      const memories = fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : [];
-      memories.push({ id: Date.now().toString(), content, category, timestamp: Date.now() });
-      fs.writeFileSync(p, JSON.stringify(memories, null, 2));
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('ltm:get-insights', async (event, query) => {
-    try {
-      const p = getMemoryPath();
-      if (!fs.existsSync(p)) return [];
-      const memories = JSON.parse(fs.readFileSync(p, 'utf8'));
-      if (!query) return memories;
-      return memories.filter(m => m.content.toLowerCase().includes(query.toLowerCase()));
-    } catch (e) { return []; }
-  });
-
-  ipcMain.handle('ltm:clear-all', async () => {
-    try {
-      const p = getMemoryPath();
-      if (fs.existsSync(p)) fs.unlinkSync(p);
-      return true;
-    } catch (e) { return false; }
-  });
-
-  ipcMain.handle('chat:get-recall-summary', async (event, limit) => {
-    try {
-      const p = getHistoryPath();
-      if (!fs.existsSync(p)) return "No previous history found.";
-      const history = JSON.parse(fs.readFileSync(p, 'utf8'));
-      const lastMsgs = history.slice(-(limit || 5));
-      return lastMsgs.map(m => `${m.role === 'user' ? 'User' : 'Nova'}: ${m.text}`).join('\n');
-    } catch (e) { return "Error recalling history."; }
-  });
-
   const getMarkdownNotesPath = () => path.join(app.getPath('documents'), 'Nova Data');
 
   ipcMain.handle('get-documents-path', async () => {
@@ -2369,7 +2092,7 @@ function registerHandlers() {
           if (groqKey) console.log('[Swarm] Groq fallback key loaded.');
         }
       } catch(e) { }
-      return await agentSwarmController.executeWorkflow(command, effectiveApiKey, isDelegated, childModel, groqKey);
+      return await agentSwarmController.executeWorkflow(command, effectiveApiKey, isDelegated, { model: childModel, groqKey });
     } catch (e) {
       console.error('[Swarm] Error:', e);
       return { handled: false, error: e.message };
@@ -2685,6 +2408,7 @@ function registerHandlers() {
   registrarTeclado();
   registrarConfiguracao();
   registrarAtualizador();
+  registrarDados();
 
   ipcMain.handle('whatsapp-init', async () => {
     try {

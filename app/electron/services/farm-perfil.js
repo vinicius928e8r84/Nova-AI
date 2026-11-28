@@ -281,6 +281,7 @@ module.exports = {
   tamanhoDaJanela,
   idiomaDoPais,
   proximoNumeroDePerfil,
+  idDoPerfil,
   perfilPadrao,
   perfilAdicionado,
 };

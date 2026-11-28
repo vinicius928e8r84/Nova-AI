@@ -1,0 +1,4382 @@
+{
+  "detectIntent usa a sessão do navegador do Gemini e acha o JSON no meio do texto": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"search for cats\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"search for cats\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"search for cats\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent sem palavra de gatilho e sem JSON na resposta devolve plano de não-agente": {
+    "retornos": {
+      "isAgentTask": false,
+      "tasks": {}
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi tudo bem\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi tudo bem\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"oi tudo bem\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent com a sessão do navegador sem sucesso cai na API com o primeiro modelo": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"download um video\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"download um video\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"download um video\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] Pro Core failed, falling back to API Key."
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2047
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"download um video\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent com a sessão do navegador sem texto cai na API": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"script de calculadora\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"script de calculadora\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"script de calculadora\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] Pro Core failed, falling back to API Key."
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2051
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"script de calculadora\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent com a sessão do navegador que lança erro avisa e usa a API": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"dhundo gatos\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"dhundo gatos\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"dhundo gatos\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] Pro Core error:",
+          "sessão caiu"
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2042
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"dhundo gatos\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent com o motor do Gemini que lança no status avisa e usa a API": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"check karo isso\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"check karo isso\""
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] Pro Core error:",
+          "motor ausente"
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2045
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"check karo isso\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent com a sessão do navegador respondendo só espaços devolve texto vazio sem chamar a API": {
+    "retornos": {
+      "isAgentTask": false,
+      "tasks": {}
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"search gatos\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"search gatos\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"search gatos\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent com a API respondendo só espaços devolve texto vazio sem tentar o segundo modelo": {
+    "retornos": {
+      "isAgentTask": false,
+      "tasks": {}
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"search gatos\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"search gatos\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2042
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"search gatos\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent sem sessão do navegador guarda o pedido da API (host, caminho com a chave, cabeçalhos e corpo)": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"kam pe lag jao\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"kam pe lag jao\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2044
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"kam pe lag jao\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: erro 400 do primeiro modelo para na hora e vira não-agente": {
+    "retornos": {
+      "isAgentTask": false,
+      "tasks": {}
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-3.8-flash [400]: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-Intent]",
+          "Intent detection: all models failed"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: erro 403 do primeiro modelo para na hora e o comando explícito vira pesquisa": {
+    "retornos": {
+      "isAgentTask": true,
+      "tasks": {
+        "researcher": "ache receitas"
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agent, ache receitas\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agent, ache receitas\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2050
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"agent, ache receitas\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-3.8-flash [403]: proibido"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-Intent]",
+          "Intent detection: all models failed"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: erro 500 do primeiro modelo tenta o segundo": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-3.8-flash [500]: queda"
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-4-argon:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: erro sem mensagem no primeiro modelo mostra undefined no aviso e tenta o segundo": {
+    "retornos": {
+      "isAgentTask": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-3.8-flash [500]: undefined"
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-4-argon:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: resposta que não é JSON conta como falha do modelo e tenta o segundo": {
+    "retornos": {
+      "isAgentTask": true,
+      "reason": "r",
+      "tasks": {
+        "researcher": "gatos",
+        "coder": null
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-3.8-flash failed: Parse error [200]"
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-4-argon:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 1931
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"oi\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: erro de rede nos dois modelos desiste e usa o plano de fallback": {
+    "retornos": {
+      "isAgentTask": true,
+      "tasks": {
+        "researcher": "pesquise tudo"
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agents active pesquise tudo\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agents active pesquise tudo\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2057
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"agents active pesquise tudo\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-3.8-flash failed: rede caiu"
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-4-argon:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2057
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"agents active pesquise tudo\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.warn",
+        [
+          "[SwarmOrchestrator] gemini-4-argon failed: rede caiu de novo"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-Intent]",
+          "Intent detection: all models failed"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: resposta sem texto nos dois modelos desiste": {
+    "retornos": {
+      "isAgentTask": false,
+      "tasks": {}
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agent\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agent\""
+        ]
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-3.8-flash:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2035
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"agent\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "https.request",
+        {
+          "hostname": "generativelanguage.googleapis.com",
+          "path": "/v1beta/models/gemini-4-argon:generateContent?key=chave-da-api",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json",
+            "Content-Length": 2035
+          }
+        }
+      ],
+      [
+        "https.corpo",
+        "{\"contents\":[{\"role\":\"user\",\"parts\":[{\"text\":\"You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\\n\\nUser Command: \\\"agent\\\"\\n\\nAgents available:\\n1. RESEARCHER  - Web search, finding links, gathering info\\n2. CODER       - Prepare shell commands for Windows\\n3. DOWNLOADER  - Download files (software, media, docs)\\n4. SYSADMIN    - Run executables, install software, system commands\\n\\nReturn ONLY valid JSON, no markdown, no backticks:\\n{\\n  \\\"isAgentTask\\\": true,\\n  \\\"reason\\\": \\\"brief why\\\",\\n  \\\"tasks\\\": {\\n    \\\"researcher\\\": \\\"search query string or null\\\",\\n    \\\"coder\\\": \\\"what command to build or null\\\",\\n    \\\"downloader\\\": \\\"what to download or null\\\",\\n    \\\"sysadmin\\\": \\\"what command to run or null\\\"\\n  },\\n  \\\"fileDetails\\\": {\\n    \\\"directory\\\": \\\"e.g. Desktop or null\\\",\\n    \\\"folderName\\\": \\\"e.g. Calculator or null\\\",\\n    \\\"fileName\\\": \\\"e.g. calc.txt or null\\\"\\n  },\\n  \\\"dependencyChain\\\": [\\\"researcher -> coder\\\", \\\"coder -> downloader\\\"]\\n}\\n\\nRULES:\\n- CRITICAL: The user will frequently speak in URDU/HINDI.\\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \\n  *Example*: Urdu: \\\"muje caculater ke liye net se script dhundo\\\" -> Query: \\\"calculator script source code windows\\\"\\n  *Example*: Urdu: \\\"latest AI news check karo\\\" -> Query: \\\"latest AI news 2026\\\"\"}]}],\"generationConfig\":{\"temperature\":0.1,\"maxOutputTokens\":2048}}"
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-Intent]",
+          "Intent detection: all models failed"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: comando explícito com JSON sem tarefas ganha a pesquisa no lugar do comando": {
+    "retornos": {
+      "virgula": {
+        "isAgentTask": true,
+        "tasks": {
+          "researcher": "ache receitas"
+        }
+      },
+      "espaco": {
+        "isAgentTask": true,
+        "tasks": {
+          "researcher": "ache receitas"
+        }
+      },
+      "ativos": {
+        "isAgentTask": true,
+        "tasks": {
+          "researcher": "agents active"
+        }
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agent, ache receitas\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agent, ache receitas\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"agent, ache receitas\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"Agent ache receitas\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"Agent ache receitas\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"Agent ache receitas\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agents active\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agents active\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"agents active\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: comando explícito com tarefa do plano mantém o plano": {
+    "retornos": {
+      "isAgentTask": true,
+      "tasks": {
+        "sysadmin": "abrir"
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agent, abra o bloco de notas\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agent, abra o bloco de notas\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"agent, abra o bloco de notas\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "detectIntent: JSON quebrado dentro das chaves cai no fallback do comando": {
+    "retornos": {
+      "normal": {
+        "isAgentTask": false,
+        "tasks": {}
+      },
+      "explicito": {
+        "isAgentTask": true,
+        "tasks": {
+          "researcher": "ache"
+        }
+      }
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"oi\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-Intent]",
+          "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"agent, ache\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"agent, ache\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"agent, ache\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-Intent]",
+          "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow recusa quando o enxame já está ativo": {
+    "retornos": {
+      "handled": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Swarm already running. Wait or cancel first."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Swarm already running. Wait or cancel first."
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": true,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow de um comando que não é de agente devolve handled false e avisa": {
+    "retornos": {
+      "handled": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"oi tudo bem\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"oi tudo bem\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"oi tudo bem\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- - Only return false for pure conversational small talk (e.g. 'kese ho', 'hello').\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm] Not an agent task — passing to standard AI."
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow delegado vai direto ao agente filho, avisa o WhatsApp e libera o enxame 3 segundos depois": {
+    "retornos": {
+      "retorno": {
+        "handled": true
+      },
+      "ativoAntes": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"pesquise gatos\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"pesquise gatos\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: modelo-x | Groq backup: ON"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: modelo-x | Groq backup: ON"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: pesquise gatos\n1 agents working..."
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "pesquise gatos",
+          "chave-da-api",
+          "modelo-x",
+          "chave-groq"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO   All tasks complete (0s)"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO   All tasks complete (0s)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "pesquise gatos",
+            "answer": "feito",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Swarm Complete!*\nTask: pesquise gatos\nTime: 0s"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow com plano de agente conta os agentes, usa o modelo padrão e responde sem groq": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Analyzing: \"search gatos\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Analyzing: \"search gatos\""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[SwarmOrchestrator] Using Pro Core (Browser Session)"
+        ]
+      ],
+      [
+        "gemini.sendMessage",
+        {
+          "prompt": "You are Nova AI's Agent Swarm Orchestrator. Analyze if this user command needs multiple specialized agents.\n\nUser Command: \"search gatos\"\n\nAgents available:\n1. RESEARCHER  - Web search, finding links, gathering info\n2. CODER       - Prepare shell commands for Windows\n3. DOWNLOADER  - Download files (software, media, docs)\n4. SYSADMIN    - Run executables, install software, system commands\n\nReturn ONLY valid JSON, no markdown, no backticks:\n{\n  \"isAgentTask\": true,\n  \"reason\": \"brief why\",\n  \"tasks\": {\n    \"researcher\": \"search query string or null\",\n    \"coder\": \"what command to build or null\",\n    \"downloader\": \"what to download or null\",\n    \"sysadmin\": \"what command to run or null\"\n  },\n  \"fileDetails\": {\n    \"directory\": \"e.g. Desktop or null\",\n    \"folderName\": \"e.g. Calculator or null\",\n    \"fileName\": \"e.g. calc.txt or null\"\n  },\n  \"dependencyChain\": [\"researcher -> coder\", \"coder -> downloader\"]\n}\n\nRULES:\n- CRITICAL: The user will frequently speak in URDU/HINDI.\n- Target Folder Extraction: If the user says 'desktop', use '$HOME\\Desktop'. If they name a folder (e.g. 'calculter nam ke folder'), capture 'calculter' as folderName.\n- Filename Extraction: If they say 'save karo .txt name se', capture '.txt' as fileName.\n- Translate the intent to English internally. If the intent is an ACTION, isAgentTask MUST be true.\n- CRITICAL MANDATORY OVERRIDE: The user used a trigger word like 'agent', 'search', or 'download'. You MUST return isAgentTask: true. Extract the core subject for the researcher query.\n- For RESEARCHER tasks, DO NOT put the whole Urdu sentence as the query. Extract ONLY the precise English keywords. \n  *Example*: Urdu: \"muje caculater ke liye net se script dhundo\" -> Query: \"calculator script source code windows\"\n  *Example*: Urdu: \"latest AI news check karo\" -> Query: \"latest AI news 2026\""
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"search gatos\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"search gatos\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: search gatos\n4 agents working..."
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "waiting",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "waiting",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "waiting",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "search gatos",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO   All tasks complete (0s)"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO   All tasks complete (0s)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "search gatos",
+            "answer": "feito",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Swarm Complete!*\nTask: search gatos\nTime: 0s"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o agente filho sem resposta final responde que terminou": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: tarefa\n1 agents working..."
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO   All tasks complete (0s)"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO   All tasks complete (0s)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "tarefa",
+            "answer": "Task completed successfully.",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Swarm Complete!*\nTask: tarefa\nTime: 0s"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o agente filho que falha com texto avisa o erro no log e no WhatsApp": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: tarefa\n1 agents working..."
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ERROR: sem permissão"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ERROR: sem permissão"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Swarm Error*: sem permissão"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o agente filho que falha sem texto usa Worker failed": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: tarefa\n1 agents working..."
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ERROR: Worker failed"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ERROR: Worker failed"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Swarm Error*: Worker failed"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: SWARM_CANCELLED não vira erro nem aviso": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: tarefa\n1 agents working..."
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o WhatsApp fora do ar ou sem número não recebe nada e o que quebra só avisa": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO   All tasks complete (0s)"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO   All tasks complete (0s)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "tarefa",
+            "answer": "feito",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o WhatsApp sem número do dono não recebe nada": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO   All tasks complete (0s)"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO   All tasks complete (0s)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "tarefa",
+            "answer": "feito",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: a falha ao enviar pelo WhatsApp só vira aviso": {
+    "retornos": {
+      "handled": true
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ NEURAL SUB-AGENT ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Task: \"tarefa\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Task: \"tarefa\""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Model: gemini-3.8-flash | Groq backup: OFF"
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Nova Agent Swarm!*\nTask: tarefa\n1 agents working..."
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[Swarm-WA]",
+          "sem rede"
+        ]
+      ],
+      [
+        "filho.executeTask",
+        [
+          "tarefa",
+          "chave-da-api",
+          "gemini-3.8-flash",
+          ""
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO   All tasks complete (0s)"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO   All tasks complete (0s)"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "tarefa",
+            "answer": "feito",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "whatsapp.sendReply",
+        [
+          "meu-id@c.us",
+          " *Swarm Complete!*\nTask: tarefa\nTime: 0s"
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[Swarm-WA]",
+          "sem rede"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o pipeline do YouTube sobe o Python com o roteiro, repassa as linhas e libera no fim bem-sucedido": {
+    "retornos": {
+      "inicio": {
+        "handled": true
+      },
+      "ativoDepois": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "busy",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "spawn",
+        {
+          "comando": "python-falso",
+          "argumentos": [
+            "youtube_auto/pipeline.py"
+          ],
+          "opcoes": {
+            "cwd": "<app>",
+            "windowsHide": true
+          }
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "sysadmin",
+            "text": "[HH:MM:SS] SYS ADMIN  [YT-Auto] enviando"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] SYS ADMIN  [YT-Auto] enviando"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "YouTube Upload Status",
+            "answer": "enviando",
+            "elapsed": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "sysadmin",
+            "text": "[HH:MM:SS] SYS ADMIN  [YT-Log] linha solta"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] SYS ADMIN  [YT-Log] linha solta"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "sysadmin",
+            "text": "[HH:MM:SS] SYS ADMIN  [YT-Error] aviso"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] SYS ADMIN  [YT-Error] aviso"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  YouTube pipeline closed with code 0"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  YouTube pipeline closed with code 0"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "Youtube Auto Upload",
+            "answer": "YouTube upload pipeline successful."
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o pipeline do YouTube com um vídeo escolhido manda o nome ao Python": {
+    "retornos": {
+      "inicio": {
+        "handled": true
+      },
+      "ativoDepois": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "busy",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "spawn",
+        {
+          "comando": "python-falso",
+          "argumentos": [
+            "youtube_auto/pipeline.py",
+            "meu-video.mp4"
+          ],
+          "opcoes": {
+            "cwd": "<app>",
+            "windowsHide": true
+          }
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  YouTube pipeline closed with code 0"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  YouTube pipeline closed with code 0"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "youtube upload meu-video.mp4 agora",
+            "answer": "YouTube upload pipeline successful."
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: o pipeline do YouTube ignora o nome que tem auto e termina com erro sem avisar sucesso": {
+    "retornos": {
+      "inicio": {
+        "handled": true
+      },
+      "ativoDepois": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "busy",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "spawn",
+        {
+          "comando": "python-falso",
+          "argumentos": [
+            "youtube_auto/pipeline.py"
+          ],
+          "opcoes": {
+            "cwd": "<app>",
+            "windowsHide": true
+          }
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  YouTube pipeline closed with code 3"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  YouTube pipeline closed with code 3"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "executeWorkflow: youtube upload auto não manda nome de vídeo": {
+    "retornos": {
+      "inicio": {
+        "handled": true
+      },
+      "ativoDepois": false
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  ═══ YOUTUBE AUTOMATION PIPELINE ACTIVATED ═══"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "busy",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "spawn",
+        {
+          "comando": "python-falso",
+          "argumentos": [
+            "youtube_auto/pipeline.py"
+          ],
+          "opcoes": {
+            "cwd": "<app>",
+            "windowsHide": true
+          }
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  YouTube pipeline closed with code 0"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  YouTube pipeline closed with code 0"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:task-result",
+          {
+            "task": "youtube upload auto-teste",
+            "answer": "YouTube upload pipeline successful."
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "cancel sem enxame ativo não faz nada": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "cancel com enxame ativo mata o filho, avisa e volta os agentes para idle depois de meio segundo": {
+    "retornos": {
+      "ativo": true,
+      "cancelado": true,
+      "filho": null
+    },
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "filho.kill",
+        "SIGTERM"
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Swarm cancelled by user."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Swarm cancelled by user."
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "cancel com filho que não deixa matar segue adiante": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  Swarm cancelled by user."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  Swarm cancelled by user."
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "researcher",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "downloader",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "sysadmin",
+            "status": "idle",
+            "progress": 0
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "log, status e broadcast com a janela destruída só escrevem no console": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] SYS ADMIN  texto"
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "log formata o agente em maiúsculas e troca SYSADMIN por SYS ADMIN": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "ceo",
+            "text": "[HH:MM:SS] CEO  um"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] CEO  um"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "sysadmin",
+            "text": "[HH:MM:SS] SYS ADMIN  dois"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] SYS ADMIN  dois"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER  três"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER  três"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "busy",
+            "progress": 0
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:status",
+          {
+            "agentId": "coder",
+            "status": "busy",
+            "progress": 55
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "o YouTube visível acha o endereço, fecha o navegador e traz a janela do Nova": {
+    "retornos": "https://www.youtube.com/watch?v=abc123",
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Navigating to YouTube..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Navigating to YouTube..."
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Typing query: \"lofi hip hop\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Typing query: \"lofi hip hop\""
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "lofi hip hop",
+          true
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Waiting for results..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Waiting for results..."
+        ]
+      ],
+      [
+        "navegador.wait",
+        [
+          "ytd-video-renderer",
+          "visible",
+          10000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Selecting top result..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Selecting top result..."
+        ]
+      ],
+      [
+        "navegador.click",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Waiting for video page to stabilize..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Waiting for video page to stabilize..."
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   URL Extracted: https://www.youtube.com/watch?v=abc123"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   URL Extracted: https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "navegador.close",
+        []
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "o YouTube visível sem janela do Nova ou destruída não mostra nada": {
+    "retornos": "https://www.youtube.com/watch?v=abc123",
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Navigating to YouTube..."
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Typing query: \"musica\""
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "musica",
+          true
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Waiting for results..."
+        ]
+      ],
+      [
+        "navegador.wait",
+        [
+          "ytd-video-renderer",
+          "visible",
+          10000
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Selecting top result..."
+        ]
+      ],
+      [
+        "navegador.click",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Waiting for video page to stabilize..."
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   URL Extracted: https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "navegador.close",
+        []
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "o YouTube visível que nunca acha o endereço tenta vinte vezes, fecha e devolve null": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Navigating to YouTube..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Navigating to YouTube..."
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Typing query: \"sem resultado\""
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Typing query: \"sem resultado\""
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "sem resultado",
+          true
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Waiting for results..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Waiting for results..."
+        ]
+      ],
+      [
+        "navegador.wait",
+        [
+          "ytd-video-renderer",
+          "visible",
+          10000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Selecting top result..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Selecting top result..."
+        ]
+      ],
+      [
+        "navegador.click",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Waiting for video page to stabilize..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Waiting for video page to stabilize..."
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "navegador.executeScript",
+        [
+          "window.location.href"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Extraction failed or invalid URL."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Extraction failed or invalid URL."
+        ]
+      ],
+      [
+        "navegador.close",
+        []
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "o YouTube visível com erro ao abrir o navegador fecha e devolve null": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-RPA] Error:",
+          "sem navegador"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Error: sem navegador"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Error: sem navegador"
+        ]
+      ],
+      [
+        "navegador.close",
+        []
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "o YouTube visível com erro e o fechamento também falhando ainda devolve null": {
+    "retornos": null,
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Initializing VISIBLE browser sub-system..."
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "console.error",
+        [
+          "[Swarm-RPA] Error:",
+          "falhou"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "researcher",
+            "text": "[HH:MM:SS] RESEARCHER   Error: falhou"
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[Swarm]",
+          "[HH:MM:SS] RESEARCHER   Error: falhou"
+        ]
+      ],
+      [
+        "navegador.close",
+        []
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": false
+    }
+  },
+  "o YouTube visível depois de cancelar rejeita com SWARM_CANCELLED antes de abrir o navegador": {
+    "retornos": "SWARM_CANCELLED",
+    "eventos": [
+      [
+        "filho.criado",
+        {
+          "temJanela": true,
+          "temApp": true
+        }
+      ]
+    ],
+    "estado": {
+      "isSwarmActive": false,
+      "isCancelled": true
+    }
+  }
+}
