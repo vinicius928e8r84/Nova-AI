@@ -273,3 +273,16 @@ test('listarApps e respring: formatos, tempos e recusas', async () => {
   assert.deepStrictEqual(await b.h.listarApps(), { success: false, error: AVISO_V2 });
   assert.deepStrictEqual(await b.h.respring(), { success: false, error: AVISO_V2 });
 });
+
+test('domínio inválido devolve uma resposta nova a cada chamada: mexer numa não muda a seguinte', async () => {
+  const { h } = palco();
+  for (const chamar of [() => h.getLanguage({ domain: 'x' }), () => h.applyLanguage({ tag: 'pt-BR', domain: 'x' }), () => h.revertLanguage({ domain: 'x' })]) {
+    const primeira = await chamar();
+    primeira.error = 'mudado';
+    primeira.extra = true;
+    assert.deepStrictEqual(await chamar(), { success: false, error: 'domínio inválido' });
+  }
+  const daLeitura = await h.getLanguage({ domain: 'x' });
+  daLeitura.success = true;
+  assert.deepStrictEqual(await h.revertLanguage({ domain: 'x' }), { success: false, error: 'domínio inválido' });
+});

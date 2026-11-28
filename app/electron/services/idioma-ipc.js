@@ -72,7 +72,7 @@ const AVISO_HELPER_AUSENTE = 'o helper nova-locale não está instalado no iPhon
 const FALTA_O_SCRIPT = /nova-locale\.sh: No such file|no such file.*nova-locale\.sh/i;
 const AVISO_APPS_PROPRIOS = (n) => `${n} app(s) têm idioma próprio e, sem limpar, continuam no idioma deles.`;
 const ERRO_NAO_CONFIRMOU = 'o aparelho não confirmou a gravação no store';
-const ERRO_DOMINIO = { success: false, error: 'domínio inválido' };
+const erroDeDominio = () => ({ success: false, error: 'domínio inválido' });
 
 const textoDoCampo = (resposta, campo) => String((resposta ? resposta[campo] : '') || '').trim();
 const appsComIdiomaProprio = (saida) => Number(saida.apps_com_idioma_proprio || 0);
@@ -158,7 +158,7 @@ function resultadoDoGet(domain, saida) {
 }
 
 async function getLanguage({ exec, verificarHelper }, { domain = 'global' } = {}) {
-    if (!dominioValido(domain)) return ERRO_DOMINIO;
+    if (!dominioValido(domain)) return erroDeDominio();
     const helper = await verificarHelper();
     if (!helper.ok) return { success: false, error: helper.error, domain };
     const saida = await rodar(exec, comando('get', ['--domain', domain]), TEMPO_DE_LER_EM_MS);
@@ -170,7 +170,7 @@ function recusaDoPedido({ tag, domain, confirmGlobal }) {
     if (!TAG_RE.test(String(tag || ''))) {
         return { success: false, error: 'idioma inválido: informe algo como pt-BR ou en-US' };
     }
-    if (!dominioValido(domain)) return ERRO_DOMINIO;
+    if (!dominioValido(domain)) return erroDeDominio();
     if (domain === 'global' && confirmGlobal !== true) {
         return {
             success: false,
@@ -278,7 +278,7 @@ function resultadoDoRevert({ saida, domain, respring, avisos }) {
 }
 
 async function revertLanguage({ exec, verificarHelper }, { domain = 'global', respring = false } = {}) {
-    if (!dominioValido(domain)) return ERRO_DOMINIO;
+    if (!dominioValido(domain)) return erroDeDominio();
     const helper = await verificarHelper();
     if (!helper.ok) return { success: false, error: helper.error, avisos: [] };
     const args = respring ? ['--domain', domain, '--respring'] : ['--domain', domain];
