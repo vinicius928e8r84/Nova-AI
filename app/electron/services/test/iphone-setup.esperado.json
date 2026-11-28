@@ -744,7 +744,7 @@
       "preparacao": {
         "resultado": {
           "success": true,
-          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel) instalado. Idioma do aparelho (novalanguage) instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy) instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-40 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel) instalado. Idioma do aparelho (novalanguage) instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy) instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
         }
       }
     },
@@ -946,7 +946,7 @@
       "preparacao": {
         "resultado": {
           "success": true,
-          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 já instalada e atualizada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nCatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-40 já instalada e atualizada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nCatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
         }
       }
     },
@@ -1046,7 +1046,7 @@
         "entrada": ""
       },
       {
-        "comando": "/var/jb/usr/bin/dpkg --compare-versions '0.1-39' ge '0.1-39' && echo yes || echo no",
+        "comando": "/var/jb/usr/bin/dpkg --compare-versions '0.1-40' ge '0.1-40' && echo yes || echo no",
         "entrada": ""
       },
       {
@@ -1120,7 +1120,7 @@
       "preparacao": {
         "resultado": {
           "success": true,
-          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-40 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
         }
       }
     },
@@ -1220,7 +1220,7 @@
         "entrada": ""
       },
       {
-        "comando": "/var/jb/usr/bin/dpkg --compare-versions '0.1-30' ge '0.1-39' && echo yes || echo no",
+        "comando": "/var/jb/usr/bin/dpkg --compare-versions '0.1-30' ge '0.1-40' && echo yes || echo no",
         "entrada": ""
       },
       {
@@ -1701,7 +1701,7 @@
       "preparacao": {
         "resultado": {
           "success": true,
-          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Não consegui reiniciar o mediaserverd: mediaserverd recusou Spoofing de modelo (novamodel) instalado. Não consegui instalar o novalanguage: idioma xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx nova-locale não atualizado: mv recusou novaproxy não instalado: proxy recusou\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-40 instalada. Não consegui reiniciar o mediaserverd: mediaserverd recusou Spoofing de modelo (novamodel) instalado. Não consegui instalar o novalanguage: idioma xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx nova-locale não atualizado: mv recusou novaproxy não instalado: proxy recusou\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
         }
       }
     },
@@ -2217,7 +2217,7 @@
       "preparacao": {
         "resultado": {
           "success": true,
-          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel) instalado. Idioma do aparelho (novalanguage) instalado. nova-locale: arquivos enviados, mas o serviço não confirmou a versão v4. Rode o Conectar de novo. Proxy do iPhone (novaproxy) instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-40 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel) instalado. Idioma do aparelho (novalanguage) instalado. nova-locale: arquivos enviados, mas o serviço não confirmou a versão v4. Rode o Conectar de novo. Proxy do iPhone (novaproxy) instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
         }
       }
     },
