@@ -31,6 +31,26 @@ for linha in sys.stdin:
         print(linha)'
 }
 
+cenas_diferentes() {
+    python3 - "$1" "$2" <<'PYTHON'
+import sys
+def cenas(caminho):
+    resultado = {}
+    nome = None
+    for linha in open(caminho, encoding="utf-8"):
+        if linha.startswith("== "):
+            nome = linha[3:].strip()
+            resultado[nome] = ""
+        elif nome is not None:
+            resultado[nome] += linha
+    return resultado
+esperado, obtido = cenas(sys.argv[1]), cenas(sys.argv[2])
+for nome in sorted(set(esperado) | set(obtido)):
+    if esperado.get(nome) != obtido.get(nome):
+        print("cena que difere: " + nome)
+PYTHON
+}
+
 plist() {
     python3 - "$1" "$2" <<'PYTHON'
 import json, plistlib, sys
@@ -187,5 +207,6 @@ if diff "$AQUI/caracterizacao.esperado.txt" "$RELATORIO"; then
     echo "NOVALANGUAGE: A CARACTERIZAÇÃO BATE COM O GRAVADO ($(grep -c '^== ' "$RELATORIO") cenas)"
 else
     echo "NOVALANGUAGE: A CARACTERIZAÇÃO DIFERE DO GRAVADO"
+    cenas_diferentes "$AQUI/caracterizacao.esperado.txt" "$RELATORIO"
     exit 1
 fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
 AQUI="$(cd "$(dirname "$0")" && pwd)"
-FONTE="$AQUI/../novalanguage/main.m"
+FONTES="$AQUI/../novalanguage"
 BIN="${TMPDIR:-/tmp}/novalanguage-mac"
 D=com.aquiles.novalanguage.teste
 PLIST="$HOME/Library/Preferences/$D.plist"
@@ -9,7 +9,7 @@ PLIST="$HOME/Library/Preferences/$D.plist"
 fails=0
 ok() { if eval "$2"; then :; else fails=$((fails+1)); echo "FALHA [$1]"; fi; }
 
-clang -fobjc-arc -framework Foundation -Wall -o "$BIN" "$FONTE" 2>/tmp/nl-build.log || {
+clang -fobjc-arc -framework Foundation -Wall -o "$BIN" "$FONTES"/*.m 2>/tmp/nl-build.log || {
     echo "FALHA: não compilou"; cat /tmp/nl-build.log; exit 1; }
 echo "compilou: $BIN"
 
