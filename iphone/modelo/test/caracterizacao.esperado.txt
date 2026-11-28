@@ -192,6 +192,13 @@ saiu com 0
   MGCopyAnswer(HWModelStr) = original:HWModelStr
   MGCopyAnswer(ModelNumber) = original:ModelNumber
   MGCopyAnswer(DeviceName) = original:DeviceName
+== nome-do-produto-vazio
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
 == tipo-que-nao-e-texto
   MGCopyAnswer(ProductType) = original:ProductType
   MGCopyAnswer(MarketingProductName) = original:MarketingProductName
@@ -203,13 +210,6 @@ saiu com 0
   MGCopyAnswer(ProductType) = iPhone14,5
   MGCopyAnswer(MarketingProductName) = original:MarketingProductName
   MGCopyAnswer(ProductName) = iPhone
-  MGCopyAnswer(HWModelStr) = original:HWModelStr
-  MGCopyAnswer(ModelNumber) = original:ModelNumber
-  MGCopyAnswer(DeviceName) = original:DeviceName
-== nome-do-produto-vazio
-  MGCopyAnswer(ProductType) = iPhone14,5
-  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
-  MGCopyAnswer(ProductName) = original:ProductName
   MGCopyAnswer(HWModelStr) = original:HWModelStr
   MGCopyAnswer(ModelNumber) = original:ModelNumber
   MGCopyAnswer(DeviceName) = original:DeviceName

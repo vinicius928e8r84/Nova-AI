@@ -27,7 +27,9 @@ preparar_fontes() {
 compilar_tweak() {
     local saida=$1
     shift
-    clang -fobjc-arc -Wno-unused-function -framework Foundation -I "$AQUI" "$@" -o "$saida" "$AQUI/ganchos_roteiro.m" "$T"/tweak/*.m
+    clang -fobjc-arc -Wno-unused-function -framework Foundation -I "$AQUI" "$@" -o "$saida" \
+        "$AQUI"/ganchos_roteiro.m "$AQUI"/ganchos_sysctl_roteiro.m "$AQUI"/ganchos_uidevice_roteiro.m \
+        "$AQUI"/substrate_falso.m "$AQUI"/controle_de_mentira.m "$T"/tweak/*.m
 }
 
 normalizar() {
