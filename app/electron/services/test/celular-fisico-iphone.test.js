@@ -122,42 +122,62 @@ async function esperarComRelogioFalso(t, promessa, passoEmMs) {
   return { resposta: await resultado, passos };
 }
 
+const comStdout = (stdout) => () => ({ stdout });
+const comFalha = (stderr) => () => ({ erro: 'falhou', stderr });
+const semResposta = () => ({});
+
+async function emSerie(itens, funcao) {
+  const obtidos = [];
+  for (const item of itens) obtidos.push(await funcao(item));
+  return obtidos;
+}
+
+async function conferirCasos(casos, chamar) {
+  const obtidos = await emSerie(casos, (caso) => {
+    palco.reiniciar(caso.resposta);
+    return chamar(caso);
+  });
+  assert.deepStrictEqual(obtidos, casos.map((caso) => caso.esperado));
+}
+
+const mensagemDaRejeicao = (promessa) => promessa.then(() => null, (erro) => erro.message);
+const DOS_QUATRO_DO_PROXY = (servico, id) => Promise.all([servico.iosProxySet(id, 'p'), servico.iosProxyClear(id), servico.iosProxyStatus(id), servico.iosProxyCheck(id)]);
+const DOS_TRES_DO_MODELO = (servico, id) => Promise.all([servico.applyIOSModel(id, 'iPhone15,4'), servico.clearIOSModel(id), servico.getIOSModel(id)]);
+
 test('iosSsh monta o ssh do iPhone com chave, porta 2222, sem perguntas e limite de 12 s, e devolve saída e erro como texto', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({ stdout: 'saída do aparelho' }));
+  palco.reiniciar(comStdout('saída do aparelho'));
   assert.deepStrictEqual(await servico.iosSsh('uname -a'), { ok: true, stdout: 'saída do aparelho', error: null });
   assert.deepStrictEqual(palco.chamadas, [{ tipo: 'ssh', argumentos: [...PREFIXO_DO_SSH, 'uname -a'], opcoes: { timeout: 12000 } }]);
-
-  palco.reiniciar(() => ({ erro: 'Connection refused', stderr: 'ssh: connect to host refused' }));
-  assert.deepStrictEqual(await servico.iosSsh('x'), { ok: false, stdout: '', error: 'ssh: connect to host refused' });
-  palco.reiniciar(() => ({ erro: 'quebrou' }));
-  assert.deepStrictEqual(await servico.iosSsh('x'), { ok: false, stdout: '', error: 'quebrou' });
+  await conferirCasos([
+    { resposta: comFalha('ssh: connect to host refused'), esperado: { ok: false, stdout: '', error: 'ssh: connect to host refused' } },
+    { resposta: () => ({ erro: 'quebrou' }), esperado: { ok: false, stdout: '', error: 'quebrou' } },
+  ], () => servico.iosSsh('x'));
 });
 
 test('iosDeviceTimeZone lê o fuso do link do aparelho e devolve nulo se o ssh falha ou a saída não é um fuso', async () => {
   const servico = novoServico();
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: '/var/db/timezone/zoneinfo/America/Sao_Paulo\n' })));
-  assert.strictEqual(await servico.iosDeviceTimeZone(), 'America/Sao_Paulo');
+  await conferirCasos([
+    { resposta: respostaDoSsh(comStdout('/var/db/timezone/zoneinfo/America/Sao_Paulo\n')), esperado: 'America/Sao_Paulo' },
+    { resposta: respostaDoSsh(comStdout('outra coisa')), esperado: null },
+    { resposta: respostaDoSsh(() => ({ erro: 'sem rota' })), esperado: null },
+  ], () => servico.iosDeviceTimeZone());
   assert.deepStrictEqual(comandosDoSsh(), ['readlink /var/db/timezone/localtime']);
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: 'outra coisa' })));
-  assert.strictEqual(await servico.iosDeviceTimeZone(), null);
-  palco.reiniciar(respostaDoSsh(() => ({ erro: 'sem rota' })));
-  assert.strictEqual(await servico.iosDeviceTimeZone(), null);
 });
 
 test('iosProxyRun roda o novaproxy pelo ssh com o limite pedido (30 s por padrão) e tira os espaços da saída', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({ stdout: '  on upstream=a  \n' }));
-  assert.deepStrictEqual(await servico.iosProxyRun('proxy status'), { ok: true, stdout: 'on upstream=a', error: null });
-  assert.deepStrictEqual(await servico.iosProxyRun('proxy clear', 15000), { ok: true, stdout: 'on upstream=a', error: null });
+  palco.reiniciar(comStdout('  on upstream=a  \n'));
+  const saida = { ok: true, stdout: 'on upstream=a', error: null };
+  assert.deepStrictEqual(await emSerie([['proxy status'], ['proxy clear', 15000]], ([args, limite]) => servico.iosProxyRun(args, limite)), [saida, saida]);
   assert.deepStrictEqual(palco.chamadas, [
     { tipo: 'ssh', argumentos: [...PREFIXO_DO_SSH, `${NOVAPROXY}proxy status`], opcoes: { timeout: 30000 } },
     { tipo: 'ssh', argumentos: [...PREFIXO_DO_SSH, `${NOVAPROXY}proxy clear`], opcoes: { timeout: 15000 } },
   ]);
-  palco.reiniciar(() => ({ erro: 'falhou', stderr: '  a regra falhou \n' }));
-  assert.deepStrictEqual(await servico.iosProxyRun('x'), { ok: false, stdout: '', error: 'a regra falhou' });
-  palco.reiniciar(() => ({ erro: 'falhou' }));
-  assert.deepStrictEqual(await servico.iosProxyRun('x'), { ok: false, stdout: '', error: 'falhou' });
+  await conferirCasos([
+    { resposta: comFalha('  a regra falhou \n'), esperado: { ok: false, stdout: '', error: 'a regra falhou' } },
+    { resposta: () => ({ erro: 'falhou' }), esperado: { ok: false, stdout: '', error: 'falhou' } },
+  ], () => servico.iosProxyRun('x'));
 });
 
 test('iosProxyError troca os três erros conhecidos por orientação e devolve o resto como veio', () => {
@@ -165,62 +185,63 @@ test('iosProxyError troca os três erros conhecidos por orientação e devolve o
   const instalar = 'O novaproxy ainda não está instalado no iPhone. Rode o instalador uma vez.';
   const sudo = 'A regra de sudo do novaproxy não está ativa no iPhone. Reinstale o pacote.';
   const terminal = 'O sudo do iPhone exige terminal. Reinstale o pacote (a regra NOPASSWD não entrou).';
+  const padrao = 'Falha ao falar com o proxy do iPhone.';
   const casos = [
     ['bash: novaproxy: No such file or directory', instalar], ['sh: command not found', instalar], ['NOT FOUND', instalar],
     ['sudo: a password is required', sudo], ['Password is required', sudo],
     ['sudo: you must have a tty to run sudo', terminal], ['requiretty', terminal],
-    ['  erro qualquer  ', 'erro qualquer'], ['', 'Falha ao falar com o proxy do iPhone.'], [null, 'Falha ao falar com o proxy do iPhone.'],
+    ['  erro qualquer  ', 'erro qualquer'], ['', padrao], [null, padrao],
   ];
-  for (const [bruto, esperado] of casos) assert.strictEqual(servico.iosProxyError(bruto), esperado, String(bruto));
+  assert.deepStrictEqual(casos.map(([bruto]) => servico.iosProxyError(bruto)), casos.map(([, esperado]) => esperado));
 });
 
-test('o proxy do iPhone só vale para iPhone, e liga, limpa, lê e confere pelo novaproxy com os limites de cada um', async () => {
+test('o proxy do iPhone só vale para iPhone e não chama o ssh para outro aparelho', async () => {
   const servico = novoServico();
   const SO_IPHONE = { success: false, error: 'O proxy está disponível apenas para iPhone.' };
-  for (const id of ['android-1', '', undefined, null]) {
-    assert.deepStrictEqual(await servico.iosProxySet(id, 'p'), SO_IPHONE);
-    assert.deepStrictEqual(await servico.iosProxyClear(id), SO_IPHONE);
-    assert.deepStrictEqual(await servico.iosProxyStatus(id), SO_IPHONE);
-    assert.deepStrictEqual(await servico.iosProxyCheck(id), SO_IPHONE);
-  }
+  const respostas = await emSerie(['android-1', '', undefined, null], (id) => DOS_QUATRO_DO_PROXY(servico, id));
+  assert.deepStrictEqual(respostas, Array(4).fill(Array(4).fill(SO_IPHONE)));
   assert.deepStrictEqual(palco.chamadas, []);
+});
 
-  assert.deepStrictEqual(await servico.iosProxySet(ID_DO_IPHONE, '   '), { success: false, error: 'Proxy vazio.' });
-  assert.deepStrictEqual(await servico.iosProxySet(ID_DO_IPHONE, undefined), { success: false, error: 'Proxy vazio.' });
+test('o proxy do iPhone recusa o proxy vazio sem chamar o ssh', async () => {
+  const servico = novoServico();
+  const respostas = await emSerie(['   ', undefined], (proxy) => servico.iosProxySet(ID_DO_IPHONE, proxy));
+  assert.deepStrictEqual(respostas, Array(2).fill({ success: false, error: 'Proxy vazio.' }));
   assert.deepStrictEqual(palco.chamadas, []);
+});
 
-  palco.reiniciar(() => ({ stdout: 'ok\n' }));
-  assert.deepStrictEqual(await servico.iosProxySet(ID_DO_IPHONE, " user:pa'ss@host:80 "), { success: true, message: 'ok' });
-  assert.deepStrictEqual(await servico.iosProxyClear(ID_DO_IPHONE), { success: true, message: 'ok' });
-  assert.deepStrictEqual(await servico.iosProxyCheck(ID_DO_IPHONE), { success: true, ip: 'ok' });
+test('o proxy do iPhone liga, limpa e confere pelo novaproxy, com a citação do endereço e o limite de cada um', async () => {
+  const servico = novoServico();
+  palco.reiniciar(comStdout('ok\n'));
+  const respostas = [
+    await servico.iosProxySet(ID_DO_IPHONE, " user:pa'ss@host:80 "),
+    await servico.iosProxyClear(ID_DO_IPHONE),
+    await servico.iosProxyCheck(ID_DO_IPHONE),
+  ];
+  assert.deepStrictEqual(respostas, [{ success: true, message: 'ok' }, { success: true, message: 'ok' }, { success: true, ip: 'ok' }]);
   assert.deepStrictEqual(palco.chamadas.map((c) => [comandoDoSsh(c), c.opcoes.timeout]), [
     [`${NOVAPROXY}proxy set 'user:pa'\\''ss@host:80'`, 30000],
     [`${NOVAPROXY}proxy clear`, 15000],
     [`${NOVAPROXY}proxy check`, 40000],
   ]);
+});
 
-  palco.reiniciar(() => ({ erro: 'x', stderr: 'bash: novaproxy: command not found' }));
+test('o proxy do iPhone troca o erro do ssh pela orientação quando o novaproxy não está instalado', async () => {
+  const servico = novoServico();
+  palco.reiniciar(comFalha('bash: novaproxy: command not found'));
   const naoInstalado = { success: false, error: 'O novaproxy ainda não está instalado no iPhone. Rode o instalador uma vez.' };
-  assert.deepStrictEqual(await servico.iosProxySet(ID_DO_IPHONE, 'p'), naoInstalado);
-  assert.deepStrictEqual(await servico.iosProxyClear(ID_DO_IPHONE), naoInstalado);
-  assert.deepStrictEqual(await servico.iosProxyStatus(ID_DO_IPHONE), naoInstalado);
-  assert.deepStrictEqual(await servico.iosProxyCheck(ID_DO_IPHONE), naoInstalado);
+  assert.deepStrictEqual(await DOS_QUATRO_DO_PROXY(servico, ID_DO_IPHONE), Array(4).fill(naoInstalado));
 });
 
 test('iosProxyStatus lê ligado, endereço, Wi-Fi e daemon da linha do novaproxy e usa padrões quando faltam', async () => {
   const servico = novoServico();
   const linhaCompleta = 'on upstream=host:80 wifi=enabled daemon=running';
-  palco.reiniciar(() => ({ stdout: linhaCompleta }));
-  assert.deepStrictEqual(await servico.iosProxyStatus(ID_DO_IPHONE), {
-    success: true, on: true, upstream: 'host:80', wifi: 'enabled', daemon: true, raw: linhaCompleta,
-  });
+  await conferirCasos([
+    { resposta: comStdout(linhaCompleta), esperado: { success: true, on: true, upstream: 'host:80', wifi: 'enabled', daemon: true, raw: linhaCompleta } },
+    { resposta: comStdout('off daemon=stopped'), esperado: { success: true, on: false, upstream: '', wifi: 'unknown', daemon: false, raw: 'off daemon=stopped' } },
+    { resposta: comStdout('online'), esperado: { success: true, on: false, upstream: '', wifi: 'unknown', daemon: false, raw: 'online' } },
+  ], () => servico.iosProxyStatus(ID_DO_IPHONE));
   assert.deepStrictEqual(palco.chamadas.map((c) => c.opcoes.timeout), [15000]);
-  palco.reiniciar(() => ({ stdout: 'off daemon=stopped' }));
-  assert.deepStrictEqual(await servico.iosProxyStatus(ID_DO_IPHONE), {
-    success: true, on: false, upstream: '', wifi: 'unknown', daemon: false, raw: 'off daemon=stopped',
-  });
-  palco.reiniciar(() => ({ stdout: 'online' }));
-  assert.strictEqual((await servico.iosProxyStatus(ID_DO_IPHONE)).on, false);
 });
 
 test('o banco de modelos do iPhone sai do arquivo do serviço, e aplicar, limpar e ler passam pelo ssh do serviço', async () => {
@@ -233,71 +254,82 @@ test('o banco de modelos do iPhone sai do arquivo do serviço, e aplicar, limpar
 
   const comandos = [];
   servico.iosSsh = async (comando) => { comandos.push(comando); return { ok: true, stdout: '{"real":"iPhone10,2","active":"iPhone15,4","enabled":true}', error: null }; };
-  assert.deepStrictEqual(await servico.applyIOSModel(ID_DO_IPHONE, 'iPhone15,4'), { success: true, applied: { productType: 'iPhone15,4', name: modelo.name } });
-  assert.deepStrictEqual(await servico.clearIOSModel(ID_DO_IPHONE), { success: true });
-  assert.deepStrictEqual(await servico.getIOSModel(ID_DO_IPHONE), { success: true, real: 'iPhone10,2', active: 'iPhone15,4', enabled: true });
+  assert.deepStrictEqual(await DOS_TRES_DO_MODELO(servico, ID_DO_IPHONE), [
+    { success: true, applied: { productType: 'iPhone15,4', name: modelo.name } },
+    { success: true },
+    { success: true, real: 'iPhone10,2', active: 'iPhone15,4', enabled: true },
+  ]);
   assert.deepStrictEqual(comandos, [
     '/var/jb/usr/bin/novamodel set iPhone15,4', '/var/jb/usr/bin/novamodel clear', '/var/jb/usr/bin/novamodel status',
   ]);
 });
 
-test('o modelo do iPhone recusa o que não é iPhone, o tipo inválido e o modelo fora do banco, e repassa o erro do ssh', async () => {
+test('o modelo do iPhone só vale para iPhone e não chama o ssh para outro aparelho', async () => {
   const servico = novoServico();
   const SO_IPHONE = { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
-  for (const id of ['android-1', '', undefined]) {
-    assert.deepStrictEqual(await servico.applyIOSModel(id, 'iPhone15,4'), SO_IPHONE);
-    assert.deepStrictEqual(await servico.clearIOSModel(id), SO_IPHONE);
-    assert.deepStrictEqual(await servico.getIOSModel(id), SO_IPHONE);
-  }
-  assert.deepStrictEqual(await servico.applyIOSModel(ID_DO_IPHONE, 'x; rm -rf'), { success: false, error: 'productType inválido.' });
-  assert.deepStrictEqual(await servico.applyIOSModel(ID_DO_IPHONE, 42), { success: false, error: 'productType inválido.' });
-  assert.deepStrictEqual(await servico.applyIOSModel(ID_DO_IPHONE, 'Nope9,9'), { success: false, error: 'Modelo "Nope9,9" não está no banco iOS.' });
+  const respostas = await emSerie(['android-1', '', undefined], (id) => DOS_TRES_DO_MODELO(servico, id));
+  assert.deepStrictEqual(respostas, Array(3).fill(Array(3).fill(SO_IPHONE)));
   assert.deepStrictEqual(palco.chamadas, []);
+});
 
+test('o modelo do iPhone recusa o tipo inválido e o modelo fora do banco antes de chamar o ssh', async () => {
+  const servico = novoServico();
+  const respostas = await emSerie(['x; rm -rf', 42, 'Nope9,9'], (tipo) => servico.applyIOSModel(ID_DO_IPHONE, tipo));
+  assert.deepStrictEqual(respostas, [
+    { success: false, error: 'productType inválido.' },
+    { success: false, error: 'productType inválido.' },
+    { success: false, error: 'Modelo "Nope9,9" não está no banco iOS.' },
+  ]);
+  assert.deepStrictEqual(palco.chamadas, []);
+});
+
+test('o modelo do iPhone repassa o erro do ssh e recusa o status que não é JSON', async () => {
+  const servico = novoServico();
   servico.iosSsh = async () => ({ ok: false, stdout: '', error: 'command not found' });
-  assert.deepStrictEqual(await servico.applyIOSModel(ID_DO_IPHONE, 'iPhone15,4'), { success: false, error: 'command not found' });
-  assert.deepStrictEqual(await servico.clearIOSModel(ID_DO_IPHONE), { success: false, error: 'command not found' });
-  assert.deepStrictEqual(await servico.getIOSModel(ID_DO_IPHONE), { success: false, error: 'command not found' });
+  assert.deepStrictEqual(await DOS_TRES_DO_MODELO(servico, ID_DO_IPHONE), Array(3).fill({ success: false, error: 'command not found' }));
   servico.iosSsh = async () => ({ ok: true, stdout: 'lixo', error: null });
   assert.deepStrictEqual(await servico.getIOSModel(ID_DO_IPHONE), { success: false, error: 'Status inválido do novamodel.', raw: 'lixo' });
 });
 
 test('iosRun roda o ideviceinstaller com limite de 25 s e sem janela, e devolve saída e erro como texto', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({ stdout: 'a,b' }));
+  palco.reiniciar(comStdout('a,b'));
   assert.deepStrictEqual(await servico.iosRun(['list']), { ok: true, stdout: 'a,b', error: null });
   assert.deepStrictEqual(palco.chamadas, [
     { tipo: 'execFile', arquivo: 'FERRAMENTA-ideviceinstaller', argumentos: ['list'], opcoes: { timeout: 25000, windowsHide: true } },
   ]);
-  palco.reiniciar(() => ({ erro: 'falhou', stderr: 'sem aparelho' }));
-  assert.deepStrictEqual(await servico.iosRun(['list']), { ok: false, stdout: '', error: 'sem aparelho' });
-  palco.reiniciar(() => ({ erro: 'falhou' }));
-  assert.deepStrictEqual(await servico.iosRun(['list']), { ok: false, stdout: '', error: 'falhou' });
+  await conferirCasos([
+    { resposta: comFalha('sem aparelho'), esperado: { ok: false, stdout: '', error: 'sem aparelho' } },
+    { resposta: () => ({ erro: 'falhou' }), esperado: { ok: false, stdout: '', error: 'falhou' } },
+  ], () => servico.iosRun(['list']));
 });
 
 test('getIosDevices devolve a lista de iPhones, e lista vazia sem as duas ferramentas ou se listar falha', async () => {
   const servico = novoServico();
-  palco.aparelhos = [{ id: 'ios-1', name: 'iPhone' }];
-  assert.deepStrictEqual(await servico.getIosDevices(), [{ id: 'ios-1', name: 'iPhone' }]);
-  palco.aparelhos = new Error('quebrou');
-  assert.deepStrictEqual(await servico.getIosDevices(), []);
-  palco.aparelhos = [{ id: 'ios-1' }];
-  palco.ferramentasDoIphone = false;
-  assert.deepStrictEqual(await servico.getIosDevices(), []);
+  const cenarios = [
+    { aparelhos: [{ id: 'ios-1', name: 'iPhone' }], ferramentasDoIphone: true, esperado: [{ id: 'ios-1', name: 'iPhone' }] },
+    { aparelhos: new Error('quebrou'), ferramentasDoIphone: true, esperado: [] },
+    { aparelhos: [{ id: 'ios-1' }], ferramentasDoIphone: false, esperado: [] },
+  ];
+  const obtidos = await emSerie(cenarios, (cenario) => {
+    Object.assign(palco, { aparelhos: cenario.aparelhos, ferramentasDoIphone: cenario.ferramentasDoIphone });
+    return servico.getIosDevices();
+  });
+  assert.deepStrictEqual(obtidos, cenarios.map((cenario) => cenario.esperado));
 });
 
 test('iosPrepared olha o arquivo de chaves do aparelho na pasta do serviço e dá falso sem arquivo ou com arquivo quebrado', () => {
   const servico = novoServico();
   const arquivo = path.join(servico.baseDir, 'iphone-hosts.json');
-  assert.strictEqual(servico.iosPrepared('u1'), false);
-  fs.writeFileSync(arquivo, JSON.stringify({ u1: 'f'.repeat(64), u2: '' }));
-  assert.strictEqual(servico.iosPrepared('u1'), true);
-  assert.strictEqual(servico.iosPrepared('u2'), false);
-  assert.strictEqual(servico.iosPrepared('u3'), false);
-  fs.writeFileSync(arquivo, 'null');
-  assert.strictEqual(servico.iosPrepared('u1'), false);
-  fs.writeFileSync(arquivo, '{quebrado');
-  assert.strictEqual(servico.iosPrepared('u1'), false);
+  const chaves = JSON.stringify({ u1: 'f'.repeat(64), u2: '' });
+  const passos = [
+    [null, 'u1', false], [chaves, 'u1', true], [chaves, 'u2', false], [chaves, 'u3', false], ['null', 'u1', false], ['{quebrado', 'u1', false],
+  ];
+  const obtidos = passos.map(([conteudo, udid]) => {
+    if (conteudo !== null) fs.writeFileSync(arquivo, conteudo);
+    return servico.iosPrepared(udid);
+  });
+  assert.deepStrictEqual(obtidos, passos.map(([, , esperado]) => esperado));
 });
 
 test('o console do iPhone abre uma janela por aparelho, foca a que já existe, sobe a ponte se parada e some da lista ao fechar', async () => {
@@ -313,9 +345,7 @@ test('o console do iPhone abre uma janela por aparelho, foca a que já existe, s
 
   palco.ponte.rodando = true;
   assert.deepStrictEqual(await servico.iosStartStream(ID_DO_IPHONE), { success: true, message: 'iPhone Console já estava aberto — trazido pra frente.' });
-  assert.strictEqual(janela.focos, 1);
-  assert.strictEqual(palco.janelas.length, 1);
-  assert.strictEqual(palco.ponte.iniciadas, 1);
+  assert.deepStrictEqual([janela.focos, palco.janelas.length, palco.ponte.iniciadas], [1, 1, 1]);
 
   await servico.iosStartStream('ios-outro');
   assert.strictEqual(palco.janelas.length, 2);
@@ -352,54 +382,58 @@ test('o console do iPhone devolve o erro de quem falha ao abrir a janela', async
   }
 });
 
-test('iosControlApp troca o nome de app do Android pelo do iPhone e abre pelo uiopen, nos três nomes da ação', async () => {
+test('iosControlApp abre pelo uiopen nos três nomes da ação e recusa o que tem espaço no começo', async () => {
   const servico = novoServico();
-  palco.reiniciar(respostaDoSsh(() => ({})));
-  for (const acao of ['launch', 'open', 'start', 'LAUNCH', ' open']) {
-    const esperado = acao.trim() === acao ? { success: true } : { success: false, error: 'Ação não suportada no iOS:  open' };
-    assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.whatsapp', acao), esperado, acao);
-  }
+  palco.reiniciar(respostaDoSsh(semResposta));
+  const acoes = ['launch', 'open', 'start', 'LAUNCH', ' open'];
+  const respostas = await emSerie(acoes, (acao) => servico.iosControlApp(ID_DO_IPHONE, 'com.whatsapp', acao));
+  const aberto = { success: true };
+  assert.deepStrictEqual(respostas, [aberto, aberto, aberto, aberto, { success: false, error: 'Ação não suportada no iOS:  open' }]);
+});
+
+test('iosControlApp troca o nome de app do Android pelo do iPhone e deixa os outros como estão', async () => {
+  const servico = novoServico();
   const apelidos = {
     'com.whatsapp.w4b': 'net.whatsapp.Whatsapp', 'com.instagram.android': 'com.burbn.instagram', 'com.android.chrome': 'com.apple.mobilesafari',
     'com.facebook.katana': 'com.facebook.Facebook', 'com.google.android.youtube': 'com.google.ios.youtube', 'com.tencent.mm': 'com.tencent.xinWeChat',
     'com.zhiliaoapp.musically': 'com.zhiliaoapp.musically', 'com.exemplo.sem.apelido': 'com.exemplo.sem.apelido',
   };
-  palco.reiniciar(respostaDoSsh(() => ({})));
-  for (const origem of Object.keys(apelidos)) await servico.iosControlApp(ID_DO_IPHONE, origem, 'open');
+  palco.reiniciar(respostaDoSsh(semResposta));
+  await emSerie(Object.keys(apelidos), (origem) => servico.iosControlApp(ID_DO_IPHONE, origem, 'open'));
   assert.deepStrictEqual(comandosDoSsh(), Object.values(apelidos).map((destino) => `uiopen --bundleid ${JSON.stringify(destino)}`));
-  palco.reiniciar(respostaDoSsh(() => ({ erro: 'sem sessão', stderr: 'não abriu' })));
+  palco.reiniciar(respostaDoSsh(comFalha('não abriu')));
   assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.x', 'open'), { success: false, error: 'não abriu' });
 });
 
-test('iosControlApp lista os apps do ideviceinstaller e desinstala pelo pacote, nos dois nomes da ação', async () => {
+test('iosControlApp lista os apps do ideviceinstaller, com o que vier mesmo se o comando falhou', async () => {
   const servico = novoServico();
   const saida = ['CFBundleIdentifier, CFBundleVersion, CFBundleDisplayName', '"com.a.um", "1.0", "App Um"', '', '   ', '"com.b.dois", "2"', ',"x","y"', 'com.c.tres'].join('\n');
-  palco.reiniciar(() => ({ stdout: saida }));
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, null, 'list'), {
-    success: true,
-    apps: [{ packageName: 'com.a.um', name: 'App Um' }, { packageName: 'com.b.dois', name: 'com.b.dois' }, { packageName: 'com.c.tres', name: 'com.c.tres' }],
-  });
+  await conferirCasos([
+    {
+      resposta: comStdout(saida),
+      esperado: { success: true, apps: [{ packageName: 'com.a.um', name: 'App Um' }, { packageName: 'com.b.dois', name: 'com.b.dois' }, { packageName: 'com.c.tres', name: 'com.c.tres' }] },
+    },
+    { resposta: comFalha('sem aparelho'), esperado: { success: false, error: 'sem aparelho', apps: [] } },
+    { resposta: () => ({ erro: 'falhou', stdout: 'com.parcial,1,Parcial' }), esperado: { success: true, apps: [{ packageName: 'com.parcial', name: 'Parcial' }] } },
+  ], () => servico.iosControlApp(ID_DO_IPHONE, null, 'list'));
   assert.deepStrictEqual(palco.chamadas.map((c) => c.argumentos), [['list']]);
+});
 
-  palco.reiniciar(() => ({ erro: 'falhou', stderr: 'sem aparelho' }));
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, null, 'list'), { success: false, error: 'sem aparelho', apps: [] });
-  palco.reiniciar(() => ({ erro: 'falhou', stdout: 'com.parcial,1,Parcial' }));
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, null, 'list'), { success: true, apps: [{ packageName: 'com.parcial', name: 'Parcial' }] });
-
-  palco.reiniciar(() => ({}));
-  for (const acao of ['uninstall', 'remove']) assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.android.chrome', acao), { success: true });
+test('iosControlApp desinstala pelo pacote do iPhone, nos dois nomes da ação, e repassa o erro', async () => {
+  const servico = novoServico();
+  palco.reiniciar(semResposta);
+  const respostas = await emSerie(['uninstall', 'remove'], (acao) => servico.iosControlApp(ID_DO_IPHONE, 'com.android.chrome', acao));
+  assert.deepStrictEqual(respostas, [{ success: true }, { success: true }]);
   assert.deepStrictEqual(palco.chamadas.map((c) => c.argumentos), [['uninstall', 'com.apple.mobilesafari'], ['uninstall', 'com.apple.mobilesafari']]);
-  palco.reiniciar(() => ({ erro: 'falhou', stderr: 'não saiu' }));
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.x', 'uninstall'), { success: false, error: 'não saiu' });
+  await conferirCasos([{ resposta: comFalha('não saiu'), esperado: { success: false, error: 'não saiu' } }], () => servico.iosControlApp(ID_DO_IPHONE, 'com.x', 'uninstall'));
 });
 
 test('iosControlApp recusa ação desconhecida ou vazia, e trata nomes herdados do objeto como pacote comum', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({}));
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.x', 'stop'), { success: false, error: 'Ação não suportada no iOS: stop' });
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.x', undefined), { success: false, error: 'Ação não suportada no iOS: ' });
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.x', 'constructor'), { success: false, error: 'Ação não suportada no iOS: constructor' });
-  assert.deepStrictEqual(await servico.iosControlApp(ID_DO_IPHONE, 'com.x', 'toString'), { success: false, error: 'Ação não suportada no iOS: tostring' });
+  palco.reiniciar(semResposta);
+  const casos = [['stop', 'stop'], [undefined, ''], ['constructor', 'constructor'], ['toString', 'tostring']];
+  const respostas = await emSerie(casos, ([acao]) => servico.iosControlApp(ID_DO_IPHONE, 'com.x', acao));
+  assert.deepStrictEqual(respostas, casos.map(([, escrita]) => ({ success: false, error: `Ação não suportada no iOS: ${escrita}` })));
   assert.deepStrictEqual(palco.chamadas, []);
   await servico.iosControlApp(ID_DO_IPHONE, 'constructor', 'open');
   assert.deepStrictEqual(comandosDoSsh(), ['uiopen --bundleid "function Object() { [native code] }"']);
@@ -407,7 +441,7 @@ test('iosControlApp recusa ação desconhecida ou vazia, e trata nomes herdados 
 
 test('iosAutomateBrowser abre a URL com https quando falta o esquema, busca no Google se só há texto e recusa o vazio', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({}));
+  palco.reiniciar(semResposta);
   const casos = [
     [['exemplo.com/a b', 'ignorado'], 'https://exemplo.com/a b'],
     [['http://exemplo.com', undefined], 'http://exemplo.com'],
@@ -415,71 +449,81 @@ test('iosAutomateBrowser abre a URL com https quando falta o esquema, busca no G
     [['', 'café com leite'], 'https://www.google.com/search?q=caf%C3%A9%20com%20leite'],
     [[undefined, 'a&b'], 'https://www.google.com/search?q=a%26b'],
   ];
-  for (const [[url, busca], aberto] of casos) {
-    assert.deepStrictEqual(await servico.iosAutomateBrowser(ID_DO_IPHONE, url, busca), { success: true }, aberto);
-  }
+  const respostas = await emSerie(casos, ([[url, busca]]) => servico.iosAutomateBrowser(ID_DO_IPHONE, url, busca));
+  assert.deepStrictEqual(respostas, Array(casos.length).fill({ success: true }));
   assert.deepStrictEqual(comandosDoSsh(), casos.map(([, aberto]) => `uiopen ${JSON.stringify(aberto)}`));
-  palco.reiniciar(() => ({}));
-  assert.deepStrictEqual(await servico.iosAutomateBrowser(ID_DO_IPHONE, '', ''), { success: false, error: 'Sem URL.' });
-  assert.deepStrictEqual(await servico.iosAutomateBrowser(ID_DO_IPHONE), { success: false, error: 'Sem URL.' });
-  assert.deepStrictEqual(palco.chamadas, []);
-  palco.reiniciar(() => ({ erro: 'sem sessão', stderr: 'não abriu' }));
-  assert.deepStrictEqual(await servico.iosAutomateBrowser(ID_DO_IPHONE, 'a.com'), { success: false, error: 'não abriu' });
 });
 
-test('iosToggleSetting roda o atalho Nova de Wi-Fi ou Bluetooth ligado ou desligado, e recusa o resto', async () => {
+test('iosAutomateBrowser recusa o pedido vazio sem chamar o ssh e repassa o erro do ssh', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({}));
-  const casos = [
-    ['wifi', true, 'Nova WiFi On'], ['WiFi', false, 'Nova WiFi Off'], ['bluetooth', true, 'Nova BT On'], ['BLUETOOTH', 0, 'Nova BT Off'],
-  ];
-  for (const [ajuste, ligar, atalho] of casos) assert.deepStrictEqual(await servico.iosToggleSetting(ID_DO_IPHONE, ajuste, ligar), { success: true }, atalho);
+  palco.reiniciar(semResposta);
+  const vazios = await emSerie([['', ''], []], (argumentos) => servico.iosAutomateBrowser(ID_DO_IPHONE, ...argumentos));
+  assert.deepStrictEqual(vazios, Array(2).fill({ success: false, error: 'Sem URL.' }));
+  assert.deepStrictEqual(palco.chamadas, []);
+  await conferirCasos([{ resposta: comFalha('não abriu'), esperado: { success: false, error: 'não abriu' } }], () => servico.iosAutomateBrowser(ID_DO_IPHONE, 'a.com'));
+});
+
+test('iosToggleSetting roda o atalho Nova de Wi-Fi ou Bluetooth ligado ou desligado', async () => {
+  const servico = novoServico();
+  palco.reiniciar(semResposta);
+  const casos = [['wifi', true, 'Nova WiFi On'], ['WiFi', false, 'Nova WiFi Off'], ['bluetooth', true, 'Nova BT On'], ['BLUETOOTH', 0, 'Nova BT Off']];
+  const respostas = await emSerie(casos, ([ajuste, ligar]) => servico.iosToggleSetting(ID_DO_IPHONE, ajuste, ligar));
+  assert.deepStrictEqual(respostas, Array(casos.length).fill({ success: true }));
   assert.deepStrictEqual(comandosDoSsh(), casos.map(([, , atalho]) => `uiopen ${JSON.stringify(`shortcuts://run-shortcut?name=${encodeURIComponent(atalho)}`)}`));
-  palco.reiniciar(() => ({}));
-  assert.deepStrictEqual(await servico.iosToggleSetting(ID_DO_IPHONE, 'nfc', true), { success: false, error: 'Unsupported setting.' });
-  assert.deepStrictEqual(await servico.iosToggleSetting(ID_DO_IPHONE, undefined, true), { success: false, error: 'Unsupported setting.' });
-  assert.deepStrictEqual(palco.chamadas, []);
-  palco.reiniciar(() => ({ erro: 'sem sessão', stderr: 'não abriu' }));
-  assert.deepStrictEqual(await servico.iosToggleSetting(ID_DO_IPHONE, 'wifi', true), { success: false, error: 'não abriu' });
 });
 
-test('o ajudante de fuso: ler o estado, ver se está instalado e montar os argumentos do scp nos dois sentidos', async () => {
+test('iosToggleSetting recusa o ajuste que não conhece sem chamar o ssh e repassa o erro do ssh', async () => {
   const servico = novoServico();
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: ' {"ok":true,"message":"feito"} \n' })));
-  assert.deepStrictEqual(await servico.iosLocaleStatus(), { ok: true, message: 'feito' });
+  palco.reiniciar(semResposta);
+  const recusados = await emSerie(['nfc', undefined], (ajuste) => servico.iosToggleSetting(ID_DO_IPHONE, ajuste, true));
+  assert.deepStrictEqual(recusados, Array(2).fill({ success: false, error: 'Unsupported setting.' }));
+  assert.deepStrictEqual(palco.chamadas, []);
+  await conferirCasos([{ resposta: comFalha('não abriu'), esperado: { success: false, error: 'não abriu' } }], () => servico.iosToggleSetting(ID_DO_IPHONE, 'wifi', true));
+});
+
+test('o estado do ajudante de fuso é lido do arquivo do aparelho, e nulo se não for JSON ou o ssh falhar', async () => {
+  const servico = novoServico();
+  await conferirCasos([
+    { resposta: respostaDoSsh(comStdout(' {"ok":true,"message":"feito"} \n')), esperado: { ok: true, message: 'feito' } },
+    { resposta: respostaDoSsh(comStdout('lixo')), esperado: null },
+    { resposta: respostaDoSsh(() => ({ erro: 'sem rota' })), esperado: null },
+  ], () => servico.iosLocaleStatus());
   assert.deepStrictEqual(comandosDoSsh(), ['cat /var/tmp/nova-locale-status.json 2>/dev/null']);
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: 'lixo' })));
-  assert.strictEqual(await servico.iosLocaleStatus(), null);
-  palco.reiniciar(respostaDoSsh(() => ({ erro: 'sem rota' })));
-  assert.strictEqual(await servico.iosLocaleStatus(), null);
+});
 
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: 'ok\n' })));
-  assert.strictEqual(await servico.iosLocaleHelperReady(), true);
+test('o ajudante de fuso só está pronto se os dois arquivos existem e o ssh respondeu', async () => {
+  const servico = novoServico();
+  await conferirCasos([
+    { resposta: respostaDoSsh(comStdout('ok\n')), esperado: true },
+    { resposta: respostaDoSsh(comStdout('')), esperado: false },
+    { resposta: respostaDoSsh(() => ({ erro: 'x', stdout: 'ok' })), esperado: false },
+  ], () => servico.iosLocaleHelperReady());
   assert.deepStrictEqual(comandosDoSsh(), ['test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok']);
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: '' })));
-  assert.strictEqual(await servico.iosLocaleHelperReady(), false);
-  palco.reiniciar(respostaDoSsh(() => ({ erro: 'x', stdout: 'ok' })));
-  assert.strictEqual(await servico.iosLocaleHelperReady(), false);
+});
 
-  assert.deepStrictEqual(servico.iosScpBase('/remoto/a', '/local/a', 'from'), [...PREFIXO_DO_SCP, 'mobile@127.0.0.1:/remoto/a', '/local/a']);
-  assert.deepStrictEqual(servico.iosScpBase('/remoto/a', '/local/a', 'to'), [...PREFIXO_DO_SCP, '/local/a', 'mobile@127.0.0.1:/remoto/a']);
-  assert.deepStrictEqual(servico.iosScpBase('/remoto/a', '/local/a'), [...PREFIXO_DO_SCP, '/local/a', 'mobile@127.0.0.1:/remoto/a']);
+test('iosScpBase monta os argumentos do scp para baixar do aparelho e, nos outros casos, para subir', () => {
+  const servico = novoServico();
+  const baixar = [...PREFIXO_DO_SCP, 'mobile@127.0.0.1:/remoto/a', '/local/a'];
+  const subir = [...PREFIXO_DO_SCP, '/local/a', 'mobile@127.0.0.1:/remoto/a'];
+  const sentidos = ['from', 'to', undefined];
+  assert.deepStrictEqual(sentidos.map((sentido) => servico.iosScpBase('/remoto/a', '/local/a', sentido)), [baixar, subir, subir]);
 });
 
 test('iosScp roda o scp com limite de 30 s e sem janela, e rejeita com os 200 primeiros caracteres do erro', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({}));
+  palco.reiniciar(semResposta);
   assert.strictEqual(await servico.iosScp(['a', 'b']), true);
   assert.deepStrictEqual(palco.chamadas, [{ tipo: 'execFile', arquivo: 'SCP', argumentos: ['a', 'b'], opcoes: { timeout: 30000, windowsHide: true } }]);
-  palco.reiniciar(() => ({ erro: 'falhou', stderr: 'x'.repeat(300) }));
-  await assert.rejects(servico.iosScp(['a']), (erro) => erro.message === 'x'.repeat(200));
-  palco.reiniciar(() => ({ erro: 'falhou sem texto' }));
-  await assert.rejects(servico.iosScp(['a']), { message: 'falhou sem texto' });
+  const casos = [
+    { resposta: comFalha('x'.repeat(300)), esperado: 'x'.repeat(200) },
+    { resposta: () => ({ erro: 'falhou sem texto' }), esperado: 'falhou sem texto' },
+  ];
+  await conferirCasos(casos, () => mensagemDaRejeicao(servico.iosScp(['a'])));
 });
 
-test('o idioma do aparelho: baixar o plist, gravar idioma e locale, subir de volta, e ler o primeiro idioma', async () => {
+test('iosBuildLocalePlist baixa o plist, grava idioma e locale e sobe de volta, e para no erro do scp', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({}));
+  palco.reiniciar(semResposta);
   const local = path.join(servico.baseDir, 'nova-globalprefs.plist');
   assert.strictEqual(await servico.iosBuildLocalePlist('pt-BR', 'pt_BR'), local);
   assert.deepStrictEqual(palco.plist.gravacoes, [[local, 'pt-BR', 'pt_BR']]);
@@ -487,21 +531,24 @@ test('o idioma do aparelho: baixar o plist, gravar idioma e locale, subir de vol
     [...PREFIXO_DO_SCP, `mobile@127.0.0.1:${PERFIL_DO_ARQUIVO_DE_IDIOMAS}`, local],
     [...PREFIXO_DO_SCP, local, 'mobile@127.0.0.1:/var/tmp/nova-gp.plist'],
   ]);
+  palco.reiniciar((chamada) => (chamada.tipo === 'execFile' ? { erro: 'x', stderr: 'sem scp' } : {}));
+  assert.strictEqual(await mensagemDaRejeicao(servico.iosBuildLocalePlist('pt-BR', 'pt_BR')), 'sem scp');
+  assert.strictEqual(palco.plist.gravacoes.length, 1);
+});
 
-  palco.reiniciar(() => ({}));
+test('iosPlistLanguage baixa o plist para a pasta do serviço e devolve o primeiro idioma', async () => {
+  const servico = novoServico();
+  palco.reiniciar(semResposta);
   assert.strictEqual(await servico.iosPlistLanguage(), 'pt-BR');
   const verificacao = path.join(servico.baseDir, 'nova-globalprefs-check.plist');
   assert.deepStrictEqual(palco.chamadas.map((c) => c.argumentos || c.arquivo), [
     [...PREFIXO_DO_SCP, `mobile@127.0.0.1:${PERFIL_DO_ARQUIVO_DE_IDIOMAS}`, verificacao], verificacao,
   ]);
-  palco.reiniciar((chamada) => (chamada.tipo === 'execFile' ? { erro: 'x', stderr: 'sem scp' } : {}));
-  await assert.rejects(servico.iosBuildLocalePlist('pt-BR', 'pt_BR'), { message: 'sem scp' });
-  assert.strictEqual(palco.plist.gravacoes.length, 1);
 });
 
 test('iosSendLocaleCommand apaga o estado antigo, grava o comando em linhas campo=valor e sobe pelo scp', async () => {
   const servico = novoServico();
-  palco.reiniciar(() => ({}));
+  palco.reiniciar(semResposta);
   await servico.iosSendLocaleCommand({ action: 'apply', tz: 'America/Sao_Paulo' });
   const local = path.join(servico.baseDir, 'nova-locale.cmd');
   assert.strictEqual(fs.readFileSync(local, 'utf8'), 'action=apply\ntz=America/Sao_Paulo\n');
@@ -515,17 +562,16 @@ test('iosWaitLocaleStatus consulta a cada 1,2 s até o estado trazer ok verdadei
   const servico = novoServico();
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1000 });
   const leituras = [null, { mensagem: 'sem ok' }, { ok: 'sim' }, { ok: false, message: 'recusou' }];
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: JSON.stringify(leituras.shift()) })));
-  const resposta = await esperarComRelogioFalso(t, servico.iosWaitLocaleStatus(), 1200);
-  assert.deepStrictEqual(resposta, { resposta: { ok: false, message: 'recusou' }, passos: 4 });
-
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: '' })));
-  const desistiu = await esperarComRelogioFalso(t, servico.iosWaitLocaleStatus(5000), 1200);
-  assert.deepStrictEqual(desistiu, { resposta: null, passos: 5 });
-  assert.strictEqual(soSsh().length, 5);
-  palco.reiniciar(respostaDoSsh(() => ({ stdout: '' })));
-  const padrao = await esperarComRelogioFalso(t, servico.iosWaitLocaleStatus(), 1200);
-  assert.deepStrictEqual(padrao, { resposta: null, passos: 21 });
+  const casos = [
+    { resposta: respostaDoSsh(() => ({ stdout: JSON.stringify(leituras.shift()) })), limite: undefined, esperado: { resposta: { ok: false, message: 'recusou' }, passos: 4 } },
+    { resposta: respostaDoSsh(comStdout('')), limite: 5000, esperado: { resposta: null, passos: 5 } },
+    { resposta: respostaDoSsh(comStdout('')), limite: undefined, esperado: { resposta: null, passos: 21 } },
+  ];
+  const obtidos = await emSerie(casos, (caso) => {
+    palco.reiniciar(caso.resposta);
+    return esperarComRelogioFalso(t, servico.iosWaitLocaleStatus(caso.limite), 1200);
+  });
+  assert.deepStrictEqual(obtidos, casos.map((caso) => caso.esperado));
 });
 
 const AJUDANTE_PRONTO = 'test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok';
@@ -540,37 +586,53 @@ function ajudanteDeFuso({ instalado = true, fusos = [], estado = { ok: true, mes
   });
 }
 
-test('iosApplyLocale só vale para iPhone, com o ajudante instalado e um fuso de caracteres permitidos', async () => {
+async function aplicarFusoComRelogio(t, servico, ajudante, fuso) {
+  palco.reiniciar(ajudanteDeFuso(ajudante));
+  return (await esperarComRelogioFalso(t, servico.iosApplyLocale(ID_DO_IPHONE, fuso), 1200)).resposta;
+}
+
+async function reverterFusoComRelogio(t, servico, ajudante) {
+  palco.reiniciar(ajudanteDeFuso(ajudante));
+  return esperarComRelogioFalso(t, servico.iosRevertLocale(ID_DO_IPHONE), 1200);
+}
+
+test('iosApplyLocale só vale para iPhone e para um fuso de caracteres permitidos', async () => {
   const servico = novoServico();
   palco.reiniciar(ajudanteDeFuso());
   assert.deepStrictEqual(await servico.iosApplyLocale('android-1', 'America/Sao_Paulo'), { success: false, error: 'Só para iPhone.' });
   assert.deepStrictEqual(palco.chamadas, []);
-  for (const fuso of [undefined, '', 'com espaço', 'a;b', 'x\ny']) {
-    assert.deepStrictEqual(await servico.iosApplyLocale(ID_DO_IPHONE, fuso), { success: false, error: 'sem fuso para aplicar' }, String(fuso));
-  }
+  const respostas = await emSerie([undefined, '', 'com espaço', 'a;b', 'x\ny'], (fuso) => servico.iosApplyLocale(ID_DO_IPHONE, fuso));
+  assert.deepStrictEqual(respostas, Array(5).fill({ success: false, error: 'sem fuso para aplicar' }));
+});
+
+test('iosApplyLocale avisa quando o ajudante de fuso não está instalado no aparelho', async () => {
+  const servico = novoServico();
   palco.reiniciar(ajudanteDeFuso({ instalado: false }));
   assert.deepStrictEqual(await servico.iosApplyLocale(ID_DO_IPHONE, 'America/Sao_Paulo'), { success: false, error: 'helper-not-installed', language: null });
   assert.deepStrictEqual(comandosDoSsh(), [AJUDANTE_PRONTO]);
 });
 
-test('iosApplyLocale não faz nada se o fuso já está certo, e senão manda o comando e confere o fuso do aparelho depois', async (t) => {
+test('iosApplyLocale não faz nada se o fuso já está certo', async () => {
   const servico = novoServico();
   palco.reiniciar(ajudanteDeFuso({ fusos: ['Etc/GMT+5'] }));
   assert.deepStrictEqual(await servico.iosApplyLocale(ID_DO_IPHONE, 'Etc/GMT+5'), { success: true, timezone: 'Etc/GMT+5', message: 'fuso já estava certo' });
   assert.deepStrictEqual(palco.chamadas.filter((c) => c.tipo === 'execFile'), []);
+});
 
+test('iosApplyLocale manda o comando, espera o ajudante e confere o fuso do aparelho depois', async (t) => {
+  const servico = novoServico();
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1000 });
-  palco.reiniciar(ajudanteDeFuso({ fusos: ['UTC', 'Asia/Tokyo'] }));
-  const aplicado = await esperarComRelogioFalso(t, servico.iosApplyLocale(ID_DO_IPHONE, 'Asia/Tokyo'), 1200);
-  assert.deepStrictEqual(aplicado.resposta, { success: true, timezone: 'Asia/Tokyo', message: 'fuso aplicado' });
-  assert.strictEqual(fs.readFileSync(path.join(servico.baseDir, 'nova-locale.cmd'), 'utf8'), 'action=apply\ntz=Asia/Tokyo\n');
-  assert.deepStrictEqual(comandosDoSsh().map((c) => c.slice(0, 12)), [
-    'test -f /var', 'readlink /va', 'rm -f /var/t', 'cat /var/tmp', 'readlink /va',
-  ]);
-
-  palco.reiniciar(ajudanteDeFuso({ fusos: ['UTC', 'UTC'] }));
-  const diferente = await esperarComRelogioFalso(t, servico.iosApplyLocale(ID_DO_IPHONE, 'Asia/Tokyo'), 1200);
-  assert.deepStrictEqual(diferente.resposta, { success: false, error: 'fuso UTC ≠ Asia/Tokyo', timezone: 'UTC' });
+  const casos = [
+    { ajudante: { fusos: ['UTC', 'Asia/Tokyo'] }, esperado: { success: true, timezone: 'Asia/Tokyo', message: 'fuso aplicado' } },
+    { ajudante: { fusos: ['UTC', 'UTC'] }, esperado: { success: false, error: 'fuso UTC ≠ Asia/Tokyo', timezone: 'UTC' } },
+  ];
+  const respostas = [];
+  for (const caso of casos) {
+    respostas.push(await aplicarFusoComRelogio(t, servico, caso.ajudante, 'Asia/Tokyo'));
+    assert.strictEqual(fs.readFileSync(path.join(servico.baseDir, 'nova-locale.cmd'), 'utf8'), 'action=apply\ntz=Asia/Tokyo\n');
+  }
+  assert.deepStrictEqual(respostas, casos.map((caso) => caso.esperado));
+  assert.deepStrictEqual(comandosDoSsh().map((c) => c.slice(0, 12)), ['test -f /var', 'readlink /va', 'rm -f /var/t', 'cat /var/tmp', 'readlink /va']);
 });
 
 test('iosApplyLocale devolve o erro do scp e mostra ? quando o aparelho não diz o fuso', async (t) => {
@@ -579,36 +641,33 @@ test('iosApplyLocale devolve o erro do scp e mostra ? quando o aparelho não diz
   assert.deepStrictEqual(await servico.iosApplyLocale(ID_DO_IPHONE, 'Asia/Tokyo'), { success: false, error: 'sem scp' });
 
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1000 });
-  const semFuso = respostaDoSsh((comando) => {
+  palco.reiniciar(respostaDoSsh((comando) => {
     if (comando === AJUDANTE_PRONTO) return { stdout: 'ok' };
-    if (comando.startsWith('readlink')) return { erro: 'sem rota' };
-    return { stdout: '{"ok":true}' };
-  });
-  palco.reiniciar(semFuso);
+    return comando.startsWith('readlink') ? { erro: 'sem rota' } : { stdout: '{"ok":true}' };
+  }));
   const resposta = await esperarComRelogioFalso(t, servico.iosApplyLocale(ID_DO_IPHONE, 'Asia/Tokyo'), 1200);
   assert.deepStrictEqual(resposta.resposta, { success: false, error: 'fuso ? ≠ Asia/Tokyo', timezone: null });
 });
 
-test('iosRevertLocale manda o comando de reverter e devolve a mensagem do ajudante, ou o motivo de não ter dado certo', async (t) => {
+test('iosRevertLocale só trabalha para iPhone com o ajudante instalado', async () => {
   const servico = novoServico();
-  assert.deepStrictEqual(await servico.iosRevertLocale('android-1'), { success: true });
-  assert.deepStrictEqual(await servico.iosRevertLocale(undefined), { success: true });
+  assert.deepStrictEqual(await emSerie(['android-1', undefined], (id) => servico.iosRevertLocale(id)), Array(2).fill({ success: true }));
   palco.reiniciar(ajudanteDeFuso({ instalado: false }));
   assert.deepStrictEqual(await servico.iosRevertLocale(ID_DO_IPHONE), { success: false, error: 'helper-not-installed' });
+});
 
+test('iosRevertLocale manda o comando de reverter e devolve a mensagem do ajudante, ou o motivo de não ter dado certo', async (t) => {
+  const servico = novoServico();
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1000 });
-  palco.reiniciar(ajudanteDeFuso({ estado: { ok: true, message: 'revertido' } }));
-  const revertido = await esperarComRelogioFalso(t, servico.iosRevertLocale(ID_DO_IPHONE), 1200);
-  assert.deepStrictEqual(revertido, { resposta: { success: true, message: 'revertido' }, passos: 1 });
+  const casos = [
+    { estado: { ok: true, message: 'revertido' }, esperado: { resposta: { success: true, message: 'revertido' }, passos: 1 } },
+    { estado: { ok: false, message: 'recusou' }, esperado: { resposta: { success: false, error: 'recusou' }, passos: 1 } },
+    { estado: { ok: false }, esperado: { resposta: { success: false, error: 'helper não respondeu' }, passos: 1 } },
+    { estado: null, esperado: { resposta: { success: false, error: 'helper não respondeu' }, passos: 17 } },
+  ];
+  const obtidos = await emSerie(casos, (caso) => reverterFusoComRelogio(t, servico, { estado: caso.estado }));
+  assert.deepStrictEqual(obtidos, casos.map((caso) => caso.esperado));
   assert.strictEqual(fs.readFileSync(path.join(servico.baseDir, 'nova-locale.cmd'), 'utf8'), 'action=revert\n');
-
-  palco.reiniciar(ajudanteDeFuso({ estado: { ok: false, message: 'recusou' } }));
-  assert.deepStrictEqual((await esperarComRelogioFalso(t, servico.iosRevertLocale(ID_DO_IPHONE), 1200)).resposta, { success: false, error: 'recusou' });
-  palco.reiniciar(ajudanteDeFuso({ estado: { ok: false } }));
-  assert.deepStrictEqual((await esperarComRelogioFalso(t, servico.iosRevertLocale(ID_DO_IPHONE), 1200)).resposta, { success: false, error: 'helper não respondeu' });
-  palco.reiniciar(ajudanteDeFuso({ estado: null }));
-  const semResposta = await esperarComRelogioFalso(t, servico.iosRevertLocale(ID_DO_IPHONE), 1200);
-  assert.deepStrictEqual(semResposta, { resposta: { success: false, error: 'helper não respondeu' }, passos: 17 });
   palco.reiniciar((chamada) => (chamada.tipo === 'execFile' ? { erro: 'x', stderr: 'sem scp' } : ajudanteDeFuso()(chamada)));
   assert.deepStrictEqual(await servico.iosRevertLocale(ID_DO_IPHONE), { success: false, error: 'sem scp' });
 });
@@ -621,5 +680,5 @@ test('a fachada do celular físico segue com os nomes do iPhone que o resto do a
     'iosControlApp', 'iosAutomateBrowser', 'iosToggleSetting', 'iosLocaleStatus', 'iosLocaleHelperReady', 'iosScp', 'iosScpBase',
     'iosBuildLocalePlist', 'iosSendLocaleCommand', 'iosWaitLocaleStatus', 'iosPlistLanguage', 'iosApplyLocale', 'iosRevertLocale',
   ];
-  for (const nome of nomes) assert.strictEqual(typeof servico[nome], 'function', nome);
+  assert.deepStrictEqual(nomes.filter((nome) => typeof servico[nome] !== 'function'), []);
 });
