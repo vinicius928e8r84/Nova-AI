@@ -117,12 +117,16 @@ static int ler_cabecalho(Soquete fd, Pedido *pedido) {
 }
 
 static int ler_linha_do_pedido(Pedido *pedido) {
+    char metodo[16] = {0};
     char line[2048];
     pedido->fim_da_linha = strstr(pedido->cabecalho, "\r\n");
     size_t ll = pedido->fim_da_linha ? (size_t)(pedido->fim_da_linha - pedido->cabecalho) : strlen(pedido->cabecalho);
     if (ll >= sizeof(line)) ll = sizeof(line) - 1;
     memcpy(line, pedido->cabecalho, ll); line[ll] = 0;
-    return sscanf(line, "%15s %1023s %15s", pedido->metodo, pedido->alvo, pedido->versao) == 3 ? 0 : -1;
+    if (sscanf(line, "%15s %1023s %15s", metodo, pedido->alvo, pedido->versao) != 3) return -1;
+    memcpy(pedido->metodo, metodo, sizeof(metodo));
+    pedido->conecta = (strcmp(metodo, "CONNECT") == 0);
+    return 0;
 }
 
 static int destino_do_get(Pedido *pedido) {
@@ -141,7 +145,6 @@ static int destino_do_get(Pedido *pedido) {
 }
 
 static int interpretar_destino(Pedido *pedido) {
-    pedido->conecta = (strcmp(pedido->metodo, "CONNECT") == 0);
     if (pedido->conecta) return separar_host_porta(pedido->alvo, 443, &pedido->destino);
     return destino_do_get(pedido);
 }
