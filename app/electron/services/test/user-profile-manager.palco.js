@@ -101,8 +101,10 @@ function resumir(texto) {
   return `sha256:${crypto.createHash('sha256').update(texto).digest('hex').slice(0, 16)} (${texto.length} caracteres, começa com ${JSON.stringify(texto.slice(0, 60))})`;
 }
 
+const ERRO_DE_FUNCAO_AUSENTE = /TypeError: [\w.]+ is not a function[^"]*/g;
+
 function normalizar(valor) {
-  const texto = JSON.stringify(valor, (chave, item) => (item === undefined ? '(indefinido)' : resumir(item)));
+  const texto = JSON.stringify(valor, (chave, item) => (item === undefined ? '(indefinido)' : resumir(item))).replace(ERRO_DE_FUNCAO_AUSENTE, 'TypeError: <função ausente>');
   return JSON.parse(marcarCaminhos(texto, [[PASTA_DOS_SERVICOS, '<servicos>'], [RAIZ_FALSA, '<falso>']]));
 }
 

@@ -1770,7 +1770,7 @@
         "console.error",
         [
           "[UserProfileManager] Failed to read MyActivity.json",
-          "TypeError: activities.slice is not a function"
+          "TypeError: <função ausente>"
         ]
       ],
       [
