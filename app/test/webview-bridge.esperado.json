@@ -1,0 +1,3139 @@
+{
+  "ao carregar a ponte avisa, escuta o convite do hospedeiro e expõe o NovaBridge": {
+    "retornos": [
+      "sendFeedback"
+    ],
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Host connected:",
+          {
+            "id": 7
+          }
+        ]
+      ]
+    ]
+  },
+  "com o documento pronto observa o corpo na hora": {
+    "retornos": true,
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "com o documento carregando espera o DOMContentLoaded": {
+    "retornos": [
+      false,
+      true
+    ],
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "documento.addEventListener",
+        [
+          "DOMContentLoaded"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "com o documento interativo observa na hora": {
+    "retornos": true,
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "a chamada num elemento adicionado vai ao hospedeiro e some do texto": {
+    "retornos": {
+      "texto": "",
+      "escondido": "none"
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "documento.createTreeWalker",
+        [
+          "p",
+          4,
+          null,
+          false
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "a chamada num nó de texto adicionado é lida direto": {
+    "retornos": {
+      "texto": "",
+      "escondido": "none"
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "o alvo da mutação em nó de texto também é lido": {
+    "retornos": {
+      "texto": "",
+      "escondido": "none"
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "o alvo da mutação em elemento é varrido": {
+    "retornos": {
+      "texto": "",
+      "escondido": "none"
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "documento.createTreeWalker",
+        [
+          "p",
+          4,
+          null,
+          false
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "mutações de outro tipo são ignoradas": {
+    "retornos": {
+      "texto": "[[NOVA_TOOL_CALL: {\"nome\":\"abrir\",\"n\":1}]]",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "duas chamadas no mesmo texto mandam dois comandos e o resto fica": {
+    "retornos": {
+      "texto": "antes  meio  depois",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "fechar",
+            "a": {
+              "b": 2
+            }
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "fechar",
+            "a": {
+              "b": 2
+            }
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          "antes  meio  depois"
+        ]
+      ]
+    ]
+  },
+  "a chamada com JSON quebrado registra o erro e some do texto": {
+    "retornos": {
+      "texto": "",
+      "escondido": "none"
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[NOVA-BRIDGE] Failed to parse command JSON:",
+          "{nao e json}",
+          "<SyntaxError>"
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "o texto sem chamada fica como está": {
+    "retornos": {
+      "texto": "só conversa, sem ferramenta",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "o texto vazio é ignorado": {
+    "retornos": {
+      "texto": "",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "sobrando texto o pai não é escondido": {
+    "retornos": {
+      "texto": "resto ",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          "resto "
+        ]
+      ]
+    ]
+  },
+  "o pai com outro texto dentro não é escondido": {
+    "retornos": {
+      "texto": "",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "documento.createTreeWalker",
+        [
+          "p",
+          4,
+          null,
+          false
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "um nó de texto sem pai é limpo sem quebrar": {
+    "retornos": {
+      "texto": "",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "duas chamadas em nós de texto vizinhos mandam um comando cada": {
+    "retornos": [
+      "",
+      ""
+    ],
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "documento.createTreeWalker",
+        [
+          "p",
+          4,
+          null,
+          false
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "abrir",
+            "n": 1
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Intercepted command:",
+          {
+            "nome": "segundo"
+          }
+        ]
+      ],
+      [
+        "ipc.sendToHost",
+        [
+          "nova-command",
+          {
+            "nome": "segundo"
+          }
+        ]
+      ],
+      [
+        "texto.nodeValue",
+        [
+          ""
+        ]
+      ]
+    ]
+  },
+  "a mutação sem lista de nós adicionados não quebra": {
+    "retornos": {
+      "texto": "[[NOVA_TOOL_CALL: {\"nome\":\"abrir\",\"n\":1}]]",
+      "escondido": ""
+    },
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ]
+    ]
+  },
+  "o campo de texto dentro da sombra do rich-textarea recebe o texto, os eventos e o clique": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "elemento.querySelector",
+        [
+          "sombra",
+          "[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "a sombra só com textarea usa o setter nativo do valor": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "elemento.querySelector",
+        [
+          "sombra",
+          "[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "elemento.querySelector",
+        [
+          "sombra",
+          "textarea"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "TEXTAREA",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "textarea.value",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "o rich-textarea sem sombra procura o campo dentro dele": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "elemento.querySelector",
+        [
+          "rich-textarea",
+          "[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.textContent",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "o rich-textarea sem campo cai para o textarea de dentro": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "elemento.querySelector",
+        [
+          "rich-textarea",
+          "[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "elemento.querySelector",
+        [
+          "rich-textarea",
+          "textarea"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "TEXTAREA",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "textarea.value",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "sem rich-textarea cai para o .ql-editor": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.textContent",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "sem .ql-editor cai para o div editável": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.textContent",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "sem div editável cai para o textarea com aria-label": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "textarea[aria-label]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "TEXTAREA",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "textarea.value",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "sem nenhum campo registra o erro e não faz mais nada": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "textarea[aria-label]"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[NOVA-BRIDGE] ❌ Input element not found."
+        ]
+      ]
+    ]
+  },
+  "o execCommand que não escreve deixa o texto no textContent": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.textContent",
+        [
+          "campo",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "o texto injetado aparece cortado em sessenta caracteres no registro": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "uma mensagem bem comprida para conferir que o registro corta"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "uma mensagem bem comprida para conferir que o registro corta o texto injetado nos sessenta primeiros caracteres"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "o seletor de envio que lança é pulado e o botão é achado pelo aria-label": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá, Nova"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[mattooltip=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".send-button"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button.send-button"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "[data-test-id=\"send-button\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button:has(svg path)"
+        ]
+      ],
+      [
+        "documento.querySelectorAll",
+        [
+          "button"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "enviar-por-titulo"
+        ]
+      ]
+    ]
+  },
+  "o botão desabilitado é tentado de novo cinco vezes e cai para a tecla Enter": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá"
+        ]
+      ],
+      [
+        "elemento.textContent",
+        [
+          "campo",
+          "olá"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Falling back to Enter key."
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keydown",
+          {
+            "bubbles": true,
+            "cancelable": true,
+            "key": "Enter",
+            "code": "Enter",
+            "keyCode": 13
+          }
+        ]
+      ]
+    ]
+  },
+  "o botão que aparece na segunda tentativa é clicado": {
+    "retornos": null,
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".ql-editor[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "div[contenteditable=\"true\"]"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Found input:",
+          "DIV",
+          "ql-editor campo-com-um-nome-de-classe-be"
+        ]
+      ],
+      [
+        "elemento.focus",
+        [
+          "campo"
+        ]
+      ],
+      [
+        "elemento.innerHTML",
+        [
+          "campo",
+          ""
+        ]
+      ],
+      [
+        "documento.execCommand",
+        [
+          "insertText",
+          false,
+          "olá"
+        ]
+      ],
+      [
+        "elemento.textContent",
+        [
+          "campo",
+          "olá"
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "input",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "change",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "keyup",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "elemento.evento",
+        [
+          "campo",
+          "compositionend",
+          {
+            "bubbles": true,
+            "cancelable": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Text injected. Waiting before clicking send..."
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[mattooltip=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".send-button"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button.send-button"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "[data-test-id=\"send-button\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button:has(svg path)"
+        ]
+      ],
+      [
+        "documento.querySelectorAll",
+        [
+          "button"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[aria-label=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "button[mattooltip=\"Send message\"]"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          ".send-button"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] ✓ Send button found. Clicking."
+        ]
+      ],
+      [
+        "elemento.click",
+        [
+          "botao-enviar"
+        ]
+      ]
+    ]
+  },
+  "o erro dentro do sendFeedback é registrado e engolido": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] WebView Bridge injected successfully."
+        ]
+      ],
+      [
+        "ipc.on",
+        [
+          "nova-bridge-init"
+        ]
+      ],
+      [
+        "observer.observe",
+        [
+          "corpo",
+          {
+            "childList": true,
+            "subtree": true,
+            "characterData": true
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Started observing DOM for commands."
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[NOVA-BRIDGE] Attempting to inject prompt:",
+          "olá, Nova"
+        ]
+      ],
+      [
+        "documento.querySelector",
+        [
+          "rich-textarea"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[NOVA-BRIDGE] sendFeedback error:",
+          "<Error>"
+        ]
+      ]
+    ]
+  }
+}
