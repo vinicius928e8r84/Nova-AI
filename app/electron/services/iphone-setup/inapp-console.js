@@ -105,6 +105,6 @@ function desmontarAnfitriao(doc, anfitriao, aoTeclar) {
 }
 
 module.exports = {
-  AVISO_CARREGANDO, MILISSEGUNDOS_ATE_FOCAR_A_SENHA, textoDaFalha, invocarComFalhaPadrao, pedirTelaDoConsole, abrirJanelaDoConsole, embutirTela,
+  AVISO_CARREGANDO, MILISSEGUNDOS_ATE_FOCAR_A_SENHA, invocarComFalhaPadrao, pedirTelaDoConsole, abrirJanelaDoConsole, embutirTela,
   localizarQuadroDoConsole, mostrarAvisoNaTela, criarOuvinteDeEscape, criarOuvinteDeClique, restaurarFoco, desmontarAnfitriao,
 };
