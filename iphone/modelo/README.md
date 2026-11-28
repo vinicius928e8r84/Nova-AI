@@ -105,7 +105,7 @@ Aqui fica só o lado do app: serviço + IPC + banco + instalação do `.deb` pel
   (nomes exatos do contrato da UI — branch `agent/frontend/modelo-iphone-20261105`).
 - Banco `iosModels.json` (em `electron/services/`, junto do serviço) alimenta o seletor e
   valida o productType antes de aplicar.
-- `iphone-setup/setup.js`: instala `novamodel.deb` pelo fluxo Conectar quando o pacote
+- `iphone-setup/setup-pacotes.js` (chamado pelo `setup.js`): instala `novamodel.deb` pelo fluxo Conectar quando o pacote
   existir ao lado do `camera.deb`.
 
 ### Como o painel vai chamar (contrato IPC)
@@ -127,21 +127,22 @@ e envia o `productType` no apply (ex.: iPhone 13 = `iPhone14,5`).
 |---|---|
 | `app/electron/services/ios-modelo.js` | módulo puro: comandos + parse de status (testável) |
 | `iphone/modelo/iosModels.json` (novo) | banco de modelos iOS |
-| `app/electron/services/physicalMobileService.js` | `getIosModels`/`applyIOSModel`/`clearIOSModel`/`getIOSModel` |
-| `app/electron/services/iphone-setup/setup.js` | + instalação do `novamodel.deb` (guardado por existência) |
+| `app/electron/services/physicalMobileService.js` | `getIosModels`/`applyIOSModel`/`clearIOSModel`/`getIOSModel`, que chamam o `iphone-controle.js` |
+| `app/electron/services/iphone-controle.js` | o banco de modelos e os comandos de aplicar, limpar e ler o modelo |
+| `app/electron/services/iphone-setup/setup-pacotes.js` | + instalação do `novamodel.deb` (guardado por existência) |
 | `test/iphone/novamodel.test.cjs` | teste com mock de SSH |
 
 ### Aplicar no app instalado (quando o .deb existir)
 
 1. Copiar `app/electron/services/ios-modelo.js` e `iosModels.json` para `Contents/Resources/app/electron/services/`.
 2. Os 4 IPCs já estão em `app/electron/main.js`.
-3. Copiar `app/electron/services/iphone-setup/setup.js` (já tem o bloco do `novamodel.deb`) para `Contents/Resources/app/electron/services/iphone-setup/`.
+3. Copiar `app/electron/services/iphone-setup/setup.js` e `setup-*.js` (o bloco do `novamodel.deb` está no `setup-pacotes.js`) para `Contents/Resources/app/electron/services/iphone-setup/`.
 4. Colocar o `novamodel.deb` (do Jailbreak Specialist) em `services/iphone-setup/` ao lado do `camera.deb`.
 5. `node --check` nos arquivos tocados e reiniciar o Nova.
 
 ### Testado
 
-- `node --check` em `ios-modelo.js`, `app/electron/services/physicalMobileService.js`, `setup.js`.
+- `node --check` em `ios-modelo.js`, `app/electron/services/physicalMobileService.js`, `iphone-controle.js`, `setup.js` e `setup-pacotes.js`.
 - `node test/iphone/novamodel.test.cjs`: 30 verificações (comandos, parse,
   validação do banco, métodos do serviço com `iosSsh` mockado, falha de SSH).
 
