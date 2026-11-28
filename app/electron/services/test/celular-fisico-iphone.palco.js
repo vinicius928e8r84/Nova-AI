@@ -5,12 +5,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const PREFIXO_DO_SSH = [
-  '-p', '2222', 'OPCOES-DO-SSH', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new', 'mobile@127.0.0.1',
-];
-const PREFIXO_DO_SCP = [
-  '-P', '2222', 'OPCOES-DO-SSH', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
-];
+const OPCOES_SEM_PERGUNTAS = ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new'];
+const PREFIXO_DO_SSH = ['-p', '2222', 'OPCOES-DO-SSH', ...OPCOES_SEM_PERGUNTAS, 'mobile@127.0.0.1'];
+const PREFIXO_DO_SCP = ['-P', '2222', 'OPCOES-DO-SSH', ...OPCOES_SEM_PERGUNTAS];
 const NOVAPROXY = '/var/jb/usr/bin/novaproxy ';
 const ID_DO_IPHONE = 'ios-00008120-ABCD';
 const PERFIL_DO_ARQUIVO_DE_IDIOMAS = '/var/mobile/Library/Preferences/.GlobalPreferences.plist';
@@ -35,6 +32,11 @@ function responderChamada(chamada, callback) {
   callback(erro ? Object.assign(new Error(erro), { stderr }) : null, stdout, stderr);
 }
 
+const registrarChamada = (tipo, ...campos) => (...recebidos) => {
+  const callback = recebidos.pop();
+  responderChamada({ tipo, ...Object.fromEntries(campos.map((campo, indice) => [campo, recebidos[indice]])) }, callback);
+};
+
 class JanelaFalsa {
   constructor(opcoes) {
     Object.assign(this, { opcoes, destruida: false, focos: 0, enderecos: [], ouvintes: new Map(), fechadas: 0 });
@@ -51,14 +53,14 @@ class JanelaFalsa {
 }
 
 const SUBSTITUTOS = {
-  child_process: { execFile: (arquivo, argumentos, opcoes, callback) => responderChamada({ tipo: 'execFile', arquivo, argumentos, opcoes }, callback) },
+  child_process: { execFile: registrarChamada('execFile', 'arquivo', 'argumentos', 'opcoes') },
   ws: function WebSocket() {},
   axios: {},
   electron: { BrowserWindow: JanelaFalsa },
   './mac-native': { tool: () => null },
   './iphone-ssh': { sshOptions: () => ['OPCOES-DO-SSH'], migrateLegacy: () => {} },
   './tool-paths': {
-    execSsh: (argumentos, opcoes, callback) => responderChamada({ tipo: 'ssh', argumentos, opcoes }, callback),
+    execSsh: registrarChamada('ssh', 'argumentos', 'opcoes'),
     scp: () => 'SCP',
   },
   './ios-tools': {
