@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const vm = require('node:vm');
+const Module = require('node:module');
 const { spawn, spawnSync } = require('node:child_process');
 const { EventEmitter } = require('node:events');
 
@@ -188,16 +188,19 @@ async function testeFluxoNormal(sb) {
 }
 
 function carregarSetup() {
-  const sandbox = {
-    module: { exports: {} }, __dirname, Buffer, console, setTimeout, clearTimeout,
-    require(nome) {
-      if (nome === './node_modules/ssh2') return { Client: class {} };
-      if (nome === '../ios-tools') return { tool: (x) => '/bundled/' + x };
-      return require(nome);
-    },
+  const substitutos = {
+    './node_modules/ssh2': { Client: class {} },
+    '../ios-tools': { tool: (x) => '/bundled/' + x },
   };
-  vm.runInNewContext(fs.readFileSync(SETUP, 'utf8'), sandbox);
-  return sandbox.module.exports;
+  const carregarOriginal = Module._load;
+  Module._load = function (pedido, ...resto) {
+    return Object.prototype.hasOwnProperty.call(substitutos, pedido) ? substitutos[pedido] : carregarOriginal.call(this, pedido, ...resto);
+  };
+  try {
+    return require(SETUP);
+  } finally {
+    Module._load = carregarOriginal;
+  }
 }
 
 function clienteFalso(respostas) {
@@ -259,9 +262,9 @@ async function testeHandshake() {
     assert.ok(!/sudo/.test(cmd), 'a conferência não pode usar sudo');
   }
 
-  const fonte = fs.readFileSync(SETUP, 'utf8');
-  assert.match(fonte, /await waitLocaleHandshake\(client,locVer\)/);
-  assert.doesNotMatch(fonte, /camera\+=' Fuso\/idioma \(nova-locale\) atualizado\.';/);
+  const fonte = fs.readFileSync(path.join(path.dirname(SETUP), 'setup-pacotes.js'), 'utf8');
+  assert.match(fonte, /await esperarHelperDeFuso\(cliente, versao\)/);
+  assert.doesNotMatch(fonte, /' Fuso\/idioma \(nova-locale\) atualizado\.'/);
   console.log('OK 3: handshake do Conectar (versão lida do script, espera o "pronto v' + versao + '", recusa status antigo e v' + versao + '0, só leitura, sem sudo)');
 }
 

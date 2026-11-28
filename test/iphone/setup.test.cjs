@@ -1,31 +1,23 @@
 const assert = require('node:assert/strict');
-const vm = require('node:vm');
-const fs = require('node:fs');
+const Module = require('node:module');
 const path = require('node:path');
 
 const sent = [];
 let sshAttempts = 0;
 const udids = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n';
-const sandbox = {
-  module: { exports: {} },
-  __dirname,
-  Buffer,
-  console,
-  setTimeout,
-  clearTimeout,
-  require(name) {
-    if (name === '../tool-paths') return require('../../app/electron/services/tool-paths');
-    if (name === '../ios-tools') return { tool: (tool) => '/bundled/' + tool };
-    if (name === './node_modules/ssh2') return { Client: class { constructor() { sshAttempts++; throw Error('SSH não deveria ser alcançado'); } } };
-    if (name === 'child_process') return {
-      execFile: (file, args, options, cb) => cb(null, udids),
-      spawn: () => { sshAttempts++; throw Error('Túnel não deveria ser alcançado'); },
-    };
-    return require(name);
+const substitutos = {
+  '../ios-tools': { tool: (tool) => '/bundled/' + tool },
+  './node_modules/ssh2': { Client: class { constructor() { sshAttempts++; throw Error('SSH não deveria ser alcançado'); } } },
+  child_process: {
+    execFile: (file, args, options, cb) => cb(null, udids),
+    spawn: () => { sshAttempts++; throw Error('Túnel não deveria ser alcançado'); },
   },
 };
-vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../app/electron/services/iphone-setup/setup.js'), 'utf8'), sandbox);
-const setup = sandbox.module.exports;
+const carregarOriginal = Module._load;
+Module._load = function (pedido, ...resto) {
+  return Object.prototype.hasOwnProperty.call(substitutos, pedido) ? substitutos[pedido] : carregarOriginal.call(this, pedido, ...resto);
+};
+const setup = require(path.join(__dirname, '../../app/electron/services/iphone-setup/setup.js'));
 
 const win = { isDestroyed: () => false, webContents: { send: (channel, data) => sent.push({ channel, data }) } };
 
