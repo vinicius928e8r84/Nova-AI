@@ -58,7 +58,7 @@ A CLI `novamodel` roda **sem** o tweak (o construtor do `Tweak.m` a ignora), ent
 export THEOS=~/theos
 cd "$HOME/Desktop/Nova-AI/iphone/modelo"
 make clean && make package
-# saída: packages/com.aquiles.novamodel_0.1-*.deb
+# saída: packages/com.aquiles.novamodel_0.2-*.deb
 ```
 
 ## Instalar no iPhone (rootless)
@@ -66,8 +66,8 @@ make clean && make package
 ```sh
 # com o iPhone plugado, jailbreak ativo e OpenSSH:
 iproxy 2222 22 &
-scp -P 2222 packages/com.aquiles.novamodel_0.1-*.deb mobile@127.0.0.1:/var/tmp/
-ssh -p 2222 mobile@127.0.0.1 "sudo dpkg -i /var/tmp/com.aquiles.novamodel_0.1-*.deb"
+scp -P 2222 packages/com.aquiles.novamodel_0.2-*.deb mobile@127.0.0.1:/var/tmp/
+ssh -p 2222 mobile@127.0.0.1 "sudo dpkg -i /var/tmp/com.aquiles.novamodel_0.2-*.deb"
 ```
 
 Depois de instalado, testar: `ssh -p 2222 mobile@127.0.0.1 "/var/jb/usr/bin/novamodel status"`.
