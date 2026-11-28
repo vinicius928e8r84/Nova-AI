@@ -155,15 +155,34 @@ test('iosSsh monta o ssh do iPhone com chave, porta 2222, sem perguntas e limite
   ], () => servico.iosSsh('x'));
 });
 
-test('iosDeviceTimeZone lê o fuso do link do aparelho e devolve nulo se o ssh falha ou a saída não é um fuso', async () => {
-  const servico = novoServico();
-  await conferirCasos([
-    { resposta: respostaDoSsh(comStdout('/var/db/timezone/zoneinfo/America/Sao_Paulo\n')), esperado: 'America/Sao_Paulo' },
-    { resposta: respostaDoSsh(comStdout('outra coisa')), esperado: null },
-    { resposta: respostaDoSsh(() => ({ erro: 'sem rota' })), esperado: null },
-  ], () => servico.iosDeviceTimeZone());
-  assert.deepStrictEqual(comandosDoSsh(), ['readlink /var/db/timezone/localtime']);
-});
+const LEITURAS_PELO_SSH = [
+  {
+    nome: 'iosDeviceTimeZone lê o fuso do link do aparelho e devolve nulo se o ssh falha ou a saída não é um fuso',
+    metodo: 'iosDeviceTimeZone',
+    comando: 'readlink /var/db/timezone/localtime',
+    casos: [[comStdout('/var/db/timezone/zoneinfo/America/Sao_Paulo\n'), 'America/Sao_Paulo'], [comStdout('outra coisa'), null], [() => ({ erro: 'sem rota' }), null]],
+  },
+  {
+    nome: 'o estado do ajudante de fuso é lido do arquivo do aparelho, e nulo se não for JSON ou o ssh falhar',
+    metodo: 'iosLocaleStatus',
+    comando: 'cat /var/tmp/nova-locale-status.json 2>/dev/null',
+    casos: [[comStdout(' {"ok":true,"message":"feito"} \n'), { ok: true, message: 'feito' }], [comStdout('lixo'), null], [() => ({ erro: 'sem rota' }), null]],
+  },
+  {
+    nome: 'o ajudante de fuso só está pronto se os dois arquivos existem e o ssh respondeu',
+    metodo: 'iosLocaleHelperReady',
+    comando: 'test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok',
+    casos: [[comStdout('ok\n'), true], [comStdout(''), false], [() => ({ erro: 'x', stdout: 'ok' }), false]],
+  },
+];
+
+for (const leitura of LEITURAS_PELO_SSH) {
+  test(leitura.nome, async () => {
+    const servico = novoServico();
+    await conferirCasos(leitura.casos.map(([resposta, esperado]) => ({ resposta: respostaDoSsh(resposta), esperado })), () => servico[leitura.metodo]());
+    assert.deepStrictEqual(comandosDoSsh(), [leitura.comando]);
+  });
+}
 
 test('iosProxyRun roda o novaproxy pelo ssh com o limite pedido (30 s por padrão) e tira os espaços da saída', async () => {
   const servico = novoServico();
@@ -195,13 +214,19 @@ test('iosProxyError troca os três erros conhecidos por orientação e devolve o
   assert.deepStrictEqual(casos.map(([bruto]) => servico.iosProxyError(bruto)), casos.map(([, esperado]) => esperado));
 });
 
-test('o proxy do iPhone só vale para iPhone e não chama o ssh para outro aparelho', async () => {
-  const servico = novoServico();
-  const SO_IPHONE = { success: false, error: 'O proxy está disponível apenas para iPhone.' };
-  const respostas = await emSerie(['android-1', '', undefined, null], (id) => DOS_QUATRO_DO_PROXY(servico, id));
-  assert.deepStrictEqual(respostas, Array(4).fill(Array(4).fill(SO_IPHONE)));
-  assert.deepStrictEqual(palco.chamadas, []);
-});
+const GUARDAS_DE_IPHONE = [
+  { nome: 'o proxy', ids: ['android-1', '', undefined, null], chamar: DOS_QUATRO_DO_PROXY, quantas: 4, aviso: 'O proxy está disponível apenas para iPhone.' },
+  { nome: 'o modelo', ids: ['android-1', '', undefined], chamar: DOS_TRES_DO_MODELO, quantas: 3, aviso: 'O modelo é aplicável apenas ao iPhone.' },
+];
+
+for (const guarda of GUARDAS_DE_IPHONE) {
+  test(`${guarda.nome} do iPhone só vale para iPhone e não chama o ssh para outro aparelho`, async () => {
+    const servico = novoServico();
+    const respostas = await emSerie(guarda.ids, (id) => guarda.chamar(servico, id));
+    assert.deepStrictEqual(respostas, guarda.ids.map(() => Array(guarda.quantas).fill({ success: false, error: guarda.aviso })));
+    assert.deepStrictEqual(palco.chamadas, []);
+  });
+}
 
 test('o proxy do iPhone recusa o proxy vazio sem chamar o ssh', async () => {
   const servico = novoServico();
@@ -264,14 +289,6 @@ test('o banco de modelos do iPhone sai do arquivo do serviço, e aplicar, limpar
   ]);
 });
 
-test('o modelo do iPhone só vale para iPhone e não chama o ssh para outro aparelho', async () => {
-  const servico = novoServico();
-  const SO_IPHONE = { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
-  const respostas = await emSerie(['android-1', '', undefined], (id) => DOS_TRES_DO_MODELO(servico, id));
-  assert.deepStrictEqual(respostas, Array(3).fill(Array(3).fill(SO_IPHONE)));
-  assert.deepStrictEqual(palco.chamadas, []);
-});
-
 test('o modelo do iPhone recusa o tipo inválido e o modelo fora do banco antes de chamar o ssh', async () => {
   const servico = novoServico();
   const respostas = await emSerie(['x; rm -rf', 42, 'Nope9,9'], (tipo) => servico.applyIOSModel(ID_DO_IPHONE, tipo));
@@ -332,44 +349,58 @@ test('iosPrepared olha o arquivo de chaves do aparelho na pasta do serviço e d�
   assert.deepStrictEqual(obtidos, passos.map(([, , esperado]) => esperado));
 });
 
-test('o console do iPhone abre uma janela por aparelho, foca a que já existe, sobe a ponte se parada e some da lista ao fechar', async () => {
+const abrirConsole = async (servico, id = ID_DO_IPHONE) => {
+  await servico.iosStartStream(id);
+  return palco.janelas[palco.janelas.length - 1];
+};
+
+test('o console do iPhone abre uma janela com o endereço da ponte e sobe a ponte se ela está parada', async () => {
   const servico = novoServico();
   const aberto = await servico.iosStartStream(ID_DO_IPHONE);
   assert.deepStrictEqual(aberto, { success: true, message: 'Controle do iPhone aberto. Se pedir senha, use a do CatVNC (Ajustes > CatVNC).' });
-  assert.strictEqual(palco.ponte.iniciadas, 1);
   const [janela] = palco.janelas;
   assert.deepStrictEqual(janela.opcoes, {
     width: 1100, height: 820, title: 'iPhone Console', backgroundColor: '#050a10', webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
-  assert.deepStrictEqual(janela.enderecos, ['http://127.0.0.1:8765/']);
-
+  assert.deepStrictEqual([janela.enderecos, palco.ponte.iniciadas], [['http://127.0.0.1:8765/'], 1]);
   palco.ponte.rodando = true;
-  assert.deepStrictEqual(await servico.iosStartStream(ID_DO_IPHONE), { success: true, message: 'iPhone Console já estava aberto — trazido pra frente.' });
-  assert.deepStrictEqual([janela.focos, palco.janelas.length, palco.ponte.iniciadas], [1, 1, 1]);
-
-  await servico.iosStartStream('ios-outro');
-  assert.strictEqual(palco.janelas.length, 2);
-
-  assert.deepStrictEqual(await servico.iosStopStream(ID_DO_IPHONE), { success: true });
-  assert.strictEqual(janela.fechadas, 1);
-  janela.ouvintes.get('closed')();
-  await servico.iosStartStream(ID_DO_IPHONE);
-  assert.strictEqual(palco.janelas.length, 3);
-  janela.destruida = true;
-  assert.deepStrictEqual(await servico.iosStopStream(ID_DO_IPHONE), { success: true });
-  assert.strictEqual(janela.fechadas, 1);
+  await abrirConsole(servico, 'ios-outro');
+  assert.strictEqual(palco.ponte.iniciadas, 1);
 });
 
-test('o console do iPhone abre outra janela se a anterior foi destruída, e parar sem janela ou com janela que não fecha dá sucesso', async () => {
+test('o console do iPhone foca a janela que o aparelho já tem e abre uma por aparelho', async () => {
+  const servico = novoServico();
+  const janela = await abrirConsole(servico);
+  assert.deepStrictEqual(await servico.iosStartStream(ID_DO_IPHONE), { success: true, message: 'iPhone Console já estava aberto — trazido pra frente.' });
+  assert.deepStrictEqual([janela.focos, palco.janelas.length], [1, 1]);
+  await abrirConsole(servico, 'ios-outro');
+  assert.strictEqual(palco.janelas.length, 2);
+});
+
+test('o console do iPhone fecha a janela do aparelho e abre outra depois que ela fechou ou foi destruída', async () => {
+  const servico = novoServico();
+  const primeira = await abrirConsole(servico);
+  assert.deepStrictEqual(await servico.iosStopStream(ID_DO_IPHONE), { success: true });
+  primeira.ouvintes.get('closed')();
+  const segunda = await abrirConsole(servico);
+  assert.deepStrictEqual([primeira.fechadas, palco.janelas.length], [1, 2]);
+  segunda.destruida = true;
+  const terceira = await abrirConsole(servico);
+  assert.notStrictEqual(terceira, segunda);
+  assert.deepStrictEqual([segunda.fechadas, palco.janelas.length], [0, 3]);
+});
+
+test('parar o console sem janela, com janela destruída ou que não fecha dá sucesso', async () => {
   const servico = novoServico();
   assert.deepStrictEqual(await servico.iosStopStream(ID_DO_IPHONE), { success: true });
-  await servico.iosStartStream(ID_DO_IPHONE);
-  palco.janelas[0].destruida = true;
-  await servico.iosStartStream(ID_DO_IPHONE);
-  assert.strictEqual(palco.janelas.length, 2);
+  const janela = await abrirConsole(servico);
+  janela.destruida = true;
+  assert.deepStrictEqual(await servico.iosStopStream(ID_DO_IPHONE), { success: true });
+  assert.strictEqual(janela.fechadas, 0);
+  janela.destruida = false;
   palco.falhaAoFechar = true;
   assert.deepStrictEqual(await servico.iosStopStream(ID_DO_IPHONE), { success: true });
-  assert.strictEqual(palco.janelas[1].fechadas, 1);
+  assert.strictEqual(janela.fechadas, 1);
 });
 
 test('o console do iPhone devolve o erro de quem falha ao abrir a janela', async () => {
@@ -454,15 +485,6 @@ test('iosAutomateBrowser abre a URL com https quando falta o esquema, busca no G
   assert.deepStrictEqual(comandosDoSsh(), casos.map(([, aberto]) => `uiopen ${JSON.stringify(aberto)}`));
 });
 
-test('iosAutomateBrowser recusa o pedido vazio sem chamar o ssh e repassa o erro do ssh', async () => {
-  const servico = novoServico();
-  palco.reiniciar(semResposta);
-  const vazios = await emSerie([['', ''], []], (argumentos) => servico.iosAutomateBrowser(ID_DO_IPHONE, ...argumentos));
-  assert.deepStrictEqual(vazios, Array(2).fill({ success: false, error: 'Sem URL.' }));
-  assert.deepStrictEqual(palco.chamadas, []);
-  await conferirCasos([{ resposta: comFalha('não abriu'), esperado: { success: false, error: 'não abriu' } }], () => servico.iosAutomateBrowser(ID_DO_IPHONE, 'a.com'));
-});
-
 test('iosToggleSetting roda o atalho Nova de Wi-Fi ou Bluetooth ligado ou desligado', async () => {
   const servico = novoServico();
   palco.reiniciar(semResposta);
@@ -472,34 +494,33 @@ test('iosToggleSetting roda o atalho Nova de Wi-Fi ou Bluetooth ligado ou deslig
   assert.deepStrictEqual(comandosDoSsh(), casos.map(([, , atalho]) => `uiopen ${JSON.stringify(`shortcuts://run-shortcut?name=${encodeURIComponent(atalho)}`)}`));
 });
 
-test('iosToggleSetting recusa o ajuste que não conhece sem chamar o ssh e repassa o erro do ssh', async () => {
-  const servico = novoServico();
-  palco.reiniciar(semResposta);
-  const recusados = await emSerie(['nfc', undefined], (ajuste) => servico.iosToggleSetting(ID_DO_IPHONE, ajuste, true));
-  assert.deepStrictEqual(recusados, Array(2).fill({ success: false, error: 'Unsupported setting.' }));
-  assert.deepStrictEqual(palco.chamadas, []);
-  await conferirCasos([{ resposta: comFalha('não abriu'), esperado: { success: false, error: 'não abriu' } }], () => servico.iosToggleSetting(ID_DO_IPHONE, 'wifi', true));
-});
+const RECUSAS_DE_ATALHO = [
+  {
+    nome: 'iosAutomateBrowser recusa o pedido vazio sem chamar o ssh e repassa o erro do ssh',
+    chamar: (servico, ...argumentos) => servico.iosAutomateBrowser(ID_DO_IPHONE, ...argumentos),
+    recusados: [['', ''], []],
+    recusa: { success: false, error: 'Sem URL.' },
+    aceito: ['a.com'],
+  },
+  {
+    nome: 'iosToggleSetting recusa o ajuste que não conhece sem chamar o ssh e repassa o erro do ssh',
+    chamar: (servico, ...argumentos) => servico.iosToggleSetting(ID_DO_IPHONE, ...argumentos),
+    recusados: [['nfc', true], [undefined, true]],
+    recusa: { success: false, error: 'Unsupported setting.' },
+    aceito: ['wifi', true],
+  },
+];
 
-test('o estado do ajudante de fuso é lido do arquivo do aparelho, e nulo se não for JSON ou o ssh falhar', async () => {
-  const servico = novoServico();
-  await conferirCasos([
-    { resposta: respostaDoSsh(comStdout(' {"ok":true,"message":"feito"} \n')), esperado: { ok: true, message: 'feito' } },
-    { resposta: respostaDoSsh(comStdout('lixo')), esperado: null },
-    { resposta: respostaDoSsh(() => ({ erro: 'sem rota' })), esperado: null },
-  ], () => servico.iosLocaleStatus());
-  assert.deepStrictEqual(comandosDoSsh(), ['cat /var/tmp/nova-locale-status.json 2>/dev/null']);
-});
-
-test('o ajudante de fuso só está pronto se os dois arquivos existem e o ssh respondeu', async () => {
-  const servico = novoServico();
-  await conferirCasos([
-    { resposta: respostaDoSsh(comStdout('ok\n')), esperado: true },
-    { resposta: respostaDoSsh(comStdout('')), esperado: false },
-    { resposta: respostaDoSsh(() => ({ erro: 'x', stdout: 'ok' })), esperado: false },
-  ], () => servico.iosLocaleHelperReady());
-  assert.deepStrictEqual(comandosDoSsh(), ['test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok']);
-});
+for (const recusa of RECUSAS_DE_ATALHO) {
+  test(recusa.nome, async () => {
+    const servico = novoServico();
+    palco.reiniciar(semResposta);
+    const recusados = await emSerie(recusa.recusados, (argumentos) => recusa.chamar(servico, ...argumentos));
+    assert.deepStrictEqual(recusados, recusa.recusados.map(() => recusa.recusa));
+    assert.deepStrictEqual(palco.chamadas, []);
+    await conferirCasos([{ resposta: comFalha('não abriu'), esperado: { success: false, error: 'não abriu' } }], () => recusa.chamar(servico, ...recusa.aceito));
+  });
+}
 
 test('iosScpBase monta os argumentos do scp para baixar do aparelho e, nos outros casos, para subir', () => {
   const servico = novoServico();
@@ -605,17 +626,19 @@ test('iosApplyLocale só vale para iPhone e para um fuso de caracteres permitido
   assert.deepStrictEqual(respostas, Array(5).fill({ success: false, error: 'sem fuso para aplicar' }));
 });
 
-test('iosApplyLocale avisa quando o ajudante de fuso não está instalado no aparelho', async () => {
+test('iosApplyLocale responde sem mandar comando quando o ajudante falta ou o fuso já está certo', async () => {
   const servico = novoServico();
-  palco.reiniciar(ajudanteDeFuso({ instalado: false }));
-  assert.deepStrictEqual(await servico.iosApplyLocale(ID_DO_IPHONE, 'America/Sao_Paulo'), { success: false, error: 'helper-not-installed', language: null });
-  assert.deepStrictEqual(comandosDoSsh(), [AJUDANTE_PRONTO]);
-});
-
-test('iosApplyLocale não faz nada se o fuso já está certo', async () => {
-  const servico = novoServico();
-  palco.reiniciar(ajudanteDeFuso({ fusos: ['Etc/GMT+5'] }));
-  assert.deepStrictEqual(await servico.iosApplyLocale(ID_DO_IPHONE, 'Etc/GMT+5'), { success: true, timezone: 'Etc/GMT+5', message: 'fuso já estava certo' });
+  const comandos = [];
+  const casos = [
+    { resposta: ajudanteDeFuso({ instalado: false }), fuso: 'America/Sao_Paulo', esperado: { success: false, error: 'helper-not-installed', language: null } },
+    { resposta: ajudanteDeFuso({ fusos: ['Etc/GMT+5'] }), fuso: 'Etc/GMT+5', esperado: { success: true, timezone: 'Etc/GMT+5', message: 'fuso já estava certo' } },
+  ];
+  await conferirCasos(casos, async (caso) => {
+    const resposta = await servico.iosApplyLocale(ID_DO_IPHONE, caso.fuso);
+    comandos.push(comandosDoSsh().map((comando) => comando.slice(0, 12)));
+    return resposta;
+  });
+  assert.deepStrictEqual(comandos, [['test -f /var'], ['test -f /var', 'readlink /va']]);
   assert.deepStrictEqual(palco.chamadas.filter((c) => c.tipo === 'execFile'), []);
 });
 
