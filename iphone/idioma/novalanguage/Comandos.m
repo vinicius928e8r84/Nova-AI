@@ -75,36 +75,44 @@ static void AcrescentarLimpezaDosApps(NSMutableDictionary *saida) {
     if (falhas.count) saida[@"clearFailed"] = falhas;
 }
 
-static Mensagem ValidarIdioma(TagDeIdioma tag) {
+static CodigoDeLocale LocaleDoWrite(const Opcoes *opcoes) {
+    if (![opcoes->locale isEqualToString:@"auto"]) return opcoes->locale;
+    return LocaleAutomatico(opcoes->tag);
+}
+
+static Mensagem ValidarWrite(TagDeIdioma tag, CodigoDeLocale locale) {
     if (!tag.length) return @"falta o idioma (ex.: pt-BR)";
     if (!TagValida(tag)) return [NSString stringWithFormat:@"idioma inválido: %@", tag];
+    if (LocaleInformadoEhInvalido(locale)) return [NSString stringWithFormat:@"locale inválido: %@", locale];
     return nil;
 }
 
+static BOOL IdiomaConfirmado(NSDictionary *saida, TagDeIdioma tag) {
+    return [tag isEqual:(saida[@"language"] ?: [NSNull null])];
+}
+
+static NSMutableDictionary *RespostaDoWrite(Dominio dominio, const Opcoes *opcoes, BOOL sincronizado) {
+    NSMutableDictionary *saida = [EstadoDoDominio(dominio) mutableCopy];
+    saida[@"synced"] = @(sincronizado);
+    saida[@"requested"] = opcoes->tag;
+    if ([opcoes->locale isEqualToString:@"auto"]) saida[@"localeAuto"] = @YES;
+    if (DeveLimparOsApps(dominio, opcoes)) AcrescentarLimpezaDosApps(saida);
+    saida[@"confirmed"] = IdiomaConfirmado(saida, opcoes->tag) ? @YES : @NO;
+    return saida;
+}
+
 static int ComandoWrite(Dominio dominio, const Opcoes *opcoes) {
-    TagDeIdioma tag = opcoes->tag;
-    Mensagem erro = ValidarIdioma(tag);
+    CodigoDeLocale locale = LocaleDoWrite(opcoes);
+    Mensagem erro = ValidarWrite(opcoes->tag, locale);
     if (erro) {
         ImprimirFalha(erro);
         return 64;
     }
-    CodigoDeLocale locale = opcoes->locale;
-    BOOL localeAutomatico = [locale isEqualToString:@"auto"];
-    if (localeAutomatico) locale = LocaleAutomatico(tag);
-    if (LocaleInformadoEhInvalido(locale)) {
-        ImprimirFalha([NSString stringWithFormat:@"locale inválido: %@", locale]);
-        return 64;
-    }
     CFStringRef aplicacao = AplicacaoDoDominio(dominio);
-    GravarIdiomas(@[ tag ], aplicacao);
+    GravarIdiomas(@[ opcoes->tag ], aplicacao);
     if (locale.length) GravarLocale(locale, aplicacao);
     BOOL sincronizado = SincronizarAplicacao(aplicacao);
-    NSMutableDictionary *saida = [EstadoDoDominio(dominio) mutableCopy];
-    saida[@"synced"] = @(sincronizado);
-    saida[@"requested"] = tag;
-    if (localeAutomatico) saida[@"localeAuto"] = @YES;
-    if (DeveLimparOsApps(dominio, opcoes)) AcrescentarLimpezaDosApps(saida);
-    saida[@"confirmed"] = [tag isEqual:(saida[@"language"] ?: [NSNull null])] ? @YES : @NO;
+    NSMutableDictionary *saida = RespostaDoWrite(dominio, opcoes, sincronizado);
     ImprimirResposta(saida);
     return ([saida[@"confirmed"] boolValue] && sincronizado) ? 0 : 1;
 }

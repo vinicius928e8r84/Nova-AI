@@ -9,15 +9,19 @@
 static int (*original_sysctlbyname)(const char *, void *, size_t *, void *, size_t);
 static int (*original_sysctl)(int *, u_int, void *, size_t *, const void *, size_t);
 
+static void InformarTamanho(size_t *tamanho, size_t necessario) {
+    if (tamanho) *tamanho = necessario;
+}
+
 static int CopiarParaOBuffer(NSString *valor, void *destino, size_t *tamanho) {
     const char *texto = [valor UTF8String];
     size_t necessario = strlen(texto) + 1;
     if (destino == NULL) {
-        if (tamanho) *tamanho = necessario;
+        InformarTamanho(tamanho, necessario);
         return 0;
     }
     if (tamanho == NULL || *tamanho < necessario) {
-        if (tamanho) *tamanho = necessario;
+        InformarTamanho(tamanho, necessario);
         errno = ENOMEM;
         return -1;
     }
