@@ -156,8 +156,8 @@ test('nenhum teste em Objective-C ou shell do iPhone fica de fora do job mac', (
   assert.deepEqual(doIphone.filter(arquivo => !noMac.has(arquivo)), []);
 });
 
-test('o job mac executa os dois rodar.sh com bash e só eles', () => {
-  assert.deepEqual(portao.arquivosDoJob(lista, 'mac', versionados), [['mac-do-iphone', ['iphone/idioma/test/rodar.sh', 'iphone/proxy/tool/test/rodar.sh'], 'bash']]);
+test('o job mac executa os rodar.sh do iPhone com bash e só eles', () => {
+  assert.deepEqual(portao.arquivosDoJob(lista, 'mac', versionados), [['mac-do-iphone', ['iphone/camera/test/rodar.sh', 'iphone/idioma/test/rodar.sh', 'iphone/proxy/tool/test/rodar.sh'], 'bash']]);
 });
 
 test('grupo com executar só pode executar arquivo que ele mesmo cobre', () => {

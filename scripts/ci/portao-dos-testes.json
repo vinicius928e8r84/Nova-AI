@@ -25,7 +25,7 @@
         "iphone/idioma/test/teste-ipc-caracterizacao.test.js",
         "iphone/modelo/test/teste-novamodel.cjs",
         "iphone/modelo/test/teste-novamodel-saida.test.cjs",
-        "iphone/retrato/test/*.test.js",
+        "iphone/retrato/test/*.test.js", "iphone/camera/test/*.test.js",
         "test/cam-live/controles-independentes.test.cjs",
         "test/cam-live/harness.test.js",
         "test/cam-live/harness-usb.test.js",
@@ -37,7 +37,7 @@
       "job": "mac",
       "com": "bash",
       "executar": ["iphone/**/test/rodar.sh"],
-      "arquivos": ["iphone/proxy/tool/test/*", "iphone/idioma/test/*.sh"]
+      "arquivos": ["iphone/proxy/tool/test/*", "iphone/idioma/test/*.sh", "iphone/camera/test/*.sh", "iphone/camera/test/*.m", "iphone/camera/test/falso/*"]
     },
     {
       "nome": "ferramentas",
