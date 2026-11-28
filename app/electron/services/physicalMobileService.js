@@ -8,6 +8,9 @@ const plistPrefs = require('./plist-prefs');
 const net = require('net');
 const WebSocket = require('ws');
 const axios = require('axios');
+const { caminhoDoAdb, caminhoDoScrcpy } = require('./android-caminhos');
+const { listarAparelhosAdb } = require('./android-adb');
+const { conectarWifi, parearPorCodigo, recusarPareamentoPorFio, parearPorFioParaWifi, varrerEConectar } = require('./android-conexao');
 
 class PhysicalMobileService {
     constructor(mainWindow, app) {
@@ -45,82 +48,15 @@ class PhysicalMobileService {
     }
 
     resolveAdbPath() {
-        if (process.platform === "darwin") {
-            return require('./mac-native').tool('adb') || require('./android-tools').localToolPath(this.baseDir, 'adb') || require('path').join(process.resourcesPath || '', 'bin', 'adb');
-        }
-
-        if (this._adbPath && fs.existsSync(this._adbPath)) {
-            return this._adbPath;
-        }
-
-        const candidates = [
-            path.join(__dirname, '..', '..', 'resources', 'bin', 'adb.exe'),
-            path.join(__dirname, '..', '..', 'resources', 'platform-tools', 'adb.exe'),
-            path.join(process.cwd(), 'resources', 'bin', 'adb.exe'),
-            path.join(process.cwd(), 'resources', 'platform-tools', 'adb.exe'),
-            path.join(process.resourcesPath || '', 'bin', 'adb.exe'),
-            path.join(process.resourcesPath || '', 'platform-tools', 'adb.exe'),
-            path.join(this.baseDir, 'platform-tools', 'adb.exe'),
-            path.join(this.baseDir, 'adb.exe'),
-            path.join(__dirname, '..', 'resources', 'bin', 'adb.exe'),
-            path.join(__dirname, '..', 'resources', 'platform-tools', 'adb.exe'),
-            path.join(process.env.LOCALAPPDATA || '', 'Android', 'Sdk', 'platform-tools', 'adb.exe'),
-            path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Android', 'Sdk', 'platform-tools', 'adb.exe'),
-            path.join(process.env.PROGRAMFILES || '', 'Android', 'platform-tools', 'adb.exe'),
-            path.join(process.env['PROGRAMFILES(X86)'] || '', 'Android', 'platform-tools', 'adb.exe'),
-            path.join(process.env.USERPROFILE || '', 'platform-tools', 'adb.exe'),
-            'C:\\platform-tools\\adb.exe',
-            'C:\\Android\\platform-tools\\adb.exe',
-            'C:\\Android\\Sdk\\platform-tools\\adb.exe',
-            path.join(process.env.PROGRAMFILES || '', 'BlueStacks_nxt', 'HD-Adb.exe'),
-            path.join(process.env.PROGRAMFILES || '', 'Nox', 'bin', 'nox_adb.exe'),
-            path.join(process.env.PROGRAMFILES || '', 'LDPlayer', 'LDPlayer9', 'adb.exe')
-        ];
-
-        for (const p of candidates) {
-            if (p && typeof p === 'string' && fs.existsSync(p)) {
-                this._adbPath = p;
-                return p;
-            }
-        }
-
-        return path.join(this.baseDir, 'platform-tools', 'adb.exe');
+        const { caminho, lembrar } = caminhoDoAdb(this.baseDir, this._adbPath);
+        if (lembrar) this._adbPath = caminho;
+        return caminho;
     }
 
     resolveScrcpyPath() {
-        if (process.platform === "darwin") {
-            return require('./mac-native').tool('scrcpy') || require('./android-tools').localToolPath(this.baseDir, 'scrcpy') || require('path').join(process.resourcesPath || '', 'bin', 'scrcpy');
-        }
-
-        if (this._scrcpyPath && fs.existsSync(this._scrcpyPath)) {
-            return this._scrcpyPath;
-        }
-
-        const candidates = [
-            path.join(__dirname, '..', '..', 'resources', 'bin', 'scrcpy.exe'),
-            path.join(__dirname, '..', '..', 'resources', 'scrcpy', 'scrcpy.exe'),
-            path.join(process.cwd(), 'resources', 'bin', 'scrcpy.exe'),
-            path.join(process.cwd(), 'resources', 'scrcpy', 'scrcpy.exe'),
-            path.join(process.resourcesPath || '', 'bin', 'scrcpy.exe'),
-            path.join(process.resourcesPath || '', 'scrcpy', 'scrcpy.exe'),
-            path.join(this.baseDir, 'scrcpy', 'scrcpy.exe'),
-            path.join(this.baseDir, 'scrcpy.exe'),
-            path.join(__dirname, '..', 'resources', 'bin', 'scrcpy.exe'),
-            path.join(__dirname, '..', 'resources', 'scrcpy', 'scrcpy.exe'),
-            path.join(process.env.PROGRAMFILES || '', 'scrcpy', 'scrcpy.exe'),
-            path.join(process.env.LOCALAPPDATA || '', 'Programs', 'scrcpy', 'scrcpy.exe'),
-            path.join(process.env.USERPROFILE || '', 'scrcpy', 'scrcpy.exe'),
-            'C:\\scrcpy\\scrcpy.exe'
-        ];
-
-        for (const p of candidates) {
-            if (p && typeof p === 'string' && fs.existsSync(p)) {
-                this._scrcpyPath = p;
-                return p;
-            }
-        }
-
-        return path.join(this.baseDir, 'scrcpy', 'scrcpy.exe');
+        const { caminho, lembrar } = caminhoDoScrcpy(this.baseDir, this._scrcpyPath);
+        if (lembrar) this._scrcpyPath = caminho;
+        return caminho;
     }
 
     sendToFrontend(event, data) {
@@ -137,47 +73,7 @@ class PhysicalMobileService {
     }
 
     async getConnectedDevices() {
-        const adbDevices = await new Promise((resolve) => {
-            const adb = this.adbPath;
-            if (!fs.existsSync(adb)) {
-                resolve([]);
-                return;
-            }
-
-            exec(`"${adb}" devices -l`, (err, stdout) => {
-                if (err || !stdout) {
-                    resolve([]);
-                    return;
-                }
-
-                const lines = stdout.split('\n');
-                const devices = [];
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line || line.startsWith('*')) continue;
-                    
-                    const parts = line.split(/\s+/);
-                    if (parts.length >= 2) {
-                        const id = parts[0];
-                        const status = parts[1];
-                        const isWifi = id.includes(':') || id.match(/^\d+\.\d+\.\d+\.\d+/);
-
-                        const modelMatch = line.match(/model:(\S+)/);
-                        const deviceMatch = line.match(/device:(\S+)/);
-                        const modelName = modelMatch ? modelMatch[1].replace(/_/g, ' ') : (deviceMatch ? deviceMatch[1] : id);
-
-                        devices.push({
-                            id,
-                            status,
-                            name: modelName,
-                            type: isWifi ? 'wifi' : 'usb'
-                        });
-                    }
-                }
-                resolve(devices);
-            });
-        });
+        const adbDevices = await listarAparelhosAdb(this.adbPath);
         const iosDevices = await this.getIosDevices();
         return adbDevices.concat(iosDevices);
     }
@@ -448,137 +344,25 @@ class PhysicalMobileService {
     }
 
     async autoPairUsbToWireless(deviceId) {
-        if (String(deviceId).startsWith('ios-')) {
-            return { success: false, platform: 'ios', error: 'Wireless Switch é exclusivo para Android. Nesta versão, mantenha o iPhone conectado por USB.' };
-        }
-        if (typeof deviceId !== 'string' || !deviceId.trim()) {
-            return { success: false, error: 'Selecione um dispositivo Android conectado por USB.' };
-        }
+        const recusa = recusarPareamentoPorFio(deviceId);
+        if (recusa) return recusa;
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) return { success: false, error: 'ADB não encontrado.' };
-        const run = (args) => new Promise((resolve, reject) => {
-            execFile(adb, args, { encoding: 'utf8', timeout: 15000 }, (err, stdout, stderr) => {
-                if (err) reject(new Error((stderr || stdout || err.message).trim()));
-                else resolve((stdout || '').trim());
-            });
-        });
-        try {
-            const output = await run(['-s', deviceId, 'shell', 'ip', '-f', 'inet', 'addr', 'show', 'wlan0']);
-            const match = output.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
-            const ip = match ? match[1] : await run(['-s', deviceId, 'shell', 'getprop', 'dhcp.wlan0.ipaddress']);
-            if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip) || ip.split('.').some(n => Number(n) > 255)) {
-                return { success: false, error: 'Não foi possível detectar o IP. Conecte o Android e este computador à mesma rede Wi-Fi.' };
-            }
-            await run(['-s', deviceId, 'tcpip', '5555']);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const connected = await run(['connect', `${ip}:5555`]);
-            if (!/\b(?:already )?connected to\b/i.test(connected) || /failed|unable|cannot|error/i.test(connected)) {
-                return { success: false, error: connected || 'Não foi possível conectar por Wi-Fi.' };
-            }
-            return { success: true, ip, deviceId: `${ip}:5555`, message: `Android conectado por Wi-Fi em ${ip}:5555` };
-        } catch (err) {
-            return { success: false, error: `Não foi possível ativar a conexão Wi-Fi: ${err.message}` };
-        }
+        return parearPorFioParaWifi(adb, deviceId);
     }
 
     async scanWifiDevices() {
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) return { success: false, error: 'ADB not found.' };
-
-        const discoveredIps = [];
-
-        await new Promise((res) => {
-            exec(`"${adb}" mdns services`, { timeout: 4000 }, (err, stdout) => {
-                if (stdout) {
-                    const lines = stdout.split('\n');
-                    for (const line of lines) {
-                        const match = line.match(/(\d+\.\d+\.\d+\.\d+):(\d+)/);
-                        if (match && !discoveredIps.includes(match[0])) {
-                            discoveredIps.push(match[0]);
-                        }
-                    }
-                }
-                res();
-            });
-        });
-
-        const interfaces = os.networkInterfaces();
-        const baseIps = [];
-
-        for (const name in interfaces) {
-            for (const iface of interfaces[name]) {
-                if (iface.family === 'IPv4' && !iface.internal) {
-                    const parts = iface.address.split('.');
-                    if (parts.length === 4) {
-                        baseIps.push(`${parts[0]}.${parts[1]}.${parts[2]}`);
-                    }
-                }
-            }
-        }
-
-        if (baseIps.length > 0) {
-            const checkHost = (ip) => new Promise((res) => {
-                const socket = new net.Socket();
-                socket.setTimeout(250);
-                socket.on('connect', () => {
-                    socket.destroy();
-                    res(ip);
-                });
-                socket.on('timeout', () => { socket.destroy(); res(null); });
-                socket.on('error', () => { socket.destroy(); res(null); });
-                socket.connect(5555, ip);
-            });
-
-            const targetSubnet = baseIps[0];
-            const hosts = [];
-            for (let i = 1; i <= 254; i++) {
-                hosts.push(`${targetSubnet}.${i}`);
-            }
-
-            const batchSize = 35;
-            for (let i = 0; i < hosts.length; i += batchSize) {
-                const batch = hosts.slice(i, i + batchSize);
-                const results = await Promise.all(batch.map(ip => checkHost(ip)));
-                for (const found of results) {
-                    if (found && !discoveredIps.includes(`${found}:5555`)) {
-                        discoveredIps.push(`${found}:5555`);
-                    }
-                }
-            }
-        }
-
-        const connectResults = [];
-        for (const target of discoveredIps) {
-            await new Promise((res) => {
-                exec(`"${adb}" connect ${target}`, (err, stdout) => {
-                    connectResults.push({ target, success: !err && !stdout.includes('failed') });
-                    res();
-                });
-            });
-        }
-
+        const { discoveredIps, connectedCount } = await varrerEConectar(adb);
         const connectedDevices = await this.getConnectedDevices();
-        return {
-            success: true,
-            discoveredIps,
-            connectedCount: connectResults.filter(c => c.success).length,
-            devices: connectedDevices
-        };
+        return { success: true, discoveredIps, connectedCount, devices: connectedDevices };
     }
 
     async pairWirelessDevice(ip, port, pairingCode) {
         const adb = this.adbPath;
         if (!fs.existsSync(adb)) return { success: false, error: 'ADB not found.' };
-
-        return new Promise((resolve) => {
-            exec(`"${adb}" pair ${ip}:${port} ${pairingCode}`, (err, stdout, stderr) => {
-                if (err || (stdout && stdout.includes('Failed'))) {
-                    resolve({ success: false, error: stdout || stderr || 'Pairing failed. Check pairing code and port.' });
-                } else {
-                    resolve({ success: true, message: stdout.trim() });
-                }
-            });
-        });
+        return parearPorCodigo(adb, ip, port, pairingCode);
     }
 
     async connectWifi(ipAddress) {
@@ -586,19 +370,7 @@ class PhysicalMobileService {
         if (!fs.existsSync(adb)) {
             return { success: false, error: 'ADB tools missing.' };
         }
-
-        return new Promise((resolve) => {
-            const cleanIp = ipAddress.includes(':') ? ipAddress : `${ipAddress}:5555`;
-            exec(`"${adb}" connect ${cleanIp}`, (connErr, connStdout, connStderr) => {
-                if (connErr || (connStdout && connStdout.includes('failed'))) {
-                    console.error('[PhysicalMobile] Connect Wi-Fi failed:', connStdout || connStderr);
-                    resolve({ success: false, error: connStdout || connStderr || 'Connection timeout. Ensure Wireless Debugging is ON.' });
-                } else {
-                    console.log('[PhysicalMobile] Connected to Wi-Fi device:', connStdout);
-                    resolve({ success: true, message: connStdout.trim() });
-                }
-            });
-        });
+        return conectarWifi(adb, ipAddress);
     }
 
     async disconnectDevice(deviceId) {

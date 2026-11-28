@@ -1,12 +1,8 @@
 'use strict';
 
-const { net } = require('electron');
-const { exec } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const { browserService } = require('./browser-manager');
 const { instalacaoPorSistema } = require('./paridade-utils');
+const { chamarGemini, chamarGroq, escolherIa } = require('./child-worker-ia');
+const { despacharFerramenta, executarShell, lerSite, pesquisarNaWeb, postarNoElectron } = require('./child-worker-ferramentas');
 
 const esperar = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -68,239 +64,19 @@ class ChildWorkerAgent {
     }
 
     _electronPost(url, bodyStr = '') {
-        return new Promise((resolve, reject) => {
-            try {
-                const request = net.request({
-                    method: bodyStr ? 'POST' : 'GET',
-                    url: url,
-                    useSessionCookies: true
-                });
-
-                request.on('response', (response) => {
-                    let data = '';
-                    response.on('data', (chunk) => { data += chunk.toString(); });
-                    response.on('end', () => {
-                        try {
-                            const parsed = JSON.parse(data);
-                            resolve(parsed);
-                        } catch (e) {
-                            resolve(data);
-                        }
-                    });
-                    response.on('error', (e) => reject(new Error(`Net response error: ${e.message}`)));
-                });
-
-                request.on('error', (e) => reject(new Error(`Net request error: ${e.message}`)));
-
-                if (bodyStr) {
-                    request.setHeader('Content-Type', 'application/json');
-                    request.write(bodyStr);
-                }
-                request.end();
-            } catch (e) {
-                reject(new Error(`_electronPost fatal: ${e.message}`));
-            }
-        });
+        return postarNoElectron(url, bodyStr);
     }
 
-    _httpsPost(url, bodyStr) {
-        const https = require('https');
-        const { URL } = require('url');
-        const parsed = new URL(url);
-
-        return new Promise((resolve, reject) => {
-            const options = {
-                hostname: parsed.hostname,
-                path: parsed.pathname + parsed.search,
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(bodyStr),
-                },
-            };
-
-            const req = https.request(options, (res) => {
-                let data = '';
-                res.on('data', chunk => { data += chunk.toString(); });
-                res.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(data);
-                        parsed._httpStatus = res.statusCode;
-                        resolve(parsed);
-                    } catch (e) {
-                        reject(new Error(`JSON parse failed [${res.statusCode}]: ${data.substring(0, 150)}`));
-                    }
-                });
-                res.on('error', reject);
-            });
-
-            req.on('error', reject);
-            req.write(bodyStr);
-            req.end();
-        });
+    callGemini(apiKey, prompt) {
+        return chamarGemini(this, apiKey, prompt);
     }
 
-    async callGemini(apiKey, prompt) {
-        const bodyStr = JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
-        });
-
-        let authFailed = false;
-
-        this._last429 = false;
-
-        for (const { model, api } of this.GEMINI_CANDIDATES) {
-            if (authFailed) break;
-
-            let retries = 2;
-            while (retries-- > 0) {
-                try {
-                    const url = `https://generativelanguage.googleapis.com/${api}/models/${model}:generateContent?key=${apiKey}`;
-                    const resp = await this._httpsPost(url, bodyStr);
-                    const httpStatus = resp._httpStatus || '?';
-
-                    if (resp.error?.code === 400 || resp.error?.code === 403) {
-                        authFailed = true;
-                        this.log('ceo', `❌ AUTH ERROR [HTTP ${httpStatus}]: ${String(resp.error.message).substring(0, 120)}`);
-                        this.log('ceo', `Fix: Settings → API Keys → enter a valid Sub-Agent Key from aistudio.google.com/apikey`);
-                        break;
-                    }
-
-                    if (resp.error?.code === 429) {
-                        this._last429 = true;
-                        const details = resp.error?.details || [];
-                        const retryInfo = details.find(d => d['@type']?.includes('RetryInfo'));
-                        const delaySec = retryInfo?.retryDelay
-                            ? Math.min(parseFloat(retryInfo.retryDelay) + 2, 25)
-                            : 15;
-                        this.log('ceo', `⏳ ${model} [429] Rate limit. Waiting ${delaySec}s...`);
-                        await new Promise(r => setTimeout(r, delaySec * 1000));
-                        continue;
-                    }
-
-                    if (resp.error?.code === 404 || resp.error?.status === 'NOT_FOUND') {
-                        this.log('ceo', `⚠ ${model} [404] Not available. Trying next...`);
-                        retries = -1;
-                        break;
-                    }
-
-                    if (resp.error) {
-                        this.log('ceo', `⚠ ${model} [HTTP ${httpStatus} / code ${resp.error.code}]: ${String(resp.error.message).substring(0, 80)}`);
-                        break;
-                    }
-
-                    const text = resp.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        this.log('ceo', `✓ Neural Engine: ${model}`);
-                        return text.trim();
-                    }
-
-                    const blockReason = resp.promptFeedback?.blockReason;
-                    this.log('ceo', `⚠ ${model} [HTTP ${httpStatus}] Empty response${blockReason ? ` (blocked: ${blockReason})` : ''}. Trying next...`);
-                    break;
-
-                } catch (e) {
-                    this.log('ceo', `⚠ ${model} network error: ${String(e.message).substring(0, 80)}`);
-                    break;
-                }
-            }
-        }
-
-        if (authFailed) throw new Error('AUTH_FAILED: Invalid API key. Check Sub-Agent Key in Settings.');
-        if (this._last429) throw new Error('QUOTA_EXHAUSTED: All Gemini models rate-limited. Try again later.');
-        throw new Error('ALL_MODELS_404: All Gemini models returned 404. Key may not have access — using Groq.');
+    callGroq(groqKey, prompt) {
+        return chamarGroq(this, groqKey, prompt);
     }
 
-    async callGroq(groqKey, prompt) {
-        if (!groqKey || groqKey.length < 20) throw new Error('No Groq key available');
-
-        const https = require('https');
-        const modelsToTry = [
-            'llama-3.3-70b-versatile',
-            'llama-3.1-8b-instant',
-            'gemma2-9b-it',
-            'llama3-8b-8192',
-        ];
-
-        for (const model of modelsToTry) {
-            try {
-                const body = JSON.stringify({
-                    model,
-                    messages: [{ role: 'user', content: prompt }],
-                    max_tokens: 2048,
-                    temperature: 0.2,
-                });
-
-                const result = await new Promise((resolve, reject) => {
-                    const options = {
-                        hostname: 'api.groq.com',
-                        path: '/openai/v1/chat/completions',
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${groqKey}`,
-                            'Content-Length': Buffer.byteLength(body),
-                        },
-                    };
-                    const req = https.request(options, (res) => {
-                        let data = '';
-                        res.on('data', c => { data += c; });
-                        res.on('end', () => {
-                            try { resolve({ json: JSON.parse(data), status: res.statusCode }); }
-                            catch (e) { reject(new Error(`Groq parse error [${res.statusCode}]`)); }
-                        });
-                    });
-                    req.on('error', reject);
-                    req.write(body);
-                    req.end();
-                });
-
-                if (result.json.error) {
-                    this.log('ceo', `⚠ Groq ${model} [${result.status}]: ${result.json.error.message?.substring(0, 60)}`);
-                    continue;
-                }
-
-                const text = result.json.choices?.[0]?.message?.content;
-                if (text) {
-                    this.log('ceo', `✓ Groq ${model} (fallback) responding`);
-                    return text.trim();
-                }
-            } catch (e) {
-                this.log('ceo', `⚠ Groq ${model} error: ${e.message.substring(0, 60)}`);
-                continue;
-            }
-        }
-        throw new Error('Groq fallback also failed. Check Groq API key in Settings → Groq Influx Key.');
-    }
-
-    async callAI(apiKey, groqKey, prompt, maxAttempts = 2) {
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return await this.callGemini(apiKey, prompt);
-            } catch (e) {
-                const msg = String(e.message);
-
-                if (msg.startsWith('AUTH_FAILED')) {
-                    this.log('ceo', `⚡ Gemini auth failed → switching to Groq fallback...`);
-                    break;
-                }
-
-                if (msg.startsWith('ALL_MODELS_404')) {
-                    this.log('ceo', `⚡ All Gemini models unavailable (404) → trying Groq immediately...`);
-                    break;
-                }
-
-                if (attempt < maxAttempts) {
-                    this.log('ceo', `⏳ Gemini quota limited. Waiting 30s then retry... (${attempt}/${maxAttempts})`);
-                    await new Promise(r => setTimeout(r, 30000));
-                } else {
-                    this.log('ceo', `⚡ Gemini still limited → trying Groq fallback...`);
-                    break;
-                }
-            }
-        }
-        return await this.callGroq(groqKey, prompt);
+    callAI(apiKey, groqKey, prompt, maxAttempts = 2) {
+        return escolherIa(this, { apiKey, groqKey }, prompt, maxAttempts);
     }
 
     log(agent, text) {
@@ -417,185 +193,20 @@ Thought: I have gathered enough information to provide a complete answer.
 Action: FINAL_ANSWER(Your complete detailed answer here. Include all facts, sources and relevant information.)`;
     }
 
-    async dispatchTool(name, args) {
-        try {
-            switch (name.toLowerCase()) {
-                case 'web_search':
-                    return await this._webSearch(args);
-
-                case 'browse_site':
-                    return await this._browseSite(args);
-
-                case 'execute_shell':
-                    return await this._execShell(args);
-
-                case 'write_file': {
-                    const pipeIdx = args.indexOf('|');
-                    if (pipeIdx === -1) return 'Error: Format must be filename|content';
-                    const fPath = args.substring(0, pipeIdx).trim();
-                    const fContent = args.substring(pipeIdx + 1).trim();
-                    const fullPath = path.resolve(os.homedir(), 'Documents', 'Nova Data', fPath);
-                    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-                    fs.writeFileSync(fullPath, fContent);
-                    return `OK: Saved ${fContent.length} chars to ${fullPath}`;
-                }
-
-                case 'read_file': {
-                    const rPath = path.resolve(os.homedir(), 'Documents', 'Nova Data', args.trim());
-                    if (!fs.existsSync(rPath)) return `Error: File not found at ${rPath}`;
-                    return fs.readFileSync(rPath, 'utf8').substring(0, 3000);
-                }
-
-                case 'browser_navigate':
-                    await browserService.launch();
-                    return await browserService.navigate(args.trim());
-
-                case 'browser_snapshot': {
-                    const includeScreenshot = args && args.toLowerCase().includes('true');
-                    const snap = await browserService.snapshot(includeScreenshot);
-                    return snap.result || 'Snapshot taken successfully.';
-                }
-
-                case 'browser_click': {
-                    const clickRes = await browserService.click(args.trim());
-                    return typeof clickRes === 'object' ? clickRes.result : clickRes;
-                }
-
-                case 'browser_vision_click': {
-                    const vClickRes = await browserService.visionClick(args.trim());
-                    return typeof vClickRes === 'object' ? vClickRes.result : vClickRes;
-                }
-
-                case 'browser_type': {
-                    const parts = args.split('|');
-                    if (parts.length < 2) return 'Error: Format must be selector|text';
-                    const selector = parts[0].trim();
-                    const text = parts.slice(1).join('|').trim();
-                    const typeRes = await browserService.type(selector, text, true);
-                    return typeof typeRes === 'object' ? typeRes.result : typeRes;
-                }
-
-                case 'browser_scroll':
-                    return await browserService.scroll(args.trim().toLowerCase() || 'down');
-
-                case 'browser_extract':
-                    return await browserService.extract(args.trim() || undefined);
-
-                case 'idm_download': {
-                    const parts = args.split('|');
-                    const url = parts[0].trim();
-                    const format = (parts[1] || 'best').trim();
-                    if (this.app && this.app.ytdlpManager) {
-                        await this.app.ytdlpManager.manualDownload(url, format, 'video');
-                        return `OK: Download started via IDM-style downloader for ${url}`;
-                    }
-                    return 'Error: Downloader not ready.';
-                }
-
-                default:
-                    return `Error: Unknown tool "${name}".`;
-            }
-        } catch (e) {
-            return `Tool error (${name}): ${e.message}`;
-        }
+    dispatchTool(name, args) {
+        return despacharFerramenta(this, name, args);
     }
 
-    async _webSearch(query) {
-        try {
-            const encoded = encodeURIComponent(query);
-            const url = `https://www.google.com/search?q=${encoded}`;
-            
-            const html = await this._electronPost(url, '');
-            
-            if (typeof html !== 'string' || !html) {
-                return `web_search error: Empty or invalid response from Google.`;
-            }
-
-            const results = [];
-            const re = /<a href="\/url\?q=(https?:\/\/[^"&]+)[^>]*><h3[^>]*>(?:<div[^>]*>)?([^<]+)(?:<\/div>)?<\/h3>/g;
-            
-            let m;
-            while ((m = re.exec(html)) !== null) {
-                const link = m[1];
-                const title = m[2].replace(/&amp;/g, '&').replace(/&quot;/g, '"');
-                if (!link.includes('google.com')) {
-                    results.push({ title, link });
-                }
-                if (results.length >= 3) break;
-            }
-
-            if (results.length > 0) {
-                let output = `Google Results for "${query}":\n\n`;
-                output += results.map((r, i) => `${i+1}. ${r.title}\n   ${r.link}`).join('\n\n');
-                return output;
-            }
-
-            const cleanText = html
-                .replace(/<script[\s\S]*?<\/script>/gi, '')
-                .replace(/<style[\s\S]*?<\/style>/gi, '')
-                .replace(/<[^>]+>/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .substring(0, 1500);
-
-            return `Google search results for "${query}":\n${cleanText}\n\n(Regex failed, try browse_site with a URL)`;
-
-        } catch (e) {
-            return `web_search error: ${e.message}`;
-        }
+    _webSearch(query) {
+        return pesquisarNaWeb(this, query);
     }
 
-    async _browseSite(url) {
-        let targetUrl = url.trim();
-        targetUrl = targetUrl.replace(/^["']|["']$/g, '');
-        
-        if (!targetUrl.startsWith('http')) {
-            targetUrl = 'https://' + targetUrl;
-        }
-
-        return new Promise((resolve) => {
-            try {
-                const request = net.request({ 
-                    method: 'GET', 
-                    url: targetUrl,
-                    redirect: 'follow'
-                });
-                
-                let data = '';
-                request.on('response', (response) => {
-                    if (response.statusCode >= 400) {
-                        resolve(`Browse error: Server returned status ${response.statusCode} for ${targetUrl}`);
-                        return;
-                    }
-
-                    response.on('data', chunk => { data += chunk.toString(); });
-                    response.on('end', () => {
-                        const text = data
-                            .replace(/<script[\s\S]*?<\/script>/gi, '')
-                            .replace(/<style[\s\S]*?<\/style>/gi, '')
-                            .replace(/<[^>]+>/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim()
-                            .substring(0, 4000);
-                        resolve(`Content from ${targetUrl}:\n${text}`);
-                    });
-                    response.on('error', (e) => resolve(`Browse error: ${e.message}`));
-                });
-                request.on('error', (e) => resolve(`Browse error: ${e.message}`));
-                request.end();
-            } catch (e) {
-                resolve(`Browse error: ${e.message}`);
-            }
-        });
+    _browseSite(url) {
+        return lerSite(url);
     }
 
     _execShell(cmd) {
-        return new Promise((resolve) => {
-            exec(cmd, { timeout: 15000 }, (error, stdout, stderr) => {
-                if (error) resolve(`Error: ${stderr || error.message}`);
-                else resolve(stdout?.trim() || 'Command executed successfully.');
-            });
-        });
+        return executarShell(cmd);
     }
 
     updateUISubAgent(action) {

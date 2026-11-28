@@ -1,6 +1,6 @@
 # O agente filho fala com o Gemini pelo `net` do Electron e cai para o Groq
 
-O `child-worker-agent.js` faz as chamadas HTTP pelo módulo `net` do Electron, que usa a pilha de rede do Chromium (a mesma do renderer), e não pelo `https` do Node. Foi a correção que fez o agente funcionar com chaves e redes que o `https` do Node recusava (problemas de SSL e de proxy). O enxame usa o `https` do Node só para o auxiliar REST do Gemini, em `agent-swarm-gemini.js` (o `agent-swarm-controller.js` o chama).
+As chamadas HTTP do agente filho ficam em dois arquivos. Em `child-worker-ferramentas.js`, a pesquisa na web (`web_search`) e a leitura de site (`browse_site`) vão pelo módulo `net` do Electron, que usa a pilha de rede do Chromium (a mesma do renderer), e não pelo `https` do Node. Em `child-worker-ia.js`, as chamadas ao Gemini e ao Groq vão pelo `https` do Node. O uso do `net` foi a correção que fez o agente funcionar com chaves e redes que o `https` do Node recusava (problemas de SSL e de proxy). O enxame usa o `https` do Node só para o auxiliar REST do Gemini, em `agent-swarm-gemini.js` (o `agent-swarm-controller.js` o chama).
 
 A ordem dos modelos do agente é: primeiro os IDs estáveis da API `v1`, que funcionam com todo tipo de chave, inclusive as restritas a um projeto GCP, e só depois os aliases da `v1beta`; os `1.5-*` estão descontinuados e fora da lista. O enxame usa só os modelos gratuitos confirmados. O passo do ciclo ReAct espera 6 s para ficar em no máximo 10 requisições por minuto, o limite do plano gratuito.
 

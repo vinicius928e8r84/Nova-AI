@@ -6,16 +6,17 @@ const path = require('path');
 const { instalacaoPorSistema } = require('../electron/services/paridade-utils');
 
 const CAMINHO_DO_AGENTE = path.join(__dirname, '..', 'electron', 'services', 'child-worker-agent.js');
+const PREFIXO_DO_AGENTE = path.join(__dirname, '..', 'electron', 'services', 'child-worker');
 const MODULOS_FALSOS = { electron: { net: {} }, './browser-manager': { browserService: {} } };
 
 function carregarAgente() {
   const carregarOriginal = Module._load;
   Module._load = function (pedido, pai, ...resto) {
-    if (pai?.filename === CAMINHO_DO_AGENTE && pedido in MODULOS_FALSOS) return MODULOS_FALSOS[pedido];
+    if (pai?.filename?.startsWith(PREFIXO_DO_AGENTE) && pedido in MODULOS_FALSOS) return MODULOS_FALSOS[pedido];
     return carregarOriginal.call(this, pedido, pai, ...resto);
   };
   try {
-    delete require.cache[CAMINHO_DO_AGENTE];
+    for (const chave of Object.keys(require.cache)) if (chave.startsWith(PREFIXO_DO_AGENTE)) delete require.cache[chave];
     return require(CAMINHO_DO_AGENTE);
   } finally {
     Module._load = carregarOriginal;

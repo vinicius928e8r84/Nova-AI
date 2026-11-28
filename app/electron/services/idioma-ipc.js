@@ -60,194 +60,265 @@ function traduzirErro(bruto) {
     return e.trim();
 }
 
+const TEMPO_DA_VERIFICACAO_EM_MS = 8000;
+const VALIDADE_DA_VERIFICACAO_EM_MS = 60000;
+const TEMPO_DE_LER_EM_MS = 20000;
+const TEMPO_DE_GRAVAR_EM_MS = 25000;
+const TEMPO_COM_RESPRING_EM_MS = 60000;
+const TEMPO_DE_LISTAR_APPS_EM_MS = 30000;
+const TEMPO_DO_RESPRING_EM_MS = 40000;
+const AVISO_HELPER_V2 = 'o helper do iPhone é antigo (v2, só fuso): falta a versão com "language get/set". Rode o Conectar para atualizar o helper.';
+const AVISO_HELPER_AUSENTE = 'o helper nova-locale não está instalado no iPhone.';
+const FALTA_O_SCRIPT = /nova-locale\.sh: No such file|no such file.*nova-locale\.sh/i;
+const AVISO_APPS_PROPRIOS = (n) => `${n} app(s) têm idioma próprio e, sem limpar, continuam no idioma deles.`;
+const ERRO_NAO_CONFIRMOU = 'o aparelho não confirmou a gravação no store';
+const erroDeDominio = () => ({ success: false, error: 'domínio inválido' });
+
+const textoDoCampo = (resposta, campo) => String((resposta ? resposta[campo] : '') || '').trim();
+const appsComIdiomaProprio = (saida) => Number(saida.apps_com_idioma_proprio || 0);
+const nomeDoIdioma = (idioma) => (idioma ? (NOMES[idioma] || null) : null);
+const tempoDoComando = (respring) => (respring ? TEMPO_COM_RESPRING_EM_MS : TEMPO_DE_GRAVAR_EM_MS);
+const temAviso = (avisos, padrao) => avisos.some((aviso) => padrao.test(aviso));
+const listaSeparadaPorVirgula = (texto) => (texto ? String(texto).split(',').filter(Boolean) : []);
+
+function comandoDeVerificacao() {
+    return [HELPER_BASH, '-c',
+        `F=${HELPER_SCRIPT}; test -f $F || { echo FALTA; exit 0; }; `
+        + `grep -q 'cmd_language' $F && { echo OK; exit 0; }; `
+        + `V=$(sed -n 's/^HELPER_VERSION=//p' $F | head -1 | tr -dc '0-9'); `
+        + `[ -n "$V" ] && [ "$V" -ge 3 ] && { echo OK; exit 0; }; echo V2`];
+}
+
+function veredictoDoHelper(saida, erro) {
+    if (saida === 'OK') return { ok: true };
+    if (saida === 'V2') return { ok: false, error: AVISO_HELPER_V2 };
+    return { ok: false, error: traduzirErro(erro) || AVISO_HELPER_AUSENTE };
+}
+
+function criarVerificadorDoHelper(exec) {
+    let veredicto = null;
+    let verificadoEm = 0;
+    return async (timeoutMs = TEMPO_DA_VERIFICACAO_EM_MS) => {
+        const agora = Date.now();
+        if (veredicto !== null && agora - verificadoEm < VALIDADE_DA_VERIFICACAO_EM_MS) return veredicto;
+        const resposta = await exec(comandoDeVerificacao(), timeoutMs);
+        veredicto = veredictoDoHelper(textoDoCampo(resposta, 'stdout'), textoDoCampo(resposta, 'stderr'));
+        verificadoEm = agora;
+        return veredicto;
+    };
+}
+
+async function executarComAtalho(exec, cmd, timeoutMs) {
+    const resposta = await exec(cmd, timeoutMs);
+    if (!resposta || resposta.code === 0) return resposta;
+    if (!FALTA_O_SCRIPT.test(String(resposta.stderr || ''))) return resposta;
+    return exec([HELPER_ATALHO, ...cmd.slice(2)], timeoutMs);
+}
+
+function traduzirErroDaSaida(saida, stderr) {
+    const bruto = saida.error || stderr;
+    if (bruto) saida.error = traduzirErro(bruto);
+}
+
+function registrarCodigoDeFalha(saida, codigo) {
+    if (typeof codigo !== 'number' || codigo === 0) return;
+    if (!saida.error) saida.error = `o helper saiu com código ${codigo}`;
+}
+
+async function rodar(exec, cmd, timeoutMs) {
+    const resposta = await executarComAtalho(exec, cmd, timeoutMs);
+    const saida = lerSaida(resposta ? resposta.stdout : '');
+    traduzirErroDaSaida(saida, textoDoCampo(resposta, 'stderr'));
+    registrarCodigoDeFalha(saida, resposta ? resposta.code : undefined);
+    return saida;
+}
+
+function avisosDoGet(domain, saida) {
+    if (domain !== 'global') return [];
+    const avisos = [];
+    if (saida.diskMatches === 'no') avisos.push(AVISO_DISCO);
+    const apps = appsComIdiomaProprio(saida);
+    if (apps > 0) avisos.push(AVISO_APPS_PROPRIOS(apps));
+    return avisos;
+}
+
+function resultadoDoGet(domain, saida) {
+    return {
+        success: true,
+        domain,
+        appsComIdiomaProprio: appsComIdiomaProprio(saida),
+        language: saida.language || null,
+        nome: nomeDoIdioma(saida.language),
+        locale: saida.locale || null,
+        override: saida.override === 'yes',
+        disco: saida.disk || null,
+        discoCombina: saida.diskMatches === 'yes',
+        avisos: avisosDoGet(domain, saida)
+    };
+}
+
+async function getLanguage({ exec, verificarHelper }, { domain = 'global' } = {}) {
+    if (!dominioValido(domain)) return erroDeDominio();
+    const helper = await verificarHelper();
+    if (!helper.ok) return { success: false, error: helper.error, domain };
+    const saida = await rodar(exec, comando('get', ['--domain', domain]), TEMPO_DE_LER_EM_MS);
+    if (saida.error) return { success: false, error: saida.error, domain };
+    return resultadoDoGet(domain, saida);
+}
+
+function recusaDoPedido({ tag, domain, confirmGlobal }) {
+    if (!TAG_RE.test(String(tag || ''))) {
+        return { success: false, error: 'idioma inválido: informe algo como pt-BR ou en-US' };
+    }
+    if (!dominioValido(domain)) return erroDeDominio();
+    if (domain === 'global' && confirmGlobal !== true) {
+        return {
+            success: false,
+            precisaConfirmar: true,
+            avisos: [AVISO_GLOBAL, AVISO_RESPRING],
+            error: 'confirmar antes de aplicar no aparelho inteiro'
+        };
+    }
+    return null;
+}
+
+function argumentosDoSet({ domain, locale, limparApps, respring }) {
+    const args = ['--domain', domain];
+    if (locale) args.push('--locale', String(locale));
+    else if (domain === 'global') args.push('--locale', 'auto');
+    if (domain === 'global') args.push(limparApps === false ? '--no-clear-apps' : '--clear-apps');
+    if (respring) args.push('--respring');
+    return args;
+}
+
+function acrescentarAvisoDeRespring(avisos, respring) {
+    if (!respring) {
+        avisos.push(AVISO_RESPRING);
+        return;
+    }
+    if (!temAviso(avisos, /CAM LIVE/)) avisos.push(AVISO_CAM_LIVE);
+}
+
+function avisosDoSet({ saida, domain, respring, appsLimpos }) {
+    const avisos = [...saida.warnings];
+    if (appsLimpos.length && !temAviso(avisos, /idioma próprio/)) avisos.push(AVISO_APPS(appsLimpos.length));
+    if (domain === 'global' && !avisos.some((aviso) => aviso.includes('Accept-Language'))) avisos.unshift(AVISO_GLOBAL);
+    acrescentarAvisoDeRespring(avisos, respring);
+    return avisos;
+}
+
+function resultadoNaoConfirmado({ saida, domain, tag, respring, avisos }) {
+    const temErroDoHelper = saida.error && !/saiu com código/.test(saida.error);
+    return {
+        success: false,
+        domain,
+        pedido: tag,
+        aplicado: saida.language || null,
+        confirmed: false,
+        respring: !!respring,
+        avisos,
+        error: temErroDoHelper ? saida.error : ERRO_NAO_CONFIRMOU
+    };
+}
+
+function resultadoConfirmado({ saida, domain, tag, respring, avisos, appsLimpos }) {
+    return {
+        success: true,
+        domain,
+        escopo: domain === 'global' ? 'aparelho' : 'app',
+        appsLimpos,
+        localeAuto: saida.localeAuto === 'yes',
+        pedido: tag,
+        aplicado: saida.language || null,
+        confirmed: true,
+        locale: saida.locale || null,
+        respring: !!respring,
+        avisos,
+        error: null
+    };
+}
+
+function resultadoDoSet({ saida, domain, tag, respring }) {
+    const appsLimpos = listaSeparadaPorVirgula(saida.clearedApps);
+    const avisos = avisosDoSet({ saida, domain, respring, appsLimpos });
+    const contexto = { saida, domain, tag, respring, avisos, appsLimpos };
+    if (saida.confirmed !== 'yes') return resultadoNaoConfirmado(contexto);
+    if (saida.error) return { success: false, error: saida.error, avisos };
+    return resultadoConfirmado(contexto);
+}
+
+async function applyLanguage({ exec, verificarHelper }, pedido = {}) {
+    const { domain = 'global', respring = false, locale = null, confirmGlobal = false, limparApps = true } = pedido;
+    const tag = pedido.tag || pedido.language;
+    const recusa = recusaDoPedido({ tag, domain, confirmGlobal });
+    if (recusa) return recusa;
+    const helper = await verificarHelper();
+    if (!helper.ok) return { success: false, error: helper.error, avisos: [] };
+    if (locale && !LOCALE_RE.test(String(locale))) {
+        return { success: false, error: 'locale inválido: informe algo como pt_BR' };
+    }
+    const args = argumentosDoSet({ domain, locale, limparApps, respring });
+    const saida = await rodar(exec, comando('set', [tag, ...args]), tempoDoComando(respring));
+    return resultadoDoSet({ saida, domain, tag, respring });
+}
+
+function resultadoDoRevert({ saida, domain, respring, avisos }) {
+    const apps = appsComIdiomaProprio(saida);
+    if (domain === 'global' && apps > 0) avisos.push(AVISO_APPS_PROPRIOS(apps));
+    return {
+        success: true,
+        domain,
+        appsComIdiomaProprio: apps,
+        language: saida.language || null,
+        override: saida.override === 'yes',
+        backup: saida.revertido_de_backup || null,
+        respring: !!respring,
+        avisos
+    };
+}
+
+async function revertLanguage({ exec, verificarHelper }, { domain = 'global', respring = false } = {}) {
+    if (!dominioValido(domain)) return erroDeDominio();
+    const helper = await verificarHelper();
+    if (!helper.ok) return { success: false, error: helper.error, avisos: [] };
+    const args = respring ? ['--domain', domain, '--respring'] : ['--domain', domain];
+    const saida = await rodar(exec, comando('revert', args), tempoDoComando(respring));
+    const avisos = [...saida.warnings];
+    acrescentarAvisoDeRespring(avisos, respring);
+    if (saida.error) return { success: false, error: saida.error, avisos };
+    return resultadoDoRevert({ saida, domain, respring, avisos });
+}
+
+async function listarApps({ exec, verificarHelper }) {
+    const helper = await verificarHelper();
+    if (!helper.ok) return { success: false, error: helper.error };
+    const saida = await rodar(exec, [HELPER_BASH, HELPER_SCRIPT, 'language', 'apps', '--format', 'lines'], TEMPO_DE_LISTAR_APPS_EM_MS);
+    if (saida.error) return { success: false, error: saida.error };
+    const apps = listaSeparadaPorVirgula(saida.apps);
+    return { success: true, count: apps.length, apps };
+}
+
+async function reiniciarInterface({ exec, verificarHelper }) {
+    const helper = await verificarHelper();
+    if (!helper.ok) return { success: false, error: helper.error };
+    const saida = await rodar(exec, [HELPER_BASH, HELPER_SCRIPT, 'respring'], TEMPO_DO_RESPRING_EM_MS);
+    if (saida.error) return { success: false, error: saida.error };
+    return { success: saida.respring === 'ok', avisos: [...saida.warnings, AVISO_RESPRING] };
+}
+
 function createHandlers({ exec, deviceId = 'ios-1' }) {
     if (typeof exec !== 'function') throw new Error('exec obrigatório');
-
-    let helperOk = null;
-    let helperOkEm = 0;
-
-    async function verificarHelper(timeoutMs = 8000) {
-        const agora = Date.now();
-        if (helperOk !== null && agora - helperOkEm < 60000) return helperOk;
-        const cmd = [HELPER_BASH, '-c',
-            `F=${HELPER_SCRIPT}; test -f $F || { echo FALTA; exit 0; }; `
-            + `grep -q 'cmd_language' $F && { echo OK; exit 0; }; `
-            + `V=$(sed -n 's/^HELPER_VERSION=//p' $F | head -1 | tr -dc '0-9'); `
-            + `[ -n "$V" ] && [ "$V" -ge 3 ] && { echo OK; exit 0; }; echo V2`];
-        const r = await exec(cmd, timeoutMs);
-        const saida = String((r && r.stdout) || '').trim();
-        const erro = String((r && r.stderr) || '').trim();
-        helperOk = saida === 'OK'
-            ? { ok: true }
-            : saida === 'V2'
-                ? { ok: false, error: 'o helper do iPhone é antigo (v2, só fuso): falta a versão com "language get/set". Rode o Conectar para atualizar o helper.' }
-                : { ok: false, error: traduzirErro(erro) || 'o helper nova-locale não está instalado no iPhone.' };
-        helperOkEm = agora;
-        return helperOk;
-    }
-
-    async function rodar(cmd, timeoutMs) {
-        let r = await exec(cmd, timeoutMs);
-        if (r && r.code !== 0 && /nova-locale\.sh: No such file|no such file.*nova-locale\.sh/i.test(String(r.stderr || ''))) {
-            r = await exec([HELPER_ATALHO, ...cmd.slice(2)], timeoutMs);
-        }
-        const saida = lerSaida((r && r.stdout) || '');
-        if (r && r.stderr && !saida.error) {
-            const err = String(r.stderr).trim();
-            if (err) saida.error = traduzirErro(err);
-        } else if (saida.error) {
-            saida.error = traduzirErro(saida.error);
-        }
-        if (r && typeof r.code === 'number' && r.code !== 0 && !saida.error) {
-            saida.error = `o helper saiu com código ${r.code}`;
-        }
-        return saida;
-    }
-
-    async function getLanguage({ domain = 'global' } = {}) {
-        if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
-        const h = await verificarHelper();
-        if (!h.ok) return { success: false, error: h.error, domain };
-        const s = await rodar(comando('get', ['--domain', domain]), 20000);
-        if (s.error) return { success: false, error: s.error, domain };
-        const avisos = [];
-        if (domain === 'global' && s.diskMatches === 'no') avisos.push(AVISO_DISCO);
-        const appsProprios = Number(s.apps_com_idioma_proprio || 0);
-        if (domain === 'global' && appsProprios > 0) {
-            avisos.push(`${appsProprios} app(s) têm idioma próprio e, sem limpar, continuam no idioma deles.`);
-        }
-        return {
-            success: true,
-            domain,
-            appsComIdiomaProprio: appsProprios,
-            language: s.language || null,
-            nome: s.language ? (NOMES[s.language] || null) : null,
-            locale: s.locale || null,
-            override: s.override === 'yes',
-            disco: s.disk || null,
-            discoCombina: s.diskMatches === 'yes',
-            avisos
-        };
-    }
-
-    async function applyLanguage({ tag, language, domain = 'global', respring = false, locale = null,
-        confirmGlobal = false, limparApps = true } = {}) {
-        if (!tag) tag = language;
-        if (!TAG_RE.test(String(tag || ''))) {
-            return { success: false, error: 'idioma inválido: informe algo como pt-BR ou en-US' };
-        }
-        if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
-        if (domain === 'global' && confirmGlobal !== true) {
-            return {
-                success: false,
-                precisaConfirmar: true,
-                avisos: [AVISO_GLOBAL, AVISO_RESPRING],
-                error: 'confirmar antes de aplicar no aparelho inteiro'
-            };
-        }
-
-        const h = await verificarHelper();
-        if (!h.ok) return { success: false, error: h.error, avisos: [] };
-        if (locale && !LOCALE_RE.test(String(locale))) {
-            return { success: false, error: 'locale inválido: informe algo como pt_BR' };
-        }
-        const args = ['--domain', domain];
-        if (locale) args.push('--locale', String(locale));
-        else if (domain === 'global') args.push('--locale', 'auto');
-        if (domain === 'global') args.push(limparApps === false ? '--no-clear-apps' : '--clear-apps');
-        if (respring) args.push('--respring');
-
-        const s = await rodar(comando('set', [tag, ...args]), respring ? 60000 : 25000);
-        const avisos = [...(s.warnings || [])];
-        const appsLimpos = s.clearedApps ? String(s.clearedApps).split(',').filter(Boolean) : [];
-        if (appsLimpos.length && !avisos.some((a) => /idioma próprio/.test(a))) avisos.push(AVISO_APPS(appsLimpos.length));
-        if (domain === 'global' && !avisos.some((a) => a.includes('Accept-Language'))) avisos.unshift(AVISO_GLOBAL);
-        if (respring) {
-            if (!avisos.some((a) => /CAM LIVE/.test(a))) avisos.push(AVISO_CAM_LIVE);
-        } else {
-            avisos.push(AVISO_RESPRING);
-        }
-
-        const confirmado = s.confirmed === 'yes';
-        if (!confirmado) {
-            return {
-                success: false,
-                domain,
-                pedido: tag,
-                aplicado: s.language || null,
-                confirmed: false,
-                respring: !!respring,
-                avisos,
-                error: (s.error && !/saiu com código/.test(s.error))
-                    ? s.error
-                    : 'o aparelho não confirmou a gravação no store'
-            };
-        }
-        if (s.error) return { success: false, error: s.error, avisos };
-        return {
-            success: confirmado,
-            domain,
-            escopo: domain === 'global' ? 'aparelho' : 'app',
-            appsLimpos,
-            localeAuto: s.localeAuto === 'yes',
-            pedido: tag,
-            aplicado: s.language || null,
-            confirmed: confirmado,
-            locale: s.locale || null,
-            respring: !!respring,
-            avisos,
-            error: confirmado ? null : 'o aparelho não confirmou a gravação no store'
-        };
-    }
-
-    async function revertLanguage({ domain = 'global', respring = false } = {}) {
-        if (!dominioValido(domain)) return { success: false, error: 'domínio inválido' };
-        const h = await verificarHelper();
-        if (!h.ok) return { success: false, error: h.error, avisos: [] };
-        const args = ['--domain', domain];
-        if (respring) args.push('--respring');
-        const s = await rodar(comando('revert', args), respring ? 60000 : 25000);
-        const avisos = [...(s.warnings || [])];
-        if (respring) {
-            if (!avisos.some((a) => /CAM LIVE/.test(a))) avisos.push(AVISO_CAM_LIVE);
-        } else {
-            avisos.push(AVISO_RESPRING);
-        }
-        if (s.error) return { success: false, error: s.error, avisos };
-        const appsProprios = Number(s.apps_com_idioma_proprio || 0);
-        if (domain === 'global' && appsProprios > 0) {
-            avisos.push(`${appsProprios} app(s) têm idioma próprio e, sem limpar, continuam no idioma deles.`);
-        }
-        return {
-            success: true,
-            domain,
-            appsComIdiomaProprio: appsProprios,
-            language: s.language || null,
-            override: s.override === 'yes',
-            backup: s.revertido_de_backup || null,
-            respring: !!respring,
-            avisos
-        };
-    }
-
-    async function listarApps() {
-        const h = await verificarHelper();
-        if (!h.ok) return { success: false, error: h.error };
-        const s = await rodar([HELPER_BASH, HELPER_SCRIPT, 'language', 'apps', '--format', 'lines'], 30000);
-        if (s.error) return { success: false, error: s.error };
-        const apps = s.apps ? String(s.apps).split(',').filter(Boolean) : [];
-        return { success: true, count: apps.length, apps };
-    }
-
-    async function respring() {
-        const h = await verificarHelper();
-        if (!h.ok) return { success: false, error: h.error };
-        const s = await rodar([HELPER_BASH, HELPER_SCRIPT, 'respring'], 40000);
-        if (s.error) return { success: false, error: s.error };
-        return { success: s.respring === 'ok', avisos: [...(s.warnings || []), AVISO_RESPRING] };
-    }
-
-    return { getLanguage, applyLanguage, revertLanguage, listarApps, respring, verificarHelper, deviceId };
+    const verificarHelper = criarVerificadorDoHelper(exec);
+    const contexto = { exec, verificarHelper };
+    return {
+        getLanguage: (pedido) => getLanguage(contexto, pedido),
+        applyLanguage: (pedido) => applyLanguage(contexto, pedido),
+        revertLanguage: (pedido) => revertLanguage(contexto, pedido),
+        listarApps: () => listarApps(contexto),
+        respring: () => reiniciarInterface(contexto),
+        verificarHelper,
+        deviceId
+    };
 }
 
 function register(app, ipcMain, options = {}) {
