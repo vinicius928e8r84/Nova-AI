@@ -1,0 +1,222 @@
+== parser sem quebra
+saiu com 0
+PARSER: TODOS OS TESTES PASSARAM
+== parser caso 0 quebrado: socks5://h.exemplo.com:1002:usr:s3nh@_a-b
+saiu com 1
+FALHA (devia aceitar): socks5://h.exemplo.com:1002:usr:s3nh@_a-b -> quebrado de propósito
+1 FALHA(S)
+== parser caso 1 quebrado: socks5://h.exemplo.com:1002:usr:a:b:c
+saiu com 1
+FALHA (devia aceitar): socks5://h.exemplo.com:1002:usr:a:b:c -> quebrado de propósito
+1 FALHA(S)
+== parser caso 2 quebrado: h.exemplo.com:1002:usr:senha
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1002:usr:senha -> quebrado de propósito
+1 FALHA(S)
+== parser caso 3 quebrado: socks5://usr:senha@h.exemplo.com:1002
+saiu com 1
+FALHA (devia aceitar): socks5://usr:senha@h.exemplo.com:1002 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 4 quebrado: usr:senha@h.exemplo.com:1002
+saiu com 1
+FALHA (devia aceitar): usr:senha@h.exemplo.com:1002 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 5 quebrado: socks5h://usr:se@nha@h.exemplo.com:65535
+saiu com 1
+FALHA (devia aceitar): socks5h://usr:se@nha@h.exemplo.com:65535 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 6 quebrado: h.exemplo.com:1002@usr:93MdZAAC_country-US_hardsession-X
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1002@usr:93MdZAAC_country-US_hardsession-X -> quebrado de propósito
+1 FALHA(S)
+== parser caso 7 quebrado: socks5://h.exemplo.com:1002@usr:senha
+saiu com 1
+FALHA (devia aceitar): socks5://h.exemplo.com:1002@usr:senha -> quebrado de propósito
+1 FALHA(S)
+== parser caso 8 quebrado: h.exemplo.com:1080
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1080 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 9 quebrado:   1.2.3.4:1  
+saiu com 1
+FALHA (devia aceitar):   1.2.3.4:1   -> quebrado de propósito
+1 FALHA(S)
+== parser caso 10 quebrado: http://h.exemplo.com:8080:usr:senha
+saiu com 1
+FALHA (devia aceitar): http://h.exemplo.com:8080:usr:senha -> quebrado de propósito
+1 FALHA(S)
+== parser caso 11 quebrado: http://usr:senha@h.exemplo.com:3128
+saiu com 1
+FALHA (devia aceitar): http://usr:senha@h.exemplo.com:3128 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 12 quebrado: socks4://usr:senha@h.exemplo.com:1080
+saiu com 1
+FALHA (devia aceitar): socks4://usr:senha@h.exemplo.com:1080 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 13 quebrado: socks4a://h.exemplo.com:1080:usr:senha
+saiu com 1
+FALHA (devia aceitar): socks4a://h.exemplo.com:1080:usr:senha -> quebrado de propósito
+1 FALHA(S)
+== parser caso 14 quebrado: Socks5://usr:senha@h.exemplo.com:1002
+saiu com 1
+FALHA (devia aceitar): Socks5://usr:senha@h.exemplo.com:1002 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 15 quebrado: h.exemplo.com:1000:usr:senha
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1000:usr:senha -> quebrado de propósito
+1 FALHA(S)
+== parser caso 16 quebrado: h.exemplo.com:8080
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:8080 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 17 quebrado: h.exemplo.com:1001:usr:senha
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1001:usr:senha -> quebrado de propósito
+1 FALHA(S)
+== parser caso 18 quebrado: h.exemplo.com:1002
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1002 -> quebrado de propósito
+1 FALHA(S)
+== parser caso 19 quebrado:   "h.exemplo.com:1002:usr:senha"  
+saiu com 1
+FALHA (devia aceitar):   "h.exemplo.com:1002:usr:senha"   -> quebrado de propósito
+1 FALHA(S)
+== parser caso 20 quebrado: h.exemplo.com:1002:usr:senha/
+saiu com 1
+FALHA (devia aceitar): h.exemplo.com:1002:usr:senha/ -> quebrado de propósito
+1 FALHA(S)
+== parser caso 21 quebrado: 
+saiu com 1
+FALHA (devia recusar):  -> (null)://(null):0
+1 FALHA(S)
+== parser caso 22 quebrado:    
+saiu com 1
+FALHA (devia recusar):     -> (null)://(null):0
+1 FALHA(S)
+== parser caso 23 quebrado: h.exemplo.com
+saiu com 1
+FALHA (devia recusar): h.exemplo.com -> (null)://(null):0
+1 FALHA(S)
+== parser caso 24 quebrado: :1002
+saiu com 1
+FALHA (devia recusar): :1002 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 25 quebrado: h ost.com:1002
+saiu com 1
+FALHA (devia recusar): h ost.com:1002 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 26 quebrado: h.exemplo.com:0
+saiu com 1
+FALHA (devia recusar): h.exemplo.com:0 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 27 quebrado: h.exemplo.com:65536
+saiu com 1
+FALHA (devia recusar): h.exemplo.com:65536 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 28 quebrado: h.exemplo.com:-1
+saiu com 1
+FALHA (devia recusar): h.exemplo.com:-1 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 29 quebrado: h.exemplo.com:12x
+saiu com 1
+FALHA (devia recusar): h.exemplo.com:12x -> (null)://(null):0
+1 FALHA(S)
+== parser caso 30 quebrado: h.exemplo.com:1e3
+saiu com 1
+FALHA (devia recusar): h.exemplo.com:1e3 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 31 quebrado: socks5://h.exemplo.com:12x:usr:senha
+saiu com 1
+FALHA (devia recusar): socks5://h.exemplo.com:12x:usr:senha -> (null)://(null):0
+1 FALHA(S)
+== parser caso 32 quebrado: ftp://h.exemplo.com:1002:usr:senha
+saiu com 1
+FALHA (devia recusar): ftp://h.exemplo.com:1002:usr:senha -> (null)://(null):0
+1 FALHA(S)
+== parser caso 33 quebrado: socks5://usr@h.exemplo.com:1002
+saiu com 1
+FALHA (devia recusar): socks5://usr@h.exemplo.com:1002 -> (null)://(null):0
+1 FALHA(S)
+== parser caso 34 quebrado: a.exemplo.com:1@b.exemplo.com:2
+saiu com 1
+FALHA (devia aceitar): a.exemplo.com:1@b.exemplo.com:2 -> quebrado de propósito
+1 FALHA(S)
+== upstream sem quebra
+saiu com 0
+UPSTREAM: TODOS OS TESTES PASSARAM
+== upstream quebra http-nao-abre
+saiu com 1
+FALHA: http_connect devia abrir proxy HTTP recusou o CONNECT: HTTP/1.1 200 Connection Established
+1 FALHA(S)
+== upstream quebra http-recusa-passa
+saiu com 1
+FALHA: 407 devia falhar 
+1 FALHA(S)
+== upstream quebra http-recusa-sem-codigo
+saiu com 1
+FALHA: o erro devia citar o 407 proxy HTTP recusou o CONNECT
+1 FALHA(S)
+== upstream quebra http-connect-errado
+saiu com 1
+FALHA: CONNECT errado no fio CONNEKT alvo.exemplo.com:443 HTTP/1.1
+Host: alvo.exemplo.com:443
+Proxy-Connection: keep-alive
+User-Agent: novaproxy/0.2
+Proxy-Authorization: Basic dXNyOnBhOnNz
+
+
+1 FALHA(S)
+== upstream quebra http-auth-errada
+saiu com 1
+FALHA: Basic auth errado no fio CONNECT alvo.exemplo.com:443 HTTP/1.1
+Host: alvo.exemplo.com:443
+Proxy-Connection: keep-alive
+User-Agent: novaproxy/0.2
+Proxy-Authorization: Bearer dXNyOnBhOnNz
+
+
+1 FALHA(S)
+== upstream quebra http-tunel-fechado
+saiu com 1
+FALHA: o túnel HTTP não passou dados 
+1 FALHA(S)
+== upstream quebra socks4a-nao-abre
+saiu com 1
+FALHA: socks4a devia abrir proxy SOCKS4 recusou o destino (código 90)
+1 FALHA(S)
+== upstream quebra socks4-cabecalho
+saiu com 1
+FALHA: cabeçalho SOCKS4 errado 
+1 FALHA(S)
+== upstream quebra socks4-porta
+saiu com 1
+FALHA: porta SOCKS4 errada no fio 
+1 FALHA(S)
+== upstream quebra socks4a-endereco
+saiu com 1
+FALHA: SOCKS4a devia mandar 0.0.0.1 
+1 FALHA(S)
+== upstream quebra socks4-usuario
+saiu com 1
+FALHA: usuário SOCKS4 errado uXr
+1 FALHA(S)
+== upstream quebra socks4a-host
+saiu com 1
+FALHA: host SOCKS4a não foi enviado alvo.exemplo.cox
+1 FALHA(S)
+== upstream quebra socks4-recusa-passa
+saiu com 1
+FALHA: recusa do SOCKS4 devia falhar 
+1 FALHA(S)
+== upstream quebra socks4-recusa-sem-texto
+saiu com 1
+FALHA: o erro devia dizer que recusou proxy SOCKS4 negou o destino (código 91)
+1 FALHA(S)
+== upstream quebra https-aceito
+saiu com 1
+FALHA: https devia ser recusado nesta versão 
+1 FALHA(S)
+== upstream quebra https-sem-texto
+saiu com 1
+FALHA: o erro devia falar de https esquema TLS (TLS até o proxy) ainda não é suportado nesta versão: use http:// na porta 1000 ou socks5:// na 1002
+1 FALHA(S)
