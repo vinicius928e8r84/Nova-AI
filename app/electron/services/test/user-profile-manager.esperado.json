@@ -71,7 +71,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -142,7 +142,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ]
     ],
@@ -165,7 +165,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ]
     ],
@@ -188,7 +188,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -259,7 +259,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -369,7 +369,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -473,7 +473,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -541,7 +541,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -648,7 +648,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -743,7 +743,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -838,7 +838,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -948,7 +948,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -1017,7 +1017,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -1088,7 +1088,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -1159,7 +1159,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -1303,13 +1303,13 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
         "fs.ler",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json",
+          "<app>/Nova_Vault/MyActivity.json",
           "utf8"
         ]
       ],
@@ -1366,7 +1366,7 @@
       "lastAnalysisFailureTime": 0
     },
     "arquivos": {
-      "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json": "[{\"title\":\"Busca B\",\"safeHtmlItem\":[{\"html\":\"<i>x</i>\"}]}]",
+      "<app>/Nova_Vault/MyActivity.json": "[{\"title\":\"Busca B\",\"safeHtmlItem\":[{\"html\":\"<i>x</i>\"}]}]",
       "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
     }
   },
@@ -1440,7 +1440,7 @@
     },
     "arquivos": {
       "<falso>/instalado/Nova_Vault/MyActivity.json": "[{\"title\":\"do exe\",\"safeHtmlItem\":[{\"html\":\"\"}]}]",
-      "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json": "[{\"title\":\"do alternativo\",\"safeHtmlItem\":[{\"html\":\"\"}]}]",
+      "<app>/Nova_Vault/MyActivity.json": "[{\"title\":\"do alternativo\",\"safeHtmlItem\":[{\"html\":\"\"}]}]",
       "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
     }
   },
@@ -1842,7 +1842,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [
@@ -2011,7 +2011,7 @@
       [
         "fs.existe",
         [
-          "/home/factory/worktrees/Nova-AI-filac1/app/Nova_Vault/MyActivity.json"
+          "<app>/Nova_Vault/MyActivity.json"
         ]
       ],
       [

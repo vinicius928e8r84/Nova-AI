@@ -105,7 +105,7 @@ const ERRO_DE_FUNCAO_AUSENTE = /TypeError: [\w.]+ is not a function[^"]*/g;
 
 function normalizar(valor) {
   const texto = JSON.stringify(valor, (chave, item) => (item === undefined ? '(indefinido)' : resumir(item))).replace(ERRO_DE_FUNCAO_AUSENTE, 'TypeError: <função ausente>');
-  return JSON.parse(marcarCaminhos(texto, [[PASTA_DOS_SERVICOS, '<servicos>'], [RAIZ_FALSA, '<falso>']]));
+  return JSON.parse(marcarCaminhos(texto, [[PASTA_DOS_SERVICOS, '<servicos>'], [path.join(PASTA_DOS_SERVICOS, '..', '..'), '<app>'], [RAIZ_FALSA, '<falso>']]));
 }
 
 function lerGlobais() {
