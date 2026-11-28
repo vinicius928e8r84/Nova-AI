@@ -5,10 +5,43 @@ const fs = require('fs');
 const path = require('path');
 const {
   palco, SUBSTITUTOS, novoServico, limparOPalco, PREFIXO_DO_SSH, PREFIXO_DO_SCP, NOVAPROXY, ID_DO_IPHONE, PERFIL_DO_ARQUIVO_DE_IDIOMAS,
-  comandoDoSsh, respostaDoSsh, comandosDoSsh, esperarComRelogioFalso, comStdout, comFalha, semResposta, emSerie, conferirCasos, mensagemDaRejeicao,
+  comandoDoSsh, respostaDoSsh, comandosDoSsh,
 } = require('./celular-fisico-iphone.palco');
 
 test.after(limparOPalco);
+
+async function esperarComRelogioFalso(t, promessa, passoEmMs) {
+  let terminou = false;
+  const resultado = promessa.finally(() => { terminou = true; });
+  let passos = 0;
+  for (;;) {
+    await new Promise((resolver) => setImmediate(resolver));
+    if (terminou) break;
+    t.mock.timers.tick(passoEmMs);
+    passos++;
+  }
+  return { resposta: await resultado, passos };
+}
+
+const comStdout = (stdout) => () => ({ stdout });
+const comFalha = (stderr) => () => ({ erro: 'falhou', stderr });
+const semResposta = () => ({});
+
+async function emSerie(itens, funcao) {
+  const obtidos = [];
+  for (const item of itens) obtidos.push(await funcao(item));
+  return obtidos;
+}
+
+async function conferirCasos(casos, chamar) {
+  const obtidos = await emSerie(casos, (caso) => {
+    palco.reiniciar(caso.resposta);
+    return chamar(caso);
+  });
+  assert.deepStrictEqual(obtidos, casos.map((caso) => caso.esperado));
+}
+
+const mensagemDaRejeicao = (promessa) => promessa.then(() => null, (erro) => erro.message);
 
 const DOS_QUATRO_DO_PROXY = (servico, id) => Promise.all([servico.iosProxySet(id, 'p'), servico.iosProxyClear(id), servico.iosProxyStatus(id), servico.iosProxyCheck(id)]);
 const DOS_TRES_DO_MODELO = (servico, id) => Promise.all([servico.applyIOSModel(id, 'iPhone15,4'), servico.clearIOSModel(id), servico.getIOSModel(id)]);
