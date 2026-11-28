@@ -3,23 +3,34 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-function sistema(opts) {
-  const o = opts || {};
+function plataformaDe(o) {
   const platform = o.platform || process.platform;
-  const env = o.env || process.env;
   const win = platform === 'win32';
   return {
     platform,
     win,
-    env,
+    env: o.env || process.env,
     p: win ? path.win32 : path.posix,
-    delimiter: win ? ';' : ':',
+    delimiter: win ? ';' : ':'
+  };
+}
+
+function localizacoesDe(o) {
+  return {
     home: o.homedir || os.homedir(),
     resourcesPath: 'resourcesPath' in o ? o.resourcesPath : process.resourcesPath,
     dirname: o.dirname || __dirname,
-    cwd: o.cwd || process.cwd(),
-    exists: o.exists || ((f) => { try { fs.accessSync(f, fs.constants.X_OK); return true; } catch { return false; } })
+    cwd: o.cwd || process.cwd()
   };
+}
+
+function ehExecutavel(arquivo) {
+  try { fs.accessSync(arquivo, fs.constants.X_OK); return true; } catch { return false; }
+}
+
+function sistema(opts) {
+  const o = opts || {};
+  return { ...plataformaDe(o), ...localizacoesDe(o), exists: o.exists || ehExecutavel };
 }
 
 function exe(name, opts) {
