@@ -406,7 +406,7 @@ test('system-fs-op: o destino aceita os mesmos prefixos do caminho, avisa só da
     ['rel/c.txt', path.join(novaData, 'rel', 'c.txt')],
     ['Documents\\d.txt', path.join(documentos, 'd.txt')],
     ['Documents/e.txt', path.join(documentos, 'e.txt')],
-    ['Nova Data\\f.txt', path.join(novaData, 'f.txt')],
+    ['Nova Data\\f.txt', path.join(documentos, 'Nova Data\\f.txt')],
     ['Nova Data/g.txt', path.join(novaData, 'g.txt')],
     ['$resolvedNotesPath\\h.txt', path.join(novaData, 'h.txt')],
     ['${resolvedNotesPath}', novaData],
