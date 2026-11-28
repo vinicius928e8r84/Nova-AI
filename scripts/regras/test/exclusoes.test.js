@@ -26,6 +26,13 @@ function exclusoesDoCodeScene() {
   });
 }
 
+function filtroPorExtensao() {
+  const texto = fs.readFileSync(path.join(RAIZ, LISTA), 'utf8');
+  const secao = /## Filtro por extensão[\s\S]*?```text\n([\s\S]*?)```/.exec(texto);
+  assert.ok(secao, `${LISTA} precisa de um bloco \`\`\`text na seção "Filtro por extensão"`);
+  return secao[1].split('\n').map(linha => linha.trim()).filter(Boolean);
+}
+
 const exclusoes = exclusoesDoCodeScene();
 const excluidoNoCodeScene = caminho => exclusoes.some(glob => casa(glob, caminho));
 const versionados = execFileSync('git', ['ls-files', '-z'], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
@@ -44,6 +51,14 @@ test('o código que as regras isentam o CodeScene também não analisa', () => {
 test('toda linha da lista do CodeScene casa com algum arquivo', () => {
   const vazias = exclusoes.filter(glob => !versionados.some(caminho => casa(glob, caminho)));
   assert.deepEqual(vazias, [], `linhas de ${LISTA} que não casam com nada: tire-as`);
+});
+
+test('o filtro por extensão do painel não esconde código que o painel analisa', () => {
+  const filtro = filtroPorExtensao();
+  assert.ok(filtro.length > 0, 'o filtro por extensão não pode ficar vazio sem decisão');
+  const escondidas = filtro.filter(padrao => /^\*\.[^.*/]+$/.test(padrao) && ANALISADAS.has(padrao.slice(2)));
+  assert.deepEqual(escondidas, [], `extensões de código no filtro do painel de ${LISTA}: tire-as`);
+  assert.equal(filtro.includes('*.h'), false, 'o *.h saiu do filtro para o painel dar nota aos .h (#231)');
 });
 
 test('app/dist/ fora de assets/ é cobrado; o bundle e os terceiros de assets/ não', () => {
