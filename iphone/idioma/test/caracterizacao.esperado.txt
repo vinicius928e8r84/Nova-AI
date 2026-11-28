@@ -1,0 +1,296 @@
+== sem-argumentos
+saiu com 64
+{"error": "uso: novalanguage read|write|clear [--domain global|<bundle-id>]", "ok": false}
+== comando-desconhecido
+saiu com 64
+{"error": "comando desconhecido: foo", "ok": false}
+== comando-em-maiuscula
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== opcao-desconhecida
+saiu com 64
+{"error": "opção desconhecida: --xyz", "ok": false}
+== dominio-sem-valor
+saiu com 64
+{"error": "--domain sem valor", "ok": false}
+== dominio-curto-sem-valor
+saiu com 64
+{"error": "--domain sem valor", "ok": false}
+== locale-sem-valor
+saiu com 64
+{"error": "--locale sem valor", "ok": false}
+== locale-curto-sem-valor
+saiu com 64
+{"error": "--locale sem valor", "ok": false}
+== formato-sem-valor
+saiu com 64
+{"error": "--format sem valor", "ok": false}
+== formato-curto-sem-valor
+saiu com 64
+{"error": "--format sem valor", "ok": false}
+== formato-invalido
+saiu com 64
+{"error": "--format inválido (json|lines)", "ok": false}
+== erro-depois-do-formato-lines
+saiu com 64
+error=opção desconhecida: --xyz
+ok=no
+== erro-depois-do-formato-json
+saiu com 64
+{"error": "opção desconhecida: --xyz", "ok": false}
+== formato-text
+saiu com 0
+domain=com.aquiles.novalanguage.carac.app
+language=
+languages=
+locale=
+ok=yes
+override=no
+== formato-em-maiuscula
+saiu com 0
+domain=com.aquiles.novalanguage.carac.app
+language=
+languages=
+locale=
+ok=yes
+override=no
+== formato-lines-e-depois-json
+saiu com 0
+domain=com.aquiles.novalanguage.carac.app
+language=
+languages=
+locale=
+ok=yes
+override=no
+== formato-json
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== dominio-com-barras
+saiu com 64
+{"error": "domínio inválido (use global ou um bundle id)", "ok": false}
+== dominio-de-dois-caracteres
+saiu com 64
+{"error": "domínio inválido (use global ou um bundle id)", "ok": false}
+== dominio-com-hifen-no-inicio
+saiu com 64
+{"error": "domínio inválido (use global ou um bundle id)", "ok": false}
+== dominio-de-121-caracteres
+saiu com 0
+{"domain": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== dominio-de-122-caracteres
+saiu com 64
+{"error": "domínio inválido (use global ou um bundle id)", "ok": false}
+== dominio-vazio-vira-global
+saiu com 0
+{"domain": "global", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== comando-desconhecido-com-dominio-invalido
+saiu com 64
+{"error": "domínio inválido (use global ou um bundle id)", "ok": false}
+== scan-com-dominio-invalido
+saiu com 64
+{"error": "domínio inválido (use global ou um bundle id)", "ok": false}
+== read-global
+saiu com 0
+{"domain": "global", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== read-global-em-lines
+saiu com 0
+domain=global
+language=
+languages=
+locale=
+ok=yes
+override=no
+== read-system
+saiu com 0
+{"domain": "global", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== read-aparelho
+saiu com 0
+{"domain": "global", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== read-app-vazio
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== read-app-vazio-em-lines
+saiu com 0
+domain=com.aquiles.novalanguage.carac.app
+language=
+languages=
+locale=
+ok=yes
+override=no
+== write-sem-idioma
+saiu com 64
+{"error": "falta o idioma (ex.: pt-BR)", "ok": false}
+== write-idioma-com-espaco
+saiu com 64
+{"error": "idioma inválido: pt BR", "ok": false}
+== write-idioma-de-uma-letra
+saiu com 64
+{"error": "idioma inválido: p", "ok": false}
+== write-idioma-de-36-letras
+saiu com 64
+{"error": "idioma inválido: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "ok": false}
+== write-idioma-com-simbolo
+saiu com 64
+{"error": "idioma inválido: pt_BR", "ok": false}
+== write-locale-invalido
+saiu com 64
+{"error": "locale inválido: pt BR", "ok": false}
+== write-locale-de-uma-letra
+saiu com 64
+{"error": "locale inválido: p", "ok": false}
+== write-app
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "pt-BR", "languages": ["pt-BR"], "locale": null, "ok": true, "override": true, "requested": "pt-BR", "synced": true}
+== write-app-em-lines
+saiu com 0
+confirmed=yes
+domain=com.aquiles.novalanguage.carac.app
+language=pt-BR
+languages=pt-BR
+locale=
+ok=yes
+override=yes
+requested=pt-BR
+synced=yes
+== read-app-depois-do-write
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.app", "language": "pt-BR", "languages": ["pt-BR"], "locale": null, "ok": true, "override": true}
+== write-com-locale
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "en-US", "languages": ["en-US"], "locale": "en_US", "ok": true, "override": true, "requested": "en-US", "synced": true}
+== write-com-locale-automatico
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "pt-BR", "languages": ["pt-BR"], "locale": "pt_BR", "localeAuto": true, "ok": true, "override": true, "requested": "pt-BR", "synced": true}
+== write-com-locale-automatico-em-lines
+saiu com 0
+confirmed=yes
+domain=com.aquiles.novalanguage.carac.app
+language=pt-BR
+languages=pt-BR
+locale=pt_BR
+localeAuto=yes
+ok=yes
+override=yes
+requested=pt-BR
+synced=yes
+== write-com-locale-automatico-de-tres-partes
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "zh-Hans-CN", "languages": ["zh-Hans-CN"], "locale": "zh_HANS_CN", "localeAuto": true, "ok": true, "override": true, "requested": "zh-Hans-CN", "synced": true}
+== write-com-locale-automatico-sem-regiao
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "pt", "languages": ["pt"], "locale": "zh_HANS_CN", "localeAuto": true, "ok": true, "override": true, "requested": "pt", "synced": true}
+== write-com-locale-menos
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "fr-FR", "languages": ["fr-FR"], "locale": "-", "ok": true, "override": true, "requested": "fr-FR", "synced": true}
+== write-com-argumento-sobrando
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "es-ES", "languages": ["es-ES"], "locale": "-", "ok": true, "override": true, "requested": "es-ES", "synced": true}
+== write-com-opcao-antes-do-idioma
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "es-ES", "languages": ["es-ES"], "locale": "es_ES", "ok": true, "override": true, "requested": "es-ES", "synced": true}
+== write-global
+saiu com 0
+{"confirmed": true, "domain": "global", "language": "pt-BR", "languages": ["pt-BR"], "locale": null, "ok": true, "override": true, "requested": "pt-BR", "synced": true}
+== read-global-depois-do-write
+saiu com 0
+{"domain": "global", "language": "pt-BR", "languages": ["pt-BR"], "locale": null, "ok": true, "override": true}
+== clear-sem-locale
+saiu com 0
+{"cleared": true, "domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": "es_ES", "ok": true, "override": false, "synced": true}
+== clear-app-ja-limpo-em-lines
+saiu com 0
+cleared=yes
+domain=com.aquiles.novalanguage.carac.app
+language=
+languages=
+locale=es_ES
+ok=yes
+override=no
+synced=yes
+== write-para-limpar-o-locale
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "pt-BR", "languages": ["pt-BR"], "locale": "pt_BR", "ok": true, "override": true, "requested": "pt-BR", "synced": true}
+== clear-com-locale-menos
+saiu com 0
+{"cleared": true, "domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": null, "ok": true, "override": false, "synced": true}
+== write-para-restaurar-o-locale
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.app", "language": "pt-BR", "languages": ["pt-BR"], "locale": "pt_BR", "ok": true, "override": true, "requested": "pt-BR", "synced": true}
+== clear-com-locale-novo
+saiu com 0
+{"cleared": true, "domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": "en_US", "ok": true, "override": false, "synced": true}
+== clear-com-locale-invalido
+saiu com 64
+{"error": "locale inválido: pt BR", "ok": false}
+== read-depois-do-clear-com-locale-invalido
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.app", "language": null, "languages": [], "locale": "en_US", "ok": true, "override": false}
+== clear-global
+saiu com 0
+{"cleared": true, "domain": "global", "language": null, "languages": [], "locale": null, "ok": true, "override": false, "synced": true}
+== clear-global-com-locale-menos
+saiu com 0
+{"cleared": true, "domain": "global", "language": null, "languages": [], "locale": null, "ok": true, "override": false, "synced": true}
+== scan-sem-pasta-configurada
+saiu com 0
+{"apps": [], "count": 0, "ok": true}
+== scan-com-pasta-vazia-na-variavel
+saiu com 0
+{"apps": [], "count": 0, "ok": true}
+== scan
+saiu com 0
+{"apps": ["DDDD", "com.aquiles.novalanguage.carac.a", "com.aquiles.novalanguage.carac.b", "com.aquiles.novalanguage.carac.c", "com.aquiles.novalanguage.carac.d", "com.aquiles.novalanguage.carac.e", "com.aquiles.novalanguage.carac.f"], "count": 7, "ok": true}
+== scan-em-lines
+saiu com 0
+apps=DDDD,com.aquiles.novalanguage.carac.a,com.aquiles.novalanguage.carac.b,com.aquiles.novalanguage.carac.c,com.aquiles.novalanguage.carac.d,com.aquiles.novalanguage.carac.e,com.aquiles.novalanguage.carac.f
+count=7
+ok=yes
+== scan-de-um-comando-em-maiuscula
+saiu com 0
+{"apps": ["DDDD", "com.aquiles.novalanguage.carac.a", "com.aquiles.novalanguage.carac.b", "com.aquiles.novalanguage.carac.c", "com.aquiles.novalanguage.carac.d", "com.aquiles.novalanguage.carac.e", "com.aquiles.novalanguage.carac.f"], "count": 7, "ok": true}
+== scan-depois-de-gravar-nos-apps
+saiu com 0
+{"apps": ["com.aquiles.novalanguage.carac.a", "com.aquiles.novalanguage.carac.b", "com.aquiles.novalanguage.carac.c", "com.aquiles.novalanguage.carac.d", "com.aquiles.novalanguage.carac.e", "com.aquiles.novalanguage.carac.f"], "count": 6, "ok": true}
+== write-global-limpando-os-apps
+saiu com 0
+{"clearedApps": ["com.aquiles.novalanguage.carac.a:pt-BR", "com.aquiles.novalanguage.carac.b:es-ES", "com.aquiles.novalanguage.carac.c:pt-BR", "com.aquiles.novalanguage.carac.d:pt-BR", "com.aquiles.novalanguage.carac.e:pt-BR", "com.aquiles.novalanguage.carac.f:pt-BR"], "clearedCount": 6, "confirmed": true, "domain": "global", "language": "en-US", "languages": ["en-US"], "locale": "en_US", "localeAuto": true, "ok": true, "override": true, "requested": "en-US", "synced": true}
+== read-do-app-limpo
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.a", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== read-do-app-limpo-na-pasta-de-container
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.c", "language": null, "languages": [], "locale": null, "ok": true, "override": false}
+== write-global-sem-limpar-os-apps
+saiu com 0
+{"confirmed": true, "domain": "global", "language": "en-US", "languages": ["en-US"], "locale": "en_US", "ok": true, "override": true, "requested": "en-US", "synced": true}
+== read-do-app-mantido
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.a", "language": "pt-BR", "languages": ["pt-BR"], "locale": null, "ok": true, "override": true}
+== write-global-com-as-duas-opcoes
+saiu com 0
+{"confirmed": true, "domain": "global", "language": "en-US", "languages": ["en-US"], "locale": "en_US", "ok": true, "override": true, "requested": "en-US", "synced": true}
+== read-do-app-mantido-com-as-duas-opcoes
+saiu com 0
+{"domain": "com.aquiles.novalanguage.carac.b", "language": "pt-BR", "languages": ["pt-BR"], "locale": null, "ok": true, "override": true}
+== write-global-limpando-os-apps-em-lines
+saiu com 0
+clearedApps=com.aquiles.novalanguage.carac.a:pt-BR,com.aquiles.novalanguage.carac.b:pt-BR,com.aquiles.novalanguage.carac.c:pt-BR,com.aquiles.novalanguage.carac.d:pt-BR,com.aquiles.novalanguage.carac.e:pt-BR,com.aquiles.novalanguage.carac.f:pt-BR
+clearedCount=6
+confirmed=yes
+domain=global
+language=pt-BR
+languages=pt-BR
+locale=en_US
+ok=yes
+override=yes
+requested=pt-BR
+synced=yes
+== write-de-app-com-clear-apps
+saiu com 0
+{"confirmed": true, "domain": "com.aquiles.novalanguage.carac.a", "language": "en-US", "languages": ["en-US"], "locale": null, "ok": true, "override": true, "requested": "en-US", "synced": true}
+== write-global-sem-nenhuma-opcao-de-apps
+saiu com 0
+{"confirmed": true, "domain": "global", "language": "pt-BR", "languages": ["pt-BR"], "locale": "en_US", "ok": true, "override": true, "requested": "pt-BR", "synced": true}
+== clear-global-no-fim
+saiu com 0
+{"cleared": true, "domain": "global", "language": null, "languages": [], "locale": "en_US", "ok": true, "override": false, "synced": true}
