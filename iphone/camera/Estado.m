@@ -13,7 +13,7 @@ void saveStatus(void) {
                               @"recordInputKnown":@(ctx.recordInput != nil)}];
     }
     NSDictionary *status = @{
-        @"version":@"0.1-39", @"pid":@([NSProcessInfo processInfo].processIdentifier),
+        @"version":@"0.1-40", @"pid":@([NSProcessInfo processInfo].processIdentifier),
         @"observedAppIDs":g_observedAppIDs.allObjects,
         @"allowedAppIDs":g_allowedAppIDs.allObjects,
         @"audioInjection":@(g_audioInjection), @"audioQueued":@(g_audioPackets.count),

@@ -5,7 +5,7 @@ const OUTRO_UDID = 'b'.repeat(40);
 const SEM_PACOTES = { pacotes: [], modelo: 'iPhone9,1', semHelperDeFuso: true };
 const TUDO_INSTALADO = {
   cameraAtualizada: 'yes',
-  versoes: { camera: '0.1-39', novamodel: '1.2', novalanguage: '0.2-3', novaproxy: '1.0' },
+  versoes: { camera: '0.1-40', novamodel: '1.2', novalanguage: '0.2-3', novaproxy: '1.0' },
 };
 
 const preparar = (contexto, id = ID_DO_IPHONE, senha = SENHA) => tentar(() => contexto.setup.prepare(id, senha, contexto.servico));

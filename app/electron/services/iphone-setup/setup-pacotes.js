@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { aspas, comando } = require('./setup-ssh');
 
-const VERSAO_DA_PONTE_DA_CAMERA = '0.1-39';
+const VERSAO_DA_PONTE_DA_CAMERA = '0.1-40';
 const MODELO_COM_PONTE_DA_CAMERA = 'iPhone10,2';
 const IOS_COM_PONTE_DA_CAMERA = '16.7.16';
 const LETRAS_DO_AVISO_DE_ERRO = 120;
