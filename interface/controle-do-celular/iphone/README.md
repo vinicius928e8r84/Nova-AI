@@ -49,8 +49,12 @@ Cópia aplicada em `interface/dist/index-Dun7lr2S.patched.js`.
 
 | Arquivo | Papel |
 |---|---|
-| `app/electron/services/iphone-setup/inapp.js` | modal + console embutido; roda no preload (mundo isolado), fora do bundle React |
-| `app/electron/services/iphone-setup/setup.js` | valida a senha, instala a chave SSH e a ponte de câmera; `prompt()` manda o modal abrir |
+| `app/electron/services/iphone-setup/inapp.js` | liga os dois canais do modal e devolve `open`; roda no preload (mundo isolado), fora do bundle React |
+| `app/electron/services/iphone-setup/inapp-conectar.js` | o modal de conexão: senha, progresso, erro e resultado |
+| `app/electron/services/iphone-setup/inapp-console.js` e `inapp-console-sozinho.js` | a tela embutida do controle (`<webview>`), a janela do console e o console aberto sem o modal |
+| `app/electron/services/iphone-setup/inapp-visual.js` | o estilo e a marcação do modal |
+| `app/electron/services/iphone-setup/setup.js` | valida a senha e conduz o Conectar; `prompt()` manda o modal abrir |
+| `app/electron/services/iphone-setup/setup-ssh.js`, `setup-chaves.js` e `setup-pacotes.js` | o túnel USB e a conexão SSH, a chave local e a impressão digital do aparelho, e a instalação da ponte de câmera, do modelo, do idioma, do helper de fuso e do proxy |
 | `test/iphone/setup.test.cjs` | testes de limite do serviço (senha, aparelho único, janela ausente) |
 | `aplicar-botao-iphone.py` | patch do botão "Abrir controle" no bundle compilado |
 | `test/botao.test.cjs` | valida o trecho do botão no bundle patcheado |
@@ -129,7 +133,7 @@ O app instalado em `/Applications/Nova AI Mac.app` já está com essas alteraç�
 
 ## Testes executados
 
-- `node --check` em `main.js`, `preload.js`, `inapp.js` e `setup.js`.
+- `node --check` em `main.js`, `preload.js`, `inapp*.js` e `setup*.js`.
 - `node test/iphone/setup.test.cjs` — modal pedido à janela certa, recusa de senha vazia/com quebra
   de linha/grande, bloqueio de múltiplos aparelhos, senha ausente das mensagens.
 - `node interface/controle-do-celular/iphone/test/botao.test.cjs` — executou o trecho do cartão no bundle patcheado: iPhone
