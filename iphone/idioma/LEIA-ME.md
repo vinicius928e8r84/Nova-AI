@@ -17,11 +17,11 @@ O que o time mediu e este trabalho usa:
 
 | Arquivo | O que é |
 |---|---|
-| `novalanguage/main.m` | binário pequeno (Objective-C/Foundation): lê/grava o idioma pelo CFPreferences com leitura de confirmação, `scan` dos apps com idioma próprio, limpeza desses overrides guardando o valor anterior e `AppleLocale` derivado do idioma |
+| `novalanguage/*.m` | binário pequeno (Objective-C/Foundation), um arquivo por responsabilidade (`main.m` despacha; `Comandos.m`, `Opcoes.m`, `Preferencias.m`, `Varredura.m`, `Validacao.m`, `Saida.m`): lê/grava o idioma pelo CFPreferences com leitura de confirmação, `scan` dos apps com idioma próprio, limpeza desses overrides guardando o valor anterior e `AppleLocale` derivado do idioma |
 | `novalanguage/{Makefile,control,layout}` | pacote `com.aquiles.novalanguage` 0.1, arm64/rootless, instala em `/var/jb/usr/bin/novalanguage`, `postinst` deixa 755 (sem SUID) |
 | `nova-locale.sh` (v3) | helper do aparelho com `language get/set/revert` e `respring` (cópia única, em `iphone/idioma/helper/`) |
 | `app/electron/services/idioma-ipc.js` | módulo do app com os handlers `spoofer:*language` (lógica pura, testável) |
-| `test/` | 3 blocos de teste que rodam no Mac, sem aparelho |
+| `test/` | 4 blocos de teste que rodam no Mac, sem aparelho (o quarto, `caracterizacao.sh`, compara 78 cenas do binário com `caracterizacao.esperado.txt`) |
 
 Pacote construído (não instalado): `novalanguage/packages/com.aquiles.novalanguage_0.1-1+debug_iphoneos-arm64.deb` (9.672 B, binário `Mach-O arm64`).
 
@@ -133,4 +133,4 @@ Os avisos sempre incluem: global muda `Accept-Language` dos sites; respring derr
 iphone/idioma/test/rodar.sh
 ```
 
-Blocos: `novalanguage` (compila o `main.m` e faz ida-e-volta num domínio descartável), helper v3 (14 casos com binário e `killall` falsos) e IPC (createHandlers com `exec` falso sobre `app/electron/services/idioma-ipc.js`: validação, confirmação obrigatória no global, avisos, sem `sudo`).
+Blocos: `novalanguage` (compila os `.m` e faz ida-e-volta num domínio descartável), helper v3 (14 casos com binário e `killall` falsos) e IPC (createHandlers com `exec` falso sobre `app/electron/services/idioma-ipc.js`: validação, confirmação obrigatória no global, avisos, sem `sudo`).
