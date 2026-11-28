@@ -1,0 +1,307 @@
+== sem-argumentos
+saiu com 1
+uso:
+  novamodel set <productType>    ex.: novamodel set iPhone14,5
+  novamodel clear
+  novamodel status
+== comando-desconhecido
+saiu com 1
+uso:
+  novamodel set <productType>    ex.: novamodel set iPhone14,5
+  novamodel clear
+  novamodel status
+== set-sem-tipo
+saiu com 1
+uso:
+  novamodel set <productType>    ex.: novamodel set iPhone14,5
+  novamodel clear
+  novamodel status
+== status-sem-controle
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== set-sem-banco
+saiu com 2
+erro: modelo 'iPhone14,5' não existe no banco (<tmp>/models.json)
+== set-tipo-inexistente
+saiu com 2
+erro: modelo 'iPhone99,9' não existe no banco (<tmp>/models.json)
+== set-tipo-vazio
+saiu com 2
+erro: modelo '' não existe no banco (<tmp>/models.json)
+== set-tipo-que-nao-e-utf8
+saiu com 2
+erro: modelo '(nulo)' não existe no banco (<tmp>/models.json)
+== set-modelo-sem-nome
+saiu com 2
+erro: modelo 'iPhoneX,1' não existe no banco (<tmp>/models.json)
+== set-modelo-com-nome-vazio
+saiu com 2
+erro: modelo 'iPhoneX,2' não existe no banco (<tmp>/models.json)
+== set-modelo-com-nome-que-nao-e-texto
+saiu com 2
+erro: modelo 'iPhoneX,3' não existe no banco (<tmp>/models.json)
+== set-modelo-com-nome-no-segundo-registro
+saiu com 0
+ok iPhoneY,1 -> Segundo (aplicado; apps/Ajustes abertos podem precisar ser reabertos)
+== clear-sem-controle
+saiu com 0
+ok cleared (modelo real restaurado)
+== set-com-banco-bom
+saiu com 0
+ok iPhone14,5 -> iPhone 13 (aplicado; apps/Ajustes abertos podem precisar ser reabertos)
+== controle-depois-do-set
+saiu com 0
+controle: modo 644
+{"enabled": true, "name": "iPhone 13", "productType": "iPhone14,5"}
+== status-habilitado
+saiu com 0
+{"active": "iPhone14,5", "enabled": true, "real": "<real>"}
+== set-com-argumento-sobrando
+saiu com 0
+ok iPhone15,2 -> iPhone 14 Pro (aplicado; apps/Ajustes abertos podem precisar ser reabertos)
+== controle-depois-do-segundo-set
+saiu com 0
+controle: modo 644
+{"enabled": true, "name": "iPhone 14 Pro", "productType": "iPhone15,2"}
+== clear-com-controle
+saiu com 0
+ok cleared (modelo real restaurado)
+== controle-depois-do-clear
+saiu com 0
+controle: ausente
+== status-depois-do-clear
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== clear-com-argumento-sobrando
+saiu com 0
+ok cleared (modelo real restaurado)
+== status-com-argumento-sobrando
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== status-desabilitado
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== status-habilitado-sem-tipo
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== status-habilitado-sem-chave-do-tipo
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== status-habilitado-so-com-o-tipo
+saiu com 0
+{"active": "iPhone16,1", "enabled": true, "real": "<real>"}
+== status-com-controle-quebrado
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== status-com-controle-que-e-lista
+saiu com 0
+{"active": "<real>", "enabled": false, "real": "<real>"}
+== set-sem-poder-gravar
+saiu com 3
+erro: não consegui gravar <tmp>/controle.json
+== set-com-banco-quebrado
+saiu com 2
+erro: modelo 'iPhone14,5' não existe no banco (<tmp>/models.json)
+== set-com-banco-que-e-lista
+saiu com 2
+erro: modelo 'iPhone14,5' não existe no banco (<tmp>/models.json)
+== set-com-modelos-que-nao-e-lista
+saiu com 2
+erro: modelo 'iPhone14,5' não existe no banco (<tmp>/models.json)
+== set-com-lista-de-modelos-vazia
+saiu com 2
+erro: modelo 'iPhone14,5' não existe no banco (<tmp>/models.json)
+== ganchos-instalados
+saiu com 0
+ganchos de função: 5
+  0 MGCopyAnswer
+  1 MGCopyAnswerWithError
+  2 MGGetStringAnswer
+  3 sysctlbyname
+  4 sysctl
+ganchos de método: 4
+  0 UIDevice model
+  1 UIDevice localizedModel
+  2 UIDevice modelName
+  3 UIDevice _modelName
+== ganchos-instalados-sem-modelname
+saiu com 0
+ganchos de função: 5
+  0 MGCopyAnswer
+  1 MGCopyAnswerWithError
+  2 MGGetStringAnswer
+  3 sysctlbyname
+  4 sysctl
+ganchos de método: 2
+  0 UIDevice model
+  1 UIDevice localizedModel
+== ganchos-instalados-sem-uidevice
+saiu com 0
+ganchos de função: 5
+  0 MGCopyAnswer
+  1 MGCopyAnswerWithError
+  2 MGGetStringAnswer
+  3 sysctlbyname
+  4 sysctl
+ganchos de método: 0
+== ganchos-instalados-no-processo-novamodel
+saiu com 0
+ganchos de função: 0
+ganchos de método: 0
+== roteiro-dos-ganchos
+saiu com 0
+== sem-arquivo-de-controle
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== habilitado-com-tudo
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(MarketingProductName) = iPhone 13
+  MGCopyAnswer(ProductName) = iPad
+  MGCopyAnswer(HWModelStr) = D16AP
+  MGCopyAnswer(ModelNumber) = MLPF3
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== habilitado-so-com-o-tipo
+  MGCopyAnswer(ProductType) = iPhone15,2
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = iPhone
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== desabilitado
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== habilitado-sem-tipo
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== tipo-vazio
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== tipo-que-nao-e-texto
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== nome-que-nao-e-texto
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = iPhone
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== nome-do-produto-vazio
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== habilitado-como-texto-verdadeiro
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = iPhone
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== habilitado-como-texto-falso
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== habilitado-como-numero
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = iPhone
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== json-invalido
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== arquivo-vazio
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(MarketingProductName) = original:MarketingProductName
+  MGCopyAnswer(ProductName) = original:ProductName
+  MGCopyAnswer(HWModelStr) = original:HWModelStr
+  MGCopyAnswer(ModelNumber) = original:ModelNumber
+  MGCopyAnswer(DeviceName) = original:DeviceName
+== arquivo-apagado-depois-de-habilitado
+  MGCopyAnswer(ProductType) = iPhone14,5
+  MGCopyAnswer(ProductType) = original:ProductType
+  MGCopyAnswer(ProductType) = iPhone14,5
+== cache-por-tamanho-e-data
+  MGCopyAnswer(ProductType) = iPhone14,5
+  mesmo tamanho e mesma data:
+  MGCopyAnswer(ProductType) = iPhone14,5
+  mesmo tamanho e data nova:
+  MGCopyAnswer(ProductType) = iPhone15,2
+  tamanho novo:
+  MGCopyAnswer(ProductType) = iPhone16,1
+  MGCopyAnswer(MarketingProductName) = x
+== variantes-do-mg
+  MGCopyAnswerWithError(ProductType) = iPhone14,5
+  MGCopyAnswerWithError(MarketingProductName) = iPhone 13
+  MGCopyAnswerWithError(DeviceName) = original-com-erro:DeviceName
+  MGGetStringAnswer(ProductType) = iPhone14,5
+  MGGetStringAnswer(MarketingProductName) = iPhone 13
+  MGGetStringAnswer(DeviceName) = original-texto:DeviceName
+== pergunta-nula
+  MGCopyAnswer(NULL) = original:(nulo)
+  MGCopyAnswerWithError(NULL) = original-com-erro:(nulo)
+  MGGetStringAnswer(NULL) = original-texto:(nulo)
+== sysctlbyname
+  sysctlbyname(hw.machine, capacidade 64, escrita 0): resultado=0 errno=0 tamanho=11 texto=iPhone14,5
+  sysctlbyname(hw.product, capacidade 64, escrita 0): resultado=0 errno=0 tamanho=10 texto=iPhone 13
+  sysctlbyname(hw.machine, capacidade 11, escrita 0): resultado=0 errno=0 tamanho=11 texto=iPhone14,5
+  sysctlbyname(hw.machine, capacidade 10, escrita 0): resultado=-1 errno=12 tamanho=11 texto=
+  sysctlbyname(hw.machine, capacidade 64, escrita 1): igual ao original
+  sysctlbyname(hw.ncpu, capacidade 64, escrita 0): igual ao original
+  sem buffer: resultado=0 tamanho=11
+  sem tamanho: resultado=-1 errno=12
+== sysctlbyname-sem-spoof
+  hw.machine sem controle: igual ao original
+== sysctl
+  hw.machine: resultado=0 errno=0 tamanho=11 texto=iPhone14,5
+  hw.product: resultado=0 errno=0 tamanho=10 texto=iPhone 13
+  hw.machine com escrita: igual ao original
+  hw.machine com nome curto: igual ao original
+  hw.ncpu: igual ao original
+  kern com o código de hw.machine: igual ao original
+== uidevice-habilitado
+  model = iPad
+  localizedModel = iPhone 13
+  modelName = iPhone 13
+  _modelName = iPhone 13
+== uidevice-habilitado-so-com-o-tipo
+  model = iPhone
+  localizedModel = original-localizedModel
+  modelName = original-modelName
+  _modelName = original-_modelName
+== uidevice-desabilitado
+  model = original-model
+  localizedModel = original-localizedModel
+  modelName = original-modelName
+  _modelName = original-_modelName

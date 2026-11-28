@@ -37,7 +37,7 @@
       "job": "mac",
       "com": "bash",
       "executar": ["iphone/**/test/rodar.sh"],
-      "arquivos": ["iphone/proxy/tool/test/*", "iphone/idioma/test/*.sh"]
+      "arquivos": ["iphone/proxy/tool/test/*", "iphone/idioma/test/*.sh", "iphone/modelo/test/*.sh", "iphone/modelo/test/*.m"]
     },
     {
       "nome": "ferramentas",
