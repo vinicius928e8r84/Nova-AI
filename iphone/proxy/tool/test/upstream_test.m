@@ -1,4 +1,4 @@
-#import "../Upstream.h"
+#import "conexao_palco.h"
 #import <Foundation/Foundation.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -169,7 +169,7 @@ static int cena_http_conecta(void) {
     starts(&f, http_server, NULL);
     char err[512];
     err[0] = 0;
-    int fd = upstream_connect("http", "127.0.0.1", port, "usr", "pa:ss", "alvo.exemplo.com", 443, err, sizeof(err));
+    int fd = conectar_upstream_pelo_palco(&(PedidoDeConexao){"http", "127.0.0.1", port, "usr", "pa:ss", "alvo.exemplo.com", 443}, err, sizeof(err));
     if (fd < 0) fail("http_connect devia abrir", err);
     else {
         conferir_pedido_http(&f);
@@ -185,7 +185,7 @@ static void cena_socks4a_conecta(void) {
     int port = subir_proxy_falso(&f, socks4_server);
     char err[512];
     err[0] = 0;
-    int fd = upstream_connect("socks4a", "127.0.0.1", port, "usr", "", "alvo.exemplo.com", 80, err, sizeof(err));
+    int fd = conectar_upstream_pelo_palco(&(PedidoDeConexao){"socks4a", "127.0.0.1", port, "usr", "", "alvo.exemplo.com", 80}, err, sizeof(err));
     if (fd < 0) fail("socks4a devia abrir", err);
     else {
         conferir_pedido_socks4a(&f);
@@ -200,7 +200,7 @@ static void cena_de_recusa(CenaDeRecusa c) {
     int port = subir_proxy_falso(&f, c.servidor);
     char err[512];
     err[0] = 0;
-    int fd = upstream_connect(c.scheme, "127.0.0.1", port, c.user, c.pass, "alvo.exemplo.com", c.porta_do_alvo, err, sizeof(err));
+    int fd = conectar_upstream_pelo_palco(&(PedidoDeConexao){c.scheme, "127.0.0.1", port, c.user, c.pass, "alvo.exemplo.com", c.porta_do_alvo}, err, sizeof(err));
     if (fd >= 0) { fail(c.mensagens.se_conectou, NULL); close(fd); }
     else if (!strstr(err, c.mensagens.trecho_do_erro)) fail(c.mensagens.se_faltou_o_trecho, err);
     close(f.fd);
@@ -209,7 +209,7 @@ static void cena_de_recusa(CenaDeRecusa c) {
 static void cena_https_recusado(void) {
     char err[512];
     err[0] = 0;
-    int fd = upstream_connect("https", "127.0.0.1", 1, "u", "p", "alvo", 443, err, sizeof(err));
+    int fd = conectar_upstream_pelo_palco(&(PedidoDeConexao){"https", "127.0.0.1", 1, "u", "p", "alvo", 443}, err, sizeof(err));
     if (fd >= 0) { fail("https devia ser recusado nesta versão", NULL); close(fd); }
     else if (!strstr(err, "https")) fail("o erro devia falar de https", err);
 }

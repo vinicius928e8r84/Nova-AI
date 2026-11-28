@@ -1,7 +1,9 @@
-#import <Foundation/Foundation.h>
+#import "Conexao.h"
 
-int upstream_connect(const char *scheme,
-                     const char *proxy_host, int proxy_port,
-                     const char *user, const char *pass,
-                     const char *target_host, int target_port,
-                     char *err, size_t errlen);
+typedef struct {
+    const char *esquema;
+    Endereco endereco;
+    Credencial credencial;
+} ProxyMontante;
+
+int upstream_connect(ProxyMontante proxy, Endereco alvo, Falha falha);

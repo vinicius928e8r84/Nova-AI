@@ -1,0 +1,2463 @@
+{
+  "a primeira tentativa digita no YouTube, escolhe o primeiro vídeo e devolve o link": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "gatos"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"gatos\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Navigating to YouTube Media Database..."
+          }
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Manually typing query: \"gatos\""
+          }
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #1..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          0
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "a primeira tentativa sem a página de resultados clica no ícone de busca": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "gatos"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"gatos\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Navigating to YouTube Media Database..."
+          }
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Manually typing query: \"gatos\""
+          }
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Search not triggered via Enter. Clicking Search Icon manually..."
+          }
+        ]
+      ],
+      [
+        "pagina.click",
+        [
+          "button#search-icon-legacy"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #1..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          0
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "a segunda tentativa na página de um vídeo volta e escolhe o segundo resultado": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "gatos"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → System Fallback [Attempt 2]: Selecting alternative media result..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Returning to Search interface..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "pagina.goBack",
+        []
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #2..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          1
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          1
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 2
+    }
+  },
+  "a terceira tentativa fora de um vídeo navega para a busca com a consulta codificada": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "café com açúcar & \"limão\"?"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → System Fallback [Attempt 3]: Selecting alternative media result..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Returning to Search interface..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com/results?search_query=caf%C3%A9%20com%20a%C3%A7%C3%BAcar%20%26%20%22lim%C3%A3o%22%3F"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #3..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          2
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          2
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "café com açúcar & \"limão\"?",
+      "currentAttempt": 3
+    }
+  },
+  "a tentativa maior que o número de resultados fica no último": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "gatos"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → System Fallback [Attempt 9]: Selecting alternative media result..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Returning to Search interface..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #2..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          1
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          1
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 9
+    }
+  },
+  "sem resultados a tentativa falha com a mensagem de nenhum vídeo": {
+    "retornos": {
+      "success": false,
+      "error": "No videos found."
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"gatos\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Navigating to YouTube Media Database..."
+          }
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Manually typing query: \"gatos\""
+          }
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Extraction Interrupted: No videos found."
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "o link que nunca estabiliza falha depois de vinte leituras": {
+    "retornos": {
+      "success": false,
+      "error": "Link stabilization failed."
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"gatos\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Navigating to YouTube Media Database..."
+          }
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Manually typing query: \"gatos\""
+          }
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #1..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          0
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Extraction Interrupted: Link stabilization failed."
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "o navegador que não abre devolve o erro": {
+    "retornos": {
+      "success": false,
+      "error": "sem navegador"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"gatos\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Extraction Interrupted: sem navegador"
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "a espera pelos resultados que estoura devolve o erro": {
+    "retornos": {
+      "success": false,
+      "error": "Timeout 20000ms exceeded"
+    },
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"gatos\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Navigating to YouTube Media Database..."
+          }
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Manually typing query: \"gatos\""
+          }
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Search not triggered via Enter. Clicking Search Icon manually..."
+          }
+        ]
+      ],
+      [
+        "pagina.click",
+        [
+          "button#search-icon-legacy"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Extraction Interrupted: Timeout 20000ms exceeded"
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "a janela destruída não recebe registro nem aparece": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "gatos"
+    },
+    "eventos": [
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "sem janela o download funciona sem registro": {
+    "retornos": {
+      "success": true,
+      "url": "https://www.youtube.com/watch?v=abc123",
+      "query": "gatos"
+    },
+    "eventos": [
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "gatos",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "gatos",
+      "currentAttempt": 1
+    }
+  },
+  "o estado guarda a última consulta e a última tentativa": {
+    "retornos": [
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc123",
+        "query": "um"
+      },
+      {
+        "success": true,
+        "url": "https://www.youtube.com/watch?v=abc123",
+        "query": "dois"
+      }
+    ],
+    "eventos": [
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Initializing Direct RPA Sequence for: \"um\"..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Navigating to YouTube Media Database..."
+          }
+        ]
+      ],
+      [
+        "navegador.navigate",
+        [
+          "https://www.youtube.com"
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Manually typing query: \"um\""
+          }
+        ]
+      ],
+      [
+        "navegador.type",
+        [
+          "input#search",
+          "um",
+          {
+            "delay": 120,
+            "pressEnter": true
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/results?search_query=gatos"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #1..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          0
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          0
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → System Fallback [Attempt 2]: Selecting alternative media result..."
+          }
+        ]
+      ],
+      [
+        "navegador.launch",
+        []
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Returning to Search interface..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "pagina.goBack",
+        []
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          2000
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Analyzing search results (Waiting up to 20s)..."
+          }
+        ]
+      ],
+      [
+        "pagina.bringToFront",
+        []
+      ],
+      [
+        "pagina.waitForSelector",
+        [
+          "ytd-video-renderer",
+          {
+            "visible": true,
+            "timeout": 20000
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "localizador.count",
+        [
+          "ytd-video-renderer a#video-title"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Selecting Media Result #2..."
+          }
+        ]
+      ],
+      [
+        "resultado.scrollIntoViewIfNeeded",
+        [
+          1
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          800
+        ]
+      ],
+      [
+        "resultado.click",
+        [
+          1
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Stabilizing encrypted media link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          500
+        ]
+      ],
+      [
+        "pagina.url",
+        [
+          "https://www.youtube.com/watch?v=abc123"
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Playback confirmed. Capturing link..."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1500
+        ]
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Media Link Captured Successfully."
+          }
+        ]
+      ],
+      [
+        "pagina.waitForTimeout",
+        [
+          1000
+        ]
+      ],
+      [
+        "janela.show",
+        []
+      ],
+      [
+        "janela.focus",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "dois",
+      "currentAttempt": 2
+    }
+  },
+  "a limpeza fecha o navegador e registra": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "navegador.close",
+        []
+      ],
+      [
+        "janela.enviar",
+        [
+          "swarm:log",
+          {
+            "agent": "nova",
+            "text": "[HH:MM:SS] [NOVA] → Sub-system cleanup complete."
+          }
+        ]
+      ]
+    ],
+    "estado": {
+      "lastQuery": "",
+      "currentAttempt": 1
+    }
+  },
+  "a limpeza engole o erro de fechar o navegador": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "navegador.close",
+        []
+      ]
+    ],
+    "estado": {
+      "lastQuery": "",
+      "currentAttempt": 1
+    }
+  }
+}

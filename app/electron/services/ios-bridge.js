@@ -267,33 +267,50 @@ refreshInfo(); setInterval(refreshInfo, 30000);
 
 const MIME = { '.js': 'application/javascript', '.css': 'text/css', '.html': 'text/html', '.png': 'image/png', '.svg': 'image/svg+xml', '.map': 'application/json' };
 
+const ROTAS_DA_API = {
+  '/api/info': () => deviceInfo(),
+  '/api/apps': () => listApps(),
+  '/api/open': (u) => openOnPhone(u.searchParams.get('url') || ''),
+  '/api/launch': (u) => launchApp(u.searchParams.get('id') || ''),
+};
+
+function responder(res, codigo, corpo, tipo) {
+  res.writeHead(codigo, { 'Content-Type': tipo || 'application/json', 'Cache-Control': 'no-store' });
+  res.end(corpo);
+}
+
+const arquivoDoNovnc = (caminhoPedido) => path.join(NOVNC_DIR, path.normalize(caminhoPedido.replace('/novnc/', '')));
+const ehArquivoDoNovnc = (arquivo) => arquivo.startsWith(NOVNC_DIR) && fs.existsSync(arquivo) && fs.statSync(arquivo).isFile();
+
+function servirNovnc(u, res) {
+  const arquivo = arquivoDoNovnc(u.pathname);
+  if (!ehArquivoDoNovnc(arquivo)) return responder(res, 404, 'not found', 'text/plain');
+  return responder(res, 200, fs.readFileSync(arquivo), MIME[path.extname(arquivo)] || 'application/octet-stream');
+}
+
+function atender(req, res) {
+  const u = new URL(req.url, 'http://127.0.0.1');
+  try {
+    if (u.pathname === '/' || u.pathname === '/index.html') return responder(res, 200, PAGE, 'text/html; charset=utf-8');
+    if (u.pathname.startsWith('/novnc/')) return servirNovnc(u, res);
+    const rota = ROTAS_DA_API[u.pathname];
+    if (rota) return rota(u).then(d => responder(res, 200, JSON.stringify(d)));
+    responder(res, 404, 'not found', 'text/plain');
+  } catch (e) { responder(res, 500, JSON.stringify({ ok: false, error: e.message })); }
+}
+
+function aoOuvir() {
+  console.info('[iOSBridge] iPhone Console em http://127.0.0.1:' + PORT + ' (USB only)');
+  vncReachable().then(ok => { if (!ok) spawnIproxy(); });
+}
+
 function start() {
   if (server) return { ok: true, port: PORT, already: true };
   if (!require('./ios-tools').available()) return { ok: false, error: 'Ferramentas do iPhone ausentes neste sistema.' };
-  server = http.createServer((req, res) => {
-    const u = new URL(req.url, 'http://127.0.0.1');
-    const send = (code, body, type) => { res.writeHead(code, { 'Content-Type': type || 'application/json', 'Cache-Control': 'no-store' }); res.end(body); };
-    try {
-      if (u.pathname === '/' || u.pathname === '/index.html') return send(200, PAGE, 'text/html; charset=utf-8');
-      if (u.pathname.startsWith('/novnc/')) {
-        const rel = path.normalize(u.pathname.replace('/novnc/', ''));
-        const file = path.join(NOVNC_DIR, rel);
-        if (!file.startsWith(NOVNC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return send(404, 'not found', 'text/plain');
-        return send(200, fs.readFileSync(file), MIME[path.extname(file)] || 'application/octet-stream');
-      }
-      if (u.pathname === '/api/info') return deviceInfo().then(d => send(200, JSON.stringify(d)));
-      if (u.pathname === '/api/apps') return listApps().then(d => send(200, JSON.stringify(d)));
-      if (u.pathname === '/api/open') return openOnPhone(u.searchParams.get('url') || '').then(d => send(200, JSON.stringify(d)));
-      if (u.pathname === '/api/launch') return launchApp(u.searchParams.get('id') || '').then(d => send(200, JSON.stringify(d)));
-      send(404, 'not found', 'text/plain');
-    } catch (e) { send(500, JSON.stringify({ ok: false, error: e.message })); }
-  });
+  server = http.createServer(atender);
   wss = new WebSocketServer({ server, path: '/vnc' });
   attachVncBridge(wss);
-  server.listen(PORT, '127.0.0.1', () => {
-    console.log('[iOSBridge] iPhone Console em http://127.0.0.1:' + PORT + ' (USB only)');
-    vncReachable().then(ok => { if (!ok) spawnIproxy(); });
-  });
+  server.listen(PORT, '127.0.0.1', aoOuvir);
   server.on('error', (err) => console.error('[iOSBridge] erro:', err.message));
   return { ok: true, port: PORT };
 }

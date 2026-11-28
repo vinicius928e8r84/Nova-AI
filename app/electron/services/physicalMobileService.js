@@ -15,6 +15,10 @@ const {
     abrirConsoleDoIphone, fecharConsoleDoIphone, controlarAppDoIphone, abrirEnderecoNoIphone, alternarAjusteDoIphone,
 } = require('./iphone-controle');
 const {
+    localizarPelaSaidaDoProxy, montarImagemDeDesenvolvedor, rodarIdevicesetlocation, aplicarGpsNoIphone, removerGpsDoIphone,
+    definirLocalizacaoFalsa, pararLocalizacaoFalsa,
+} = require('./celular-gps');
+const {
     lerEstadoDoAjudanteDeFuso, ajudanteDeFusoInstalado, montarPlistDeIdioma, lerIdiomaDoAparelho, enviarComandoAoAjudanteDeFuso,
     esperarEstadoDoAjudanteDeFuso, aplicarFusoNoIphone, reverterFusoDoIphone,
 } = require('./iphone-fuso');
@@ -1047,42 +1051,7 @@ exit 0
     }
 
     async geoFromProxy(deviceId, proxy) {
-        const geo = require('./geo-proxy');
-        const id = String(deviceId || '');
-        const proxyStr = String(proxy || '').trim();
-        let ip = null;
-        let via = 'aparelho';
-
-        if (id.startsWith('ios-')) {
-            try {
-                const r = await this.iosProxyCheck(deviceId);
-                const raw = r && r.success ? String(r.ip || '').trim() : '';
-                if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) ip = raw;
-            } catch (_) {}
-        }
-
-        if (!ip) {
-            if (!proxyStr) {
-                console.log('[Geo] sem IP de saída e sem proxy salvo');
-                return { success: false, error: 'Sem proxy configurado. Salve a proxy primeiro.' };
-            }
-            via = 'proxy';
-            try {
-                const g = await geo.throughProxy(proxyStr);
-                console.log(`[Geo] via proxy: ${g.ip} ${g.city}/${g.countryCode} ${g.lat},${g.lon}`);
-                return { success: true, via, ...g };
-            } catch (e) {
-                return { success: false, error: String(e.message || e) };
-            }
-        }
-
-        try {
-            const g = await geo.byIp(ip);
-            console.log(`[Geo] via ${via}: ${g.ip} ${g.city}/${g.countryCode} ${g.lat},${g.lon}`);
-            return { success: true, via, ...g };
-        } catch (e) {
-            return { success: false, error: String(e.message || e) };
-        }
+        return localizarPelaSaidaDoProxy(this, deviceId, proxy);
     }
 
     idevicesetlocationPath() {
@@ -1094,57 +1063,19 @@ exit 0
     }
 
     mountDeveloperImage(udid) {
-        return new Promise((resolve) => {
-            const bin = this.pymobiledevice3Path();
-            if (!bin) return resolve(false);
-            execFile(bin, ['mounter', 'auto-mount', '--udid', udid], { timeout: 180000, windowsHide: true }, (err) => resolve(!err));
-        });
+        return montarImagemDeDesenvolvedor(this, udid);
     }
 
-    runIdevicesetlocation(udid, args, timeout = 30000) {
-        return new Promise((resolve) => {
-            const bin = this.idevicesetlocationPath();
-            if (!bin) return resolve({ ok: false, err: 'idevicesetlocation não encontrado neste computador.' });
-            execFile(bin, ['--udid', udid, ...args], { timeout, windowsHide: true }, (err, stdout, stderr) => {
-                const saida = [String(stderr || '').trim(), String(stdout || '').trim()].filter(Boolean).join('\n');
-                resolve({ ok: !err, out: String(stdout || ''), err: saida || (err && err.message) || '' });
-            });
-        });
+    runIdevicesetlocation(udid, args, timeout) {
+        return rodarIdevicesetlocation(this, udid, args, timeout);
     }
 
     async iosSetLocation(deviceId, latitude, longitude) {
-        const udid = String(deviceId || '').replace(/^ios-/, '');
-        const tzAntes = await this.iosDeviceTimeZone();
-        const mounted = await this.mountDeveloperImage(udid);
-        if (!mounted) {
-            return { success: false, error: 'O iPhone precisa da imagem de desenvolvedor montada. Instale pymobiledevice3 (pip install pymobiledevice3) e tente de novo.' };
-        }
-        const r = await this.runIdevicesetlocation(udid, ['--', String(latitude), String(longitude)]);
-        if (!r.ok) {
-            console.log(`[Geo] iPhone falhou: ${(r.err || '').slice(0, 160)}`);
-            return { success: false, error: (r.err || 'Falha ao aplicar a localização no iPhone.').slice(0, 300) };
-        }
-        let timezone = tzAntes;
-        for (let i = 0; i < 4; i++) {
-            await new Promise((res) => setTimeout(res, 2000));
-            const tz = await this.iosDeviceTimeZone();
-            if (tz) {
-                timezone = tz;
-                if (tz !== tzAntes) break;
-            }
-        }
-        console.log(`[Geo] iPhone GPS aplicado: ${latitude}, ${longitude} (fuso ${timezone || '?'})`);
-        return { success: true, latitude, longitude, timezone, timezoneBefore: tzAntes };
+        return aplicarGpsNoIphone(this, deviceId, latitude, longitude);
     }
 
     async iosStopLocation(deviceId) {
-        const udid = String(deviceId || '').replace(/^ios-/, '');
-        const r = await this.runIdevicesetlocation(udid, ['reset'], 20000);
-        if (!r.ok && /developer disk image|invalid service/i.test(r.err)) {
-            return { success: true, note: 'GPS simulado removido junto com a imagem de desenvolvedor.' };
-        }
-        if (!r.ok) return { success: false, error: (r.err || '').slice(0, 300) };
-        return { success: true };
+        return removerGpsDoIphone(this, deviceId);
     }
 
     iosLocaleStatus() {
@@ -1188,68 +1119,11 @@ exit 0
     }
 
     async setSpoofLocation(deviceId, latitude, longitude) {
-        if (String(deviceId || '').startsWith('ios-')) {
-            return this.iosSetLocation(deviceId, latitude, longitude);
-        }
-        try {
-            console.log(`[Spoofer] Setting persistent fake GPS: ${latitude}, ${longitude}`);
-
-            await this.adbRootExec(deviceId, `pkill -f nova_gps_loop 2>/dev/null; true`);
-            await new Promise(r => setTimeout(r, 300));
-
-            await this.adbRootExec(deviceId, `settings put secure mock_location 1`);
-            await this.adbRootExec(deviceId, `settings put global development_settings_enabled 1`);
-
-            const ts = `$(date +%s%3N)`;
-            const gpsScript = `#!/system/bin/sh
-# Nova GPS Spoof Loop — nova_gps_loop
-LAT="${latitude}"
-LNG="${longitude}"
-while true; do
-  # Inject via platform cmd (Android 8+ / rooted)
-  cmd location set-test-provider-enabled gps true 2>/dev/null
-  cmd location set-test-provider-location gps --lat $LAT --lng $LNG --accuracy 3.0 --altitude 50 --speed 0.0 --bearing 0.0 --time ${ts} 2>/dev/null
-  cmd location set-test-provider-enabled network true 2>/dev/null
-  cmd location set-test-provider-location network --lat $LAT --lng $LNG --accuracy 20.0 --altitude 50 --speed 0.0 --bearing 0.0 --time ${ts} 2>/dev/null
-  cmd location set-test-provider-enabled fused true 2>/dev/null
-  cmd location set-test-provider-location fused --lat $LAT --lng $LNG --accuracy 1.0 --altitude 50 --speed 0.0 --bearing 0.0 --time ${ts} 2>/dev/null
-  sleep 2
-done
-`;
-            const scriptPath = path.join(this.baseDir, 'nova_gps_loop.sh');
-            fs.writeFileSync(scriptPath, gpsScript.replace(/\r\n/g, '\n'));
-            await this.adbPush(deviceId, scriptPath, '/data/local/tmp/nova_gps_loop.sh');
-            await this.adbRootExec(deviceId, `chmod +x /data/local/tmp/nova_gps_loop.sh`);
-
-            await this.adbRootExec(deviceId,
-                `nohup sh /data/local/tmp/nova_gps_loop.sh >/data/local/tmp/nova_gps.log 2>&1 &`
-            );
-
-            const tmpJsonPath = path.join(this.baseDir, 'nova_spoof.json');
-            let cfg = {};
-            try { cfg = JSON.parse(fs.readFileSync(tmpJsonPath, 'utf8')); } catch(_){}
-            cfg.latitude = latitude; cfg.longitude = longitude; cfg.altitude = 50.0;
-            fs.writeFileSync(tmpJsonPath, JSON.stringify(cfg, null, 2));
-            await this.adbPush(deviceId, tmpJsonPath, '/data/local/tmp/nova_spoof.json');
-
-            console.log(`[Spoofer] ✅ GPS loop started: ${latitude}, ${longitude}`);
-            return { success: true, latitude, longitude };
-
-        } catch (err) {
-            console.error('[Spoofer] GPS error:', err);
-            return { success: false, error: err.message };
-        }
+        return definirLocalizacaoFalsa(this, deviceId, latitude, longitude);
     }
 
     async stopFakeGPS(deviceId) {
-        if (String(deviceId || '').startsWith('ios-')) {
-            return this.iosStopLocation(deviceId);
-        }
-        await this.adbRootExec(deviceId, `pkill -f nova_gps_loop 2>/dev/null; true`);
-        await this.adbRootExec(deviceId, `cmd location set-test-provider-enabled gps false 2>/dev/null; true`);
-        await this.adbRootExec(deviceId, `cmd location set-test-provider-enabled network false 2>/dev/null; true`);
-        await this.adbRootExec(deviceId, `cmd location set-test-provider-enabled fused false 2>/dev/null; true`);
-        return { success: true };
+        return pararLocalizacaoFalsa(this, deviceId);
     }
 
     async rebootDevice(deviceId, mode = 'soft') {

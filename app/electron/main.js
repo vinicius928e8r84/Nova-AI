@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, powerSaveBlocker, nativeImage, desktopCapturer, Tray, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, powerSaveBlocker, nativeImage, Tray, Menu } = require('electron');
 const { spawn } = require('child_process');
 const toolPaths = require('./services/tool-paths');
 const novaIconFile = toolPaths.iconFile();
@@ -94,12 +94,13 @@ const RtmpServerService = require('./services/rtmp-server');
 let productionServer = null;
 let productionPort = process.env.NOVA_TEST_PORT || 45678;
 
-const { edgeTtsBinary } = require('./services/paridade-utils');
 const { configurarAtualizador, registrarAtualizador, ligarAtualizador } = require('./main.atualizador');
 const { registrarConfiguracao } = require('./main.config');
 const { registrarDados } = require('./main.dados');
 const { registrarArquivos } = require('./main.arquivos');
 const { registrarMensageria } = require('./main.mensageria');
+const { registrarMidia } = require('./main.midia');
+const { registrarVoz } = require('./main.voz');
 
 let mainWindow;
 let tray = null;
@@ -490,37 +491,6 @@ function novaIosConsolePortOpen(port) {
 }
 
 function registerHandlers() {
-  ipcMain.on('get-webview-bridge-path', (event) => {
-    event.returnValue = path.join(__dirname, 'webview-bridge.js');
-  });
-
-  ipcMain.on('get-stealth-preload-path', (event) => {
-    event.returnValue = path.join(__dirname, 'google-stealth-preload.js');
-  });
-
-
-  ipcMain.handle('rtmp:start-broadcast', async () => {
-    try {
-      await RtmpServerService.startBroadcast(app.physicalMobileService?.adbPath);
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('rtmp:stop-broadcast', async () => {
-    try {
-      await RtmpServerService.stopBroadcast();
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.on('rtmp:video-chunk', (event, buffer) => {
-    RtmpServerService.receiveVideoChunk(buffer);
-  });
-
   try { app.camLiveService = require('./services/cam-live-service').register({ ipcMain, getWindow: () => mainWindow, userDataDir: app.getPath('userData'), getMobileService: () => app.physicalMobileService }); } catch (e) { console.error('[CamLive] falhou ao registrar:', e); }
 
   ipcMain.handle('physical-mobile:get-status', async () => {
@@ -795,97 +765,6 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('screen-recorder:get-sources', async () => {
-    try {
-      const sources = await desktopCapturer.getSources({ types: ['window', 'screen'], fetchWindowIcons: true });
-      return sources.map(source => ({
-        id: source.id,
-        name: source.name,
-        thumbnail: source.thumbnail.toDataURL()
-      }));
-    } catch (e) {
-      console.error('[Main] get-sources failed:', e);
-      return [];
-    }
-  });
-
-  ipcMain.handle('screen-recorder:save', async (event, { buffer, extension }) => {
-    const tempWebmPath = path.join(app.getPath('temp'), `nova_temp_rec_${Date.now()}.webm`);
-    let finalSavePath = null;
-    try {
-      fs.writeFileSync(tempWebmPath, Buffer.from(buffer));
-
-      const defaultExt = extension || 'mp4';
-      const { filePath } = await dialog.showSaveDialog(mainWindow, {
-        title: 'Salvar Gravação de Tela',
-        defaultPath: path.join(app.getPath('videos'), `Nova_Record_${Date.now()}.${defaultExt}`),
-        filters: [
-          { name: 'Video File', extensions: [defaultExt] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
-      });
-
-      if (!filePath) {
-        if (fs.existsSync(tempWebmPath)) fs.unlinkSync(tempWebmPath);
-        return { success: false, cancelled: true };
-      }
-
-      finalSavePath = filePath;
-
-      let ffmpegPath = toolPaths.ffmpeg();
-      if (!ffmpegPath) {
-        ffmpegPath = 'ffmpeg';
-      }
-
-      console.log('[Main] FFmpeg path for remuxing:', ffmpegPath);
-
-      const lowerPath = filePath.toLowerCase();
-      let args = [];
-      if (lowerPath.endsWith('.mp4')) {
-        args = ['-y', '-i', tempWebmPath, '-c', 'copy', '-movflags', '+faststart', filePath];
-      } else {
-        args = ['-y', '-i', tempWebmPath, '-c', 'copy', filePath];
-      }
-
-      const { execFile } = require('child_process');
-      await new Promise((resolve, reject) => {
-        execFile(ffmpegPath, args, { windowsHide: true }, (error, stdout, stderr) => {
-          if (error) {
-            console.error('[Main] FFmpeg remuxing error:', error, stderr);
-            reject(error);
-          } else {
-            console.log('[Main] FFmpeg remuxing complete.');
-            resolve();
-          }
-        });
-      });
-
-      if (fs.existsSync(tempWebmPath)) fs.unlinkSync(tempWebmPath);
-
-      shell.showItemInFolder(filePath);
-      return { success: true, filePath };
-
-    } catch (e) {
-      console.error('[Main] save-recording failed, falling back to direct write:', e);
-      
-      if (finalSavePath) {
-        try {
-          fs.writeFileSync(finalSavePath, Buffer.from(buffer));
-          shell.showItemInFolder(finalSavePath);
-          return { success: true, filePath: finalSavePath, fallback: true };
-        } catch (fallbackError) {
-          console.error('[Main] Fallback write failed:', fallbackError);
-        }
-      }
-      
-      if (fs.existsSync(tempWebmPath)) {
-        try { fs.unlinkSync(tempWebmPath); } catch (_) {}
-      }
-
-      return { success: false, error: e.message };
-    }
-  });
-
   ipcMain.handle('direct-nova-download', async (event, { query, attempt = 1 }) => {
     if (app.novaHumanController) {
       return await app.novaHumanController.executeHumanDownload(query, attempt);
@@ -1040,101 +919,7 @@ function registerHandlers() {
     }
   });
 
-    ipcMain.handle('virtual-cam:control', async (event, payload) => {
-    if (!virtualCamInjector) return { error: 'Virtual Camera Service not initialized' };
-
-    const { action, filePath, buffer, settings } = payload;
-
-    try {
-        switch (action) {
-            case 'detect':
-                return await virtualCamInjector.detectDriver();
-
-            case 'list-profiles':
-                return virtualCamInjector.globalSpoof.listProfiles();
-
-            case 'hijack': {
-                const result = await virtualCamInjector.startHijack(buffer, settings);
-                return result;
-            }
-
-            case 'restore':
-                return await virtualCamInjector.stopHijack();
-
-            case 'status':
-                return virtualCamInjector.getStatus();
-
-            case 'install-driver':
-                return await virtualCamInjector.installDriver();
-
-            case 'install-guide':
-                shell.openExternal('https://github.com/CatxFish/obs-virtual-cam/releases/tag/2.0.4');
-                return { success: true };
-
-            default:
-                return { error: `Unsupported action: ${action}` };
-        }
-    } catch (err) {
-        console.error('[Main:GlobalSpoof] Command failed:', err.message);
-        const isNoDriver = err.message && err.message.startsWith('NO_DRIVER:');
-        return {
-            error: isNoDriver ? err.message.replace('NO_DRIVER: ', '') : err.message,
-            noDriver: isNoDriver,
-        };
-    }
-  });
-
-  ipcMain.handle('virtual-cam:update-regional', async (event, regional) => {
-    if (!virtualCamInjector) return { success: false, error: 'Service not initialized' };
-    try {
-        const result = await virtualCamInjector.globalSpoof.updateRegional(regional);
-        try {
-            const { browserService } = require('./services/browser-manager');
-            if (browserService && typeof browserService.updateRegional === 'function') {
-                await browserService.updateRegional(regional);
-            }
-        } catch (err) {
-            console.error('[Main] Failed to update browserService regional:', err.message);
-        }
-        return result;
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
-  });
-
-  ipcMain.handle('virtual-cam:update-transform', async (event, { zoom, rotate, mirror }) => {
-    if (!virtualCamInjector) return { success: false };
-    try {
-        virtualCamInjector.globalSpoof.broadcastTransform(zoom, rotate, mirror);
-        return { success: true };
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
-  });
-
-
-  ipcMain.handle('virtual-cam:spoof-registry', async () => {
-    if (!virtualCamInjector) return { success: false, error: 'Service not initialized' };
-    try {
-        const result = await virtualCamInjector.globalSpoof.spoofRegistryName();
-        if (result.success) virtualCamInjector.globalSpoof.registrySpoofed = true;
-        return result;
-    } catch (err) {
-        return { success: false, error: err.message };
-    }
-  });
-
   ipcMain.handle('enable-physical-cameras', () => cameraAcesso.liberar({ systemPreferences, shell, platform: process.platform }));
-
-
-
-  ipcMain.on('virtual-cam:stream-chunk', (event, arrayBuffer) => {
-    if (virtualCamInjector) {
-        virtualCamInjector.writeChunk(Buffer.from(arrayBuffer));
-    }
-  });
-
-
 
 
 
@@ -1441,107 +1226,6 @@ function registerHandlers() {
       }
     });
   });
-
-  ipcMain.handle('preview-voice', async (event, { aiVoice, aiLanguage, aiSpeed, aiPitch, scriptText }) => {
-    return new Promise((resolve) => {
-      try {
-        const { exec } = require('child_process');
-        const os = require('os');
-        const ts  = Date.now();
-        const tmpAudio = path.join(os.tmpdir(), `nova_prev_${ts}.mp3`);
-        const tmpSubs  = path.join(os.tmpdir(), `nova_prev_${ts}.vtt`);
-        const tmpTxt   = path.join(os.tmpdir(), `nova_prev_txt_${ts}.txt`);
-
-        let voice = 'en-US-ChristopherNeural';
-        if (aiVoice && aiVoice.includes('Asad'))  voice = 'ur-PK-AsadNeural';
-        else if (aiVoice && aiVoice.includes('Uzma'))  voice = 'ur-PK-UzmaNeural';
-        else if (aiVoice && aiVoice.includes('Christopher')) voice = 'en-US-ChristopherNeural';
-        else if (aiLanguage && aiLanguage.includes('Hindi')) voice = 'hi-IN-MadhurNeural';
-
-        let textToSpeak = (scriptText || '').trim();
-        if (!textToSpeak) {
-          textToSpeak = voice.startsWith('ur-')
-            ? 'السلام علیکم، میں نووا اے آئی ہوں، آپ کی خدمت میں حاضر ہوں'
-            : voice.startsWith('hi-')
-              ? 'नमस्ते, मैं Nova AI हूँ। आपकी सेवा में हाजिर हूँ।'
-              : 'Hello! I am Nova AI, your intelligent voice assistant. How can I help you today?';
-        }
-
-        fs.writeFileSync(tmpTxt, '\uFEFF' + textToSpeak, 'utf8');
-
-        const speed = aiSpeed || 50;
-        const pitch = aiPitch || 50;
-        let rateArg  = '';
-        let pitchArg = '';
-        if (speed !== 50) rateArg  = `--rate "${speed > 50 ? '+' : ''}${(speed - 50) * 2}%"`;
-        if (pitch !== 50) pitchArg = `--pitch "${pitch > 50 ? '+' : ''}${pitch - 50}Hz"`;
-
-        const ttsCmd = [
-          edgeTtsBinary(process.platform, () => pythonRuntime.python()),
-          `--file "${tmpTxt}"`,
-          `--write-media "${tmpAudio}"`,
-          `--write-subtitles "${tmpSubs}"`,
-          `--voice ${voice}`,
-          rateArg, pitchArg
-        ].filter(Boolean).join(' ');
-
-        event.sender.send('preview-voice-status', { state: 'generating', message: '🎙️ Gerando voz...' });
-
-        exec(ttsCmd, (err) => {
-          try { fs.unlinkSync(tmpTxt); } catch(e) {}
-
-          if (err) {
-            event.sender.send('preview-voice-status', { state: 'error', message: `❌ edge-tts: ${err.message.slice(0,100)}` });
-            resolve({ success: false, error: err.message });
-            return;
-          }
-          if (!fs.existsSync(tmpAudio) || fs.statSync(tmpAudio).size === 0) {
-            event.sender.send('preview-voice-status', { state: 'error', message: '❌ Arquivo de áudio vazio' });
-            resolve({ success: false, error: 'Audio empty' });
-            return;
-          }
-
-          let wordTimings = [];
-          try {
-            const vttRaw = fs.existsSync(tmpSubs) ? fs.readFileSync(tmpSubs, 'utf8') : '';
-            const blocks = vttRaw.split(/\n\n+/).filter(b => b.includes('-->'));
-            blocks.forEach(block => {
-              const lines = block.trim().split('\n');
-              const timeLine = lines.find(l => l.includes('-->'));
-              const wordLine = lines[lines.length - 1];
-              if (timeLine && wordLine) {
-                const [startStr, endStr] = timeLine.split('-->').map(s => s.trim());
-                const toSec = t => {
-                  const [hms, ms] = t.split('.');
-                  const parts = hms.split(':').map(Number);
-                  return parts[0]*3600 + parts[1]*60 + parts[2] + (parseInt(ms||'0')/1000);
-                };
-                wordTimings.push({ word: wordLine.trim(), start: toSec(startStr), end: toSec(endStr) });
-              }
-            });
-            try { fs.unlinkSync(tmpSubs); } catch(e) {}
-          } catch(e) { wordTimings = []; }
-
-          event.sender.send('preview-voice-status', {
-            state: 'playing',
-            message: '🔊 Reproduzindo...',
-            wordTimings
-          });
-
-          const playCmd = `ffplay -nodisp -autoexit -loglevel quiet "${tmpAudio}"`;
-          exec(playCmd, () => {
-            try { fs.unlinkSync(tmpAudio); } catch(e) {}
-            event.sender.send('preview-voice-status', { state: 'done', message: '✅ Pronto!' });
-            resolve({ success: true });
-          });
-        });
-      } catch(e) {
-        resolve({ success: false, error: e.message });
-      }
-    });
-  });
-
-
 
   ipcMain.handle('start-manual-download', async (event, { url, format, type }) => {
     if (app.ytdlpManager) {
@@ -2061,68 +1745,6 @@ function registerHandlers() {
   });
 
 
-  ipcMain.handle('take-screenshot', async () => {
-    try {
-      const { screen, desktopCapturer } = require('electron');
-      const primaryDisplay = screen.getPrimaryDisplay();
-      const { width, height } = primaryDisplay.size;
-
-      const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width, height }
-      });
-
-      if (!sources || sources.length === 0) {
-        return { success: false, error: 'No screen sources found' };
-      }
-
-      const source = sources[0];
-      let img = source.thumbnail;
-
-      const imgSize = img.getSize();
-      if (imgSize.width > 1024) {
-        const scale = 1024 / imgSize.width;
-        img = img.resize({
-          width: 1024,
-          height: Math.round(imgSize.height * scale),
-          quality: 'better'
-        });
-      }
-
-      const pngBuffer = img.toPNG();
-
-      return {
-        success: true,
-        data: pngBuffer.toString('base64'),
-        mimeType: 'image/png'
-      };
-    } catch (e) {
-      console.error('[Screenshot] Error:', e.message);
-      return { success: false, error: e.message };
-    }
-  });
-
-  ipcMain.handle('get-screen-sources', async () => {
-    try {
-      const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width: 320, height: 180 }
-      });
-      console.log('[Electron] Screen sources available:', sources.map(s => `${s.id} | ${s.name}`));
-      return sources.map(source => ({
-        id: source.id,
-        name: source.name,
-        thumbnail: source.thumbnail.toDataURL(),
-        width: source.thumbnail.getSize().width,
-        height: source.thumbnail.getSize().height,
-        display_id: source.display_id || ''
-      }));
-    } catch (e) {
-      console.error('[Electron] get-screen-sources error:', e.message);
-      return { error: e.message };
-    }
-  });
-
   registrarSistema({ janela: () => mainWindow, desligando: () => isShuttingDown() });
   registrarTeclado();
   registrarConfiguracao();
@@ -2138,6 +1760,9 @@ function registerHandlers() {
     set telegram(gerente) { telegramManager = gerente; },
     get acessoRemoto() { return remoteAccessService; },
   });
+
+  registrarMidia({ janela: () => mainWindow, cameraVirtual: () => virtualCamInjector });
+  registrarVoz();
 
   try {
     const { registerBrowserHandlers, browserService } = require('./services/browser-manager');

@@ -48,7 +48,8 @@ A DDI cai quando o iPhone reinicia; o auto-mount remonta na próxima vez que o G
 | Arquivo | Mudança |
 |---|---|
 | `electron/services/geo-proxy.js` (novo) | módulo puro: parse da proxy, consulta via SOCKS5, geo por IP |
-| `electron/services/physicalMobileService.js` | `geoFromProxy`, `iosSetLocation`, `iosStopLocation`, auto-mount da DDI, branch iOS no `setSpoofLocation`/`stopFakeGPS` |
+| `electron/services/physicalMobileService.js` | `geoFromProxy`, `iosSetLocation`, `iosStopLocation`, `setSpoofLocation` e `stopFakeGPS` continuam com esses nomes e só chamam o `celular-gps.js` |
+| `electron/services/celular-gps.js` | a geolocalização pela proxy, o auto-mount da DDI, o GPS do iPhone, o laço de GPS falso do Android e o branch iOS do `setSpoofLocation`/`stopFakeGPS` |
 | `electron/main.js` | IPC `spoofer:geo-from-proxy` |
 | `dist/assets/index-Dun7lr2S.js` | `pGeoApply`, `pGeoOnOpen`, chamadas ao salvar, remoção do botão "Fixar GPS Falso" |
 

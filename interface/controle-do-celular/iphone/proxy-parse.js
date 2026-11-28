@@ -16,52 +16,68 @@ function pSplitHostPort(pT) {
   return { h: pA[0], p: pA[1] || "" };
 }
 
+function pHostEPortaValidos(pH, pP) {
+  return pIsHost(pH) && pIsPort(pP);
+}
+
+function pEndereco(pHost, pPort, pUser, pPass) {
+  return { host: pHost, port: pPort, user: pUser, pass: pPass };
+}
+
+function pSepararEsquema(pIn) {
+  var pSm = pIn.match(/^([A-Za-z][A-Za-z0-9+.\-]*):\/\//);
+  if (!pSm) return { esquema: "", resto: pIn };
+  return { esquema: pSm[1].toLowerCase(), resto: pIn.slice(pSm[0].length) };
+}
+
+function pComCredenciais(pHp, pCreds) {
+  var pC = pCreds.indexOf(":");
+  if (pC > 0) return pEndereco(pHp.h, pHp.p, pCreds.slice(0, pC), pCreds.slice(pC + 1));
+  return pEndereco(pHp.h, pHp.p, pCreds, "");
+}
+
+function pLerComArroba(pIn) {
+  var pAt = pIn.lastIndexOf("@");
+  var pLeft = pIn.slice(0, pAt);
+  var pRight = pIn.slice(pAt + 1);
+  var pL = pSplitHostPort(pLeft);
+  var pR = pSplitHostPort(pRight);
+  if (pHostEPortaValidos(pL.h, pL.p)) return pComCredenciais(pL, pRight);
+  if (pHostEPortaValidos(pR.h, pR.p)) return pComCredenciais(pR, pLeft);
+  return null;
+}
+
+function pLerHostPorta(pA) {
+  if (pA.length !== 2 || !pHostEPortaValidos(pA[0], pA[1])) return null;
+  return pEndereco(pA[0], pA[1], "", "");
+}
+
+function pLerHostPortaUsuarioSenha(pA) {
+  if (pA.length < 4 || !pA[2]) return null;
+  if (!pHostEPortaValidos(pA[0], pA[1])) return null;
+  return pEndereco(pA[0], pA[1], pA[2], pA.slice(3).join(":"));
+}
+
+function pLerUsuarioSenhaHostPorta(pA) {
+  var pN = pA.length;
+  if (pN < 4 || !pA[0]) return null;
+  if (!pHostEPortaValidos(pA[pN - 2], pA[pN - 1])) return null;
+  return pEndereco(pA[pN - 2], pA[pN - 1], pA[0], pA.slice(1, pN - 2).join(":"));
+}
+
+function pLerSemArroba(pIn) {
+  var pA = pIn.split(":");
+  return pLerHostPorta(pA) || pLerHostPortaUsuarioSenha(pA) || pLerUsuarioSenhaHostPorta(pA);
+}
+
 function pParseProxy(pRaw) {
   if (typeof pRaw !== "string") return null;
   var pIn = pRaw.trim();
   if (!pIn) return null;
-  var pSch = "";
-  var pSm = pIn.match(/^([A-Za-z][A-Za-z0-9+.\-]*):\/\//);
-  if (pSm) {
-    pSch = pSm[1].toLowerCase();
-    pIn = pIn.slice(pSm[0].length);
-  }
-  var pHost = "", pPort = "", pUser = "", pPass = "";
-  var pAt = pIn.lastIndexOf("@");
-  if (pAt >= 0) {
-    var pLeft = pIn.slice(0, pAt);
-    var pRight = pIn.slice(pAt + 1);
-    var pL = pSplitHostPort(pLeft);
-    var pR = pSplitHostPort(pRight);
-    var pCreds = "";
-    if (pIsHost(pL.h) && pIsPort(pL.p)) {
-      pHost = pL.h; pPort = pL.p; pCreds = pRight;
-    } else if (pIsHost(pR.h) && pIsPort(pR.p)) {
-      pHost = pR.h; pPort = pR.p; pCreds = pLeft;
-    } else {
-      return null;
-    }
-    var pC = pCreds.indexOf(":");
-    if (pC > 0) { pUser = pCreds.slice(0, pC); pPass = pCreds.slice(pC + 1); }
-    else if (pCreds) { pUser = pCreds; pPass = ""; }
-  } else {
-    var pA = pIn.split(":");
-    var pN = pA.length;
-    if (pN === 2 && pIsHost(pA[0]) && pIsPort(pA[1])) {
-      pHost = pA[0]; pPort = pA[1];
-    } else if (pN === 4 && pIsHost(pA[0]) && pIsPort(pA[1]) && pA[2]) {
-      pHost = pA[0]; pPort = pA[1]; pUser = pA[2]; pPass = pA[3];
-    } else if (pN >= 5 && pIsHost(pA[0]) && pIsPort(pA[1]) && pA[2]) {
-      pHost = pA[0]; pPort = pA[1]; pUser = pA[2]; pPass = pA.slice(3).join(":");
-    } else if (pN >= 4 && pIsPort(pA[pN - 1]) && pIsHost(pA[pN - 2]) && pA[0]) {
-      pHost = pA[pN - 2]; pPort = pA[pN - 1];
-      pUser = pA[0]; pPass = pA.slice(1, pN - 2).join(":");
-    } else {
-      return null;
-    }
-  }
-  if (!pIsHost(pHost) || !pIsPort(pPort)) return null;
-  return { scheme: pSch, host: pHost, port: +pPort, user: pUser, pass: pPass };
+  var pPartes = pSepararEsquema(pIn);
+  var pAchado = pPartes.resto.indexOf("@") >= 0 ? pLerComArroba(pPartes.resto) : pLerSemArroba(pPartes.resto);
+  if (!pAchado) return null;
+  return { scheme: pPartes.esquema, host: pAchado.host, port: +pAchado.port, user: pAchado.user, pass: pAchado.pass };
 }
 
 function pBuildProxy(pScheme, pO) {

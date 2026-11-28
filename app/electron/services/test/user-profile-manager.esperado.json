@@ -1,0 +1,2086 @@
+{
+  "sem chave devolve nulo e avisa": {
+    "retornos": null,
+    "eventos": [
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] No API key provided for context sync."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "sem a biblioteca do Google devolve nulo e avisa": {
+    "retornos": null,
+    "eventos": [
+      [
+        "console.error",
+        [
+          "[UserProfileManager] @google/generative-ai not found"
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] GoogleGenerativeAI not initialized."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "depois de três falhas devolve nulo sem mexer em nada": {
+    "retornos": null,
+    "eventos": [],
+    "globais": {
+      "profileAnalysisFailCount": 3,
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "menos de quinze minutos desde a última tentativa devolve nulo": {
+    "retornos": null,
+    "eventos": [],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795866300001,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "quinze minutos exatos desde a última tentativa já tentam de novo": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "sem conversas nem cofre devolve nulo e marca a tentativa": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "conversas que não são lista contam como vazias": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "o primeiro modelo responde: grava o contexto limpo e devolve o texto sem as pontas": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o primeiro modelo falha e o segundo responde": {
+    "retornos": "perfil do segundo",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] gemini-3.8-flash failed: falha de rede"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-4-argon"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-4-argon",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do segundo\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do segundo\"\n}"
+    }
+  },
+  "o primeiro modelo vazio passa para o segundo": {
+    "retornos": "perfil do segundo",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-4-argon"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-4-argon",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do segundo\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do segundo\"\n}"
+    }
+  },
+  "um 404 no primeiro modelo para a tentativa e conta uma falha": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] gemini-3.8-flash failed: [404 Not Found] modelo"
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] Attempt 1 failed. Retrying later..."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": 1,
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "um 404 no segundo modelo conta uma falha": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] gemini-3.8-flash failed: erro qualquer"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-4-argon"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-4-argon",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] gemini-4-argon failed: 404"
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] Attempt 1 failed. Retrying later..."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": 1,
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "os dois modelos sem texto contam uma falha": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-4-argon"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-4-argon",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] Attempt 1 failed. Retrying later..."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": 1,
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "a terceira falha desliga a análise da sessão": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-4-argon"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-4-argon",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[UserProfileManager] Analysis failed 3 times. DISABLING background tasks for this session."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": 3,
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "o texto que lança ao ler a resposta passa para o segundo modelo": {
+    "retornos": "do segundo",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] gemini-3.8-flash failed: sem texto"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-4-argon (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-4-argon"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-4-argon",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"do segundo\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"do segundo\"\n}"
+    }
+  },
+  "o erro ao gravar o arquivo conta uma falha": {
+    "retornos": null,
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.warn",
+        [
+          "[UserProfileManager] Attempt 1 failed. Retrying later..."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": 1,
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "a falha anterior zerada com sucesso depois de uma falha": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": 1,
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "só as cinco primeiras conversas entram, com o papel de cada mensagem": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n\n\n--- RECENT CHAT ---\nUser: pergunta 2\nNOVA: resposta 2\n\n\n--- RECENT CHAT ---\nUser: pergunta 3\nNOVA: resposta 3\n\n\n--- RECENT CHAT ---\nUser: pergunta 4\nNOVA: resposta 4\n\n\n--- RECENT CHAT ---\nUser: pergunta 5\nNOVA: resposta 5\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "conversa sem mensagens entra vazia": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\n\n\n\n--- RECENT CHAT ---\n\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o cofre ao lado do executável entra com o título e o html limpo": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- VAULT MEMORY ---\nBusca A\nOlá mundo & <tag> \"oi\" fim",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "[{\"title\":\"Busca A\",\"safeHtmlItem\":[{\"html\":\"<p>Olá&nbsp;<b>mundo</b> &amp; &lt;tag&gt; &quot;oi&quot;</p>\\n  <p>fim</p>\"}]}]",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o cofre alternativo é usado quando não há o do executável": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<app>/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- VAULT MEMORY ---\nBusca B\nx",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<app>/Nova_Vault/MyActivity.json": "[{\"title\":\"Busca B\",\"safeHtmlItem\":[{\"html\":\"<i>x</i>\"}]}]",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "havendo os dois cofres vale o do executável": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- VAULT MEMORY ---\ndo exe\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "[{\"title\":\"do exe\",\"safeHtmlItem\":[{\"html\":\"\"}]}]",
+      "<app>/Nova_Vault/MyActivity.json": "[{\"title\":\"do alternativo\",\"safeHtmlItem\":[{\"html\":\"\"}]}]",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o cofre usa só as cem primeiras atividades e corta o html em 300 caracteres": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "sha256:527b65431ec9d52d (3235 caracteres, começa com \"You are a Psychological & Operations Profiler. Analyze the f\")",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "sha256:d63d7b2989dda911 (5930 caracteres, começa com \"[{\\\"title\\\":\\\"T0\\\",\\\"safeHtmlItem\\\":[{\\\"html\\\":\\\"aaaaaaaaaaaaaaaaaaaa\")",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "atividade sem título nem html é ignorada e sem html fica só o título": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- VAULT MEMORY ---\nsó título\n\n\n--- VAULT MEMORY ---\nsem lista\n x",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "[{},{\"title\":\"\",\"safeHtmlItem\":[{\"html\":\"\"}]},{\"title\":\"só título\"},{\"title\":\"sem lista\",\"safeHtmlItem\":[{},{\"html\":\"<b>x</b>\"}]}]",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o cofre com JSON quebrado avisa e as conversas seguem": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[UserProfileManager] Failed to read MyActivity.json",
+          "SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "{quebrado",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "uma atividade nula no cofre avisa e guarda só as amostras que já tinham entrado": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[UserProfileManager] Failed to read MyActivity.json",
+          "TypeError: Cannot read properties of null (reading 'title')"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n\n\n--- VAULT MEMORY ---\nantes\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "[{\"title\": \"antes\"}, null, {\"title\": \"depois\"}]",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o cofre que não é lista avisa e as conversas seguem": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[UserProfileManager] Failed to read MyActivity.json",
+          "TypeError: <função ausente>"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "{\"a\": 1}",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o texto de amostra passa de cinquenta mil caracteres e é cortado": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "sha256:0c153679e1c58734 (50148 caracteres, começa com \"You are a Psychological & Operations Profiler. Analyze the f\")",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
+  "o contexto gravado é lido sem a análise": {
+    "retornos": "perfil antigo",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/dados/nova_user_context.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "utf-8"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\"lastUpdated\": 1, \"context\": \"perfil antigo\"}"
+    }
+  },
+  "sem arquivo de contexto devolve texto vazio": {
+    "retornos": "",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/dados/nova_user_context.json"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {}
+  },
+  "o contexto quebrado devolve texto vazio": {
+    "retornos": "",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/dados/nova_user_context.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "utf-8"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{quebrado"
+    }
+  },
+  "o contexto sem o campo devolve indefinido": {
+    "retornos": "(indefinido)",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/dados/nova_user_context.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "utf-8"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": "(indefinido)",
+      "lastAnalysisFailureTime": "(indefinido)"
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\"lastUpdated\": 1}"
+    }
+  },
+  "a análise grava o contexto que o getUserContext lê depois": {
+    "retornos": [
+      "perfil do usuário",
+      "perfil do usuário"
+    ],
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<app>/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ],
+      [
+        "fs.existe",
+        [
+          "<falso>/dados/nova_user_context.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "utf-8"
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  }
+}

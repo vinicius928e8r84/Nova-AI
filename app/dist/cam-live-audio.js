@@ -31,10 +31,14 @@
     return ctx;
   }
 
+  function clampVolume(v) {
+    return typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(1, v)) : 1;
+  }
+
   function defaults(p) {
     p = p || {};
     return {
-      volume: typeof p.volume === 'number' && isFinite(p.volume) ? Math.max(0, Math.min(1, p.volume)) : 1,
+      volume: clampVolume(p.volume),
       muted: !!p.muted,
       visible: p.visible === undefined ? true : !!p.visible,
       monitor: !!p.monitor,
@@ -60,25 +64,39 @@
 
   function safeDisconnect(n, to) { try { if (to) n.disconnect(to); else n.disconnect(); } catch (_) {} }
 
+  function validAttach(id, mediaEl) {
+    var semId = id === undefined || id === null;
+    return !semId && Boolean(mediaEl);
+  }
+
+  function sourceFor(mediaEl) {
+    var src = sources.get(mediaEl);
+    if (!src) { src = ctx.createMediaElementSource(mediaEl); sources.set(mediaEl, src); }
+    return src;
+  }
+
+  function buildChannel(id, mediaEl) {
+    var src = sourceFor(mediaEl);
+    var gain = ctx.createGain(), an = ctx.createAnalyser(), mon = ctx.createGain();
+    an.fftSize = FFT; an.smoothingTimeConstant = 0;
+    gain.gain.value = 0; mon.gain.value = 0;
+    src.connect(gain);
+    gain.connect(an);
+    gain.connect(master);
+    gain.connect(mon);
+    mon.connect(ctx.destination);
+    return { id: id, el: mediaEl, src: src, gain: gain, an: an, mon: mon, params: defaults(pending[id]) };
+  }
+
   function attach(id, mediaEl) {
     try {
-      if (id === undefined || id === null || !mediaEl) return false;
+      if (!validAttach(id, mediaEl)) return false;
       id = String(id);
       var cur = channels[id];
       if (cur && cur.el === mediaEl) return true;
       if (cur) detach(id);
       ensureCtx();
-      var src = sources.get(mediaEl);
-      if (!src) { src = ctx.createMediaElementSource(mediaEl); sources.set(mediaEl, src); }
-      var gain = ctx.createGain(), an = ctx.createAnalyser(), mon = ctx.createGain();
-      an.fftSize = FFT; an.smoothingTimeConstant = 0;
-      gain.gain.value = 0; mon.gain.value = 0;
-      src.connect(gain);
-      gain.connect(an);
-      gain.connect(master);
-      gain.connect(mon);
-      mon.connect(ctx.destination);
-      var ch = { id: id, el: mediaEl, src: src, gain: gain, an: an, mon: mon, params: defaults(pending[id]) };
+      var ch = buildChannel(id, mediaEl);
       channels[id] = ch;
       applyParams(ch);
       return true;
@@ -100,18 +118,26 @@
     } catch (_) {}
   }
 
+  function orBase(value, base, convert) {
+    return value === undefined ? base : convert(value);
+  }
+
+  function mergeParams(base, p) {
+    return {
+      volume: orBase(p.volume, base.volume, clampVolume),
+      muted: orBase(p.muted, base.muted, Boolean),
+      visible: orBase(p.visible, base.visible, Boolean),
+      monitor: orBase(p.monitor, base.monitor, Boolean),
+    };
+  }
+
   function setParams(id, p) {
     try {
       id = String(id);
       p = p || {};
       var ch = channels[id];
       var base = ch ? ch.params : (pending[id] || defaults());
-      var next = {
-        volume: p.volume === undefined ? base.volume : defaults({ volume: p.volume }).volume,
-        muted: p.muted === undefined ? base.muted : !!p.muted,
-        visible: p.visible === undefined ? base.visible : !!p.visible,
-        monitor: p.monitor === undefined ? base.monitor : !!p.monitor,
-      };
+      var next = mergeParams(base, p);
       if (ch) { ch.params = next; applyParams(ch); } else pending[id] = next;
     } catch (_) {}
   }
@@ -138,16 +164,23 @@
     return { codec: AAC_CODEC, sampleRate: SR, numberOfChannels: 2, bitrate: (kbps || 128) * 1000, aac: { format: 'aac' } };
   }
 
+  function webCodecsAvailable() {
+    var codec = typeof AudioEncoder !== 'undefined' && typeof AudioData !== 'undefined';
+    return codec && typeof AudioWorkletNode !== 'undefined';
+  }
+
+  async function aacIsSupported() {
+    var s = await AudioEncoder.isConfigSupported(aacConfig(128));
+    return !!(s && s.supported);
+  }
+
+  async function probeSupport() {
+    try { return webCodecsAvailable() && await aacIsSupported(); } catch (_) { return false; }
+  }
+
   function supported() {
     if (supportedP) return supportedP;
-    supportedP = (async function () {
-      try {
-        if (typeof AudioEncoder === 'undefined' || typeof AudioData === 'undefined') return false;
-        if (typeof AudioWorkletNode === 'undefined') return false;
-        var s = await AudioEncoder.isConfigSupported(aacConfig(128));
-        return !!(s && s.supported);
-      } catch (_) { return false; }
-    })();
+    supportedP = probeSupport();
     return supportedP;
   }
 
@@ -170,58 +203,111 @@
     workletReady = true;
   }
 
+  var BLOCKED_MESSAGE = 'O áudio do navegador está bloqueado até um clique do usuário. Clique na tela e tente transmitir de novo.';
+
+  function hasCallback(opts) {
+    return typeof (opts.rawPcm ? opts.onPcm : opts.onPacket) === 'function';
+  }
+
+  async function unlockContext() {
+    if (ctx.state === 'suspended') { try { await Promise.race([ctx.resume(), new Promise(function (r) { setTimeout(r, 1500); })]); } catch (_) {} }
+    return ctx.state === 'running';
+  }
+
+  function newCapture(opts, t0Ms) {
+    return {
+      rawPcm: !!opts.rawPcm, onPcm: opts.onPcm, t0Ms: t0Ms, onAsc: opts.onAsc, onPacket: opts.onPacket, onError: opts.onError,
+      enc: null, node: null, mute: null, sentAsc: false, base: null, acc: 0, fill: 0,
+      L: new Float32Array(BLOCK), R: new Float32Array(BLOCK), stopped: false, failed: null,
+      packets: 0, bytes: 0,
+    };
+  }
+
+  function ascOf(meta) {
+    var config = meta && meta.decoderConfig;
+    return config && config.description;
+  }
+
+  function announceAsc(c, meta) {
+    if (c.sentAsc || !ascOf(meta)) return;
+    c.sentAsc = true;
+    if (typeof c.onAsc === 'function') c.onAsc(new Uint8Array(meta.decoderConfig.description));
+  }
+
+  function onEncoded(c, chunk, meta) {
+    try {
+      announceAsc(c, meta);
+      var data = new Uint8Array(chunk.byteLength); chunk.copyTo(data);
+      c.packets++; c.bytes += data.length;
+      c.onPacket({ data: data, ptsUs: chunk.timestamp });
+    } catch (e) { fail(c, e); }
+  }
+
+  function attachEncoder(c, kbps) {
+    c.enc = new AudioEncoder({
+      output: function (chunk, meta) { onEncoded(c, chunk, meta); },
+      error: function (e) { fail(c, e); },
+    });
+    c.enc.configure(aacConfig(kbps));
+  }
+
+  function attachWorkletNode(c) {
+    var node = new AudioWorkletNode(ctx, 'camlive-sink', {
+      numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
+      channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers',
+    });
+    var mute = ctx.createGain(); mute.gain.value = 0;
+    node.onprocessorerror = function () { fail(c, new Error('o processador de áudio falhou')); };
+    node.port.onmessage = function (ev) { onBlock(c, ev.data); };
+    master.connect(node); node.connect(mute); mute.connect(ctx.destination);
+    c.node = node; c.mute = mute;
+  }
+
+  async function captureProblem(opts) {
+    if (cap) return 'A captura de áudio já está em andamento.';
+    if (!opts.rawPcm && !(await supported())) return 'Este Electron não codifica áudio AAC (WebCodecs AudioEncoder indisponível).';
+    if (!hasCallback(opts)) return 'Falta o callback onPacket para receber o áudio codificado.';
+    return null;
+  }
+
+  function startTimeOf(opts) {
+    return typeof opts.t0Ms === 'number' ? opts.t0Ms : performance.now();
+  }
+
+  function bitrateOf(opts) {
+    return opts.bitrateKbps > 0 ? opts.bitrateKbps : 128;
+  }
+
+  function wireCapture(c, kbps) {
+    if (!c.rawPcm) attachEncoder(c, kbps);
+    attachWorkletNode(c);
+  }
+
+  async function abortCapture(local, e) {
+    if (local) { try { await teardown(local, false); } catch (_) {} }
+    if (cap === local) cap = null;
+    return { ok: false, error: 'Falha ao iniciar a captura de áudio: ' + msg(e) };
+  }
+
   async function startCapture(opts) {
     var local = null;
     try {
       opts = opts || {};
-      if (cap) return { ok: false, error: 'A captura de áudio já está em andamento.' };
-      if (!opts.rawPcm && !(await supported())) return { ok: false, error: 'Este Electron não codifica áudio AAC (WebCodecs AudioEncoder indisponível).' };
-      if (opts.rawPcm ? typeof opts.onPcm !== 'function' : typeof opts.onPacket !== 'function') return { ok: false, error: 'Falta o callback onPacket para receber o áudio codificado.' };
-      var t0Ms = typeof opts.t0Ms === 'number' ? opts.t0Ms : performance.now();
-      var kbps = opts.bitrateKbps > 0 ? opts.bitrateKbps : 128;
+      var problem = await captureProblem(opts);
+      if (problem) return { ok: false, error: problem };
+      var t0Ms = startTimeOf(opts);
+      var kbps = bitrateOf(opts);
 
       ensureCtx();
-      if (ctx.state === 'suspended') { try { await Promise.race([ctx.resume(), new Promise(function (r) { setTimeout(r, 1500); })]); } catch (_) {} }
-      if (ctx.state !== 'running') return { ok: false, error: 'O áudio do navegador está bloqueado até um clique do usuário. Clique na tela e tente transmitir de novo.' };
+      if (!(await unlockContext())) return { ok: false, error: BLOCKED_MESSAGE };
       await ensureWorklet();
 
-      local = {
-        rawPcm: !!opts.rawPcm, onPcm: opts.onPcm, t0Ms: t0Ms, onAsc: opts.onAsc, onPacket: opts.onPacket, onError: opts.onError,
-        enc: null, node: null, mute: null, sentAsc: false, base: null, acc: 0, fill: 0,
-        L: new Float32Array(BLOCK), R: new Float32Array(BLOCK), stopped: false, failed: null,
-        packets: 0, bytes: 0,
-      };
-      if (!local.rawPcm) { local.enc = new AudioEncoder({
-        output: function (chunk, meta) {
-          try {
-            if (!local.sentAsc && meta && meta.decoderConfig && meta.decoderConfig.description) {
-              local.sentAsc = true;
-              if (typeof local.onAsc === 'function') local.onAsc(new Uint8Array(meta.decoderConfig.description));
-            }
-            var data = new Uint8Array(chunk.byteLength); chunk.copyTo(data);
-            local.packets++; local.bytes += data.length;
-            local.onPacket({ data: data, ptsUs: chunk.timestamp });
-          } catch (e) { fail(local, e); }
-        },
-        error: function (e) { fail(local, e); },
-      });
-      local.enc.configure(aacConfig(kbps)); }
-
-      var node = new AudioWorkletNode(ctx, 'camlive-sink', {
-        numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2],
-        channelCount: 2, channelCountMode: 'explicit', channelInterpretation: 'speakers',
-      });
-      var mute = ctx.createGain(); mute.gain.value = 0;
-      node.onprocessorerror = function () { fail(local, new Error('o processador de áudio falhou')); };
-      node.port.onmessage = function (ev) { onBlock(local, ev.data); };
-      master.connect(node); node.connect(mute); mute.connect(ctx.destination);
-      local.node = node; local.mute = mute;
+      local = newCapture(opts, t0Ms);
+      wireCapture(local, kbps);
       cap = local;
       return { ok: true };
     } catch (e) {
-      if (local) { try { await teardown(local, false); } catch (_) {} }
-      if (cap === local) cap = null;
-      return { ok: false, error: 'Falha ao iniciar a captura de áudio: ' + msg(e) };
+      return abortCapture(local, e);
     }
   }
 
@@ -232,10 +318,14 @@
     try { if (typeof c.onError === 'function') c.onError('Erro no áudio: ' + c.failed); } catch (_) {}
   }
 
-  function onBlock(c, data) {
-    if (c.stopped || c.failed || (!c.rawPcm && (!c.enc || c.enc.state !== 'configured'))) return;
-    if (c.base === null) c.base = performance.now() - WORKLET_FRAMES * 1000 / SR;
-    var l = data[0], r = data[1], n = l.length, off = 0;
+  function ignoresBlocks(c) {
+    if (c.stopped || c.failed) return true;
+    var needsEncoder = !c.rawPcm;
+    return needsEncoder && (!c.enc || c.enc.state !== 'configured');
+  }
+
+  function feedBlock(c, l, r) {
+    var n = l.length, off = 0;
     while (off < n) {
       var take = Math.min(n - off, BLOCK - c.fill);
       c.L.set(l.subarray(off, off + take), c.fill);
@@ -245,44 +335,68 @@
     }
   }
 
+  function onBlock(c, data) {
+    if (ignoresBlocks(c)) return;
+    if (c.base === null) c.base = performance.now() - WORKLET_FRAMES * 1000 / SR;
+    feedBlock(c, data[0], data[1]);
+  }
+
+  function toInt16(mean) {
+    var sample = Math.max(-1, Math.min(1, mean));
+    return Math.round(sample * (sample < 0 ? 32768 : 32767));
+  }
+
+  function emitPcm(c) {
+    var pcm = new Int16Array(BLOCK);
+    for (var i = 0; i < BLOCK; i++) pcm[i] = toInt16((c.L[i] + c.R[i]) / 2);
+    c.onPcm({data: new Uint8Array(pcm.buffer), sampleRate: ctx.sampleRate});
+  }
+
+  function encodeAac(c) {
+    var planar = new Float32Array(BLOCK * 2);
+    planar.set(c.L, 0); planar.set(c.R, BLOCK);
+    var ts = Math.round((c.base - c.t0Ms) * 1000 + c.acc * 1000 / SR);
+    var ad = new AudioData({ format: 'f32-planar', sampleRate: SR, numberOfFrames: BLOCK, numberOfChannels: 2, timestamp: ts, data: planar });
+    try { c.enc.encode(ad); } finally { ad.close(); }
+  }
+
   function encodeBlock(c) {
     try {
-      if (c.rawPcm) {
-        var pcm = new Int16Array(BLOCK);
-        for (var i = 0; i < BLOCK; i++) {
-          var sample = Math.max(-1, Math.min(1, (c.L[i] + c.R[i]) / 2));
-          pcm[i] = Math.round(sample * (sample < 0 ? 32768 : 32767));
-        }
-        c.onPcm({data: new Uint8Array(pcm.buffer), sampleRate: ctx.sampleRate});
-        c.acc += BLOCK;
-        return;
-      }
-      var planar = new Float32Array(BLOCK * 2);
-      planar.set(c.L, 0); planar.set(c.R, BLOCK);
-      var ts = Math.round((c.base - c.t0Ms) * 1000 + c.acc * 1000 / SR);
-      var ad = new AudioData({ format: 'f32-planar', sampleRate: SR, numberOfFrames: BLOCK, numberOfChannels: 2, timestamp: ts, data: planar });
-      try { c.enc.encode(ad); } finally { ad.close(); }
+      if (c.rawPcm) emitPcm(c); else encodeAac(c);
       c.acc += BLOCK;
     } catch (e) { fail(c, e); }
   }
 
-  async function teardown(c, flush) {
-    c.stopped = true;
+  function detachWorkletNode(c) {
     try { if (c.node) { c.node.port.onmessage = null; c.node.onprocessorerror = null; } } catch (_) {}
     if (c.node) { safeDisconnect(master, c.node); safeDisconnect(c.node); }
     if (c.mute) safeDisconnect(c.mute);
     try { if (c.node) c.node.port.close(); } catch (_) {}
+  }
+
+  function tailPending(c) {
+    var hasTail = c.fill > 0 && c.base !== null;
+    return hasTail && !c.failed;
+  }
+
+  function encodeTail(c, enc) {
+    try {
+      c.L.fill(0, c.fill); c.R.fill(0, c.fill);
+      c.enc = enc; c.stopped = false; encodeBlock(c); c.stopped = true; c.enc = null;
+    } catch (_) {}
+  }
+
+  async function closeEncoder(c, enc, flush) {
+    if (flush && tailPending(c)) encodeTail(c, enc);
+    if (flush && enc.state === 'configured') { try { await enc.flush(); } catch (_) {} }
+    try { if (enc.state !== 'closed') enc.close(); } catch (_) {}
+  }
+
+  async function teardown(c, flush) {
+    c.stopped = true;
+    detachWorkletNode(c);
     var enc = c.enc; c.enc = null;
-    if (enc) {
-      if (flush && c.fill > 0 && c.base !== null && !c.failed) {
-        try {
-          c.L.fill(0, c.fill); c.R.fill(0, c.fill);
-          c.enc = enc; c.stopped = false; encodeBlock(c); c.stopped = true; c.enc = null;
-        } catch (_) {}
-      }
-      if (flush && enc.state === 'configured') { try { await enc.flush(); } catch (_) {} }
-      try { if (enc.state !== 'closed') enc.close(); } catch (_) {}
-    }
+    if (enc) await closeEncoder(c, enc, flush);
   }
 
   async function stopCapture() {
