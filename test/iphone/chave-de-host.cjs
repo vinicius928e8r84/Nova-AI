@@ -6,7 +6,7 @@ const arquivos=[
  'app/electron/services/cam-live-iphone-tunel.js',
  'app/electron/services/ios-bridge.js',
  'app/electron/services/idioma-ipc.js',
- 'app/electron/services/physicalMobileService.js',
+ 'app/electron/services/iphone-comando.js',
 ];
 for(const rel of arquivos){
  test('ssh do iPhone usa accept-new com BatchMode e ConnectTimeout: '+rel,()=>{

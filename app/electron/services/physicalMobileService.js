@@ -2,15 +2,22 @@ const { spawn, exec, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const iphoneSsh = require('./iphone-ssh');
-const iosModelo = require('./ios-modelo');
-const plistPrefs = require('./plist-prefs');
 const net = require('net');
 const WebSocket = require('ws');
 const axios = require('axios');
 const { caminhoDoAdb, caminhoDoScrcpy } = require('./android-caminhos');
 const { listarAparelhosAdb } = require('./android-adb');
 const { conectarWifi, parearPorCodigo, recusarPareamentoPorFio, parearPorFioParaWifi, varrerEConectar } = require('./android-conexao');
+const { executarNoIphone, lerFusoDoIphone, argumentosDoScp, copiarComScp, executarIdeviceinstaller } = require('./iphone-comando');
+const { rodarNovaproxy, traduzirErroDoNovaproxy, definirProxyDoIphone, limparProxyDoIphone, lerProxyDoIphone, conferirProxyDoIphone } = require('./iphone-proxy');
+const {
+    listarModelosDoIphone, aplicarModeloDoIphone, limparModeloDoIphone, lerModeloDoIphone, listarIphones, iphonePreparado,
+    abrirConsoleDoIphone, fecharConsoleDoIphone, controlarAppDoIphone, abrirEnderecoNoIphone, alternarAjusteDoIphone,
+} = require('./iphone-controle');
+const {
+    lerEstadoDoAjudanteDeFuso, ajudanteDeFusoInstalado, montarPlistDeIdioma, lerIdiomaDoAparelho, enviarComandoAoAjudanteDeFuso,
+    esperarEstadoDoAjudanteDeFuso, aplicarFusoNoIphone, reverterFusoDoIphone,
+} = require('./iphone-fuso');
 
 class PhysicalMobileService {
     constructor(mainWindow, app) {
@@ -79,230 +86,79 @@ class PhysicalMobileService {
     }
 
     iosSsh(command) {
-        return new Promise((resolve) => {
-            const args = ['-p', '2222', ...iphoneSsh.sshOptions(),
-                '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
-                'mobile@127.0.0.1', command];
-            require('./tool-paths').execSsh(args, { timeout: 12000 }, (err, stdout, stderr) => {
-                resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
-            });
-        });
+        return executarNoIphone(command);
     }
 
     async iosDeviceTimeZone() {
-        const r = await this.iosSsh('readlink /var/db/timezone/localtime');
-        const m = r.ok ? String(r.stdout || '').trim().match(/zoneinfo\/(.+)$/) : null;
-        return m ? m[1].trim() : null;
+        return lerFusoDoIphone(this);
     }
 
-    iosProxyRun(args, timeoutMs = 30000) {
-        return new Promise((resolve) => {
-            const cmd = '/var/jb/usr/bin/novaproxy ' + args;
-            const sshArgs = ['-p', '2222', ...iphoneSsh.sshOptions(),
-                '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new',
-                'mobile@127.0.0.1', cmd];
-            require('./tool-paths').execSsh(sshArgs, { timeout: timeoutMs }, (err, stdout, stderr) => {
-                resolve({ ok: !err, stdout: String(stdout || '').trim(), error: err ? (String(stderr || '').trim() || err.message) : null });
-            });
-        });
+    iosProxyRun(args, timeoutMs) {
+        return rodarNovaproxy(args, timeoutMs);
     }
 
     iosProxyError(raw) {
-        const msg = String(raw || '').trim();
-        if (/No such file|not found|command not found/i.test(msg)) {
-            return 'O novaproxy ainda não está instalado no iPhone. Rode o instalador uma vez.';
-        }
-        if (/password is required|a password is required/i.test(msg)) {
-            return 'A regra de sudo do novaproxy não está ativa no iPhone. Reinstale o pacote.';
-        }
-        if (/must have a tty|requiretty/i.test(msg)) {
-            return 'O sudo do iPhone exige terminal. Reinstale o pacote (a regra NOPASSWD não entrou).';
-        }
-        return msg || 'Falha ao falar com o proxy do iPhone.';
+        return traduzirErroDoNovaproxy(raw);
     }
 
     async iosProxySet(deviceId, proxy) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
-        }
-        const raw = String(proxy || '').trim();
-        if (!raw) return { success: false, error: 'Proxy vazio.' };
-        const quoted = "'" + raw.replace(/'/g, "'\\''") + "'";
-        const r = await this.iosProxyRun('proxy set ' + quoted);
-        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
-        return { success: true, message: r.stdout };
+        return definirProxyDoIphone(deviceId, proxy);
     }
 
     async iosProxyClear(deviceId) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
-        }
-        const r = await this.iosProxyRun('proxy clear', 15000);
-        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
-        return { success: true, message: r.stdout };
+        return limparProxyDoIphone(deviceId);
     }
 
     async iosProxyStatus(deviceId) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
-        }
-        const r = await this.iosProxyRun('proxy status', 15000);
-        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
-        const line = r.stdout;
-        const upstream = (line.match(/upstream=([^\s]+)/) || [])[1] || '';
-        return {
-            success: true,
-            on: /^on\s/.test(line),
-            upstream,
-            wifi: (line.match(/wifi=(\w+)/) || [])[1] || 'unknown',
-            daemon: /daemon=running/.test(line),
-            raw: line
-        };
+        return lerProxyDoIphone(deviceId);
     }
 
     async iosProxyCheck(deviceId) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O proxy está disponível apenas para iPhone.' };
-        }
-        const r = await this.iosProxyRun('proxy check', 40000);
-        if (!r.ok) return { success: false, error: this.iosProxyError(r.error) };
-        return { success: true, ip: r.stdout };
+        return conferirProxyDoIphone(deviceId);
     }
 
     getIosModels() {
-        try {
-            const db = JSON.parse(fs.readFileSync(path.join(__dirname, 'iosModels.json'), 'utf8'));
-            return { success: true, models: db.models || [] };
-        } catch (e) {
-            console.error('[novamodel] banco de modelos iOS ausente:', e.message);
-            return { success: false, models: [], error: 'Banco de modelos iOS não encontrado.' };
-        }
+        return listarModelosDoIphone();
     }
 
     async applyIOSModel(deviceId, productType) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
-        }
-        if (!iosModelo.isValidProductType(productType)) {
-            return { success: false, error: 'productType inválido.' };
-        }
-        const db = this.getIosModels();
-        const found = db.success ? iosModelo.findModel(db.models, productType) : null;
-        if (db.success && !found) {
-            return { success: false, error: `Modelo "${productType}" não está no banco iOS.` };
-        }
-        const r = await iosModelo.applyModel((cmd) => this.iosSsh(cmd), productType);
-        if (!r.success) return r;
-        return { success: true, applied: { productType, name: found ? found.name : productType } };
+        return aplicarModeloDoIphone(this, deviceId, productType);
     }
 
     async clearIOSModel(deviceId) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
-        }
-        return iosModelo.clearModel((cmd) => this.iosSsh(cmd));
+        return limparModeloDoIphone(this, deviceId);
     }
 
     async getIOSModel(deviceId) {
-        if (!String(deviceId || '').startsWith('ios-')) {
-            return { success: false, error: 'O modelo é aplicável apenas ao iPhone.' };
-        }
-        return iosModelo.getModel((cmd) => this.iosSsh(cmd));
+        return lerModeloDoIphone(this, deviceId);
     }
 
     iosRun(args) {
-        return new Promise((resolve) => {
-            execFile(require('./ios-tools').tool('ideviceinstaller'), args, { timeout: 25000, windowsHide: true }, (err, stdout, stderr) => {
-                resolve({ ok: !err, stdout: String(stdout || ''), error: err ? (String(stderr) || err.message) : null });
-            });
-        });
+        return executarIdeviceinstaller(args);
     }
 
     async getIosDevices() {
-        try {
-            const iosTools = require('./ios-tools');
-            if (!iosTools.has('idevice_id') || !iosTools.has('ideviceinfo')) return [];
-            return await require('./ios-devices').listar();
-        } catch (e) {
-            return [];
-        }
+        return listarIphones();
     }
 
     iosPrepared(udid) {
-        try {
-            const pinsFile = path.join(this.baseDir, 'iphone-hosts.json');
-            if (!fs.existsSync(pinsFile)) return false;
-            const pins = JSON.parse(fs.readFileSync(pinsFile, 'utf8'));
-            return !!(pins && pins[udid]);
-        } catch (e) {
-            return false;
-        }
+        return iphonePreparado(this.baseDir, udid);
     }
 
     async iosStartStream(deviceId) {
-        try {
-            const { BrowserWindow } = require('electron');
-            const iosBridge = require('./ios-bridge');
-            if (!iosBridge.isRunning || !iosBridge.isRunning()) iosBridge.start();
-            if (!this.iosConsoleWindows) this.iosConsoleWindows = new Map();
-            const existing = this.iosConsoleWindows.get(deviceId);
-            if (existing && !existing.isDestroyed()) { existing.focus(); return { success: true, message: 'iPhone Console já estava aberto — trazido pra frente.' }; }
-            const win = new BrowserWindow({ width: 1100, height: 820, title: 'iPhone Console', backgroundColor: '#050a10', webPreferences: { contextIsolation: true, nodeIntegration: false } });
-            win.loadURL('http://127.0.0.1:' + iosBridge.PORT + '/');
-            this.iosConsoleWindows.set(deviceId, win);
-            win.on('closed', () => { this.iosConsoleWindows.delete(deviceId); });
-            return { success: true, message: 'Controle do iPhone aberto. Se pedir senha, use a do CatVNC (Ajustes > CatVNC).' };
-        } catch (e) { return { success: false, error: e.message }; }
+        return abrirConsoleDoIphone(this, deviceId);
     }
 
     async iosStopStream(deviceId) {
-        const win = this.iosConsoleWindows && this.iosConsoleWindows.get(deviceId);
-        if (win && !win.isDestroyed()) { try { win.close(); } catch (e) {} }
-        return { success: true };
+        return fecharConsoleDoIphone(this, deviceId);
     }
 
     async iosControlApp(deviceId, packageName, action) {
-        const act = String(action || '').toLowerCase();
-        const IOS_ALIAS = {
-            'com.whatsapp': 'net.whatsapp.Whatsapp',
-            'com.whatsapp.w4b': 'net.whatsapp.Whatsapp',
-            'com.instagram.android': 'com.burbn.instagram',
-            'com.android.chrome': 'com.apple.mobilesafari',
-            'com.facebook.katana': 'com.facebook.Facebook',
-            'com.google.android.youtube': 'com.google.ios.youtube',
-            'com.tencent.mm': 'com.tencent.xinWeChat',
-            'com.zhiliaoapp.musically': 'com.zhiliaoapp.musically'
-        };
-        packageName = IOS_ALIAS[String(packageName)] || packageName;
-        if (act === 'list') {
-            const r = await this.iosRun(['list']);
-            if (!r.ok && !r.stdout) return { success: false, error: r.error, apps: [] };
-            const apps = [];
-            r.stdout.split('\n').forEach((l) => {
-                if (!l.trim() || l.startsWith('CFBundleIdentifier')) return;
-                const parts = l.split(',').map(x => x.trim().replace(/^"|"$/g, ''));
-                if (parts[0]) apps.push({ packageName: parts[0], name: parts[2] || parts[0] });
-            });
-            return { success: true, apps };
-        }
-        if (act === 'launch' || act === 'open' || act === 'start') {
-            const r = await this.iosSsh('uiopen --bundleid ' + JSON.stringify(String(packageName)));
-            return r.ok ? { success: true } : { success: false, error: r.error };
-        }
-        if (act === 'uninstall' || act === 'remove') {
-            const r = await this.iosRun(['uninstall', String(packageName)]);
-            return r.ok ? { success: true } : { success: false, error: r.error };
-        }
-        return { success: false, error: 'Ação não suportada no iOS: ' + act };
+        return controlarAppDoIphone(this, packageName, action);
     }
 
     async iosAutomateBrowser(deviceId, url, searchText) {
-        let target = String(url || '');
-        if (!target && searchText) target = 'https://www.google.com/search?q=' + encodeURIComponent(searchText);
-        if (target && !/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(target)) target = 'https://' + target;
-        if (!target) return { success: false, error: 'Sem URL.' };
-        const r = await this.iosSsh('uiopen ' + JSON.stringify(target));
-        return r.ok ? { success: true } : { success: false, error: r.error };
+        return abrirEnderecoNoIphone(this, url, searchText);
     }
 
     async getStatus() {
@@ -439,15 +295,7 @@ class PhysicalMobileService {
     }
 
     async iosToggleSetting(deviceId, setting, enable) {
-        const SHORTCUTS = {
-            wifi:      { on: 'Nova WiFi On', off: 'Nova WiFi Off' },
-            bluetooth: { on: 'Nova BT On',   off: 'Nova BT Off' }
-        };
-        const names = SHORTCUTS[String(setting).toLowerCase()];
-        if (!names) return { success: false, error: 'Unsupported setting.' };
-        const url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(enable ? names.on : names.off);
-        const r = await this.iosSsh('uiopen ' + JSON.stringify(url));
-        return r.ok ? { success: true } : { success: false, error: r.error };
+        return alternarAjusteDoIphone(this, setting, enable);
     }
 
     async toggleSetting(deviceId, setting, enable) {
@@ -1300,95 +1148,43 @@ exit 0
     }
 
     iosLocaleStatus() {
-        return this.iosSsh('cat /var/tmp/nova-locale-status.json 2>/dev/null').then((r) => {
-            try { return JSON.parse(String(r.stdout || '').trim()); } catch (_) { return null; }
-        });
+        return lerEstadoDoAjudanteDeFuso(this);
     }
 
     async iosLocaleHelperReady() {
-        const r = await this.iosSsh('test -f /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist && test -f /var/jb/usr/libexec/nova-locale.sh && echo ok');
-        return !!(r.ok && /ok/.test(r.stdout));
+        return ajudanteDeFusoInstalado(this);
     }
 
     iosScp(args) {
-        return new Promise((resolve, reject) => {
-            execFile(require('./tool-paths').scp(), args, { timeout: 30000, windowsHide: true }, (err, stdout, stderr) => {
-                if (err) return reject(new Error(String(stderr || err.message).slice(0, 200)));
-                resolve(true);
-            });
-        });
+        return copiarComScp(args);
     }
 
     iosScpBase(remote, local, direction) {
-        const base = ['-P', '2222', ...iphoneSsh.sshOptions(), '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', '-o', 'StrictHostKeyChecking=accept-new'];
-        return direction === 'from'
-            ? [...base, `mobile@127.0.0.1:${remote}`, local]
-            : [...base, local, `mobile@127.0.0.1:${remote}`];
+        return argumentosDoScp(remote, local, direction);
     }
 
     async iosBuildLocalePlist(language, locale) {
-        const local = path.join(this.baseDir, 'nova-globalprefs.plist');
-        await this.iosScp(this.iosScpBase('/var/mobile/Library/Preferences/.GlobalPreferences.plist', local, 'from'));
-        await plistPrefs.aplicarIdiomaLocale(local, language, locale);
-        await this.iosScp(this.iosScpBase('/var/tmp/nova-gp.plist', local, 'to'));
-        return local;
+        return montarPlistDeIdioma(this, language, locale);
     }
 
     async iosSendLocaleCommand(fields) {
-        await this.iosSsh('rm -f /var/tmp/nova-locale-status.json');
-        const local = path.join(this.baseDir, 'nova-locale.cmd');
-        fs.writeFileSync(local, Object.entries(fields).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
-        await this.iosScp(this.iosScpBase('/var/tmp/nova-locale.cmd', local, 'to'));
+        return enviarComandoAoAjudanteDeFuso(this, fields);
     }
 
-    async iosWaitLocaleStatus(timeoutMs = 25000) {
-        const t0 = Date.now();
-        while (Date.now() - t0 < timeoutMs) {
-            await new Promise((r) => setTimeout(r, 1200));
-            const st = await this.iosLocaleStatus();
-            if (st && typeof st.ok === 'boolean') return st;
-        }
-        return null;
+    async iosWaitLocaleStatus(timeoutMs) {
+        return esperarEstadoDoAjudanteDeFuso(this, timeoutMs);
     }
 
     async iosPlistLanguage() {
-        const local = path.join(this.baseDir, 'nova-globalprefs-check.plist');
-        await this.iosScp(this.iosScpBase('/var/mobile/Library/Preferences/.GlobalPreferences.plist', local, 'from'));
-        return plistPrefs.lerPrimeiroIdioma(local);
+        return lerIdiomaDoAparelho(this);
     }
 
     async iosApplyLocale(deviceId, timezone) {
-        if (!String(deviceId || '').startsWith('ios-')) return { success: false, error: 'Só para iPhone.' };
-        if (!(await this.iosLocaleHelperReady())) {
-            return { success: false, error: 'helper-not-installed', language: null };
-        }
-        const tz = timezone && /^[A-Za-z0-9_+\/-]+$/.test(timezone) ? timezone : '';
-        if (!tz) return { success: false, error: 'sem fuso para aplicar' };
-        try {
-            const tzAntes = await this.iosDeviceTimeZone();
-            if (tzAntes === tz) return { success: true, timezone: tz, message: 'fuso já estava certo' };
-            await this.iosSendLocaleCommand({ action: 'apply', tz });
-            const st = await this.iosWaitLocaleStatus();
-            const tzAtual = await this.iosDeviceTimeZone();
-            console.log(`[Locale] tz pedido=${tz} aparelho=${tzAtual} status=${st && st.message}`);
-            if (tzAtual === tz) return { success: true, timezone: tzAtual, message: 'fuso aplicado' };
-            return { success: false, error: `fuso ${tzAtual || '?'} ≠ ${tz}`, timezone: tzAtual };
-        } catch (e) {
-            return { success: false, error: String(e.message || e) };
-        }
+        return aplicarFusoNoIphone(this, deviceId, timezone);
     }
 
     async iosRevertLocale(deviceId) {
-        if (!String(deviceId || '').startsWith('ios-')) return { success: true };
-        if (!(await this.iosLocaleHelperReady())) return { success: false, error: 'helper-not-installed' };
-        try {
-            await this.iosSendLocaleCommand({ action: 'revert' });
-            const st = await this.iosWaitLocaleStatus(20000);
-            if (st && st.ok) return { success: true, message: st.message };
-            return { success: false, error: (st && st.message) || 'helper não respondeu' };
-        } catch (e) {
-            return { success: false, error: String(e.message || e) };
-        }
+        return reverterFusoDoIphone(this, deviceId);
     }
 
     async setSpoofLocation(deviceId, latitude, longitude) {
