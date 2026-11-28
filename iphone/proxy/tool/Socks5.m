@@ -15,7 +15,7 @@ static void escrever_falha(Falha falha, const char *fmt, ...) {
     va_end(ap);
 }
 
-static int wait_fd(int fd, short events, int timeout_ms) {
+static int wait_fd(Soquete fd, short events, int timeout_ms) {
     struct pollfd p = { .fd = fd, .events = events };
     int r;
     do { r = poll(&p, 1, timeout_ms); } while (r < 0 && errno == EINTR);
@@ -23,14 +23,14 @@ static int wait_fd(int fd, short events, int timeout_ms) {
     return 0;
 }
 
-static int conferir_conexao_pendente(int fd, int ms) {
+static int conferir_conexao_pendente(Soquete fd, int ms) {
     if (wait_fd(fd, POLLOUT, ms) < 0) return -1;
     int soerr = 0; socklen_t sl = sizeof(soerr);
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &soerr, &sl) < 0 || soerr != 0) return -1;
     return 0;
 }
 
-static int connect_timeout(int fd, struct sockaddr *addr, socklen_t alen, int ms) {
+static int connect_timeout(Soquete fd, struct sockaddr *addr, socklen_t alen, int ms) {
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     int r = connect(fd, addr, alen);
@@ -40,7 +40,7 @@ static int connect_timeout(int fd, struct sockaddr *addr, socklen_t alen, int ms
     return 0;
 }
 
-static int send_all(int fd, const void *buf, size_t len) {
+static int send_all(Soquete fd, const void *buf, size_t len) {
     const char *p = buf;
     while (len > 0) {
         ssize_t n = send(fd, p, len, 0);
@@ -50,7 +50,7 @@ static int send_all(int fd, const void *buf, size_t len) {
     return 0;
 }
 
-static int recv_full(int fd, void *buf, size_t len) {
+static int recv_full(Soquete fd, void *buf, size_t len) {
     char *p = buf;
     while (len > 0) {
         ssize_t n = recv(fd, p, len, 0);
@@ -91,7 +91,7 @@ static int conectar_ao_proxy(Endereco proxy, Falha falha) {
     return fd;
 }
 
-static void limitar_o_tempo(int fd) {
+static void limitar_o_tempo(Soquete fd) {
     struct timeval tv = { .tv_sec = 20, .tv_usec = 0 };
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
@@ -101,14 +101,14 @@ static int tem_login(Credencial credencial) {
     return credencial.usuario && credencial.usuario[0];
 }
 
-static int login_aceito(int fd, const unsigned char *pedido, size_t tamanho) {
+static int login_aceito(Soquete fd, const unsigned char *pedido, size_t tamanho) {
     unsigned char reply[2];
     if (send_all(fd, pedido, tamanho) < 0) return 0;
     if (recv_full(fd, reply, 2) < 0) return 0;
     return reply[1] == 0x00;
 }
 
-static int autenticar(int fd, Credencial credencial, Falha falha) {
+static int autenticar(Soquete fd, Credencial credencial, Falha falha) {
     size_t ul = strlen(credencial.usuario), pl = strlen(credencial.senha);
     if (ul > 255 || pl > 255) { escrever_falha(falha, "credenciais longas demais"); return -1; }
     unsigned char ab[513];
@@ -122,7 +122,7 @@ static int autenticar(int fd, Credencial credencial, Falha falha) {
     return -1;
 }
 
-static int tratar_metodo(int fd, unsigned char metodo, Credencial credencial, Falha falha) {
+static int tratar_metodo(Soquete fd, unsigned char metodo, Credencial credencial, Falha falha) {
     if (metodo == 0x02) {
         if (!tem_login(credencial)) { escrever_falha(falha, "proxy exige autenticação"); return -1; }
         return autenticar(fd, credencial, falha);
@@ -131,7 +131,7 @@ static int tratar_metodo(int fd, unsigned char metodo, Credencial credencial, Fa
     return 0;
 }
 
-static int negociar_metodo(int fd, Credencial credencial, Falha falha) {
+static int negociar_metodo(Soquete fd, Credencial credencial, Falha falha) {
     unsigned char buf[3] = { 0x05, 1, tem_login(credencial) ? 0x02 : 0x00 };
     if (send_all(fd, buf, 3) < 0) { escrever_falha(falha, "falha ao enviar saudação"); return -1; }
     unsigned char reply[2];
@@ -170,7 +170,7 @@ static size_t montar_pedido(unsigned char *buf, Endereco alvo) {
     return n;
 }
 
-static int pedir_conexao(int fd, Endereco alvo, Falha falha) {
+static int pedir_conexao(Soquete fd, Endereco alvo, Falha falha) {
     unsigned char buf[512];
     size_t n = montar_pedido(buf, alvo);
     if (n == 0) { escrever_falha(falha, "host longo demais"); return -1; }
@@ -178,7 +178,7 @@ static int pedir_conexao(int fd, Endereco alvo, Falha falha) {
     return 0;
 }
 
-static int descartar_endereco(int fd, unsigned char tipo) {
+static int descartar_endereco(Soquete fd, unsigned char tipo) {
     size_t skip = 0;
     if (tipo == 0x01) skip = 4;
     else if (tipo == 0x04) skip = 16;
@@ -192,7 +192,7 @@ static int descartar_endereco(int fd, unsigned char tipo) {
     return recv_full(fd, drain, 2);
 }
 
-static int ler_resposta(int fd, Falha falha) {
+static int ler_resposta(Soquete fd, Falha falha) {
     unsigned char head[4];
     if (recv_full(fd, head, 4) < 0 || head[0] != 0x05) {
         escrever_falha(falha, "sem resposta do SOCKS5");
@@ -205,7 +205,7 @@ static int ler_resposta(int fd, Falha falha) {
     return descartar_endereco(fd, head[3]);
 }
 
-static int apertar_a_mao(int fd, Credencial credencial, Endereco alvo, Falha falha) {
+static int apertar_a_mao(Soquete fd, Credencial credencial, Endereco alvo, Falha falha) {
     if (negociar_metodo(fd, credencial, falha) < 0) return -1;
     if (pedir_conexao(fd, alvo, falha) < 0) return -1;
     return ler_resposta(fd, falha);

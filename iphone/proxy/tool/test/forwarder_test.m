@@ -126,12 +126,12 @@ static int abrir_cliente(void) {
     return -1;
 }
 
-static BOOL receber_igual(int fd, const char *esperado, size_t tamanho) {
+static BOOL receber_igual(Soquete fd, const char *esperado, size_t tamanho) {
     char lido[512] = {0};
     return recv(fd, lido, tamanho, MSG_WAITALL) == (ssize_t)tamanho && memcmp(lido, esperado, tamanho) == 0;
 }
 
-static BOOL conversar(const CenaDeEncaminhamento *cena, int fd) {
+static BOOL conversar(const CenaDeEncaminhamento *cena, Soquete fd) {
     send(fd, cena->envia, cena->envia_tamanho, 0);
     if (!receber_igual(fd, cena->resposta, cena->resposta_tamanho)) return NO;
     if (!cena->depois_tamanho) return YES;

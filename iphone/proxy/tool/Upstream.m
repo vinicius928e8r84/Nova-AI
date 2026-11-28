@@ -28,7 +28,7 @@ static void escrever_falha(Falha falha, const char *fmt, ...) {
     va_end(ap);
 }
 
-static int send_all_fd(int fd, const void *buf, size_t len) {
+static int send_all_fd(Soquete fd, const void *buf, size_t len) {
     const char *p = buf;
     while (len > 0) {
         ssize_t n = send(fd, p, len, 0);
@@ -38,7 +38,7 @@ static int send_all_fd(int fd, const void *buf, size_t len) {
     return 0;
 }
 
-static int recv_full_fd(int fd, void *buf, size_t len) {
+static int recv_full_fd(Soquete fd, void *buf, size_t len) {
     char *p = buf;
     while (len > 0) {
         ssize_t n = recv(fd, p, len, 0);
@@ -70,20 +70,20 @@ static int abrir_socket(struct addrinfo *res, Falha falha) {
     return -1;
 }
 
-static int conectar_sem_bloquear(int fd, struct addrinfo *res) {
+static int conectar_sem_bloquear(Soquete fd, struct addrinfo *res) {
     int r = connect(fd, res->ai_addr, res->ai_addrlen);
     freeaddrinfo(res);
     return r;
 }
 
-static int esperar_escrita(int fd, int timeout_ms) {
+static int esperar_escrita(Soquete fd, int timeout_ms) {
     struct pollfd p = { .fd = fd, .events = POLLOUT };
     int pr;
     do { pr = poll(&p, 1, timeout_ms); } while (pr < 0 && errno == EINTR);
     return pr;
 }
 
-static int terminar_conexao_pendente(int fd, Endereco destino, int timeout_ms, Falha falha) {
+static int terminar_conexao_pendente(Soquete fd, Endereco destino, int timeout_ms, Falha falha) {
     if (esperar_escrita(fd, timeout_ms) <= 0) {
         escrever_falha(falha, "timeout conectando em %s:%d", destino.host, destino.porta);
         return -1;
@@ -96,7 +96,7 @@ static int terminar_conexao_pendente(int fd, Endereco destino, int timeout_ms, F
     return 0;
 }
 
-static void ajustar_socket(int fd, int timeout_ms) {
+static void ajustar_socket(Soquete fd, int timeout_ms) {
     struct timeval tv = { .tv_sec = timeout_ms / 1000, .tv_usec = (timeout_ms % 1000) * 1000 };
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
@@ -196,7 +196,7 @@ static void explicar_resposta_socks4(const unsigned char *resp, size_t tamanho, 
     }
 }
 
-static int ler_resposta_socks4(int fd, Falha falha) {
+static int ler_resposta_socks4(Soquete fd, Falha falha) {
     unsigned char resp[8];
     if (recv_full_fd(fd, resp, sizeof(resp)) < 0) { escrever_falha(falha, "proxy SOCKS4 não respondeu"); return -1; }
     if (resp[0] != 0x00) {
@@ -207,7 +207,7 @@ static int ler_resposta_socks4(int fd, Falha falha) {
     return 0;
 }
 
-static int negociar_socks4(int fd, DestinoSocks4 destino, Falha falha) {
+static int negociar_socks4(Soquete fd, DestinoSocks4 destino, Falha falha) {
     unsigned char req[1024];
     size_t n = montar_pedido_socks4(req, destino, falha);
     if (n == 0) return -1;
@@ -243,7 +243,7 @@ static NSString *pedido_connect(Credencial credencial, Endereco alvo) {
     return req;
 }
 
-static int ler_cabecalho_http(int fd, char *resp, size_t capacidade, Falha falha) {
+static int ler_cabecalho_http(Soquete fd, char *resp, size_t capacidade, Falha falha) {
     size_t used = 0;
     while (used < capacidade - 1) {
         ssize_t r = recv(fd, resp + used, capacidade - 1 - used, 0);
@@ -268,7 +268,7 @@ static void copiar_linha_de_status(const char *resp, char *status, size_t capaci
     status[cp] = 0;
 }
 
-static int negociar_http(int fd, Credencial credencial, Endereco alvo, Falha falha) {
+static int negociar_http(Soquete fd, Credencial credencial, Endereco alvo, Falha falha) {
     NSString *pedido = pedido_connect(credencial, alvo);
     const char *bytes = pedido.UTF8String;
     if (send_all_fd(fd, bytes, strlen(bytes)) < 0) {

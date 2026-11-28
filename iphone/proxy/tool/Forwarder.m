@@ -44,7 +44,7 @@ static char g_proxy_pass[512];
 static int g_proxy_port = 0;
 static volatile int g_conns = 0;
 
-static int send_all(int fd, const void *buf, size_t len) {
+static int send_all(Soquete fd, const void *buf, size_t len) {
     const char *p = buf;
     while (len > 0) {
         ssize_t n = send(fd, p, len, 0);
@@ -66,7 +66,7 @@ static int repassar_sentido(Sentido *sentido, short revents) {
     return send_all(sentido->destino, buf, (size_t)n) < 0 ? -1 : 0;
 }
 
-static void relay(int a, int b) {
+static void relay(Soquete a, Soquete b) {
     Sentido ida = { a, b, 1 }, volta = { b, a, 1 };
     while (ida.aberto || volta.aberto) {
         struct pollfd pfd[2];
@@ -94,12 +94,12 @@ static int separar_host_porta(const char *s, int porta_padrao, HostPorta *saida)
     return 0;
 }
 
-static void recusar_pedido(int fd) {
+static void recusar_pedido(Soquete fd) {
     const char *bad = "HTTP/1.1 400 Bad Request\r\n\r\n";
     send_all(fd, bad, strlen(bad));
 }
 
-static int ler_cabecalho(int fd, Pedido *pedido) {
+static int ler_cabecalho(Soquete fd, Pedido *pedido) {
     size_t capacidade = sizeof(pedido->cabecalho);
     while (pedido->usado < capacidade - 1) {
         ssize_t n = recv(fd, pedido->cabecalho + pedido->usado, capacidade - 1 - pedido->usado, 0);
@@ -146,7 +146,7 @@ static int interpretar_destino(Pedido *pedido) {
     return destino_do_get(pedido);
 }
 
-static int preparar_pedido(int fd, Pedido *pedido) {
+static int preparar_pedido(Soquete fd, Pedido *pedido) {
     if (ler_cabecalho(fd, pedido) < 0) return -1;
     if (ler_linha_do_pedido(pedido) < 0 || interpretar_destino(pedido) < 0) {
         recusar_pedido(fd);
@@ -155,7 +155,7 @@ static int preparar_pedido(int fd, Pedido *pedido) {
     return 0;
 }
 
-static int abrir_upstream(int fd, const Pedido *pedido) {
+static int abrir_upstream(Soquete fd, const Pedido *pedido) {
     ProxyMontante proxy = { g_scheme, { g_proxy_host, g_proxy_port }, { g_proxy_user, g_proxy_pass } };
     char err[256] = {0};
     int up = upstream_connect(proxy, (Endereco){ pedido->destino.host, pedido->destino.porta }, (Falha){ err, sizeof(err) });
@@ -166,19 +166,19 @@ static int abrir_upstream(int fd, const Pedido *pedido) {
     return -1;
 }
 
-static int enviar_o_que_sobrou(int up, const Pedido *pedido) {
+static int enviar_o_que_sobrou(Soquete up, const Pedido *pedido) {
     size_t extra_len = pedido->usado - (size_t)(pedido->fim_do_cabecalho - pedido->cabecalho);
     if (extra_len > 0 && send_all(up, pedido->fim_do_cabecalho, extra_len) < 0) return -1;
     return 0;
 }
 
-static int iniciar_connect(int fd, int up, const Pedido *pedido) {
+static int iniciar_connect(Soquete fd, Soquete up, const Pedido *pedido) {
     const char *ok = "HTTP/1.1 200 Connection Established\r\n\r\n";
     if (send_all(fd, ok, strlen(ok)) < 0) return -1;
     return enviar_o_que_sobrou(up, pedido);
 }
 
-static int iniciar_get(int up, const Pedido *pedido) {
+static int iniciar_get(Soquete up, const Pedido *pedido) {
     char newline[2048];
     snprintf(newline, sizeof(newline), "%s %s %s\r\n", pedido->metodo, pedido->caminho, pedido->versao);
     if (send_all(up, newline, strlen(newline)) < 0) return -1;
@@ -187,7 +187,7 @@ static int iniciar_get(int up, const Pedido *pedido) {
     return enviar_o_que_sobrou(up, pedido);
 }
 
-static void atender_pedido(int fd, const Pedido *pedido) {
+static void atender_pedido(Soquete fd, const Pedido *pedido) {
     int up = abrir_upstream(fd, pedido);
     if (up < 0) return;
     int pronto = pedido->conecta ? iniciar_connect(fd, up, pedido) : iniciar_get(up, pedido);
@@ -234,7 +234,7 @@ static int abrir_servidor(int porta_local) {
     return srv;
 }
 
-static void atender_em_thread(int fd) {
+static void atender_em_thread(Soquete fd) {
     int one = 1;
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     pthread_t th;
@@ -246,7 +246,7 @@ static void atender_em_thread(int fd) {
     pthread_detach(th);
 }
 
-static void aceitar_clientes(int srv) {
+static void aceitar_clientes(Soquete srv) {
     for (;;) {
         int fd = accept(srv, NULL, NULL);
         if (fd < 0) { if (errno == EINTR) continue; break; }

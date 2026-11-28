@@ -31,7 +31,7 @@ int porta_livre(void) {
     return p;
 }
 
-static BOOL ler_passo(int c, Roteiro *r, size_t quantidade) {
+static BOOL ler_passo(Soquete c, Roteiro *r, size_t quantidade) {
     size_t lidos = 0;
     while (lidos < quantidade) {
         ssize_t n = recv(c, r->recebido + r->recebido_tamanho + lidos, quantidade - lidos, 0);
@@ -42,12 +42,12 @@ static BOOL ler_passo(int c, Roteiro *r, size_t quantidade) {
     return YES;
 }
 
-static BOOL executar_passo(int c, Roteiro *r, const Passo *passo) {
+static BOOL executar_passo(Soquete c, Roteiro *r, const Passo *passo) {
     if (passo->ler && !ler_passo(c, r, passo->ler)) return NO;
     return !passo->tamanho || send(c, passo->responder, passo->tamanho, 0) > 0;
 }
 
-static void ecoar(int c, Roteiro *r) {
+static void ecoar(Soquete c, Roteiro *r) {
     char b[256];
     ssize_t n;
     while ((n = recv(c, b, sizeof(b), 0)) > 0 && send(c, b, (size_t)n, 0) > 0) {
@@ -56,7 +56,7 @@ static void ecoar(int c, Roteiro *r) {
     }
 }
 
-static void atender(int c) {
+static void atender(Soquete c) {
     Roteiro *r = atual;
     BOOL seguiu = YES;
     for (size_t i = 0; seguiu && i < r->quantidade; i++) seguiu = executar_passo(c, r, &r->passos[i]);
@@ -106,7 +106,7 @@ static void falhar(const CenaDeRoteiro *cena, const char *motivo, const char *ex
     printf("FALHA: %s: %s %s\n", cena->nome, motivo, extra ?: "");
 }
 
-static int conferir_erro(const CenaDeRoteiro *cena, int fd, const char *err) {
+static int conferir_erro(const CenaDeRoteiro *cena, Soquete fd, const char *err) {
     if (!cena->erro) {
         if (fd >= 0) return 0;
         falhar(cena, "devia conectar", err);
@@ -122,7 +122,7 @@ static int conferir_erro(const CenaDeRoteiro *cena, int fd, const char *err) {
     return 1;
 }
 
-static int conferir_fluxo(const CenaDeRoteiro *cena, int fd) {
+static int conferir_fluxo(const CenaDeRoteiro *cena, Soquete fd) {
     char volta[4] = {0};
     BOOL voltou = send(fd, "ping", 4, 0) == 4 && recv(fd, volta, 4, MSG_WAITALL) == 4;
     if (voltou && memcmp(volta, "ping", 4) == 0) return 0;

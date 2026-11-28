@@ -3,6 +3,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+typedef int Soquete;
+
 typedef struct {
     const char *host;
     int porta;
