@@ -89,48 +89,52 @@ async function startBroadcast(adbPath) {
     return true;
 }
 
-function stopBroadcast() {
+function fecharEntradaDeVideo() {
+    if (videoStream) {
+        videoStream.end();
+        videoStream = null;
+    }
+}
+
+function matarFfmpegSeAindaExiste() {
+    if (ffmpegProcess) ffmpegProcess.kill('SIGKILL');
+}
+
+function encerrarFfmpegNoWindows(pid) {
+    try {
+        exec(`taskkill /F /PID ${pid}`, (err) => {
+            if (!err) return;
+            console.warn(`[RTMP] taskkill failed for PID ${pid}, falling back to kill()`);
+            matarFfmpegSeAindaExiste();
+        });
+    } catch (e) {
+        matarFfmpegSeAindaExiste();
+    }
+}
+
+function encerrarFfmpeg(pid) {
+    if (process.platform === 'win32') encerrarFfmpegNoWindows(pid);
+    else ffmpegProcess.kill('SIGKILL');
+}
+
+function esperarFimDoFfmpeg(processo) {
     return new Promise((resolve) => {
-        if (videoStream) {
-            videoStream.end();
-            videoStream = null;
-        }
-        if (!ffmpegProcess) {
-            return resolve(true);
-        }
-        
-        const pid = ffmpegProcess.pid;
-        let resolved = false;
-        
-        const cleanup = () => {
-            if (!resolved) {
-                resolved = true;
-                ffmpegProcess = null;
-                console.log('[RTMP] Stopped FFmpeg broadcaster stream');
-                resolve(true);
-            }
-        };
-
-        ffmpegProcess.once('close', cleanup);
-        ffmpegProcess.once('exit', cleanup);
-
-        if (process.platform === 'win32') {
-            try {
-                exec(`taskkill /F /PID ${pid}`, (err) => {
-                    if (err) {
-                        console.warn(`[RTMP] taskkill failed for PID ${pid}, falling back to kill()`);
-                        if (ffmpegProcess) ffmpegProcess.kill('SIGKILL');
-                    }
-                });
-            } catch (e) {
-                if (ffmpegProcess) ffmpegProcess.kill('SIGKILL');
-            }
-        } else {
-            ffmpegProcess.kill('SIGKILL');
-        }
-
-        setTimeout(cleanup, 1000);
+        processo.once('close', resolve);
+        processo.once('exit', resolve);
+        setTimeout(resolve, 1000);
     });
+}
+
+async function stopBroadcast() {
+    fecharEntradaDeVideo();
+    if (!ffmpegProcess) return true;
+    const pid = ffmpegProcess.pid;
+    const terminou = esperarFimDoFfmpeg(ffmpegProcess);
+    encerrarFfmpeg(pid);
+    await terminou;
+    ffmpegProcess = null;
+    console.info('[RTMP] Stopped FFmpeg broadcaster stream');
+    return true;
 }
 
 function receiveVideoChunk(buffer) {
