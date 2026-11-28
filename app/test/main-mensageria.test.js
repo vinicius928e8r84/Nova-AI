@@ -530,3 +530,32 @@ test('a conexão automática da abertura usa o gerente que o canal já criou, e 
   assert.strictEqual(WhatsApp.criados.length, 1);
   assert.deepStrictEqual(WhatsApp.criados[0].chamadas.slice(1), [['updateMainWindow', main.janelaPrincipal], ['initialize'], ['getState']]);
 });
+
+test('as respostas de "sem gerente" e "sem serviço" são objetos novos a cada chamada, e mexer em uma não muda a seguinte', async () => {
+  const { main } = carregarMensageria();
+  const chamadas = [
+    ['whatsapp-get-state'], ['telegram-get-state'], ['get-whatsapp-settings'], ['get-telegram-settings'],
+    ['whatsapp-send-reply', { chatId: 'c', message: 'm' }], ['telegram-submit-code', { code: '1' }],
+    ['remote-access-status'], ['remote-access-regenerate'], ['remote-access-restart-tunnel'],
+  ];
+  for (const [canal, ...argumentos] of chamadas) {
+    const primeira = await main.invocar(canal, ...argumentos);
+    const copia = JSON.parse(JSON.stringify(primeira));
+    primeira.alterada = true;
+    const segunda = await main.invocar(canal, ...argumentos);
+    assert.notStrictEqual(segunda, primeira, canal);
+    assert.deepStrictEqual(segunda, copia, canal);
+  }
+});
+
+test('se o desligamento apaga o serviço de acesso remoto durante a espera do túnel, a resposta traz o erro de ler o endereço do serviço apagado', async (t) => {
+  const { main, desligamento, servico } = carregarMensageriaComDesligamento();
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  servico.startCloudflaredTunnel = async () => {};
+  const pedido = main.invocar('remote-access-restart-tunnel');
+  await new Promise((resolver) => setImmediate(resolver));
+  t.mock.timers.tick(500);
+  await desligamento.aoSair();
+  const { resposta } = await avancarRelogioAteTerminar(t, pedido);
+  assert.deepStrictEqual(resposta, { success: false, error: "Cannot read properties of null (reading 'publicUrl')" });
+});
