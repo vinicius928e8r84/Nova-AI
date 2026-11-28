@@ -32,9 +32,10 @@ function chamarDireto(main, canal, ...argumentos) {
 }
 
 function anotandoConsole(funcao) {
-  const antes = { log: console.log, warn: console.warn, error: console.error };
+  const antes = { log: console.log, info: console.info, warn: console.warn, error: console.error };
   const chamadas = [];
-  for (const nivel of Object.keys(antes)) console[nivel] = (...partes) => chamadas.push([nivel, ...partes]);
+  const comoNivel = { info: 'log' };
+  for (const nivel of Object.keys(antes)) console[nivel] = (...partes) => chamadas.push([comoNivel[nivel] || nivel, ...partes]);
   const restaurar = () => Object.assign(console, antes);
   return Promise.resolve().then(funcao).then((resultado) => ({ resultado, chamadas })).finally(restaurar);
 }
@@ -118,6 +119,7 @@ const FILTROS_DO_TIPO = [
   ['image', FILTRO_DE_IMAGENS],
   [undefined, FILTRO_DE_IMAGENS],
   ['qualquer coisa', FILTRO_DE_IMAGENS],
+  ['constructor', FILTRO_DE_IMAGENS],
 ];
 
 test('select-media-file: filtra por tipo (vídeo, áudio, imagem para o resto), sem janela-mãe, e devolve o primeiro caminho ou null', async () => {
@@ -451,6 +453,19 @@ test('system-fs-op: write-file cria as pastas que faltam e grava texto vazio sem
   assert.deepStrictEqual(await main.invocar('system-fs-op', { operation: 'read-dir', path: 'a/b' }), ['c.txt']);
   assert.strictEqual(await main.invocar('system-fs-op', { operation: 'delete', path: 'a/b/c.txt' }), true);
   assert.deepStrictEqual(await main.invocar('system-fs-op', { operation: 'read-dir', path: 'a/b' }), []);
+  const muitos = path.join(novaData, 'muitos');
+  for (let n = 0; n < 52; n++) gravar(path.join(muitos, `arquivo-${String(n).padStart(2, '0')}.txt`), 'x');
+  const lista = await main.invocar('system-fs-op', { operation: 'read-dir', path: 'muitos' });
+  assert.strictEqual(lista.length, 51);
+  assert.strictEqual(lista[49], 'arquivo-49.txt');
+  assert.strictEqual(lista[50], '... and 2 more items (Truncated for stability)');
+  gravar(path.join(novaData, 'cinquenta', 'a.txt'), 'x');
+  assert.strictEqual(await main.invocar('system-fs-op', { operation: 'create-dir', path: 'cinquenta/nova/funda' }), true);
+  assert.strictEqual(fs.statSync(path.join(novaData, 'cinquenta', 'nova', 'funda')).isDirectory(), true);
+  assert.strictEqual(await main.invocar('system-fs-op', { operation: 'create-dir', path: 'cinquenta/nova/funda' }), true);
+  assert.strictEqual(await main.invocar('system-fs-op', { operation: 'read-file', path: 'cinquenta/a.txt' }), 'x');
+  assert.strictEqual(await main.invocar('system-fs-op', { operation: 'rename', path: 'cinquenta/a.txt', dest: 'cinquenta/b.txt' }), true);
+  assert.strictEqual(await main.invocar('system-fs-op', { operation: 'exists', path: 'cinquenta/a.txt' }), false);
   await assert.rejects(main.invocar('system-fs-op', { operation: 'copy-file', path: 'a/nao-existe.txt', dest: 'z.txt' }), { code: 'ENOENT' });
   await assert.rejects(main.invocar('system-fs-op', { operation: 'rename', path: 'a/nao-existe.txt', dest: 'z.txt' }), { code: 'ENOENT' });
   await assert.rejects(main.invocar('system-fs-op', { operation: 'read-dir', path: 'a/nao-existe' }), { code: 'ENOENT' });
