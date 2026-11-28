@@ -1,9 +1,5 @@
 #import <Foundation/Foundation.h>
-#ifdef PONTE_INTEIRA
-#include "Ponte_inteira.m"
-#else
-#import "Ponte.h"
-#endif
+#include "Controle.m"
 
 void MSHookMessageEx(Class classe, SEL seletor, IMP substituto, IMP *original) {}
 
