@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
+const { reunirAmostras } = require('./user-profile-amostras');
 let GoogleGenerativeAI;
 try {
     GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
@@ -8,149 +9,102 @@ try {
     console.error('[UserProfileManager] @google/generative-ai not found');
 }
 
-const stripHtml = (html) => {
-    return (html || '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-};
+const MODELOS = ['gemini-3.8-flash', 'gemini-4-argon'];
+const FALHAS_PARA_DESLIGAR = 3;
+const INTERVALO_ENTRE_TENTATIVAS = 15 * 60 * 1000;
 
-const gatherMemorySamples = (chats = []) => {
-    let samples = [];
+const arquivoDoContexto = () => path.join(app.getPath('userData'), 'nova_user_context.json');
 
-    if (chats && Array.isArray(chats)) {
-        const recentChats = chats.slice(0, 5);
-        recentChats.forEach(chat => {
-            const msgs = chat.messages || [];
-            const chatText = msgs.map(m => `${m.role === 'user' ? 'User' : 'NOVA'}: ${m.text}`).join('\n');
-            samples.push(`--- RECENT CHAT ---\n${chatText}\n`);
-        });
-    }
+const montarPrompt = (amostras) => `You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.
+USER DATA:
+${amostras}`;
 
-    const activityJsonPath = path.join(
-        path.dirname(app.getPath('exe')),
-        'Nova_Vault', 'MyActivity.json'
-    );
-    const activityJsonAlt = path.join(
-        __dirname, '..', '..', 'Nova_Vault', 'MyActivity.json'
-    );
-    const jsonPath = fs.existsSync(activityJsonPath) ? activityJsonPath
-                   : fs.existsSync(activityJsonAlt)  ? activityJsonAlt
-                   : null;
+function avisoDeQuemFalta(apiKey) {
+    if (!apiKey) return 'No API key provided for context sync.';
+    if (!GoogleGenerativeAI) return 'GoogleGenerativeAI not initialized.';
+    return null;
+}
 
-    if (jsonPath) {
+const analiseDesligada = () => (global.profileAnalysisFailCount || 0) >= FALHAS_PARA_DESLIGAR;
+
+const tentouHaPouco = () => Date.now() - (global.lastAnalysisAttemptTime || 0) < INTERVALO_ENTRE_TENTATIVAS;
+
+async function perguntarAoModelo(modelName, apiKey, prompt) {
+    console.info(`[UserProfileManager] Sync Attempt: ${modelName} (v1beta)`);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
+
+    const result = await model.generateContent(prompt, { 
+        timeout: 30000 
+    });
+
+    const response = await result.response;
+    return response.text();
+}
+
+async function consultarModelos(apiKey, prompt) {
+    for (const modelName of MODELOS) {
         try {
-            const rawJson = fs.readFileSync(jsonPath, 'utf8');
-            const activities = JSON.parse(rawJson);
-            const recentActivities = activities.slice(0, 100);
-            
-            recentActivities.forEach(entry => {
-                const title = entry.title || '';
-                const htmlChunks = (entry.safeHtmlItem || []).map(h => stripHtml(h.html)).join(' ');
-                if (htmlChunks.length > 0 || title.length > 0) {
-                    samples.push(`--- VAULT MEMORY ---\n${title}\n${htmlChunks.substring(0, 300)}`);
-                }
-            });
-        } catch(e) {
-            console.error('[UserProfileManager] Failed to read MyActivity.json', e);
+            const texto = await perguntarAoModelo(modelName, apiKey, prompt);
+            if (texto) return texto;
+        } catch (err) {
+            console.warn(`[UserProfileManager] ${modelName} failed: ${err.message.split('\n')[0]}`);
+            if (err.message.includes('404')) break;
         }
     }
+    return null;
+}
 
-    const combined = samples.join('\n\n');
-    return combined.length > 50000 ? combined.substring(0, 50000) : combined;
-};
+function gravarContexto(contexto) {
+    const limpo = contexto.trim();
+    fs.writeFileSync(arquivoDoContexto(), JSON.stringify({
+        lastUpdated: Date.now(),
+        context: limpo
+    }, null, 2));
+    console.info('[UserProfileManager] ✓ User profile synced successfully.');
+    global.lastAnalysisFailureTime = 0;
+    return limpo;
+}
+
+function registrarFalha() {
+    global.profileAnalysisFailCount = (global.profileAnalysisFailCount || 0) + 1;
+    if (global.profileAnalysisFailCount >= FALHAS_PARA_DESLIGAR) {
+        console.error('[UserProfileManager] Analysis failed 3 times. DISABLING background tasks for this session.');
+    } else {
+        console.warn(`[UserProfileManager] Attempt ${global.profileAnalysisFailCount} failed. Retrying later...`);
+    }
+}
+
+async function sincronizarPerfil(apiKey, chats) {
+    const amostras = reunirAmostras(chats);
+    if (!amostras || amostras.trim().length === 0) return null;
+
+    const contexto = await consultarModelos(apiKey, montarPrompt(amostras));
+    if (!contexto) throw new Error("All models and API versions exhausted.");
+
+    return gravarContexto(contexto);
+}
 
 const analyzeUserGraph = async (apiKey, chats = []) => {
-    if (!apiKey) {
-        console.warn('[UserProfileManager] No API key provided for context sync.');
+    const aviso = avisoDeQuemFalta(apiKey);
+    if (aviso) {
+        console.warn(`[UserProfileManager] ${aviso}`);
         return null;
     }
-    if (!GoogleGenerativeAI) {
-      console.warn('[UserProfileManager] GoogleGenerativeAI not initialized.');
-      return null;
-    }
+    if (analiseDesligada() || tentouHaPouco()) return null;
 
-    const contextFilePath = path.join(app.getPath('userData'), 'nova_user_context.json');
-
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-4-argon'];
-    const apiVersions = ['v1beta', 'v1'];
-    
-    if ((global.profileAnalysisFailCount || 0) >= 3) {
-        return null;
-    }
-
-    const lastAttemptTime = global.lastAnalysisAttemptTime || 0;
-    const fifteenMinutes = 15 * 60 * 1000;
-    if (Date.now() - lastAttemptTime < fifteenMinutes) {
-        return null;
-    }
-    
     global.lastAnalysisAttemptTime = Date.now();
 
     try {
-        const sampledData = gatherMemorySamples(chats);
-        if (!sampledData || sampledData.trim().length === 0) return null;
-
-        const prompt = `You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.
-USER DATA:
-${sampledData}`;
-
-        let profileContext = null;
-        let success = false;
-
-        for (const modelName of modelsToTry) {
-            try {
-                console.log(`[UserProfileManager] Sync Attempt: ${modelName} (v1beta)`);
-                const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion: 'v1beta' });
-                
-                const result = await model.generateContent(prompt, { 
-                    timeout: 30000 
-                });
-                
-                const response = await result.response;
-                profileContext = response.text();
-                
-                if (profileContext) {
-                    success = true;
-                    break;
-                }
-            } catch (err) {
-                console.warn(`[UserProfileManager] ${modelName} failed: ${err.message.split('\n')[0]}`);
-                if (err.message.includes('404')) break;
-            }
-        }
-
-        if (success && profileContext) {
-            fs.writeFileSync(contextFilePath, JSON.stringify({
-                lastUpdated: Date.now(),
-                context: profileContext.trim()
-            }, null, 2));
-            console.log('[UserProfileManager] ✓ User profile synced successfully.');
-            global.lastAnalysisFailureTime = 0;
-            return profileContext.trim();
-        }
-
-        throw new Error("All models and API versions exhausted.");
-
+        return await sincronizarPerfil(apiKey, chats);
     } catch (e) {
-        global.profileAnalysisFailCount = (global.profileAnalysisFailCount || 0) + 1;
-        if (global.profileAnalysisFailCount >= 3) {
-            console.error('[UserProfileManager] Analysis failed 3 times. DISABLING background tasks for this session.');
-        } else {
-            console.warn(`[UserProfileManager] Attempt ${global.profileAnalysisFailCount} failed. Retrying later...`);
-        }
+        registrarFalha();
     }
     return null;
 };
 
 const getUserContext = () => {
-    const contextFilePath = path.join(app.getPath('userData'), 'nova_user_context.json');
+    const contextFilePath = arquivoDoContexto();
     if (fs.existsSync(contextFilePath)) {
         try {
             const data = JSON.parse(fs.readFileSync(contextFilePath, 'utf-8'));
