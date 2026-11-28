@@ -11,7 +11,6 @@ const os = require('os');
 const { exec } = require('child_process');
 const { dialog, shell, systemPreferences } = require('electron');
 const cameraAcesso = require('./services/camera-acesso');
-const mime = require('mime-types');
 const screenshot = require('screenshot-desktop');
 const {
   getFolderConfigPath, getVaultPath,
@@ -95,12 +94,11 @@ const RtmpServerService = require('./services/rtmp-server');
 let productionServer = null;
 let productionPort = process.env.NOVA_TEST_PORT || 45678;
 
-const { PDFParse } = require('pdf-parse');
-const mammoth = require('mammoth');
 const { edgeTtsBinary } = require('./services/paridade-utils');
 const { configurarAtualizador, registrarAtualizador, ligarAtualizador } = require('./main.atualizador');
 const { registrarConfiguracao } = require('./main.config');
 const { registrarDados } = require('./main.dados');
+const { registrarArquivos } = require('./main.arquivos');
 
 let mainWindow;
 let tray = null;
@@ -1041,37 +1039,6 @@ function registerHandlers() {
     }
   });
 
-  ipcMain.handle('dialog:open-file', async (event, options) => {
-    if (!mainWindow) return null;
-    const result = await dialog.showOpenDialog(mainWindow, options || { properties: ['openFile'] });
-    if (result.canceled) return null;
-    return result;
-  });
-
-  ipcMain.handle('open-media-dialog', async () => {
-    if (!mainWindow) return null;
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile'],
-        filters: [
-            { name: 'Media Files', extensions: ['mp4', 'mkv', 'avi', 'jpg', 'jpeg', 'png'] }
-        ]
-    });
-    if (result.canceled) return null;
-    return result.filePaths[0];
-  });
-
-  ipcMain.handle('open-audio-dialog', async () => {
-    if (!mainWindow) return null;
-    const result = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile'],
-        filters: [
-            { name: 'Audio Files', extensions: ['wav'] }
-        ]
-    });
-    if (result.canceled) return null;
-    return result.filePaths[0];
-  });
-
     ipcMain.handle('virtual-cam:control', async (event, payload) => {
     if (!virtualCamInjector) return { error: 'Virtual Camera Service not initialized' };
 
@@ -1219,50 +1186,6 @@ function registerHandlers() {
     return false;
   });
 
-  ipcMain.handle('select-media-file', async (event, type) => {
-    let filters = [];
-    if (type === 'video') filters = [{ name: 'Videos', extensions: ['mp4', 'mkv', 'mov'] }];
-    else if (type === 'audio') filters = [{ name: 'Audio', extensions: ['mp3', 'wav', 'aac'] }];
-    else filters = [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png'] }];
-    
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: filters
-    });
-    
-    if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0];
-    }
-    return null;
-  });
-
-  ipcMain.handle('select-directory', async (event) => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory']
-    });
-    
-    if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0];
-    }
-    return null;
-  });
-
-  ipcMain.handle('select-multiple-media', async (event, type) => {
-    const filters = type === 'video' 
-      ? [{ name: 'Videos', extensions: ['mp4', 'mkv', 'mov'] }]
-      : [{ name: 'Audio', extensions: ['mp3', 'wav', 'aac'] }];
-    
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
-      filters: filters
-    });
-    
-    if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths;
-    }
-    return null;
-  });
-
   ipcMain.handle('save-youtube-settings', async (event, { geminiKey, clientSecret, selectedVideoPath, selectedThumbnailPath }) => {
     try {
       const ytDir = path.join(__dirname, '..', 'youtube_auto');
@@ -1386,53 +1309,6 @@ function registerHandlers() {
     } catch (e) {
       console.error('Error fetching exported files:', e);
       return [];
-    }
-  });
-
-  ipcMain.handle('open-file', async (event, filePath) => {
-    try {
-      const { shell } = require('electron');
-      const error = await shell.openPath(filePath);
-      if (error) {
-        console.error('Failed to open file:', error);
-        return false;
-      }
-      return true;
-    } catch (e) {
-      console.error('Failed to open file exception:', e);
-      return false;
-    }
-  });
-
-  ipcMain.handle('delete-file', async (event, filePath) => {
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-      return true;
-    } catch (e) {
-      console.error('Error deleting file:', e);
-      return false;
-    }
-  });
-
-  ipcMain.handle('save-file', async (event, sourcePath, fileName) => {
-    try {
-      const { dialog } = require('electron');
-      const win = require('electron').BrowserWindow.getFocusedWindow();
-      const { filePath } = await dialog.showSaveDialog(win, {
-        title: 'Salvar Vídeo',
-        defaultPath: fileName,
-        filters: [{ name: 'Videos', extensions: ['mp4'] }]
-      });
-      if (filePath) {
-        fs.copyFileSync(sourcePath, filePath);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.error('Failed to save file:', e);
-      return false;
     }
   });
 
@@ -2105,164 +1981,6 @@ function registerHandlers() {
     if (agentSwarmController) agentSwarmController.cancel();
   });
 
-  ipcMain.handle('system-fs-op', async (event, { operation, path: targetPath, content, dest }) => {
-    try {
-      let resolvedPath = targetPath;
-
-      if (targetPath && (targetPath.includes('${resolvedNotesPath}') || targetPath.includes('$resolvedNotesPath'))) {
-        console.warn(`[FS-OP] WARNING: AI used literal template variable "${targetPath}". Fixing...`);
-        resolvedPath = targetPath.replace(/\$\{?resolvedNotesPath\}?[\\\/]?/g, '');
-        if (!resolvedPath || resolvedPath === targetPath) {
-          resolvedPath = app.getPath('documents') + path.sep + 'Nova Data';
-        } else {
-          resolvedPath = path.join(app.getPath('documents'), 'Nova Data', resolvedPath);
-        }
-        console.log(`[FS-OP] Fixed literal variable: ${targetPath} → ${resolvedPath}`);
-      }
-      else if (targetPath && !path.isAbsolute(targetPath)) {
-        if (targetPath.startsWith('Documents\\') || targetPath.startsWith('Documents/')) {
-          resolvedPath = path.join(app.getPath('documents'), targetPath.substring('Documents\\'.length));
-        } else if (targetPath.startsWith('Nova Data\\') || targetPath.startsWith('Nova Data/')) {
-          resolvedPath = path.join(app.getPath('documents'), targetPath);
-        } else {
-          resolvedPath = path.join(app.getPath('documents'), 'Nova Data', targetPath);
-        }
-        console.log(`[FS-OP] Resolved relative path: ${targetPath} → ${resolvedPath}`);
-      }
-
-      let resolvedDest = dest;
-      if (dest) {
-        if (dest.includes('${resolvedNotesPath}') || dest.includes('$resolvedNotesPath')) {
-          console.warn(`[FS-OP] WARNING: AI used literal template variable in dest "${dest}". Fixing...`);
-          resolvedDest = dest.replace(/\$\{?resolvedNotesPath\}?[\\\/]?/g, '');
-          if (!resolvedDest || resolvedDest === dest) {
-            resolvedDest = app.getPath('documents') + path.sep + 'Nova Data';
-          } else {
-            resolvedDest = path.join(app.getPath('documents'), 'Nova Data', resolvedDest);
-          }
-          console.log(`[FS-OP] Fixed literal variable in dest: ${dest} → ${resolvedDest}`);
-        }
-        else if (!path.isAbsolute(dest)) {
-          if (dest.startsWith('Documents\\') || dest.startsWith('Documents/')) {
-            resolvedDest = path.join(app.getPath('documents'), dest.substring('Documents\\'.length));
-          } else if (dest.startsWith('Nova Data\\') || dest.startsWith('Nova Data/')) {
-            resolvedDest = path.join(app.getPath('documents'), dest);
-          } else {
-            resolvedDest = path.join(app.getPath('documents'), 'Nova Data', dest);
-          }
-        }
-      }
-
-      if (resolvedPath) resolvedPath = path.resolve(resolvedPath);
-      if (resolvedDest) resolvedDest = path.resolve(resolvedDest);
-
-      switch (operation) {
-        case 'read-dir': 
-          const files = fs.readdirSync(resolvedPath);
-          if (files.length > 50) {
-            return [...files.slice(0, 50), `... and ${files.length - 50} more items (Truncated for stability)`];
-          }
-          return files;
-        case 'create-dir':
-          if (!fs.existsSync(resolvedPath)) fs.mkdirSync(resolvedPath, { recursive: true });
-          return true;
-        case 'write-file':
-          const dir = path.dirname(resolvedPath);
-          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-          fs.writeFileSync(resolvedPath, content || '');
-          return true;
-        case 'read-file': return fs.readFileSync(resolvedPath, 'utf8');
-        case 'delete': fs.rmSync(resolvedPath, { recursive: true, force: true }); return true;
-        case 'exists': return fs.existsSync(resolvedPath);
-        case 'rename': fs.renameSync(resolvedPath, resolvedDest); return true;
-        case 'copy-file': fs.copyFileSync(resolvedPath, resolvedDest); return true;
-      }
-    } catch (e) { throw e; }
-  });
-
-
-  ipcMain.handle('system-open', async (event, { target }) => {
-    const open = (await import('open')).default;
-    await open(target);
-    return true;
-  });
-
-  ipcMain.handle('save-image', async (event, { base64Data }) => {
-    try {
-      const filePath = path.join(app.getPath('downloads'), `NOVA_Generated_${Date.now()}.png`);
-      const buffer = Buffer.from(base64Data.replace(/^data:image\/\w+;base64,/, ""), 'base64');
-      fs.writeFileSync(filePath, buffer);
-      return filePath;
-    } catch (e) { throw e; }
-  });
-
-  ipcMain.handle('read-file-content', async (event, { path: filePath }) => {
-    try {
-      console.log(`[File-Reader] Reading file: ${filePath}`);
-      if (!fs.existsSync(filePath)) {
-        console.error(`[File-Reader] File not found: ${filePath}`);
-        return { error: 'File not found' };
-      }
-
-      const mimeType = mime.lookup(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      const buffer = fs.readFileSync(filePath);
-      console.log(`[File-Reader] Detected Mime: ${mimeType}, Ext: ${ext}, Size: ${buffer.length} bytes`);
-
-      if (mimeType === 'application/pdf' || ext === '.pdf') {
-        console.log(`[File-Reader] Parsing PDF...`);
-        const data = await PDFParse(buffer);
-        console.log(`[File-Reader] PDF Parsed. Content length: ${data.text?.length || 0}`);
-        return { content: data.text };
-      }
-      else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || ext === '.docx') {
-        console.log(`[File-Reader] Parsing Docx...`);
-        const result = await mammoth.extractRawText({ buffer });
-        console.log(`[File-Reader] Docx Parsed. Content length: ${result.value?.length || 0}`);
-        return { content: result.value };
-      }
-      else if (mimeType.startsWith('text/') || mimeType === 'application/json' || mimeType === 'application/javascript' || ['.txt', '.md', '.json', '.js', '.ts', '.tsx', '.css'].includes(ext)) {
-        console.log(`[File-Reader] Reading as Text...`);
-        return { content: buffer.toString('utf8') };
-      }
-
-      console.warn(`[File-Reader] Unsupported file type: ${mimeType}`);
-      return { content: `[Binary/Image File: ${path.basename(filePath)}]. The content of this file is visual or binary.` };
-
-    } catch (e) {
-      console.error('[File-Reader] CRITICAL ERROR:', e);
-      return { error: e.message };
-    }
-  });
-
-  ipcMain.handle('pick-and-read-files', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
-      filters: [
-        { name: 'Multimodal Files', extensions: ['jpg', 'png', 'jpeg', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp3', 'wav', 'mpeg'] }
-      ]
-    });
-
-    if (canceled) return [];
-
-    const results = [];
-    for (const filePath of filePaths) {
-      const stats = fs.statSync(filePath);
-      if (stats.size > 50 * 1024 * 1024) {
-        continue;
-      }
-
-      const buffer = fs.readFileSync(filePath);
-      const mimeType = mime.lookup(filePath) || 'application/octet-stream';
-      results.push({
-        name: path.basename(filePath),
-        data: buffer.toString('base64'),
-        mimeType,
-        path: filePath
-      });
-    }
-    return results;
-  });
 
   ipcMain.handle('studio:execute-edit', async (event, data) => {
     if (app.novaStudioController) {
@@ -2409,6 +2127,7 @@ function registerHandlers() {
   registrarConfiguracao();
   registrarAtualizador();
   registrarDados();
+  registrarArquivos({ janela: () => mainWindow });
 
   ipcMain.handle('whatsapp-init', async () => {
     try {
