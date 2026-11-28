@@ -1,0 +1,3827 @@
+{
+  "senha ou identificador inválidos são recusados antes de qualquer ferramenta": {
+    "cena": {
+      "vazia": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Informe uma senha SSH válida."
+        }
+      },
+      "semTexto": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Informe uma senha SSH válida."
+        }
+      },
+      "comQuebraDeLinha": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Informe uma senha SSH válida."
+        }
+      },
+      "comNulo": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Informe uma senha SSH válida."
+        }
+      },
+      "grandeDemais": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Informe uma senha SSH válida."
+        }
+      },
+      "identificadorCurto": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Identificador do iPhone inválido."
+        }
+      },
+      "identificadorComLetrasFora": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Identificador do iPhone inválido."
+        }
+      }
+    },
+    "portas": [],
+    "ferramentas": [],
+    "processos": [],
+    "conexoes": [],
+    "impressoes": [],
+    "comandos": [],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 0,
+    "fimDoSftp": 0,
+    "clientesCriados": 0,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  },
+  "sem o OpenSSH do Windows a preparação para antes de olhar o aparelho": {
+    "cena": {
+      "semOpenssh": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "O Cliente OpenSSH do Windows não está ativo."
+        }
+      }
+    },
+    "portas": [],
+    "ferramentas": [],
+    "processos": [],
+    "conexoes": [],
+    "impressoes": [],
+    "comandos": [],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 0,
+    "fimDoSftp": 0,
+    "clientesCriados": 0,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  },
+  "só pode haver um iPhone ligado e tem de ser o escolhido": {
+    "cena": {
+      "dois": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Conecte somente o iPhone selecionado por USB."
+        }
+      },
+      "outro": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Conecte somente o iPhone selecionado por USB."
+        }
+      },
+      "nenhum": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Conecte somente o iPhone selecionado por USB."
+        }
+      }
+    },
+    "portas": [],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [],
+    "impressoes": [],
+    "comandos": [],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 0,
+    "fimDoSftp": 0,
+    "clientesCriados": 0,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  },
+  "com a porta fechada sobe o iproxy do aparelho, espera abrir e segue com a preparação mínima": {
+    "cena": {
+      "preparacao": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [
+      {
+        "arquivo": "FERRAMENTA-iproxy",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "2222",
+          "22"
+        ],
+        "opcoes": {
+          "stdio": "ignore",
+          "windowsHide": true
+        }
+      }
+    ],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 0,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "com a porta que nunca abre o túnel USB falha depois de tentar o iproxy duas vezes": {
+    "cena": {
+      "preparacao": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "O túnel USB não abriu (porta 2222). Reconecte o iPhone, confira se o jailbreak está ativo e tente de novo."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [
+      {
+        "arquivo": "FERRAMENTA-iproxy",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "2222",
+          "22"
+        ],
+        "opcoes": {
+          "stdio": "ignore",
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-iproxy",
+        "argumentos": [
+          "2222",
+          "22"
+        ],
+        "opcoes": {
+          "stdio": "ignore",
+          "detached": true,
+          "windowsHide": true
+        }
+      }
+    ],
+    "conexoes": [],
+    "impressoes": [],
+    "comandos": [],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 1,
+    "fimDoSftp": 0,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  },
+  "a conexão SSH que recusa ou cai antes de ficar pronta vira erro claro": {
+    "cena": {
+      "recusa": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo."
+        }
+      },
+      "queda": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "A conexão SSH caiu antes de terminar. Reconecte o iPhone em PHONE CONTROL e tente de novo."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true
+    ],
+    "comandos": [],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 2,
+    "fimDoSftp": 0,
+    "clientesCriados": 2,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  },
+  "a impressão digital nova é gravada, a mesma passa e a diferente é recusada": {
+    "cena": {
+      "primeira": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      },
+      "repetida": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      },
+      "diferente": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true,
+      false
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb",
+      "test -d /var/jb"
+    ],
+    "encerrados": 3,
+    "fimDoSftp": 0,
+    "clientesCriados": 3,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "iPhone 8 Plus com iOS 16.7.16 e nada instalado recebe câmera, modelo, idioma, helper de fuso e proxy": {
+    "cena": {
+      "preparacao": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel) instalado. Idioma do aparelho (novalanguage) instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy) instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novalanguage.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novaproxy.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "novamodel.deb",
+        "remoto": "/var/mobile/NovaAI-Novamodel.deb"
+      },
+      {
+        "arquivo": "com.aquiles.novalanguage_0.2-3.deb",
+        "remoto": "/var/mobile/novalanguage.deb"
+      },
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      },
+      {
+        "arquivo": "novaproxy.deb",
+        "remoto": "/var/mobile/novaproxy.deb"
+      }
+    ],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 6,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "com tudo já instalado só reenvia o helper de fuso e conta o que já estava": {
+    "cena": {
+      "preparacao": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 já instalada e atualizada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nCatVNC encontrado. A tela ao vivo usa a senha configurada em Ajustes → CatVNC.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg --compare-versions '0.1-39' ge '0.1-39' && echo yes || echo no",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      }
+    ],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 2,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "a câmera mais antiga que a versão do Nova é reinstalada": {
+    "cena": {
+      "preparacao": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg --compare-versions '0.1-30' ge '0.1-39' && echo yes || echo no",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      }
+    ],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 3,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "outro modelo ou outro iOS não recebe a câmera nem reinicia a mídia": {
+    "cena": {
+      "outroModelo": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      },
+      "outroIos": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Spoofing de modelo (novamodel 1.2) já instalado. Idioma do aparelho (novalanguage 0.2-3) já instalado. Fuso/idioma (nova-locale v4) atualizado. Proxy do iPhone (novaproxy 1.0) já instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      },
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      }
+    ],
+    "openssh": [
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb",
+      "test -d /var/jb"
+    ],
+    "encerrados": 2,
+    "fimDoSftp": 4,
+    "clientesCriados": 2,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "sem o pacote da câmera no Nova a preparação para depois de preparar o SSH": {
+    "cena": {
+      "preparacao": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Pacote de câmera ausente no Nova. A conexão SSH já foi preparada."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 0,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "falhas no mediaserverd, no idioma, no helper de fuso e no proxy viram avisos no resultado": {
+    "cena": {
+      "preparacao": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Não consegui reiniciar o mediaserverd: mediaserverd recusou Spoofing de modelo (novamodel) instalado. Não consegui instalar o novalanguage: idioma xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx nova-locale não atualizado: mv recusou novaproxy não instalado: proxy recusou\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novalanguage.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novaproxy.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "novamodel.deb",
+        "remoto": "/var/mobile/NovaAI-Novamodel.deb"
+      },
+      {
+        "arquivo": "com.aquiles.novalanguage_0.2-3.deb",
+        "remoto": "/var/mobile/novalanguage.deb"
+      },
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      },
+      {
+        "arquivo": "novaproxy.deb",
+        "remoto": "/var/mobile/novaproxy.deb"
+      }
+    ],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 6,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "falha ao instalar a câmera, o modelo ou ao enviar um arquivo interrompe a preparação": {
+    "cena": {
+      "camera": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "recusou"
+        }
+      },
+      "modelo": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "recusou"
+        }
+      },
+      "envio": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "sftp negou"
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "novamodel.deb",
+        "remoto": "/var/mobile/NovaAI-Novamodel.deb"
+      },
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "novamodel.deb",
+        "remoto": "/var/mobile/NovaAI-Novamodel.deb"
+      }
+    ],
+    "openssh": [
+      "ssh",
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb",
+      "test -d /var/jb",
+      "test -d /var/jb"
+    ],
+    "encerrados": 3,
+    "fimDoSftp": 5,
+    "clientesCriados": 3,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "o helper de fuso que não confirma a versão avisa para rodar o Conectar de novo": {
+    "cena": {
+      "preparacao": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera 0.1-39 instalada. Serviço de mídia reiniciado — a ponte já está carregada. Spoofing de modelo (novamodel) instalado. Idioma do aparelho (novalanguage) instalado. nova-locale: arquivos enviados, mas o serviço não confirmou a versão v4. Rode o Conectar de novo. Proxy do iPhone (novaproxy) instalado.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-OBSGraphBridge.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.apple.mediaserverd",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novamodel 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/NovaAI-Novamodel.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novalanguage 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novalanguage.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mkdir -p /var/jb/usr/libexec /var/jb/Library/LaunchDaemons",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/nova-locale.sh /var/jb/usr/libexec/nova-locale.sh && sudo -S -p '' chmod 755 /var/jb/usr/libexec/nova-locale.sh",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' mv /var/mobile/com.aquiles.novalocale.plist /var/jb/Library/LaunchDaemons/ && sudo -S -p '' chown root:wheel /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/bin/launchctl bootstrap system /var/jb/Library/LaunchDaemons/com.aquiles.novalocale.plist 2>/dev/null || sudo -S -p '' /var/jb/bin/launchctl kickstart -k system/com.aquiles.novalocale 2>/dev/null || true",
+        "entrada": "SENHA\nSENHA\n"
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/tmp/nova-locale-status.json 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "sudo -S -p '' /var/jb/usr/bin/dpkg -i /var/mobile/novaproxy.deb",
+        "entrada": "SENHA\n"
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [
+      {
+        "arquivo": "camera.deb",
+        "remoto": "/var/mobile/NovaAI-OBSGraphBridge.deb"
+      },
+      {
+        "arquivo": "novamodel.deb",
+        "remoto": "/var/mobile/NovaAI-Novamodel.deb"
+      },
+      {
+        "arquivo": "com.aquiles.novalanguage_0.2-3.deb",
+        "remoto": "/var/mobile/novalanguage.deb"
+      },
+      {
+        "arquivo": "nova-locale.sh",
+        "remoto": "/var/mobile/nova-locale.sh"
+      },
+      {
+        "arquivo": "com.aquiles.novalocale.plist",
+        "remoto": "/var/mobile/com.aquiles.novalocale.plist"
+      },
+      {
+        "arquivo": "novaproxy.deb",
+        "remoto": "/var/mobile/novaproxy.deb"
+      }
+    ],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 6,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "a senha recusada pelo sudo e o comando sem texto de erro têm mensagens próprias": {
+    "cena": {
+      "senhaRecusada": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Senha administrativa recusada pelo iPhone."
+        }
+      },
+      "semTexto": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Comando não concluído no iPhone."
+        }
+      },
+      "comTextoDeErro": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "sem sudo"
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.obsgraph-bridge 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 3,
+    "fimDoSftp": 0,
+    "clientesCriados": 3,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "a chave pública do aparelho inválida ou que não bate com a impressão autenticada para a preparação": {
+    "cena": {
+      "semChave": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Não foi possível verificar a chave pública SSH do aparelho."
+        }
+      },
+      "tipoErrado": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Não foi possível verificar a chave pública SSH do aparelho."
+        }
+      },
+      "naoBate": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "A chave pública não corresponde ao servidor USB autenticado."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 3,
+    "fimDoSftp": 0,
+    "clientesCriados": 3,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": null,
+      "chavePrivadaExiste": true
+    }
+  },
+  "a chave local é criada se falta e reaproveitada nas outras vezes": {
+    "cena": {
+      "ausente": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      },
+      "completa": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb",
+      "test -d /var/jb"
+    ],
+    "encerrados": 2,
+    "fimDoSftp": 0,
+    "clientesCriados": 2,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "chave local sem arquivo público não é substituída": {
+    "cena": {
+      "preparacao": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "A chave SSH existente não possui arquivo público. Nenhuma chave foi substituída."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 1,
+    "fimDoSftp": 0,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": null,
+      "chavePrivadaExiste": true
+    }
+  },
+  "chave local com formato público não suportado é recusada": {
+    "cena": {
+      "preparacao": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Formato de chave pública não suportado."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [],
+    "encerrados": 1,
+    "fimDoSftp": 0,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": null,
+      "chavePrivadaExiste": true
+    }
+  },
+  "o ssh do serviço que não valida a chave avisa do conflito de chave": {
+    "cena": {
+      "preparacao": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Senha aceita, mas a chave de acesso não foi validada. Verifique conflitos de chave SSH neste computador."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb"
+    ],
+    "encerrados": 1,
+    "fimDoSftp": 0,
+    "clientesCriados": 1,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "o known_hosts ganha uma linha só, também quando o arquivo antigo não termina em quebra de linha": {
+    "cena": {
+      "primeira": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      },
+      "segunda": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb",
+      "test -d /var/jb"
+    ],
+    "encerrados": 2,
+    "fimDoSftp": 0,
+    "clientesCriados": 2,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[outro]:22 ssh-ed25519 AAAA\n[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "duas preparações ao mesmo tempo: a segunda é recusada e a trava se solta no fim, também depois de falha": {
+    "cena": {
+      "segunda": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Já existe uma preparação em andamento."
+        }
+      },
+      "primeira": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      },
+      "falhou": {
+        "erro": {
+          "erro": "Error",
+          "mensagem": "Não foi possível autenticar. Confira a senha SSH, o jailbreak ativo e o OpenSSH no Sileo."
+        }
+      },
+      "depoisDaFalha": {
+        "resultado": {
+          "success": true,
+          "message": "Conectado por USB. Acesso SSH configurado; a senha não foi salva.\n\nPonte de câmera não instalada: este modelo/iOS ainda não foi validado. Helper nova-locale ausente no Nova. Pacote novaproxy ausente no Nova.\n\nPara tela e controle por toque, instale e configure o CatVNC pelo Sileo. O Nova não inclui esse pacote.\n\nAs funções disponíveis dependem do suporte a iOS de cada aba."
+        }
+      }
+    },
+    "portas": [
+      2222,
+      2222,
+      2222,
+      2222,
+      2222,
+      2222
+    ],
+    "ferramentas": [
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "SSH-KEYGEN",
+        "argumentos": [
+          "-t",
+          "ed25519",
+          "-N",
+          "",
+          "-f",
+          "RAIZ/ssh/id_iphone",
+          "-C",
+          "Nova AI USB"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-idevice_id",
+        "argumentos": [
+          "-l"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductType"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      },
+      {
+        "arquivo": "FERRAMENTA-ideviceinfo",
+        "argumentos": [
+          "-u",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "-k",
+          "ProductVersion"
+        ],
+        "opcoes": {
+          "timeout": 15000,
+          "windowsHide": true
+        }
+      }
+    ],
+    "processos": [],
+    "conexoes": [
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      },
+      {
+        "host": "127.0.0.1",
+        "port": 2222,
+        "username": "mobile",
+        "readyTimeout": 15000,
+        "algorithms": {
+          "serverHostKey": [
+            "ssh-ed25519"
+          ]
+        },
+        "hostHash": "sha256",
+        "senhaInformada": true
+      }
+    ],
+    "impressoes": [
+      true,
+      true,
+      true
+    ],
+    "comandos": [
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "test -d /var/jb && command -v sudo >/dev/null",
+        "entrada": ""
+      },
+      {
+        "comando": "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; grep -qxF 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' ~/.ssh/authorized_keys || printf \"%s\\n\" 'ssh-ed25519 AAAAChaveDoNova Nova AI USB' >> ~/.ssh/authorized_keys",
+        "entrada": ""
+      },
+      {
+        "comando": "cat /var/jb/etc/ssh/ssh_host_ed25519_key.pub 2>/dev/null || cat /etc/ssh/ssh_host_ed25519_key.pub",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W -f='${Version}' com.aquiles.novaproxy 2>/dev/null || true",
+        "entrada": ""
+      },
+      {
+        "comando": "/var/jb/usr/bin/dpkg-query -W 2>/dev/null || true",
+        "entrada": ""
+      }
+    ],
+    "envios": [],
+    "openssh": [
+      "ssh",
+      "ssh",
+      "ssh"
+    ],
+    "consultasAoServico": [
+      "test -d /var/jb",
+      "test -d /var/jb"
+    ],
+    "encerrados": 3,
+    "fimDoSftp": 0,
+    "clientesCriados": 3,
+    "arquivos": {
+      "chavesDosAparelhos": "{\n  \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\": \"4283527861ea29dfb991450ef5cd355bcd981806bc0539097f9feb3f4dd00ec8\"\n}",
+      "conhecidos": "[127.0.0.1]:2222 ssh-ed25519 Y2hhdmUtZG8tc2Vydmlkb3ItdXNi\n",
+      "chavePrivadaExiste": true
+    }
+  },
+  "prompt avisa a janela do Nova com o id e o nome, e recusa janela fechada ou aparelho sem id": {
+    "cena": {
+      "completo": {
+        "success": true,
+        "message": "Informe a senha SSH no quadro do Nova."
+      },
+      "semNome": {
+        "success": true,
+        "message": "Informe a senha SSH no quadro do Nova."
+      },
+      "semId": {
+        "success": false,
+        "error": "Selecione um iPhone conectado."
+      },
+      "semPedido": {
+        "success": false,
+        "error": "Selecione um iPhone conectado."
+      },
+      "janelaFechada": {
+        "success": false,
+        "error": "A janela do Nova não está disponível."
+      },
+      "semJanela": {
+        "success": false,
+        "error": "A janela do Nova não está disponível."
+      },
+      "enviados": [
+        [
+          "nova:iphone-setup-open",
+          {
+            "id": "ios-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "iPhone 8 Plus"
+          }
+        ],
+        [
+          "nova:iphone-setup-open",
+          {
+            "id": "7",
+            "name": ""
+          }
+        ]
+      ]
+    },
+    "portas": [],
+    "ferramentas": [],
+    "processos": [],
+    "conexoes": [],
+    "impressoes": [],
+    "comandos": [],
+    "envios": [],
+    "openssh": [],
+    "consultasAoServico": [],
+    "encerrados": 0,
+    "fimDoSftp": 0,
+    "clientesCriados": 0,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  },
+  "a versão do helper de fuso sai do script, e sem versão ou sem arquivo vale nulo": {
+    "cena": {
+      "comVersao": "12",
+      "comEspacoNoFim": "3",
+      "semVersao": null,
+      "indentada": null,
+      "semArquivo": null
+    },
+    "portas": [],
+    "ferramentas": [],
+    "processos": [],
+    "conexoes": [],
+    "impressoes": [],
+    "comandos": [],
+    "envios": [],
+    "openssh": [],
+    "consultasAoServico": [],
+    "encerrados": 0,
+    "fimDoSftp": 0,
+    "clientesCriados": 0,
+    "arquivos": {
+      "chavesDosAparelhos": null,
+      "conhecidos": null,
+      "chavePrivadaExiste": false
+    }
+  }
+}
