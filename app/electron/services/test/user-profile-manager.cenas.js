@@ -42,6 +42,7 @@ module.exports = [
   { nome: 'o cofre usa só as cem primeiras atividades e corta o html em 300 caracteres', arquivos: { cofre: cofreCom(Array.from({ length: 120 }, (_, n) => atividade(`T${n}`, n === 0 ? 'a'.repeat(400) : 'b'))) }, modelos: sucesso, roteiro: analisar('chave', []) },
   { nome: 'atividade sem título nem html é ignorada e sem html fica só o título', arquivos: { cofre: cofreCom([{}, atividade('', ''), atividade('só título'), { title: 'sem lista', safeHtmlItem: [{ html: undefined }, { html: '<b>x</b>' }] }]) }, modelos: sucesso, roteiro: analisar('chave', []) },
   { nome: 'o cofre com JSON quebrado avisa e as conversas seguem', arquivos: { cofre: '{quebrado' }, modelos: sucesso, roteiro: analisar('chave', comUmaConversa) },
+  { nome: 'uma atividade nula no cofre avisa e guarda só as amostras que já tinham entrado', arquivos: { cofre: '[{"title": "antes"}, null, {"title": "depois"}]' }, modelos: sucesso, roteiro: analisar('chave', comUmaConversa) },
   { nome: 'o cofre que não é lista avisa e as conversas seguem', arquivos: { cofre: '{"a": 1}' }, modelos: sucesso, roteiro: analisar('chave', comUmaConversa) },
   { nome: 'o texto de amostra passa de cinquenta mil caracteres e é cortado', modelos: sucesso, roteiro: analisar('chave', [conversa(1, [{ role: 'user', text: 'z'.repeat(60000) }])]) },
   { nome: 'o contexto gravado é lido sem a análise', arquivos: { contexto: '{"lastUpdated": 1, "context": "perfil antigo"}' }, roteiro: async (perfil) => perfil.getUserContext() },

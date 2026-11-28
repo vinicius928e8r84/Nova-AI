@@ -1670,6 +1670,86 @@
       "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
     }
   },
+  "uma atividade nula no cofre avisa e guarda só as amostras que já tinham entrado": {
+    "retornos": "perfil do usuário",
+    "eventos": [
+      [
+        "fs.existe",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json"
+        ]
+      ],
+      [
+        "fs.ler",
+        [
+          "<falso>/instalado/Nova_Vault/MyActivity.json",
+          "utf8"
+        ]
+      ],
+      [
+        "console.error",
+        [
+          "[UserProfileManager] Failed to read MyActivity.json",
+          "TypeError: Cannot read properties of null (reading 'title')"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] Sync Attempt: gemini-3.8-flash (v1beta)"
+        ]
+      ],
+      [
+        "google.criar",
+        [
+          "chave"
+        ]
+      ],
+      [
+        "google.modelo",
+        [
+          {
+            "model": "gemini-3.8-flash"
+          },
+          {
+            "apiVersion": "v1beta"
+          }
+        ]
+      ],
+      [
+        "google.gerar",
+        [
+          "gemini-3.8-flash",
+          "You are a Psychological & Operations Profiler. Analyze the following user data and extract their persona, language style, and interests.\nUSER DATA:\n--- RECENT CHAT ---\nUser: pergunta 1\nNOVA: resposta 1\n\n\n--- VAULT MEMORY ---\nantes\n",
+          {
+            "timeout": 30000
+          }
+        ]
+      ],
+      [
+        "fs.escrever",
+        [
+          "<falso>/dados/nova_user_context.json",
+          "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+        ]
+      ],
+      [
+        "console.log",
+        [
+          "[UserProfileManager] ✓ User profile synced successfully."
+        ]
+      ]
+    ],
+    "globais": {
+      "profileAnalysisFailCount": "(indefinido)",
+      "lastAnalysisAttemptTime": 1795867200000,
+      "lastAnalysisFailureTime": 0
+    },
+    "arquivos": {
+      "<falso>/instalado/Nova_Vault/MyActivity.json": "[{\"title\": \"antes\"}, null, {\"title\": \"depois\"}]",
+      "<falso>/dados/nova_user_context.json": "{\n  \"lastUpdated\": 1795867200000,\n  \"context\": \"perfil do usuário\"\n}"
+    }
+  },
   "o cofre que não é lista avisa e as conversas seguem": {
     "retornos": "perfil do usuário",
     "eventos": [
