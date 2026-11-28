@@ -220,3 +220,12 @@ FALHA: https devia ser recusado nesta versão
 saiu com 1
 FALHA: o erro devia falar de https esquema TLS (TLS até o proxy) ainda não é suportado nesta versão: use http:// na porta 1000 ou socks5:// na 1002
 1 FALHA(S)
+== socks5_test sem quebra
+saiu com 0
+SOCKS5: TODOS OS TESTES PASSARAM
+== upstream_roteiros_test sem quebra
+saiu com 0
+UPSTREAM ROTEIROS: TODOS OS TESTES PASSARAM
+== forwarder_test sem quebra
+saiu com 0
+FORWARDER: TODOS OS TESTES PASSARAM
