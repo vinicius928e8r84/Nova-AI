@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const base = path.join(__dirname, '..');
-const arquivos = ['ios-camera.js', 'physicalMobileService.js', 'iphone-comando.js', 'iphone-proxy.js', 'iphone-controle.js', 'iphone-fuso.js', 'iphone-setup/inapp.js', 'iphone-setup/setup.js'];
+const arquivos = ['ios-camera.js', 'physicalMobileService.js', 'iphone-comando.js', 'iphone-proxy.js', 'iphone-controle.js', 'iphone-fuso.js', 'iphone-setup/inapp.js', 'iphone-setup/inapp-visual.js', 'iphone-setup/inapp-console.js', 'iphone-setup/inapp-conectar.js', 'iphone-setup/inapp-console-sozinho.js', 'iphone-setup/setup.js', 'iphone-setup/setup-ssh.js', 'iphone-setup/setup-chaves.js', 'iphone-setup/setup-pacotes.js'];
 
 for (const arquivo of arquivos) {
     test(`${arquivo} não cita Mac nem instalar-iphone.command nas mensagens`, () => {

@@ -2,7 +2,8 @@
 const path = require('path');
 const { mock } = require('node:test');
 
-const CAMINHO_DO_INAPP = path.join(__dirname, '..', 'iphone-setup', 'inapp.js');
+const PASTA_DO_SETUP = path.join(__dirname, '..', 'iphone-setup');
+const CAMINHO_DO_INAPP = path.join(PASTA_DO_SETUP, 'inapp.js');
 const ENTIDADES = { '&times;': '×', '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"' };
 const SEM_FECHAMENTO = new Set(['input', 'br']);
 const PEDACO_DA_MARCACAO = /<(\/?)([a-zA-Z][\w-]*)((?:[^>"]|"[^"]*")*?)(\/?)>|([^<]+)/g;
@@ -211,6 +212,12 @@ function relogiosFalsos() {
   };
 }
 
+function esquecerModulosDoInapp() {
+  for (const arquivo of Object.keys(require.cache)) {
+    if (path.dirname(arquivo) === PASTA_DO_SETUP && path.basename(arquivo).startsWith('inapp')) delete require.cache[arquivo];
+  }
+}
+
 async function encenar(cena) {
   const documento = new Documento(cena.ambiente || {});
   const diario = documento.diario;
@@ -218,7 +225,7 @@ async function encenar(cena) {
   const antes = global.document;
   global.document = documento;
   const relogios = relogiosFalsos();
-  delete require.cache[CAMINHO_DO_INAPP];
+  esquecerModulosDoInapp();
   try {
     const { attach } = require(CAMINHO_DO_INAPP);
     const resultado = await cena.roteiro(Object.assign(contexto, { attach, intervalosAtivos: () => relogios.contagem.intervalosAtivos }));
@@ -226,7 +233,7 @@ async function encenar(cena) {
   } finally {
     relogios.restaurar();
     global.document = antes;
-    delete require.cache[CAMINHO_DO_INAPP];
+    esquecerModulosDoInapp();
   }
 }
 
