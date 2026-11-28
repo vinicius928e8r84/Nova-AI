@@ -183,9 +183,9 @@ function removerGlobais() {
 function instalarConsole() {
   const originais = {};
   const descrever = (parte) => (parte instanceof Error ? `<${parte.name}>` : parte);
-  for (const nivel of ['log', 'warn', 'error']) {
+  for (const nivel of ['log', 'info', 'warn', 'error']) {
     originais[nivel] = console[nivel];
-    console[nivel] = (...partes) => anotar(`console.${nivel}`, partes.map(descrever));
+    console[nivel] = (...partes) => anotar(`console.${nivel === 'info' ? 'log' : nivel}`, partes.map(descrever));
   }
   return () => Object.assign(console, originais);
 }
