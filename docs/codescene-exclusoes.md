@@ -20,6 +20,23 @@ As pastas `{iphone,interface,distribuicao}/**/backup-*/` saíram da lista porque
 
 `app/dist/` inteira **não** sai: `app/dist/cam-live.js` e `app/dist/cam-live-audio.js` são código do CAM LIVE escrito à mão, carregado por `<script>` no `index.html`.
 
+## Filtro por extensão
+
+O painel tem ainda um filtro por extensão, o campo `exclusionfilter` da configuração do projeto, separado da lista acima. Ele guarda estas oito extensões, unidas por `;`:
+
+```text
+*.json
+*.yml
+*.sh
+*.md
+*.min.js
+*.txt
+*.html
+*.css
+```
+
+O `*.h` saiu do filtro em 28/11, no começo da fase do iPhone (decisão 3 da [#134](https://github.com/vinicius928e8r84/Nova-AI/issues/134)), para o painel dar nota aos `.h` do proxy e ao `Pipeline.h`. O `exclusoes.test.js` barra a volta dele e de qualquer outra extensão de código que o painel analisa.
+
 ## Uma lista só
 
 A lista `ignorarCodigo` de `scripts/regras/configuracao.json` (o que as regras do repositório isentam) e esta dizem a mesma coisa. `scripts/regras/test/exclusoes.test.js` confere, com os arquivos que o git versiona:
