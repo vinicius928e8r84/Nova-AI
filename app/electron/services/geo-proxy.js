@@ -125,20 +125,23 @@ function getJson(url, agent, timeoutMs = 15000) {
   });
 }
 
+const textoOuNulo = (valor) => valor || null;
+const campoDoObjeto = (objeto, campo) => textoOuNulo(objeto && objeto[campo]);
+const consultaFalhou = (data) => !data || data.success === false;
+const mensagemDaFalha = (data) => (data && data.message) || 'geolocalização falhou';
+
 function normalize(data) {
-  if (!data || data.success === false) {
-    throw new Error((data && data.message) || 'geolocalização falhou');
-  }
+  if (consultaFalhou(data)) throw new Error(mensagemDaFalha(data));
   return {
-    ip: data.ip || null,
-    city: data.city || null,
-    region: data.region || null,
-    country: data.country || null,
-    countryCode: data.country_code || null,
+    ip: textoOuNulo(data.ip),
+    city: textoOuNulo(data.city),
+    region: textoOuNulo(data.region),
+    country: textoOuNulo(data.country),
+    countryCode: textoOuNulo(data.country_code),
     lat: data.latitude,
     lon: data.longitude,
-    timezone: (data.timezone && data.timezone.id) || null,
-    isp: (data.connection && data.connection.isp) || null
+    timezone: campoDoObjeto(data.timezone, 'id'),
+    isp: campoDoObjeto(data.connection, 'isp')
   };
 }
 
