@@ -5,15 +5,15 @@ ARCHS = arm64
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = NovaModel
-NovaModel_FILES = Tweak.x
-NovaModel_CFLAGS = -fobjc-arc -Wno-unused-function
+NovaModel_FILES = Tweak.m Configuracao.m GanchosMobileGestalt.m GanchosSysctl.m GanchosUIDevice.m
+NovaModel_CFLAGS = -fobjc-arc -Wno-unused-function -fvisibility=hidden
 NovaModel_FRAMEWORKS = Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 TOOL_NAME = novamodel
-novamodel_FILES = main.m
-novamodel_CFLAGS = -fobjc-arc -Wall
+novamodel_FILES = main.m ArquivoDeControle.m ArquivoJSON.m BancoDeModelos.m Comandos.m ModeloReal.m
+novamodel_CFLAGS = -fobjc-arc -Wall -fvisibility=hidden
 novamodel_FRAMEWORKS = Foundation
 novamodel_CODESIGN_FLAGS = -Sentitlements.plist
 

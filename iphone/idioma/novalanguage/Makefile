@@ -6,8 +6,8 @@ include $(THEOS)/makefiles/common.mk
 
 TOOL_NAME = novalanguage
 
-novalanguage_FILES = main.m
-novalanguage_CFLAGS = -fobjc-arc -Wall
+novalanguage_FILES = main.m Comandos.m Opcoes.m Preferencias.m Saida.m Validacao.m Varredura.m
+novalanguage_CFLAGS = -fobjc-arc -Wall -fvisibility=hidden
 novalanguage_LDFLAGS = -framework Foundation
 
 include $(THEOS_MAKE_PATH)/tool.mk

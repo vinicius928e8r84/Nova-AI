@@ -75,14 +75,14 @@ function testControlContract() {
 }
 
 function testMGWhitelist() {
-  const src = fs.readFileSync(path.join(ROOT, 'Tweak.x'), 'utf8');
-  const m = src.match(/g_mgKeys = \[NSSet setWithObjects:([^\]]*)\]/s);
-  if (!m) { fail('Tweak.x: não encontrei o whitelist g_mgKeys'); return; }
+  const src = fs.readFileSync(path.join(ROOT, 'GanchosMobileGestalt.m'), 'utf8');
+  const m = src.match(/chavesDoMobileGestalt = \[NSSet setWithObjects:([^\]]*)\]/s);
+  if (!m) { fail('GanchosMobileGestalt.m: não encontrei o whitelist chavesDoMobileGestalt'); return; }
   const keys = [...m[1].matchAll(/@"([A-Za-z]+)"/g)].map(x => x[1]);
   const expected = ['ProductType', 'HWModelStr', 'ModelNumber', 'ProductName', 'MarketingProductName'];
-  for (const k of expected.filter(k => !keys.includes(k))) fail(`Tweak.x: chave MG ${k} ausente do whitelist`);
-  for (const k of keys.filter(k => !expected.includes(k))) fail(`Tweak.x: chave MG ${k} fora da spec no whitelist`);
-  if (!process.exitCode) ok(`Tweak.x: whitelist MG = ${keys.join(', ')}`);
+  for (const k of expected.filter(k => !keys.includes(k))) fail(`GanchosMobileGestalt.m: chave MG ${k} ausente do whitelist`);
+  for (const k of keys.filter(k => !expected.includes(k))) fail(`GanchosMobileGestalt.m: chave MG ${k} fora da spec no whitelist`);
+  if (!process.exitCode) ok(`GanchosMobileGestalt.m: whitelist MG = ${keys.join(', ')}`);
 }
 
 function testSpecReference() {

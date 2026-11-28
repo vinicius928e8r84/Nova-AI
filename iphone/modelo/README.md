@@ -11,13 +11,15 @@ Contrato com o app: `~/OpenBot/Shared/NOVA-AI-MODELO-SPOOF-SPEC.md`.
 
 | Arquivo | Papel |
 |---|---|
-| `Tweak.x` | Tweak Substrate/ellekit (rootless) que injeta o modelo. Carrega em todo processo (o `%ctor` ignora só a CLI `novamodel`). |
+| `Tweak.m` | Construtor do tweak Substrate/ellekit (rootless) que injeta o modelo. Carrega em todo processo (ignora só a CLI `novamodel`) e chama os instaladores dos ganchos. |
+| `Configuracao.m`, `GanchosMobileGestalt.m`, `GanchosSysctl.m`, `GanchosUIDevice.m` | O tweak por responsabilidade: ler o control file com cache por `stat`, e os ganchos do libMobileGestalt, do `sysctl` e do `UIDevice`. |
 | `NovaModel.plist` | Filtro vazio = carrega em todos os processos (spoofing de sistema inteiro). |
-| `main.m` | CLI `/var/jb/usr/bin/novamodel` (setuid root): `set` / `clear` / `status`. |
+| `main.m`, `Comandos.m`, `BancoDeModelos.m`, `ArquivoDeControle.m`, `ArquivoJSON.m`, `ModeloReal.m` | CLI `/var/jb/usr/bin/novamodel` (setuid root): `set` / `clear` / `status`. O `main.m` só despacha; os outros guardam o banco, o control file e o modelo real. |
 | `models.json` | Banco de 27 modelos iOS (ProductType + nome de marketing). Instalado em `/var/jb/usr/share/novamodel/models.json`. |
 | `layout/DEBIAN/postinst` | `chmod 4755` no `novamodel` (setuid root, mesmo padrão do `novaproxy`). |
 | `layout/DEBIAN/prerm` | Antes de remover, restaura o modelo real. |
-| `test/teste-novamodel.cjs` | Valida JSON do banco, contrato do control file, whitelist MG e os ProductTypes da spec. |
+| `test/teste-novamodel.cjs` | Valida JSON do banco, contrato do control file, whitelist MG (em `GanchosMobileGestalt.m`) e os ProductTypes da spec. |
+| `test/caracterizacao.sh` | Teste do Mac (roda no job macOS da CI): compila a CLI e o tweak com o banco, o control file e o MobileGestalt de mentira e compara a saída de 63 cenas com `test/caracterizacao.esperado.txt`. A lista de arquivos vem do `Makefile`. |
 
 ## Como funciona o tweak
 
@@ -39,7 +41,7 @@ Hooks (whitelist fechado, para não quebrar outros subsistemas):
 | `sysctlbyname` / `sysctl` (libc) | `hw.machine`, `hw.product` | `ProductType` / `MarketingProductName` |
 | `UIDevice` | `model`, `localizedModel`, `modelName` (privado, se existir), `_modelName` | `ProductName` / `MarketingProductName` |
 
-A CLI `novamodel` roda **sem** o tweak (o `%ctor` a ignora), então `status` sempre lê o
+A CLI `novamodel` roda **sem** o tweak (o construtor do `Tweak.m` a ignora), então `status` sempre lê o
 `ProductType` real do aparelho.
 
 ## CLI no aparelho
@@ -56,7 +58,7 @@ A CLI `novamodel` roda **sem** o tweak (o `%ctor` a ignora), então `status` sem
 export THEOS=~/theos
 cd "$HOME/Desktop/Nova-AI/iphone/modelo"
 make clean && make package
-# saída: packages/com.aquiles.novamodel_0.1-*.deb
+# saída: packages/com.aquiles.novamodel_0.2-*.deb
 ```
 
 ## Instalar no iPhone (rootless)
@@ -64,8 +66,8 @@ make clean && make package
 ```sh
 # com o iPhone plugado, jailbreak ativo e OpenSSH:
 iproxy 2222 22 &
-scp -P 2222 packages/com.aquiles.novamodel_0.1-*.deb mobile@127.0.0.1:/var/tmp/
-ssh -p 2222 mobile@127.0.0.1 "sudo dpkg -i /var/tmp/com.aquiles.novamodel_0.1-*.deb"
+scp -P 2222 packages/com.aquiles.novamodel_0.2-*.deb mobile@127.0.0.1:/var/tmp/
+ssh -p 2222 mobile@127.0.0.1 "sudo dpkg -i /var/tmp/com.aquiles.novamodel_0.2-*.deb"
 ```
 
 Depois de instalado, testar: `ssh -p 2222 mobile@127.0.0.1 "/var/jb/usr/bin/novamodel status"`.

@@ -46,3 +46,14 @@ A lista `ignorarCodigo` de `scripts/regras/configuracao.json` (o que as regras d
 3. toda linha desta lista ainda casa com algum arquivo.
 
 Mudar uma das duas listas é mudar a outra na mesma PR. Mudar `configuracao.json` é mudar as regras: PR própria, atenção ALTA, revisão do dono (`CONTRIBUTING.md`). O painel do CodeScene não se atualiza sozinho: depois do merge, alguém copia o bloco acima para o painel e roda uma análise nova.
+
+## Avisos suprimidos um a um
+
+Fora das exclusões, o painel guarda avisos suprimidos método por método (o link Suppress do comentário do check da PR). Hoje são dois, e só estes:
+
+| Arquivo | Método | Aviso | Por quê | Decidido |
+| --- | --- | --- | --- | --- |
+| `iphone/modelo/GanchosSysctl.m` | `ganchoSysctlbyname` (5 argumentos) | Excess Number of Function Arguments | O gancho substitui o `sysctlbyname` da libc e tem de ter a assinatura dele (ABI); nada a juntar num objeto | dono, 28/11, PR #310 |
+| `iphone/modelo/GanchosSysctl.m` | `ganchoSysctl` (6 argumentos) | Excess Number of Function Arguments | Mesma razão, para o `sysctl` da libc | dono, 28/11, PR #310 |
+
+Suprimir outro aviso é decisão do dono. Um gancho de função do sistema com a mesma razão entra nesta tabela na PR que o cria.

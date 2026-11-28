@@ -156,8 +156,8 @@ test('nenhum teste em Objective-C ou shell do iPhone fica de fora do job mac', (
   assert.deepEqual(doIphone.filter(arquivo => !noMac.has(arquivo)), []);
 });
 
-test('o job mac executa os dois rodar.sh com bash e só eles', () => {
-  assert.deepEqual(portao.arquivosDoJob(lista, 'mac', versionados), [['mac-do-iphone', ['iphone/idioma/test/rodar.sh', 'iphone/proxy/tool/test/rodar.sh'], 'bash']]);
+test('o job mac executa os três rodar.sh com bash e só eles', () => {
+  assert.deepEqual(portao.arquivosDoJob(lista, 'mac', versionados), [['mac-do-iphone', ['iphone/idioma/test/rodar.sh', 'iphone/modelo/test/rodar.sh', 'iphone/proxy/tool/test/rodar.sh'], 'bash']]);
 });
 
 test('grupo com executar só pode executar arquivo que ele mesmo cobre', () => {
@@ -168,10 +168,10 @@ test('grupo com executar só pode executar arquivo que ele mesmo cobre', () => {
 });
 
 test('rodar.sh novo de outra pasta do iPhone é executado pelo job mac, mas só depois de coberto pelo grupo', () => {
-  const novo = 'iphone/modelo/test/rodar.sh';
+  const novo = 'iphone/camera/test/rodar.sh';
   const [, executados] = portao.arquivosDoJob(lista, 'mac', [...versionados, novo])[0];
   assert.ok(executados.includes(novo));
-  assert.match(portao.conferir(lista, [...versionados, novo]).join('\n'), /iphone\/modelo\/test\/rodar\.sh/);
+  assert.match(portao.conferir(lista, [...versionados, novo]).join('\n'), /iphone\/camera\/test\/rodar\.sh/);
 });
 
 test('grupo com executar sem com é problema', () => {
