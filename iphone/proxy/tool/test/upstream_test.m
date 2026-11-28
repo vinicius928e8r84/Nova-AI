@@ -12,6 +12,22 @@ static int fails = 0;
 
 typedef struct { int fd; char req[4096]; size_t used; int kind; } Fake;
 
+typedef struct {
+    const char *se_conectou;
+    const char *trecho_do_erro;
+    const char *se_faltou_o_trecho;
+} MensagensDeRecusa;
+
+typedef struct {
+    void *(*servidor)(void *);
+    int kind;
+    const char *scheme;
+    const char *user;
+    const char *pass;
+    int porta_do_alvo;
+    MensagensDeRecusa mensagens;
+} CenaDeRecusa;
+
 static void fail(const char *msg, const char *extra) {
     fails++;
     printf("FALHA: %s %s\n", msg, extra ?: "");
@@ -164,18 +180,6 @@ static int cena_http_conecta(void) {
     return 0;
 }
 
-static void cena_http_recusa(void) {
-    Fake f = {0};
-    f.kind = 407;
-    int port = subir_proxy_falso(&f, http_server);
-    char err[512];
-    err[0] = 0;
-    int fd = upstream_connect("http", "127.0.0.1", port, "usr", "x", "alvo.exemplo.com", 443, err, sizeof(err));
-    if (fd >= 0) { fail("407 devia falhar", NULL); close(fd); }
-    else if (!strstr(err, "407")) fail("o erro devia citar o 407", err);
-    close(f.fd);
-}
-
 static void cena_socks4a_conecta(void) {
     Fake f = {0};
     int port = subir_proxy_falso(&f, socks4_server);
@@ -190,15 +194,15 @@ static void cena_socks4a_conecta(void) {
     close(f.fd);
 }
 
-static void cena_socks4_recusa(void) {
+static void cena_de_recusa(CenaDeRecusa c) {
     Fake f = {0};
-    f.kind = 1;
-    int port = subir_proxy_falso(&f, socks4_server);
+    f.kind = c.kind;
+    int port = subir_proxy_falso(&f, c.servidor);
     char err[512];
     err[0] = 0;
-    int fd = upstream_connect("socks4a", "127.0.0.1", port, "usr", "", "alvo.exemplo.com", 80, err, sizeof(err));
-    if (fd >= 0) { fail("recusa do SOCKS4 devia falhar", NULL); close(fd); }
-    else if (!strstr(err, "recusou")) fail("o erro devia dizer que recusou", err);
+    int fd = upstream_connect(c.scheme, "127.0.0.1", port, c.user, c.pass, "alvo.exemplo.com", c.porta_do_alvo, err, sizeof(err));
+    if (fd >= 0) { fail(c.mensagens.se_conectou, NULL); close(fd); }
+    else if (!strstr(err, c.mensagens.trecho_do_erro)) fail(c.mensagens.se_faltou_o_trecho, err);
     close(f.fd);
 }
 
@@ -212,9 +216,11 @@ static void cena_https_recusado(void) {
 
 int main(void) { @autoreleasepool {
     if (cena_http_conecta() != 0) return 1;
-    cena_http_recusa();
+    cena_de_recusa((CenaDeRecusa){http_server, 407, "http", "usr", "x", 443,
+        {"407 devia falhar", "407", "o erro devia citar o 407"}});
     cena_socks4a_conecta();
-    cena_socks4_recusa();
+    cena_de_recusa((CenaDeRecusa){socks4_server, 1, "socks4a", "usr", "", 80,
+        {"recusa do SOCKS4 devia falhar", "recusou", "o erro devia dizer que recusou"}});
     cena_https_recusado();
 
     printf(fails ? "%d FALHA(S)\n" : "UPSTREAM: TODOS OS TESTES PASSARAM\n", fails);
